@@ -88,15 +88,15 @@ QuantumValue Interpreter::evalBinary(BinaryExpr &e)
 }
 ```
 
-## Line-by-Line Explanation
+## Code Explanation
 
-### Function Signature (Line 2710)
-- **Line 2710**: `QuantumValue Interpreter::evalBinary(BinaryExpr &e)` - Evaluate binary expressions
+### Function Signature
+- `QuantumValue Interpreter::evalBinary(BinaryExpr &e)` - Evaluate binary expressions
   - `e`: Reference to BinaryExpr AST node
   - Returns QuantumValue result of the binary operation
 
-### Short-Circuit Operators (Lines 2711-2730)
-- **Line 2711**: `{` - Opening brace
+### Short-Circuit Operators
+- `{` - Opening brace
 - **Line 2712**: `// Short-circuit for and/or/?? (nullish coalescing)` - Comment about short-circuit logic
 - **Line 2713**: `if (e.op == "and")` - Check for logical AND
 - **Line 2714**: `{` - Opening brace for AND
