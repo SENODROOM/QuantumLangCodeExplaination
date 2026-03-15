@@ -1,47 +1,53 @@
-# QuantumLanguage Compiler - Token.h
+# QuantumLanguage Compiler - TypeChecker.h
 
 ## Overview
 
-The `include/Token.h` header file is an essential part of the QuantumLanguage compiler, primarily responsible for defining and managing tokens used during the lexical analysis phase. Tokens represent the smallest units of meaning in the source code, forming the foundation upon which the parser constructs abstract syntax trees (ASTs). This file plays a critical role in the compiler pipeline by providing a structured representation of these tokens, including their type, value, and location information.
+The `include/TypeChecker.h` header file plays a vital role in the QuantumLanguage compiler by ensuring type safety during the compilation process. This file defines the `StaticTypeError` exception class and the `TypeEnv` structure, which manage static type environments, and the `TypeChecker` class, which performs type checking on abstract syntax tree (AST) nodes.
 
 ## Key Design Decisions
 
-### Use of `std::variant` for Token Values
+### Use of Exception Handling
 
-**WHY:** The decision to use `std::variant` was driven by the need to support multiple data types within a single token structure. Traditional unions could not handle move semantics effectively, leading to potential issues when transferring ownership of string values. By using `std::variant`, we ensure that all possible token values (e.g., numbers, strings, booleans) can be stored and moved safely, enhancing the overall robustness and performance of the compiler.
+**Decision:** The `StaticTypeError` exception class is derived from `std::runtime_error`. This decision was made to provide a clear and structured way to handle static type errors, allowing the compiler to report errors at compile time rather than runtime.
 
-### Enumerated Token Types
+**Why:** Static type errors are easier to diagnose and fix because they occur before the program runs. By using exceptions, we can ensure that the compiler stops processing and reports an error immediately when it encounters a type mismatch.
 
-**WHY:** Defining token types as an enumeration (`TokenType`) provides several advantages over other approaches. Firstly, it makes the code more readable and maintainable, as token types are clearly defined and easily identifiable. Secondly, enums allow for compile-time checking of token types, reducing runtime errors related to invalid token usage. Lastly, enums enable efficient comparison and storage of token types, optimizing memory usage and processing speed.
+### Utilization of `std::variant` for Value Types
+
+**Decision:** Although not explicitly shown in the provided code snippet, the use of `std::variant` would likely be integrated into the `TypeChecker` to manage different data types within the language.
+
+**Why:** Using `std::variant` allows for a flexible and efficient representation of multiple value types within a single variable. This approach helps in reducing the overhead associated with dynamic type switching and improves performance.
 
 ## Classes and Functions Documentation
 
-### TokenType Enum Class
+### StaticTypeError Class
 
-**Purpose:** The `TokenType` enum class defines all possible token types in the QuantumLanguage compiler. Each token type corresponds to a specific category of lexical elements, such as literals, identifiers, operators, delimiters, and special symbols.
+**Purpose:** Represents a static type error encountered during the compilation process.
 
-**Behavior:** This enum class serves as a central repository for token types, facilitating easy reference and management throughout the compiler. It includes both language-specific token types (e.g., `LET`, `FN`) and general-purpose token types (e.g., `PLUS`, `LPAREN`).
+**Behavior:** Inherits from `std::runtime_error` and includes the line number where the error occurred.
 
-### Token Struct
+**Trade-offs:** While providing detailed error information, this approach might lead to more verbose error messages compared to simpler error handling mechanisms.
 
-**Purpose:** The `Token` struct represents a single token in the source code. It encapsulates the token's type, value, and position information, enabling the parser to accurately construct the AST.
+### TypeEnv Structure
 
-**Behavior:** The `Token` struct provides a convenient way to store and access token details. Its constructor initializes the token's properties, while the `toString()` method returns a human-readable representation of the token, useful for debugging and logging purposes.
+**Purpose:** Manages static type environments, storing variable names and their corresponding types.
+
+**Behavior:** Supports defining new variables and resolving existing ones. If a variable is not found in the current environment, it searches in the parent environment.
+
+**Limitations:** Assumes that all variable types are known at compile time. Dynamic typing scenarios are not supported.
+
+### TypeChecker Class
+
+**Purpose:** Performs type checking on AST nodes to ensure that the code adheres to the defined type rules.
+
+**Behavior:** Initializes with a global type environment and provides methods to check entire lists of nodes (`check`) and individual nodes (`checkNode`). The `checkNode` method returns the type of the evaluated node based on the current environment.
+
+**Limitations:** Does not currently support `std::variant` for value types, which could limit its flexibility in handling complex data structures.
 
 ## Tradeoffs and Limitations
 
-### Type Safety vs. Flexibility
+- **Error Reporting:** The use of exceptions for error reporting can make the error messages more detailed but may also increase the complexity of the code.
+- **Flexibility:** Assuming static typing limits the compiler's ability to handle dynamic scenarios, which might be necessary in some programming languages.
+- **Performance:** Efficiently managing type environments and performing type checks can impact the overall performance of the compiler.
 
-While `std::variant` offers strong type safety, it may limit flexibility in certain scenarios where dynamic token handling is required. However, given the static nature of the QuantumLanguage grammar, this tradeoff has been deemed acceptable.
-
-### Memory Overhead
-
-Using `std::variant` introduces some memory overhead compared to traditional unions. While this may impact performance in high-throughput environments, the benefits of enhanced type safety and ease of use outweigh the costs.
-
-### Limited Support for Complex Data Structures
-
-Although `std::variant` supports complex data structures like `std::vector`, the current implementation focuses on basic data types. Extending support for more complex structures would require additional design considerations and may introduce complexity into the tokenization process.
-
-## Conclusion
-
-The `include/Token.h` header file is a vital component of the QuantumLanguage compiler, providing a structured and flexible representation of tokens. Its design choices, particularly the use of `std::variant` for token values and enumerations for token types, have been carefully considered to balance type safety, performance, and ease of use. By understanding these decisions and their implications, developers can better appreciate the intricacies of the compiler's architecture and make informed contributions to future enhancements.
+This file is essential for maintaining the integrity and correctness of the QuantumLanguage codebase by ensuring that all operations respect the declared types.
