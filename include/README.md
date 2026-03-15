@@ -1,105 +1,91 @@
-# QuantumLanguage Compiler - Value.h
+# QuantumLanguage Compiler - AST.h
 
 ## Overview
 
-The `include/Value.h` header file is an integral part of the QuantumLanguage compiler's core infrastructure. It defines various data structures and types used to represent values within the language, including basic types like integers, doubles, strings, arrays, dictionaries, functions, native functions, instances, classes, and pointers. This file plays a crucial role in managing value semantics across different stages of compilation and execution.
+The `include/AST.h` header file is a fundamental component of the QuantumLanguage compiler, responsible for defining the Abstract Syntax Tree (AST) nodes that represent the structure of the language's programs. These AST nodes serve as the foundation for semantic analysis, code generation, and other phases of the compilation process.
+
+This file includes definitions for various expression and statement types, which are essential for accurately representing the syntax of QuantumLanguage. By using these AST nodes, the compiler can maintain a clear understanding of the program's structure and semantics throughout the entire compilation pipeline.
 
 ## Key Design Decisions
 
-### Use of Variants for Value Representation
+### Use of `std::variant` for Expressions
 
-One of the primary design decisions in `Value.h` is the use of `std::variant` to represent different types of values. This choice was made to provide a type-safe way to handle multiple value types without resorting to unions or void pointers. By encapsulating all possible value types within a single variant, the compiler can maintain strong typing throughout the evaluation process, reducing runtime errors and improving performance.
+One of the primary design decisions in `AST.h` is the use of `std::variant` to represent expressions. This approach allows for a flexible and extensible way to define different types of expressions without requiring multiple inheritance or complex visitor patterns. By encapsulating all possible expression types within a single variant, the compiler can easily work with and manipulate expressions at runtime.
 
-### Smart Pointers for Memory Management
+**Why:** Using `std::variant` simplifies the implementation of the AST by reducing the overhead associated with multiple inheritance and making it easier to add new expression types in the future.
 
-To ensure efficient memory management and prevent memory leaks, smart pointers (`std::shared_ptr`) are extensively used in `Value.h`. These pointers automatically manage the lifecycle of dynamically allocated objects, ensuring that resources are properly freed when they are no longer needed. The use of shared pointers also facilitates easier sharing of state between different parts of the interpreter, which is essential for handling closures and function calls.
+### Separate Visitor Pattern for Statements
 
-### Non-Owning Pointers for AST Nodes
+Unlike expressions, statements do not directly inherit from a common base class. Instead, a separate visitor pattern is used to handle different statement types. This design choice ensures that each statement type has a well-defined interface for visiting, making it easier to implement and extend the visitor pattern.
 
-In the context of representing function bodies, non-owning pointers (`std::weak_ptr`) to `ASTNode` are used instead of owning pointers (`std::shared_ptr`). This decision was made to avoid circular references and potential memory issues during garbage collection. By using weak pointers, the compiler ensures that AST nodes can be safely referenced without causing ownership cycles, leading to more robust and scalable code.
+**Why:** Separating the visitor pattern for statements into its own namespace allows for more modular and maintainable code. It also makes it easier to understand the purpose and behavior of each statement type, as they are isolated from one another.
 
-## Documentation
+## Documentation of Major Classes/Functions
 
-### QuantumNil
+### ASTNode
 
-Represents the "nil" value, often used as a placeholder or default value.
+The `ASTNode` struct serves as the base class for all AST nodes. It contains a `type` field that indicates the type of the node, as well as a `location` field that stores information about the node's position in the source code.
 
-**Purpose:** To provide a standard representation for the "nil" value in the compiler.
+**Purpose:** The `ASTNode` struct provides a common interface for all AST nodes, allowing them to be manipulated and traversed uniformly.
 
-### QuantumFunction
+**Behavior:** When creating an AST node, you should set the `type` field to indicate the type of the node, and the `location` field to store information about the node's position in the source code.
 
-Represents a user-defined function in the QuantumLanguage.
+### NumberLiteral
 
-**Fields:**
-- `name`: The name of the function.
-- `params`: A vector of parameter names.
-- `paramIsRef`: A vector indicating whether each parameter should be passed by reference.
-- `defaultArgs`: A vector of default argument expressions.
-- `body`: A non-owning pointer to the function body's AST node.
-- `closure`: A shared pointer to the environment capturing the function's scope.
+The `NumberLiteral` struct represents a numeric literal in the source code. It contains a `value` field that stores the numeric value represented by the literal.
 
-**Purpose:** To store information about user-defined functions and facilitate their execution.
+**Purpose:** The `NumberLiteral` struct allows the compiler to represent numeric literals in the AST, enabling subsequent semantic analysis and code generation.
 
-### QuantumClass
+**Behavior:** When creating a `NumberLiteral`, you should set the `value` field to the desired numeric value.
 
-Represents a user-defined class in the QuantumLanguage.
+### StringLiteral
 
-**Purpose:** To store information about user-defined classes and enable object-oriented programming features.
+The `StringLiteral` struct represents a string literal in the source code. It contains a `value` field that stores the string value represented by the literal.
 
-### QuantumInstance
+**Purpose:** The `StringLiteral` struct allows the compiler to represent string literals in the AST, enabling subsequent semantic analysis and code generation.
 
-Represents an instance of a user-defined class.
+**Behavior:** When creating a `StringLiteral`, you should set the `value` field to the desired string value.
 
-**Purpose:** To store state and behavior associated with specific instances of classes.
+### BoolLiteral
 
-### QuantumNative
+The `BoolLiteral` struct represents a boolean literal in the source code. It contains a `value` field that stores the boolean value represented by the literal.
 
-Represents a native function implemented in another language (e.g., C++).
+**Purpose:** The `BoolLiteral` struct allows the compiler to represent boolean literals in the AST, enabling subsequent semantic analysis and code generation.
 
-**Fields:**
-- `name`: The name of the native function.
-- `fn`: A callable object representing the native function.
+**Behavior:** When creating a `BoolLiteral`, you should set the `value` field to either `true` or `false`.
 
-**Purpose:** To integrate external functionality into the QuantumLanguage compiler.
+### NilLiteral
 
-### QuantumNativeFunc
+The `NilLiteral` struct represents a nil literal in the source code. It does not contain any fields, as it simply indicates the absence of a value.
 
-A type alias for a function that takes a vector of `QuantumValue`s and returns a `QuantumValue`.
+**Purpose:** The `NilLiteral` struct allows the compiler to represent nil literals in the AST, enabling subsequent semantic analysis and code generation.
 
-**Purpose:** To define the signature for native functions.
+**Behavior:** When creating a `NilLiteral`, you should not set any fields, as it simply indicates the absence of a value.
 
-### QuantumPointer
+### Identifier
 
-Represents a pointer to a variable in the QuantumLanguage.
+The `Identifier` struct represents an identifier in the source code. It contains a `name` field that stores the name of the identifier.
 
-**Fields:**
-- `cell`: A shared pointer to the actual variable storage.
-- `varName`: The name of the variable for display/debug purposes.
-- `offset`: An optional integer offset for pointer arithmetic.
+**Purpose:** The `Identifier` struct allows the compiler to represent identifiers in the AST, enabling subsequent semantic analysis and code generation.
 
-**Methods:**
-- `isNull()`: Checks if the pointer is null.
-- `deref()`: Dereferences the pointer and returns a reference to the underlying value. Throws an exception if the pointer is null.
+**Behavior:** When creating an `Identifier`, you should set the `name` field to the desired identifier name.
 
-**Purpose:** To support pointer operations and facilitate dynamic memory management.
+### BinaryExpr
 
-### QuantumValue
+The `BinaryExpr` struct represents a binary expression in the source code. It contains an `op` field that stores the operator of the expression, as well as `left` and `right` fields that store pointers to the operands of the expression.
 
-Represents a generic value in the QuantumLanguage.
+**Purpose:** The `BinaryExpr` struct allows the compiler to represent binary expressions in the AST, enabling subsequent semantic analysis and code generation.
 
-**Type Alias:**
-- `Data`: A variant containing all possible value types.
+**Behavior:** When creating a `BinaryExpr`, you should set the `op` field to the desired operator, and the `left` and `right` fields to pointers to the operands of the expression.
 
-**Constructor Overloads:**
-- Default constructor initializes to `QuantumNil`.
-- Explicit constructors for boolean, double, string, array, dictionary, function, native function, instance, class, and pointer types.
+### UnaryExpr
 
-**Purpose:** To serve as a versatile container for any value type in the QuantumLanguage.
+The `UnaryExpr` struct represents a unary expression in the source code. It contains an `op` field that stores the operator of the expression, as well as an `operand` field that stores a pointer to the operand of the expression.
 
-## Tradeoffs and Limitations
+**Purpose:** The `UnaryExpr` struct allows the compiler to represent unary expressions in the AST, enabling subsequent semantic analysis and code generation.
 
-- **Memory Overhead:** Using smart pointers introduces some overhead compared to raw pointers, but it significantly improves memory safety and reduces manual memory management.
-- **Complexity:** The use of variants and smart pointers adds complexity to the codebase, making it harder to understand and debug at times.
-- **Performance:** While smart pointers help prevent memory leaks, they may introduce slight performance penalties due to additional indirection and locking mechanisms.
+**Behavior:** When creating a `UnaryExpr`, you should set the `op` field to the desired operator, and the `operand` field to a pointer to the operand of the expression.
 
-Overall, the design choices in `Value.h` aim to balance safety, flexibility, and performance, providing a solid foundation for the QuantumLanguage compiler's value system.
+### AssignExpr
+
+The `AssignExpr` struct represents an assignment expression in the source code. It contains an
