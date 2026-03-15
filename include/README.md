@@ -1,79 +1,90 @@
-# QuantumLanguage Compiler - Interpreter.h
+# Lexer.h - The Heart of Lexical Analysis in Quantum Language Compiler
 
-## Overview
+## Introduction
 
-The `Interpreter.h` file is an integral part of the QuantumLanguage compiler's runtime system. It defines the `Interpreter` class, which is responsible for executing abstract syntax tree (AST) nodes and evaluating expressions within the QuantumLanguage environment. This class forms the core of the interpreter component, enabling the execution of quantum programs.
+`Lexer.h` is a critical header file in the Quantum Language compiler, responsible for converting raw source code into a sequence of tokens. This process is known as lexical analysis or tokenization. The `Lexer` class plays a pivotal role in the compiler's pipeline, serving as the first stage where the syntax and semantics of the source code are understood.
 
 ## Key Design Decisions
 
-### ASTNode and Value Classes
+### Use of `std::unordered_map` for Keywords and Macros
 
-**Why:** The use of `ASTNode` and `Value` classes allows for a flexible and extensible representation of both program structure and data values. By leveraging these classes, the interpreter can handle various types of statements and expressions seamlessly.
+**Why:** Using an unordered map allows for constant-time average complexity for lookups, which is essential for quickly identifying keywords and expanding macros during the lexing phase. This choice enhances performance and scalability, especially when dealing with large codebases.
 
-### Environment Management
+### Separate Handling for F-Strings
 
-**Why:** An environment management system is essential for maintaining state across different scopes in the program. Using `std::shared_ptr<Environment>` ensures efficient memory management and sharing of environments between nested scopes.
+**Why:** F-strings (formatted string literals) require special handling to expand embedded expressions into their corresponding values. By maintaining a separate vector `pendingTokens_`, the lexer can manage these expansions efficiently without cluttering the main token stream.
 
-### Step Counting to Prevent Infinite Loops
+### Support for C Preprocessor Directives
 
-**Why:** Implementing a step counter (`stepCount_`) helps prevent infinite loops, especially in cases where user input might be empty or not properly handled. Setting a maximum number of steps (`MAX_STEPS`) provides a safety net, ensuring that the interpreter will terminate if it runs for too long.
+**Why:** Integrating support for C preprocessor directives (`#define`) enables the lexer to handle macro definitions and substitutions, making it more versatile and capable of processing complex source files. This feature is crucial for supporting conditional compilation and other preprocessing functionalities.
 
 ## Class Documentation
 
-### Interpreter Class
+### Lexer Class
 
-**Purpose:** The `Interpreter` class is the central component responsible for interpreting and executing QuantumLanguage programs. It manages the environment and handles the evaluation of AST nodes.
+**Purpose:** The `Lexer` class is designed to take a source code string and convert it into a vector of tokens. It handles various lexical elements such as numbers, strings, identifiers, operators, and comments.
 
-**Behaviour:**
-- **Constructor (`Interpreter()`):** Initializes the interpreter with a global environment.
-- **execute (`void execute(ASTNode &node)`):** Executes a single AST node.
-- **evaluate (`QuantumValue evaluate(ASTNode &node)`):** Evaluates an AST node and returns its value.
-- **execBlock (`void execBlock(BlockStmt &s, std::shared_ptr<Environment> scope = nullptr)`):** Executes a block of statements within a specified scope.
-- **globals:** A shared pointer to the global environment, accessible throughout the interpreter.
+**Behavior:** Upon instantiation, the `Lexer` takes a reference to the source code string. The `tokenize()` method processes the entire source code, generating a vector of tokens. Each token represents a meaningful unit of the language, such as a keyword, identifier, or operator.
 
-### Private Member Functions
+### Private Members
 
-#### Statement Executors
+- **src**: Stores the source code string.
+- **pos**: Tracks the current position within the source code.
+- **line** and **col**: Maintain the current line and column numbers for error reporting and debugging purposes.
+- **keywords**: A static unordered map that maps keywords to their corresponding token types.
+- **pendingTokens_**: A vector used for managing f-string expansions.
+- **defines_**: An unordered map that stores macro names and their replacement token lists.
 
-- **execVarDecl (`void execVarDecl(VarDecl &s)`):** Handles variable declarations.
-- **execFunctionDecl (`void execFunctionDecl(FunctionDecl &s)`):** Handles function declarations.
-- **execClassDecl (`void execClassDecl(ClassDecl &s)`):** Handles class declarations.
-- **execIf (`void execIf(IfStmt &s)`):** Handles conditional statements.
-- **execWhile (`void execWhile(WhileStmt &s)`):** Handles while loops.
-- **execFor (`void execFor(ForStmt &s)`):** Handles for loops.
-- **execReturn (`void execReturn(ReturnStmt &s)`):** Handles return statements.
-- **execPrint (`void execPrint(PrintStmt &s)`):** Handles print statements.
-- **execInput (`void execInput(InputStmt &s)`):** Handles input statements.
-- **execImport (`void execImport(ImportStmt &s)`):** Handles import statements.
-- **execExprStmt (`void execExprStmt(ExprStmt &s)`):** Handles expression statements.
+### Methods
 
-#### Expression Evaluators
+#### `current() const`
+**Purpose:** Returns the character at the current position in the source code.
+**Behavior:** Simply returns the character pointed to by `pos`.
 
-- **evalBinary (`QuantumValue evalBinary(BinaryExpr &e)`):** Evaluates binary expressions.
-- **evalUnary (`QuantumValue evalUnary(UnaryExpr &e)`):** Evaluates unary expressions.
-- **evalAssign (`QuantumValue evalAssign(AssignExpr &e)`):** Evaluates assignment expressions.
-- **evalCall (`QuantumValue evalCall(CallExpr &e)`):** Evaluates function calls.
-- **evalIndex (`QuantumValue evalIndex(IndexExpr &e)`):** Evaluates index expressions.
-- **evalMember (`QuantumValue evalMember(MemberExpr &e)`):** Evaluates member access expressions.
-- **evalArray (`QuantumValue evalArray(ArrayLiteral &e)`):** Evaluates array literals.
-- **evalDict (`QuantumValue evalDict(DictLiteral &e)`):** Evaluates dictionary literals.
-- **evalLambda (`QuantumValue evalLambda(LambdaExpr &e)`):** Evaluates lambda expressions.
-- **evalListComp (`QuantumValue evalListComp(ListComp &e)`):** Evaluates list comprehensions.
-- **evalIdentifier (`QuantumValue evalIdentifier(Identifier &e)`):** Evaluates identifier expressions.
+#### `peek(int offset = 1) const`
+**Purpose:** Allows lookahead at characters ahead of the current position.
+**Behavior:** Returns the character at the position `pos + offset`. If `offset` is not provided, it defaults to 1.
 
-#### C++ Pointer Evaluators
+#### `advance()`
+**Purpose:** Advances the lexer to the next character in the source code.
+**Behavior:** Increments `pos` and updates `line` and `col` accordingly. Returns the advanced character.
 
-- **evalAddressOf (`QuantumValue evalAddressOf(AddressOfExpr &e)`):** Evaluates address-of expressions (`&var`).
-- **evalDeref (`QuantumValue evalDeref(DerefExpr &e)`):** Evaluates dereference expressions (`*ptr`).
-- **evalArrow (`QuantumValue evalArrow(ArrowExpr &e)`):** Evaluates arrow expressions (`ptr->member`).
-- **evalNewExpr (`QuantumValue evalNewExpr(NewExpr &e)`):** Evaluates new expressions (`new T(args)`).
+#### `skipWhitespace()`
+**Purpose:** Skips over any whitespace characters in the source code.
+**Behavior:** Continuously advances the lexer until a non-whitespace character is encountered.
 
-#### Function Call Handlers
+#### `skipComment()`
+**Purpose:** Skips over single-line comments in the source code.
+**Behavior:** Advances the lexer past the comment marker (`//`) and all subsequent characters on the same line.
 
-- **callFunction (`QuantumValue callFunction(std::shared_ptr<QuantumFunction> fn, std::vector<QuantumValue> args)`):** Calls a user-defined function.
-- **callNative (`QuantumValue callNative(std::shared_ptr<QuantumNative> fn, std::vector<QuantumValue> args)`):** Calls a native function.
-- **callInstanceMethod (`QuantumValue callInstanceMethod(std::shared_ptr<QuantumInstance> inst, std::shared_ptr<QuantumFunction> fn, std::vector<QuantumValue> args)`):** Calls a method on an instance object.
+#### `skipBlockComment()`
+**Purpose:** Skips over multi-line comments in the source code.
+**Behavior:** Advances the lexer past the block comment markers (`/*` and `*/`) and all enclosed text.
 
-#### Built-In Method Dispatch
+#### `readNumber()`
+**Purpose:** Reads and converts number literals from the source code.
+**Behavior:** Identifies and parses numeric literals, including integers and floating-point numbers, returning them as a `Token`.
 
-- **callMethod (`QuantumValue callMethod(QuantumValue &obj, const std::string &method, std::vector<QuantumValue> args
+#### `readString(char quote)`
+**Purpose:** Reads and converts string literals from the source code.
+**Behavior:** Identifies and parses string literals enclosed in matching quotes, returning them as a `Token`.
+
+#### `readTemplateLiteral(std::vector<Token> &out, int startLine, int startCol)`
+**Purpose:** Handles the expansion of template literals (f-strings).
+**Behavior:** Recursively reads and expands embedded expressions within a string literal, storing the resulting tokens in `out`.
+
+#### `readIdentifierOrKeyword()`
+**Purpose:** Reads and identifies variable names or keywords.
+**Behavior:** Determines if the current sequence of characters forms an identifier or a keyword, returning the appropriate `Token`.
+
+#### `readOperator()`
+**Purpose:** Reads and identifies operator symbols.
+**Behavior:** Recognizes and categorizes operator symbols, returning them as a `Token`.
+
+## Tradeoffs and Limitations
+
+- **Performance:** While the use of unordered maps improves lookup times, the overhead of managing macro expansions and f-string literals can impact performance, particularly in larger codebases.
+- **Complexity:** Supporting both C-style preprocessor directives and f-string literals adds complexity to the lexer implementation, requiring careful handling of state transitions and nested structures.
+- **Error Handling:** The lexer provides basic error handling through line and column information but may need enhancements to provide more detailed diagnostics for complex scenarios.
+
+This README provides a comprehensive overview of the `Lexer.h` file, detailing its functionality, design choices, and potential limitations. For further details, refer to the accompanying implementation and test files.
