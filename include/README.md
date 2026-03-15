@@ -1,74 +1,121 @@
-# QuantumLanguage Compiler - Parser.h
+# QuantumLanguage Compiler - Token.h
 
 ## Overview
 
-The `include/Parser.h` header file is an essential part of the QuantumLanguage compiler, focusing on the parsing phase of the compilation process. This file defines the `Parser` class, which takes a vector of `Token`s and constructs an Abstract Syntax Tree (AST) representing the structure of the source code. The AST serves as the intermediate representation that subsequent phases of the compiler use to generate machine code or other outputs.
+The `include/Token.h` header file is an essential part of the QuantumLanguage compiler, focusing on the representation and handling of tokens within the language. Tokens serve as the fundamental building blocks for parsing and interpreting the source code. This file defines the `TokenType` enum class and the `Token` struct, which encapsulate the type, value, and location information of each token.
 
 ## Key Design Decisions
 
-### Error Handling
+### TokenType Enum Class
 
-The decision to derive `ParseError` from `std::runtime_error` was made to leverage C++'s exception handling mechanism, making it easier to propagate errors up the call stack. The inclusion of line and column numbers in the error message provides more context, aiding in debugging and improving user experience.
+- **Purpose**: The `TokenType` enum class categorizes different types of tokens used in QuantumLanguage. Each category corresponds to a specific token type.
+  
+- **Why**: This design decision allows for clear and unambiguous identification of token types, facilitating the parsing process and ensuring that the correct actions are taken based on the token's nature.
 
-### Pratt Parsing Algorithm
+- **Trade-offs**: While this approach provides a comprehensive list of token types, it may lead to increased complexity if new token types need to be added frequently. Additionally, maintaining this list requires careful consideration to avoid conflicts between existing categories.
 
-Choosing the Pratt parsing algorithm for expression parsing was driven by its ability to handle operator precedence without requiring complex recursive descent parsers. This approach simplifies the implementation and reduces the risk of syntax errors, especially when dealing with nested operators.
+### Token Struct
 
-## Documentation of Classes and Functions
+- **Purpose**: The `Token` struct represents a single token in the source code. It contains the token's type, value, and position (line and column numbers).
+  
+- **Why**: This design choice enables efficient storage and retrieval of token information during the parsing phase. By storing the line and column numbers, the compiler can provide precise error messages when syntax errors occur.
 
-### Class: ParseError
+- **Trade-offs**: Storing the entire token value as a string might consume more memory than necessary, especially for large tokens. However, this approach simplifies token comparison and manipulation operations.
 
-**Purpose:** Represents an error encountered during parsing, providing additional context about the location of the error.
+## Documentation
 
-**Behavior:** Inherits from `std::runtime_error` and adds line and column information to the error message.
+### TokenType Enum Class
 
-**Trade-offs/Limitations:** While exceptions are useful for error handling, they can be expensive in terms of performance and resource usage. Additionally, overuse of exceptions can make the code harder to understand and maintain.
+```cpp
+enum class TokenType
+{
+    // Literals
+    NUMBER,          // Represents numeric literals
+    STRING,          // Represents string literals
+    TEMPLATE_STRING, // Backtick template literal segment (text before ${)
+    BOOL_TRUE,       // Represents the boolean true value
+    BOOL_FALSE,      // Represents the boolean false value
+    NIL,             // Represents the nil value
 
-### Class: Parser
+    // Identifiers & Keywords
+    IDENTIFIER,      // Represents variable names and identifiers
+    LET,             // Keyword for variable declaration
+    CONST,           // Keyword for constant declaration
+    FN,              // Keyword for function definition
+    DEF,             // Python: def
+    FUNCTION,        // JavaScript: function
+    CLASS,           // Class keyword
+    EXTENDS,         // Extends / Inherits keyword
+    NEW,             // New keyword
+    THIS,            // This keyword (JavaScript alias for self)
+    SUPER,           // Super keyword
+    RETURN,          // Return keyword
+    IF,              // If keyword
+    ELSE,            // Else keyword
+    ELIF,            // Elif keyword
+    WHILE,           // While loop keyword
+    FOR,             // For loop keyword
+    IN,              // In keyword
+    OF,              // JavaScript for...of keyword
+    BREAK,           // Break statement keyword
+    CONTINUE,        // Continue statement keyword
+    RAISE,           // Raise exception keyword
+    TRY,             // Try block keyword
+    EXCEPT,          // Except block keyword
+    FINALLY,         // Finally block keyword
+    AS,              // As keyword
+    PRINT,           // Print statement keyword
+    INPUT,           // Input statement keyword
+    COUT,            // C++ cout keyword
+    CIN,             // C++ cin keyword
+    FROM,            // From keyword
+    IMPORT,          // Import statement keyword
 
-**Purpose:** Converts a sequence of `Token`s into an AST, representing the syntactic structure of the source code.
+    // C/C++ style type keywords
+    TYPE_INT,        // Integer type
+    TYPE_FLOAT,      // Floating-point type
+    TYPE_DOUBLE,     // Double precision floating-point type
+    TYPE_CHAR,       // Character type
+    TYPE_STRING,     // String type
+    TYPE_BOOL,       // Boolean type
+    TYPE_VOID,       // Void type
+    TYPE_LONG,       // Long integer type
+    TYPE_SHORT,      // Short integer type
+    TYPE_UNSIGNED,   // Unsigned integer type
 
-**Behavior:** Initializes with a vector of `Token`s and provides methods to parse different parts of the language, including statements, expressions, and declarations.
-
-**Major Methods:**
-
-- **parse():** Entry point for parsing the entire input.
-- **parseStatement(), parseBlock(), parseBodyOrStatement():** Handle different types of statements and blocks.
-- **parseVarDecl(), parseFunctionDecl(), parseClassDecl():** Parse variable, function, and class declarations.
-- **parseExpr(), parseAssignment(), etc.:** Implement Pratt parsing for various operators and expressions.
-
-**Trade-offs/Limitations:** Pratt parsing is powerful but requires careful management of state and precedence rules. Overly complex precedence rules can lead to bugs and decreased readability.
-
-### Function: current()
-
-**Purpose:** Retrieves the current token being processed.
-
-**Behavior:** Returns the token at the current position (`pos`) in the vector.
-
-### Function: peek(int offset)
-
-**Purpose:** Allows lookahead to see the next token(s) without advancing the parser's position.
-
-**Behavior:** Returns the token at the specified offset relative to the current position.
-
-### Function: consume()
-
-**Purpose:** Advances the parser to the next token.
-
-**Behavior:** Increments the position (`pos`) and returns the previous token.
-
-### Function: expect(TokenType t, const std::string &msg)
-
-**Purpose:** Ensures the current token matches the expected type, throwing an error if not.
-
-**Behavior:** Compares the current token to the expected type and throws a `ParseError` if there is a mismatch.
-
-### Function: isCTypeKeyword(TokenType t) const
-
-**Purpose:** Determines if a given token type represents a C-like type keyword.
-
-**Behavior:** Checks if the token type corresponds to any of the predefined C-type keywords like `int`, `double`, etc.
-
-## Conclusion
-
-The `Parser.h` file plays a critical role in the QuantumLanguage compiler by converting textual input into a structured AST. The choice of error handling and Pratt parsing algorithms reflects a balance between simplicity and robustness. By documenting each class and function thoroughly, we ensure that future developers can easily understand and contribute to the compiler's parsing logic. However, it's important to acknowledge the potential trade-offs associated with these choices, particularly regarding performance and maintainability.
+    // Operators
+    PLUS,            // Addition operator
+    MINUS,           // Subtraction operator
+    STAR,            // Multiplication operator
+    SLASH,           // Division operator
+    FLOOR_DIV,       // Integer division operator (Python)
+    PERCENT,         // Modulus operator
+    POWER,           // Exponentiation operator
+    EQ,              // Equality operator
+    NEQ,             // Inequality operator
+    STRICT_EQ,       // Strict equality operator
+    STRICT_NEQ,      // Strict inequality operator
+    NULL_COALESCE,   // Null coalescing operator (??
+    LT,              // Less than operator
+    GT,              // Greater than operator
+    LTE,             // Less than or equal to operator
+    GTE,             // Greater than or equal to operator
+    AND,             // Logical AND operator
+    OR,              // Logical OR operator
+    NOT,             // Logical NOT operator
+    IS,              // Identity operator
+    ASSIGN,          // Assignment operator
+    PLUS_ASSIGN,     // Addition assignment operator
+    MINUS_ASSIGN,    // Subtraction assignment operator
+    STAR_ASSIGN,     // Multiplication assignment operator
+    SLASH_ASSIGN,    // Division assignment operator
+    AND_ASSIGN,      // Bitwise AND assignment operator
+    OR_ASSIGN,       // Bitwise OR assignment operator
+    XOR_ASSIGN,      // Bitwise XOR assignment operator
+    MOD_ASSIGN,      // Modulus assignment operator
+    FAT_ARROW,       // Fat arrow operator (=>)
+    PLUS_PLUS,       // Increment operator
+    MINUS_MINUS,     // Decrement operator
+    BIT_AND,         // Bitwise AND operator
+    BIT_OR,          // Bitwise OR operator
+    BIT_XOR,
