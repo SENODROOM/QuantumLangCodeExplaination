@@ -1,124 +1,81 @@
-# evalArray() Function Explanation
+# evalArray Function Explanation
 
-## Complete Code
+The `evalArray` function is responsible for evaluating an array literal in the Quantum Language compiler. This function takes an `ArrayLiteral` object as input and returns a `QuantumValue` containing an `Array` shared pointer.
+
+## What It Does
+
+The primary purpose of `evalArray` is to construct an array by evaluating each element within the array literal. If any element is a unary expression with the spread operator (`...`), the function will handle the spreading of values into the array.
+
+## Why It Works This Way
+
+This implementation ensures that each element in the array literal is evaluated correctly, and if necessary, the spread operator is handled to expand arrays or strings into individual elements. By using `std::make_shared`, memory allocation for the array is efficiently managed, reducing the overhead associated with dynamic memory management.
+
+## Parameters/Return Value
+
+- **Parameters**: 
+  - `ArrayLiteral &e`: A reference to the `ArrayLiteral` object that needs to be evaluated.
+  
+- **Return Value**:
+  - `QuantumValue`: A `QuantumValue` object containing a shared pointer to the constructed `Array`.
+
+## Edge Cases
+
+1. **Empty Array Literal**: If the array literal contains no elements, the function will still return an empty `Array`.
+2. **Spread Operator with Non-Array/String Values**: If the operand of the spread operator is not an array or string, it will be added directly to the array.
+3. **Nested Spread Operators**: The function currently does not support nested spread operators. Handling such cases would require additional logic to flatten the resulting array.
+
+## Interactions With Other Components
+
+- **evaluate Function**: The `evalArray` function calls the `evaluate` method on each element within the array literal. This method is likely defined elsewhere in the compiler and handles the evaluation of different types of expressions.
+- **Array Class**: The `evalArray` function uses the `Array` class to store the evaluated elements. The `Array` class should have methods like `push_back` to add elements to the array.
+- **QuantumValue Class**: The `evalArray` function constructs a `QuantumValue` object wrapping the shared pointer to the `Array`. This class might also handle type conversions and checks.
+
+Here's a more detailed breakdown of the code:
 
 ```cpp
 QuantumValue Interpreter::evalArray(ArrayLiteral &e)
 {
+    // Create a shared pointer to a new Array object
     auto arr = std::make_shared<Array>();
+
+    // Iterate over each element in the array literal
     for (auto &el : e.elements)
     {
-        arr->elements.push_back(evaluate(*el));
+        // Check if the element is a UnaryExpr with the spread operator
+        if (el->is<UnaryExpr>() && el->as<UnaryExpr>().op == "...")
+        {
+            // Evaluate the operand of the spread operator
+            auto spreadVal = evaluate(*el->as<UnaryExpr>().operand);
+
+            // Handle the spread value based on its type
+            if (spreadVal.isArray())
+            {
+                // If the spread value is an array, push all its elements into the current array
+                for (auto &sv : *spreadVal.asArray())
+                    arr->push_back(sv);
+            }
+            else if (spreadVal.isString())
+            {
+                // If the spread value is a string, push each character as a separate element
+                for (char c : spreadVal.asString())
+                    arr->push_back(QuantumValue(std::string(1, c)));
+            }
+            else
+            {
+                // If the spread value is neither an array nor a string, push it directly
+                arr->push_back(spreadVal);
+            }
+        }
+        else
+        {
+            // If the element is not a spread operator, evaluate it normally and push it into the array
+            arr->push_back(evaluate(*el));
+        }
     }
+
+    // Return the QuantumValue object containing the evaluated array
     return QuantumValue(arr);
 }
 ```
 
-## Code Explanation
-
-### Function Signature
--  `QuantumValue Interpreter::evalArray(ArrayLiteral &e)` - Evaluate array literal expressions
-  - `e`: Reference to ArrayLiteral AST node
-  - Returns QuantumValue containing the created array
-
-###
--  `{` - Opening brace
--  `auto arr = std::make_shared<Array>();` - Create shared array object
--  `for (auto &el : e.elements)` - Loop through array elements
-
-###
--  `{` - Opening brace for element loop
--  `arr->elements.push_back(evaluate(*el));` - Evaluate element and add to array
--  `}` - Closing brace for element loop
--  Empty line for readability
-
-###
--  `return QuantumValue(arr);` - Return array as QuantumValue
--  `}` - Closing brace for function
-
-## Summary
-
-The `evalArray()` function handles array literal creation in the Quantum Language:
-
-### Key Features
-- **Array Creation**: Creates shared Array objects
-- **Element Evaluation**: Evaluates each element expression
-- **Type Flexibility**: Arrays can contain any QuantumValue types
-- **Memory Management**: Uses smart pointers for automatic cleanup
-
-### Array Creation Process
-1. **Array Object**: Create shared Array instance
-2. **Element Loop**: Iterate through all element expressions
-3. **Element Evaluation**: Evaluate each element expression
-4. **Element Addition**: Add evaluated elements to array
-5. **Value Return**: Return array as QuantumValue
-
-### Array Characteristics
-- **Dynamic Size**: Arrays can grow and shrink dynamically
-- **Mixed Types**: Elements can be of different types
-- **Zero-Based**: Array indices start from 0
-- **Reference Type**: Arrays are reference types
-
-### Element Types Supported
-- **Numbers**: `[1, 2, 3]` - numeric elements
-- **Strings**: `["a", "b", "c"]` - string elements
-- **Booleans**: `[true, false]` - boolean elements
-- **Objects**: `[obj1, obj2]` - object elements
-- **Nested Arrays**: `[[1, 2], [3, 4]]` - nested arrays
-
-### Evaluation Process
-- **Expression Evaluation**: Each element is a full expression
-- **Side Effects**: Element expressions can have side effects
-- **Order Preservation**: Elements evaluated in order
-- **Error Propagation**: Errors in element evaluation propagate up
-
-### Memory Management
-- **Shared Pointers**: Arrays use std::shared_ptr for sharing
-- **Automatic Cleanup**: Memory freed when no references remain
-- **Reference Counting**: Tracks array usage across program
-- **Efficient Copy**: Shared references avoid copying arrays
-
-### Design Benefits
-- **Flexibility**: Supports mixed-type arrays
-- **Performance**: Efficient shared pointer usage
-- **Type Safety**: All elements are QuantumValue objects
-- **Memory Safety**: Automatic memory management
-
-### Use Cases
-- **Data Collections**: Store collections of related data
-- **Function Returns**: Return multiple values as array
-- **Parameters**: Pass multiple values as single parameter
-- **Data Processing**: Process lists of items
-
-### Integration with Other Components
-- **Array Class**: Uses Array class for storage
-- **QuantumValue**: Wraps array in value system
-- **Expression System**: Integrates with expression evaluation
-- **Memory System**: Uses shared pointer memory management
-
-### Performance Characteristics
-- **Element Evaluation**: O(n) where n is number of elements
-- **Memory Allocation**: Single allocation for array object
-- **Element Storage**: Efficient vector storage
-- **Reference Sharing**: O(1) array copying
-
-### Array Examples
-- **Empty Array**: `[]` - creates empty array
-- **Simple Array**: `[1, 2, 3]` - numeric array
-- **Mixed Types**: `[1, "hello", true]` - mixed type array
-- **Expressions**: `[x+1, y*2, z/3]` - computed elements
-- **Nested**: `[[1, 2], [3, 4]]` - array of arrays
-
-### Error Handling
-- **Expression Errors**: Errors in element evaluation propagate up
-- **Memory Errors**: Handled by shared pointer system
-- **Type Errors**: All types accepted, no type errors
-- **Allocation Errors**: Handled by standard library
-
-### Array Operations
-- **Indexing**: `arr[0]` - access elements
-- **Length**: `len(arr)` - get array size
-- **Append**: `append(arr, item)` - add elements
-- **Iteration**: `for item in arr` - loop through elements
-
-This function provides the foundation for array creation in the Quantum Language, enabling flexible collection handling with proper memory management and type safety while supporting mixed-type arrays and efficient shared pointer usage throughout the array creation process.
+In summary, the `evalArray` function is crucial for handling array literals in the Quantum Language compiler. It evaluates each element and manages the spread operator to ensure correct expansion of arrays or strings. This function interacts with various classes such as `Array`, `QuantumValue`, and others to achieve its goal efficiently.
