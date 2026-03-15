@@ -1,64 +1,65 @@
-# QuantumLanguage Compiler - Token.h
+# QuantumLanguage Compiler - TypeChecker.h
 
 ## Overview
 
-The `include/Token.h` header file is a fundamental component of the QuantumLanguage compiler's architecture. It encapsulates the definition of tokens, which are the smallest units of meaningful elements in the language. These tokens serve as the building blocks for parsing and interpreting the source code. The `Token` struct holds information about the type, value, line number, and column position of each token, enabling precise error reporting and context-aware processing throughout the compilation process.
+The `include/TypeChecker.h` header file is an essential component of the QuantumLanguage compiler's core infrastructure. It primarily focuses on the static type checking phase of the compilation process, ensuring that the program adheres to its type definitions before execution begins. The file defines several key data structures and classes necessary for type resolution and validation during the compilation of abstract syntax trees (ASTs).
+
+This header file plays a critical role in maintaining the integrity and correctness of the compiled quantum programs by enforcing strict type constraints and providing mechanisms for error handling related to type mismatches.
 
 ## Key Design Decisions
 
-### Token Types Enumeration
+### Use of Exceptions for Error Handling
 
-The `TokenType` enum class categorizes all possible token types into several categories:
+**Why:** In the context of static type checking, it is often more appropriate to halt compilation and report errors immediately rather than continuing with potentially incorrect code. Using exceptions allows for clear and immediate signaling of type-related issues, facilitating easier debugging and maintenance.
 
-- **Literals**: Represents numeric, string, boolean, and nil values.
-- **Identifiers & Keywords**: Includes variable names, control flow statements, and other reserved words.
-- **C/C++ Style Type Keywords**: Mimics common C/C++ type specifiers to support interoperability.
-- **Operators**: Covers arithmetic, comparison, logical, bitwise, and assignment operators.
-- **Delimiters**: Such as parentheses, braces, brackets, commas, semicolons, colons, dots, arrows, and question marks.
-- **Special Tokens**: Includes end-of-file, unknown tokens, and Python-style indentation markers.
+### Hierarchical Type Environment (`TypeEnv`)
 
-**Why**: This comprehensive enumeration ensures that every syntactic element of the language can be accurately identified and processed during the lexical analysis phase. By grouping similar token types together, it simplifies the implementation and maintenance of the lexer.
+**Why:** To support nested scopes and variable shadowing, a hierarchical type environment was designed. Each `TypeEnv` instance can have a parent, allowing for lookup of variables in enclosing scopes. This structure simplifies the management of variable types across different parts of the program without requiring complex lookups or duplications.
 
-### Token Structure
+## Classes and Functions Documentation
 
-The `Token` struct is designed to store essential information about each token:
+### Class: `StaticTypeError`
 
-- **type**: An instance of `TokenType` indicating the kind of token.
-- **value**: A `std::string` containing the actual text of the token.
-- **line**: An integer representing the line number where the token appears in the source code.
-- **col**: An integer representing the column position within the line.
+**Purpose:** Represents a static type error encountered during the compilation process. Inherits from `std::runtime_error`.
 
-**Why**: Storing these details allows the compiler to maintain accurate context and generate meaningful error messages. The line and column numbers help pinpoint issues directly in the source code, improving debugging efficiency.
+**Behavior:** Constructs an exception with a message and the line number where the error occurred. Provides access to the line number through the `line` member variable.
 
-## Documentation of Major Classes/Functions
+### Struct: `TypeEnv`
 
-### Token Class
+**Purpose:** Manages the type environment for the current scope, including variable definitions and resolving variable types based on their scope.
 
-#### Purpose
+**Behavior:**
+- **Constructor:** Initializes a new `TypeEnv` instance with an optional parent environment.
+- **Method `define`:** Adds a variable definition to the current environment.
+- **Method `resolve`:** Recursively resolves the type of a variable by searching the current environment and its parents. If the variable is not found, returns "any" as a fallback type.
 
-The `Token` class represents a single token in the source code. It encapsulates the token's type, value, and location information.
+### Class: `TypeChecker`
 
-#### Behavior
+**Purpose:** Performs static type checking on the abstract syntax tree (AST) of a quantum program.
 
-- **Constructor**: Initializes the token with the given type, value, line number, and column position.
-- **toString Method**: Returns a string representation of the token, useful for debugging and logging purposes.
-
-### toString Method
-
-#### Purpose
-
-The `toString` method provides a human-readable string representation of the `Token` object.
-
-#### Behavior
-
-It constructs a string that includes the token's type, value, line number, and column position. This method aids in logging and visualization of tokens during development and debugging phases.
+**Behavior:**
+- **Constructor:** Initializes a new `TypeChecker` instance with a global type environment.
+- **Method `check`:** Checks the entire list of AST nodes for type consistency.
+- **Method `checkNode`:** Recursively checks a single AST node for type consistency, using the provided type environment.
 
 ## Tradeoffs and Limitations
 
-- **Memory Usage**: Storing the entire token value as a `std::string` can lead to increased memory consumption, especially for large programs.
-- **Performance**: Frequent construction and destruction of `std::string` objects might impact performance, particularly in scenarios involving high-frequency tokenization.
-- **Flexibility**: While the current set of token types covers most common language features, additional types may need to be introduced to support emerging language standards or custom extensions.
+### Exception Overhead
+
+Using exceptions for error handling introduces overhead compared to traditional error codes. However, given the importance of type safety in static compilation, this tradeoff is deemed acceptable for its clarity and ease of use.
+
+### Fallback Type "Any"
+
+The fallback type "any" is used when a variable's type cannot be resolved. While this provides flexibility, it also means that type safety is compromised at runtime, which could lead to unexpected behavior or errors.
+
+### Limited Support for Dynamic Types
+
+The current implementation primarily supports static typing. Extending support for dynamic types would require significant changes and additional complexity to the type checker.
+
+### No Support for Polymorphism
+
+Polymorphic features such as method overloading and inheritance are not currently supported. Adding these features would involve substantial modifications to both the type checker and the AST representation.
 
 ## Conclusion
 
-The `include/Token.h` header file is a critical backbone of the QuantumLanguage compiler, providing a robust framework for tokenizing the source code. Its well-designed structure and comprehensive enumeration ensure that every aspect of the language's syntax is accounted for, facilitating efficient parsing and semantic analysis. However, developers should be aware of potential memory and performance implications when working with large volumes of source code.
+The `include/TypeChecker.h` header file is a fundamental part of the QuantumLanguage compiler responsible for ensuring type safety during the static analysis phase. Its design choices, while introducing some tradeoffs, provide a robust framework for managing variable types and detecting errors early in the development process. By understanding these components and their implications, developers can better appreciate the intricacies involved in building a reliable quantum programming language compiler.
