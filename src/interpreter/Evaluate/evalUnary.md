@@ -1,147 +1,35 @@
-# evalUnary() Function Explanation
+# evalUnary Function Explanation
 
-## Complete Code
+The `evalUnary` function is responsible for evaluating unary expressions in the Quantum Language compiler. Unary expressions consist of an operator and a single operand, such as `-x`, `!y`, or `~z`. This function processes these operators and returns the appropriate result based on the type of operand and the operation specified.
 
-```cpp
-QuantumValue Interpreter::evalUnary(UnaryExpr &e)
-{
-    auto v = evaluate(*e.operand);
-    if (e.op == "-")
-        return QuantumValue(-v.toNum("unary -"));
-    if (e.op == "!")
-        return QuantumValue(!v.isTruthy());
-    if (e.op == "~")
-        return QuantumValue(~(long long)v.toNum("unary ~"));
-    if (e.op == "++")
-    {
-        setLValue(*e.operand, v + 1, "=");
-        return v;
-    }
-    if (e.op == "--")
-    {
-        setLValue(*e.operand, v - 1, "=");
-        return v;
-    }
-    throw RuntimeError("Unknown unary op: " + e.op);
-}
-```
+## Parameters
 
-## Code Explanation
+- `UnaryExpr &e`: A reference to the unary expression node that needs to be evaluated. This node contains the operator (`op`) and the operand (`operand`).
 
-### Function Signature
--  `QuantumValue Interpreter::evalUnary(UnaryExpr &e)` - Evaluate unary expressions
-  - `e`: Reference to UnaryExpr AST node
-  - Returns QuantumValue result of unary operation
+## Return Value
 
-###
--  `{` - Opening brace
--  `auto v = evaluate(*e.operand);` - Evaluate operand expression
+- `QuantumValue`: The result of evaluating the unary expression. The type of `QuantumValue` can vary depending on the operand and the operation.
 
-###
--  `if (e.op == "-")` - Check for negation operator
--  `return QuantumValue(-v.toNum("unary -"));` - Return numeric negation
--  Empty line for readability
+## How It Works
 
-###
--  `if (e.op == "!")` - Check for logical not operator
--  `return QuantumValue(!v.isTruthy());` - Return logical negation
--  Empty line for readability
+1. **Operand Evaluation**: The function first evaluates the operand using the `evaluate` method. This ensures that the operand is in its simplest form before applying the unary operator.
 
-###
--  `if (e.op == "~")` - Check for bitwise not operator
--  `return QuantumValue(~(long long)v.toNum("unary ~"));` - Return bitwise complement
--  Empty line for readability
+2. **Operator Handling**:
+   - **Negation (`-`)**: If the operator is `-`, the function negates the numeric value of the operand using the `toNum` method. The `toNum` method is used to convert the operand to a number, ensuring that the negation is performed correctly.
+   - **Logical Not (`!` or `not`)**: If the operator is either `!` or `not`, the function checks whether the operand is truthy or falsy using the `isTruthy` method. It then returns the logical negation of this truthiness.
+   - **Bitwise Not (`~`)**: If the operator is `~`, the function performs a bitwise not operation on the integer value of the operand using the `toInt` method. The result is converted back to a double since `QuantumValue` typically handles numeric values as doubles.
+   - **Spread Operator (`...`)**: If the operator is `...`, the function simply returns the operand's value without performing any additional operations. This is useful for handling array spread syntax in quantum programs.
 
-###
--  `if (e.op == "++")` - Check for pre-increment operator
--  `{` - Opening brace for increment
--  `setLValue(*e.operand, v + 1, "=");` - Increment operand and assign
--  `return v;` - Return original value (pre-increment semantics)
--  `}` - Closing brace for increment
--  Empty line for readability
+3. **Error Handling**: If an unknown unary operator is encountered, the function throws a `RuntimeError` indicating the unrecognized operator.
 
-###
--  `if (e.op == "--")` - Check for pre-decrement operator
--  `{` - Opening brace for decrement
--  `setLValue(*e.operand, v - 1, "=");` - Decrement operand and assign
--  `return v;` - Return original value (pre-decrement semantics)
--  `}` - Closing brace for decrement
--  Empty line for readability
+## Edge Cases
 
-###
--  `throw RuntimeError("Unknown unary op: " + e.op);` - Throw error for unknown operator
--  `}` - Closing brace for function
+- **Numeric Overflow**: When performing bitwise operations, there is a risk of numeric overflow. However, the current implementation assumes that the operands are within the range of typical integer types.
+- **Type Mismatch**: The `toNum` and `toInt` methods ensure that the operand is converted to the correct type for the operation. If the conversion fails due to a type mismatch, the behavior is undefined and may lead to runtime errors.
 
-## Summary
+## Interactions with Other Components
 
-The `evalUnary()` function handles all unary operations in the Quantum Language:
+- **Evaluation Context**: The `evalUnary` function operates within the context of the interpreter, which manages the evaluation of expressions and maintains the state of the program.
+- **Expression Tree**: The unary expression node (`UnaryExpr`) is part of the expression tree structure used by the parser to represent the abstract syntax tree of the quantum program. The `evalUnary` function interacts with this tree to retrieve the operand and apply the unary operator.
 
-### Key Features
-- **Multiple Operators**: Supports arithmetic, logical, bitwise, and increment/decrement
-- **Type Safety**: Proper type conversion and validation
-- **Side Effects**: Increment/decrement operators modify operands
-- **Error Handling**: Clear error messages for unknown operators
-
-### Unary Operators Supported
-- **Negation**: `-value` - numeric negation
-- **Logical Not**: `!value` - truthiness negation
-- **Bitwise Not**: `~value` - bitwise complement
-- **Pre-increment**: `++value` - increment and return original
-- **Pre-decrement**: `--value` - decrement and return original
-
-### Operator Semantics
-- **Arithmetic Negation**: Converts to number and negates
-- **Logical Not**: Uses truthiness rules for negation
-- **Bitwise Not**: Converts to integer and complements bits
-- **Increment/Decrement**: Modifies variable and returns original value
-
-### Type Conversion
-- **Numeric Operations**: Convert operands to numbers
-- **Logical Operations**: Use truthiness without conversion
-- **Bitwise Operations**: Convert to integer for bit manipulation
-- **Type Safety**: Proper error handling for invalid types
-
-### Side Effect Handling
-- **L-Value Assignment**: Uses setLValue for variable modification
-- **Original Value Return**: Pre-increment/decrement return original value
-- **Variable Update**: Variables are updated in-place
-- **Scope Awareness**: Operates on variables in current scope
-
-### Design Benefits
-- **Comprehensive**: Covers all common unary operators
-- **Type Safe**: Proper conversion and validation
-- **Correct Semantics**: Follows language specification
-- **Efficient**: Minimal overhead for operations
-
-### Use Cases
-- **Mathematical Operations**: `-x` for negation
-- **Boolean Logic**: `!condition` for logical negation
-- **Bit Manipulation**: `~mask` for bitwise complement
-- **Variable Updates**: `++counter`, `--index` for increment/decrement
-
-### Integration with Other Components
-- **setLValue Function**: Used for variable modification
-- **toNum Method**: Converts values to numbers
-- **isTruthy Method**: Determines truthiness
-- **Environment System**: Variables accessed through environment
-
-### Performance Characteristics
-- **Single Evaluation**: Operand evaluated once
-- **Direct Operations**: Minimal overhead for simple operations
-- **Type Conversion**: Efficient conversion when needed
-- **Memory Efficient**: No unnecessary allocations
-
-### Operator Examples
-- **Negation**: `-5` → `5`, `-3.14` → `3.14`
-- **Logical Not**: `!true` → `false`, `!0` → `true`
-- **Bitwise Not**: `~5` → `-6`, `~0xFF` → `0x00`
-- **Increment**: `++x` increments x, returns old value
-- **Decrement**: `--x` decrements x, returns old value
-
-### Error Handling
-- **Type Errors**: Handled by toNum conversion
-- **Unknown Operators**: RuntimeError with operator name
-- **Variable Errors**: setLValue handles assignment errors
-- **Conversion Errors**: Descriptive error messages
-
-This function provides the foundation for unary operations in the Quantum Language, enabling mathematical, logical, and bitwise operations while maintaining proper type safety and side effect handling for increment/decrement operators.
+In summary, the `evalUnary` function is crucial for processing unary expressions in the Quantum Language compiler. It ensures that the operand is properly evaluated and that the unary operator is applied correctly, returning the expected result. The function also includes error handling for unknown operators and type mismatches, maintaining robustness in the interpreter.
