@@ -1,70 +1,120 @@
-# QuantumLanguage Compiler - Interpreter.h
+# QuantumLanguage Compiler - Lexer.h
 
 ## Overview
 
-The `include/Interpreter.h` header file is a critical component of the QuantumLanguage compiler's execution phase. It defines the `Interpreter` class responsible for interpreting and executing abstract syntax tree (AST) nodes generated during the parsing stage. The interpreter handles various types of statements and expressions, evaluates their values, and manages the execution context through environments.
-
-This file plays a pivotal role in converting high-level quantum language constructs into executable operations, ensuring that the compiled program can run efficiently on the target platform.
+The `include/Lexer.h` header file is an essential component of the QuantumLanguage compiler's lexical analysis phase. It defines the `Lexer` class responsible for converting the input source code into a sequence of tokens, which are then processed by the parser. The lexer handles the conversion of characters into meaningful units such as identifiers, numbers, strings, operators, and keywords, facilitating the subsequent stages of compilation.
 
 ## Key Design Decisions
 
-### Use of ASTNodes for Execution
+- **Separation of Concerns**: The lexer is designed to handle the low-level parsing of characters into tokens without worrying about higher-level semantic analysis. This separation ensures that changes in the syntax do not affect other parts of the compiler.
+  
+- **Efficient Tokenization**: To optimize performance, the lexer uses efficient data structures like vectors and unordered maps. For example, it utilizes an unordered map to quickly identify keywords, reducing the time complexity of token recognition.
 
-**WHY:** Using `ASTNode` as the primary unit for interpretation allows for a flexible and extensible approach. Each node type can be handled individually, making it easier to add new features or optimize existing ones without affecting the entire system.
+- **Support for F-Strings**: The lexer includes support for f-string expansion using a pending tokens buffer. This feature allows for dynamic string generation based on variable values, enhancing the flexibility and usability of the language.
 
-### Environment Management
+## Class Documentation
 
-**WHY:** Environments are essential for managing variable scopes, function calls, and object lifetimes. By using shared pointers (`std::shared_ptr`) for environments, the interpreter ensures that memory is properly managed and shared between different parts of the program.
+### Lexer
 
-### Step Counting for Infinite Loops
+**Purpose**: The `Lexer` class is responsible for reading the source code and converting it into a stream of tokens.
 
-**WHY:** To prevent infinite loops, especially in cases where input might be empty or not provided, the interpreter tracks the number of steps executed. If the step count exceeds `MAX_STEPS`, the program is terminated, preventing potential crashes due to uncontrolled recursion or iteration.
+**Behavior**:
+- **Constructor (`explicit Lexer(const std::string &source)`)**: Initializes the lexer with the source code.
+- **Method (`std::vector<Token> tokenize()`)**: Reads through the source code and returns a vector of tokens representing the parsed content.
 
-## Classes and Functions Documentation
+**Tradeoffs**:
+- **Complexity**: Supporting f-string expansion adds complexity to the lexer, requiring additional state management and logic.
 
-### Interpreter Class
+### Keywords Map
 
-**Purpose:** Manages the overall execution state of the program, including the current environment and step counter.
+**Purpose**: A static unordered map that stores keyword strings and their corresponding token types.
 
-**Behavior:**
-- **Constructor (`Interpreter()`):** Initializes the interpreter with default settings.
-- **execute (`void execute(ASTNode &node)`):** Executes the given AST node.
-- **evaluate (`QuantumValue evaluate(ASTNode &node)`):** Evaluates the given AST node and returns its value.
-- **execBlock (`void execBlock(BlockStmt &s, std::shared_ptr<Environment> scope = nullptr)`):** Executes a block of statements within a specific scope.
-- **registerNatives (`void registerNatives()`):** Registers built-in functions and methods that can be called from the quantum language.
-- **Private Methods:** Various private methods handle the execution of different statement and expression types, such as variable declarations, if statements, binary expressions, etc.
+**Behavior**:
+- Maps specific keyword strings to their respective `TokenType`, aiding in quick identification during tokenization.
 
-### QuantumValue Class
+## Function Documentation
 
-**Purpose:** Represents a value in the quantum language, which could be an integer, double, string, array, dictionary, function, instance, class, pointer, or any other custom type.
+### current()
 
-**Behavior:** Provides methods for evaluating and manipulating quantum values, including arithmetic operations, method calls, and indexing.
+**Purpose**: Returns the character at the current position in the source code.
 
-### Tradeoffs and Limitations
+**Behavior**:
+- Provides access to the character pointed to by `pos`.
 
-- **Performance:** While the use of environments provides flexibility, it also incurs some overhead in terms of memory management and lookup times.
-- **Complexity:** Handling multiple types of values and operations increases the complexity of the interpreter, making it harder to maintain and debug.
-- **Error Handling:** The interpreter currently lacks comprehensive error handling mechanisms, which could lead to runtime errors in complex programs.
+### peek(int offset = 1)
 
-## Usage Example
+**Purpose**: Returns the character at the specified offset relative to the current position.
 
-To use the interpreter, you would typically create an instance of the `Interpreter` class and call the `execute` method with the root AST node of your program:
+**Behavior**:
+- Allows lookahead without advancing the position pointer, useful for parsing complex constructs.
 
-```cpp
-#include "Interpreter.h"
+### advance()
 
-int main() {
-    // Parse your quantum language code into an AST
-    ASTNode rootNode = parseCode("your_code_here");
+**Purpose**: Advances the position pointer to the next character in the source code.
 
-    // Create an interpreter instance
-    Interpreter interpreter;
+**Behavior**:
+- Increments `pos` and returns the character that was previously at `pos`.
 
-    // Execute the parsed AST
-    interpreter.execute(rootNode);
+### skipWhitespace()
 
-    return 0;
-}
-```
+**Purpose**: Skips over any whitespace characters in the source code.
 
-This example demonstrates how to integrate the interpreter into a larger application, allowing for the execution of quantum language code.
+**Behavior**:
+- Iterates through the source code until a non-whitespace character is encountered, updating `line` and `col` accordingly.
+
+### skipComment()
+
+**Purpose**: Skips over a single-line comment starting with `//`.
+
+**Behavior**:
+- Continues reading characters until the end of the line is reached, updating `line` but not `col`.
+
+### skipBlockComment()
+
+**Purpose**: Skips over a multi-line comment enclosed between `/*` and `*/`.
+
+**Behavior**:
+- Continues reading characters until both `*/` are found, updating `line` and `col`.
+
+### readNumber()
+
+**Purpose**: Parses a numeric literal from the source code.
+
+**Behavior**:
+- Recognizes integer and floating-point literals, returning a `Token` of type `NUMBER`.
+
+### readString(char quote)
+
+**Purpose**: Parses a string literal from the source code.
+
+**Behavior**:
+- Handles both single and double-quoted strings, returning a `Token` of type `STRING`.
+
+### readTemplateLiteral(std::vector<Token> &out, int startLine, int startCol)
+
+**Purpose**: Parses a template literal (f-string) from the source code.
+
+**Behavior**:
+- Expands the f-string by evaluating embedded expressions and concatenating them with string literals, storing the result in `out`.
+
+### readIdentifierOrKeyword()
+
+**Purpose**: Parses an identifier or keyword from the source code.
+
+**Behavior**:
+- Determines if the parsed text is an identifier or a keyword, returning a `Token` of type `IDENTIFIER` or `KEYWORD`.
+
+### readOperator()
+
+**Purpose**: Parses an operator from the source code.
+
+**Behavior**:
+- Identifies and returns a `Token` representing one of the supported operators.
+
+## Limitations
+
+- **F-String Expansion**: While powerful, the implementation of f-string expansion can lead to increased memory usage and slower parsing times due to the need to evaluate and store intermediate results.
+  
+- **Error Handling**: Basic error handling mechanisms are implemented, but more sophisticated error reporting could be added for better debugging capabilities.
+
+This README provides a comprehensive overview of the `Lexer.h` file, detailing its functionality, design decisions, and potential limitations.
