@@ -1,158 +1,60 @@
-# evalIndex() Function Explanation
+# `evalIndex` Function Explanation
 
-## Complete Code
+The `evalIndex` function is responsible for evaluating an index expression in the context of quantum programming. This function takes an `IndexExpr` object as input and returns a `QuantumValue`. The primary purpose of this function is to handle indexing operations on various data structures such as arrays, dictionaries, and strings.
 
-```cpp
-QuantumValue Interpreter::evalIndex(IndexExpr &e)
-{
-    auto obj = evaluate(*e.object);
-    auto idx = evaluate(*e.index);
-    if (obj.isArray())
-    {
-        long long i = idx.isNumber() ? (long long)idx.asNumber() : 0;
-        if (i < 0 || i >= (long long)obj.asArray()->size())
-            throw IndexError("Array index out of bounds");
-        return obj.asArray()->elements[i];
-    }
-    if (obj.isString())
-    {
-        long long i = idx.isNumber() ? (long long)idx.asNumber() : 0;
-        std::string str = obj.asString();
-        if (i < 0 || i >= (long long)str.size())
-            throw IndexError("String index out of bounds");
-        return QuantumValue(std::string(1, str[i]));
-    }
-    if (obj.isDict())
-    {
-        return obj.asDict()->get(idx.toString());
-    }
-    throw TypeError("Cannot index " + obj.typeName());
-}
-```
+## Parameters
 
-## Code Explanation
+- **`IndexExpr &e`**: A reference to the `IndexExpr` object that contains the expression to be evaluated. An `IndexExpr` typically consists of two parts: the object being indexed (`object`) and the index itself (`index`).
 
-### Function Signature
--  `QuantumValue Interpreter::evalIndex(IndexExpr &e)` - Evaluate indexing expressions
-  - `e`: Reference to IndexExpr AST node
-  - Returns QuantumValue result of indexing operation
+## Return Value
 
-###
--  `{` - Opening brace
--  `auto obj = evaluate(*e.object);` - Evaluate object expression
--  `auto idx = evaluate(*e.index);` - Evaluate index expression
+- **`QuantumValue`**: The result of evaluating the index expression. Depending on the type of the object being indexed, this can be a value from the array, dictionary, or string at the specified index.
 
-###
--  `if (obj.isArray())` - Check if object is array
--  `{` - Opening brace for array case
--  `long long i = idx.isNumber() ? (long long)idx.asNumber() : 0;` - Convert index to integer
--  `if (i < 0 || i >= (long long)obj.asArray()->size())` - Check bounds
--  `throw IndexError("Array index out of bounds");` - Throw error for out of bounds
--  `return obj.asArray()->elements[i];` - Return array element
--  `}` - Closing brace for array case
+## How It Works
 
-###
--  Empty line for readability
--  `if (obj.isString())` - Check if object is string
--  `{` - Opening brace for string case
--  `long long i = idx.isNumber() ? (long long)idx.asNumber() : 0;` - Convert index to integer
--  `std::string str = obj.asString();` - Get string reference
--  `if (i < 0 || i >= (long long)str.size())` - Check bounds
--  `throw IndexError("String index out of bounds");` - Throw error for out of bounds
--  `return QuantumValue(std::string(1, str[i]));` - Return character as string
--  `}` - Closing brace for string case
+The `evalIndex` function performs the following steps:
 
-###
--  Empty line for readability
--  `if (obj.isDict())` - Check if object is dictionary
--  `{` - Opening brace for dict case
--  `return obj.asDict()->get(idx.toString());` - Return value for key
--  `}` - Closing brace for dict case
+1. **Evaluate Object**: 
+   - The function first evaluates the `object` part of the `IndexExpr`. This is done using the `evaluate` method, which recursively evaluates expressions within the object.
 
-###
--  Empty line for readability
--  `throw TypeError("Cannot index " + obj.typeName());` - Throw error for non-indexable types
--  `}` - Closing brace for function
+2. **Evaluate Index**:
+   - Similarly, the function evaluates the `index` part of the `IndexExpr`. Again, this is done using the `evaluate` method.
 
-## Summary
+3. **Check Object Type**:
+   - After evaluation, the function checks the type of the resulting `object`.
+   
+4. **Handle Array Indexing**:
+   - If the `object` is an array, the function converts the `index` to an integer. If the `index` is negative, it adjusts the index to be relative to the end of the array (similar to Python's negative indexing).
+   - It then checks if the adjusted index is within the bounds of the array. If it is, the function returns the value at that index. Otherwise, it returns a default `QuantumValue`.
 
-The `evalIndex()` function handles indexing operations for various data types in the Quantum Language:
+5. **Handle Dictionary Indexing**:
+   - If the `object` is a dictionary, the function converts the `index` to a string and attempts to find it in the dictionary.
+   - If the key exists, the function returns the corresponding value. If not, it returns a default `QuantumValue`.
 
-### Key Features
-- **Multiple Types**: Supports arrays, strings, and dictionaries
-- **Bounds Checking**: Prevents out-of-bounds access
-- **Type Safety**: Proper type checking and conversion
-- **Error Handling**: Clear error messages for invalid operations
+6. **Handle String Indexing**:
+   - If the `object` is a string, the function converts the `index` to an integer. If the `index` is negative, it adjusts the index similarly to arrays.
+   - The function checks if the adjusted index is within the bounds of the string. If it is, the function returns the character at that index. If not, it throws an `IndexError`.
 
-### Indexable Types Supported
-- **Arrays**: `array[index]` - access array elements
-- **Strings**: `string[index]` - access string characters
-- **Dictionaries**: `dict[key]` - access dictionary values
+7. **Pointer-to-Array Indexing**:
+   - If the `object` is a pointer, the function first unwraps the pointer to check if it points to an array cell.
+   - If it does, the function treats the pointer like an array and proceeds with the same logic as array indexing.
+   - If the pointer is null or does not point to an array cell, the function handles pointer arithmetic. Specifically, if the `index` is zero and the pointer is not null, it returns the value pointed to by the pointer. Otherwise, it throws a `TypeError`.
 
-### Array Indexing
-- **Index Conversion**: Converts index to integer with default 0
-- **Bounds Checking**: Validates index against array size
-- **Element Access**: Direct access to array elements
-- **Error Handling**: IndexError for out-of-bounds access
+## Edge Cases
 
-### String Indexing
-- **Character Access**: Returns single character as string
-- **Index Conversion**: Same integer conversion as arrays
-- **Bounds Checking**: Validates index against string length
-- **Unicode Support**: Works with Unicode characters
+- **Negative Indexes**: For arrays and strings, negative indexes are treated as relative to the end of the structure. For example, `-1` refers to the last element.
+- **Out-of-Bounds Access**: Accessing an index that is out of bounds for an array or string results in returning a default `QuantumValue` (for arrays and strings, this corresponds to `undefined` or `\0`, respectively).
+- **Non-Numeric Indexes**: When indexing arrays or dictionaries, non-numeric indexes are converted to numeric types. If conversion fails, a `TypeError` is thrown.
+- **Null Pointers**: When dealing with pointers, accessing a null pointer or a pointer that does not point to an array cell results in a `TypeError`.
 
-### Dictionary Indexing
-- **Key Conversion**: Converts index to string for key lookup
-- **Value Retrieval**: Gets value associated with key
-- **Key Types**: Any type can be used as dictionary key
-- **Missing Keys**: Handled by dictionary get method
+## Interactions With Other Components
 
-### Index Conversion
-- **Numeric Index**: Converts numbers to integers
-- **Default Index**: Non-numeric indices default to 0
-- **Type Safety**: Safe conversion with error handling
-- **Performance**: Efficient conversion process
+The `evalIndex` function interacts with several other components within the Quantum Language compiler:
 
-### Bounds Checking
-- **Array Bounds**: Checks against array element count
-- **String Bounds**: Checks against string character count
-- **Negative Indices**: Negative indices considered out of bounds
-- **Error Messages**: Clear IndexError messages
+- **`evaluate` Method**: This method is used to recursively evaluate expressions within the `object` and `index` parts of the `IndexExpr`. It ensures that both parts are properly resolved before proceeding with the indexing operation.
+  
+- **Data Structures**: The function operates on different data structures including arrays, dictionaries, and strings. These data structures are represented by custom classes (`ArrayCell`, `DictionaryCell`, etc.) that provide methods for accessing their elements.
 
-### Design Benefits
-- **Type Safety**: Comprehensive type checking
-- **Memory Safety**: Bounds checking prevents crashes
-- **Flexibility**: Multiple indexing patterns supported
-- **Performance**: Efficient direct access where possible
+- **Error Handling**: The function includes robust error handling mechanisms to manage situations where the index is out of bounds or when the index cannot be converted to a numeric type. These errors are propagated up the call stack as exceptions, allowing higher-level code to handle them appropriately.
 
-### Use Cases
-- **Array Access**: `arr[0]`, `arr[i]` for element access
-- **String Access**: `str[0]`, `str[i]` for character access
-- **Dictionary Access**: `dict["key"]` for value lookup
-- **Data Processing**: Processing collections and strings
-
-### Integration with Other Components
-- **Array Class**: Uses array element storage
-- **String Class**: Uses string character access
-- **Dictionary Class**: Uses key-value lookup
-- **Error System**: Uses IndexError and TypeError
-
-### Performance Characteristics
-- **Direct Access**: O(1) array and dictionary access
-- **Bounds Checking**: Minimal overhead for safety
-- **Type Dispatch**: Efficient type checking
-- **Memory Efficient**: No unnecessary allocations
-
-### Indexing Examples
-- **Array**: `[1, 2, 3][1]` → `2`
-- **String**: `"hello"[1]` → `"e"`
-- **Dictionary**: `{"a": 1}["a"]` → `1`
-- **Out of Bounds**: `[1, 2][5]` → IndexError
-
-### Error Handling
-- **IndexError**: Thrown for out-of-bounds access
-- **TypeError**: Thrown for non-indexable types
-- **Conversion Errors**: Safe index conversion
-- **Missing Keys**: Handled by dictionary get method
-
-This function provides the foundation for indexing operations in the Quantum Language, enabling safe and efficient access to array elements, string characters, and dictionary values while maintaining proper type safety and bounds checking throughout the indexing process.
+In summary, the `evalIndex` function is a crucial component for handling indexing operations in the Quantum Language compiler. It ensures that the correct value is retrieved based on the provided index, while also managing potential errors and edge cases gracefully.
