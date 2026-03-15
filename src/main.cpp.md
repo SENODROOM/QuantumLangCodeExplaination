@@ -8,68 +8,41 @@
 
 ### Modular Architecture
 
-**WHY:** Implementing a modular architecture allows for better separation of concerns and easier maintenance. Each component (lexer, parser, interpreter, etc.) can be developed, tested, and modified independently without affecting the others. This also facilitates scalability and extensibility, making it easier to add new features or support additional language constructs in the future.
+**WHY:** Implementing a modular architecture allows for easier maintenance, scalability, and testing. Each component (lexer, parser, interpreter, etc.) can be developed, debugged, and modified independently without affecting other parts of the compiler. This separation also facilitates parallel development among team members.
 
 ### Command-Line Argument Handling
 
-**WHY:** Command-line argument handling is crucial for allowing users to interact with the compiler. By parsing these arguments, `main.cpp` can determine whether to run the compiler in normal mode, test mode, or other specific configurations. This provides flexibility and control over how the compiler operates, enabling developers to perform various tasks programmatically or through scripts.
+**WHY:** Providing command-line options enables users to customize the behavior of the compiler. For example, users can specify input files, enable test mode, or control verbose output levels. This flexibility is crucial for both development and production environments.
 
 ### Error Handling and Reporting
 
-**WHY:** Robust error handling and reporting mechanisms are vital for diagnosing issues during the compilation process. By centralizing error management in `main.cpp`, the compiler can provide clear and informative error messages to users, helping them identify and fix problems more effectively. This also ensures consistency in error reporting across different parts of the compiler.
+**WHY:** Robust error handling ensures that the compiler can gracefully handle syntax errors, semantic issues, and runtime exceptions. Detailed error messages help developers quickly identify and fix problems, improving the reliability and usability of the compiler.
 
-## Classes and Functions Documentation
+## Major Classes and Functions
 
-### printBanner()
+### `printBanner()`
+- **Purpose:** Prints a colorful banner at the start of the program, introducing the Quantum Language compiler.
+- **Behavior:** Outputs ASCII art and version information in different colors using ANSI escape sequences.
 
-**Purpose:** Prints the banner text at the start of the program, introducing the Quantum Language compiler.
+### `printAura()`
+- **Purpose:** Displays achievements and milestones related to the Quantum Language compiler.
+- **Behavior:** Lists completed features and projects in a visually appealing format, highlighting the progress made towards cybersecurity readiness.
 
-**Behaviour:** Outputs a colorful ASCII art banner followed by version information.
-
-### printAura()
-
-**Purpose:** Displays an achievement summary, highlighting key milestones and features implemented in the Quantum Language compiler.
-
-**Behaviour:** Outputs a colorful ASCII art aura with a list of completed achievements.
-
-### main(int argc, char* argv[])
-
-**Purpose:** The primary function of the Quantum Language compiler, responsible for managing the entire compilation process.
-
-**Behaviour:**
-1. Parses command-line arguments to determine the operating mode.
-2. Initializes essential components: lexer, parser, interpreter, type checker, and error handler.
-3. Reads input from files or standard input based on user configuration.
-4. Coordinates the compilation steps: lexical analysis, syntax parsing, semantic analysis, and interpretation.
-5. Handles errors and reports them to the user.
-6. Provides an interactive REPL mode if configured.
-
-### handleCommandlineArgs(int argc, char* argv[])
-
-**Purpose:** Processes command-line arguments to configure the compiler's behavior.
-
-**Behaviour:** Sets flags like `g_testMode` based on user inputs and validates provided options.
-
-### readInput(const std::string& filename, bool isREPL)
-
-**Purpose:** Reads the source code from either a file or standard input.
-
-**Behaviour:** Opens a file and reads its contents into a string, or reads directly from standard input if running in REPL mode.
-
-### compileSourceCode(const std::string& sourceCode)
-
-**Purpose:** Compiles the source code using the initialized components.
-
-**Behaviour:**
-1. Performs lexical analysis to tokenize the source code.
-2. Parses the tokens to construct an abstract syntax tree (AST).
-3. Checks the AST for semantic correctness.
-4. Interprets the AST to execute the quantum language code.
+### `main(int argc, char* argv[])`
+- **Purpose:** The main function orchestrates the entire compilation process.
+- **Behavior:** 
+  - Parses command-line arguments.
+  - Initializes the lexer, parser, interpreter, type checker, and error handler.
+  - Reads input from files or standard input.
+  - Compiles the input and executes the resulting program.
+  - Handles test mode and verbose output based on user inputs.
 
 ## Tradeoffs and Limitations
 
-- **Modular Architecture vs. Complexity:** While a modular approach enhances maintainability, it may introduce some complexity in terms of inter-component communication and synchronization.
-- **Error Handling vs. Performance:** Comprehensive error handling can slow down the compilation process, especially in cases where minor errors are encountered frequently. However, it is essential for providing accurate feedback to users.
-- **REPL Mode vs. Batch Processing:** Providing an interactive REPL mode increases convenience but may limit the compiler's ability to handle large batch jobs efficiently.
+- **Modularity vs. Complexity:** While modularity enhances maintainability, it can introduce additional complexity in managing dependencies between components.
+- **Error Handling vs. Performance:** Comprehensive error reporting improves debugging but may slightly impact performance, especially in high-throughput scenarios.
+- **Cross-Platform Compatibility:** Using platform-specific libraries like Windows API adds complexity but ensures compatibility across different operating systems.
 
-This README.md provides a comprehensive overview of the `src/main.cpp` file, detailing its role in the compiler pipeline, key design decisions, and the functionality of major classes and functions. It also acknowledges potential tradeoffs and limitations associated with the implementation.
+## Conclusion
+
+`src/main.cpp` plays a critical role in the Quantum Language compiler by coordinating the various components of the system and handling user interactions through command-line arguments. Its modular design, robust error handling, and flexible command-line options make it an essential part of the compiler's functionality. However, it also comes with certain tradeoffs, particularly in terms of complexity and cross-platform support.
