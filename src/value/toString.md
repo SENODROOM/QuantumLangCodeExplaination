@@ -1,194 +1,45 @@
-# toString() Function Explanation
+# `toString()` Function Explanation
 
-## Complete Code
+The `toString()` function in the Quantum Language compiler is designed to convert various quantum data types into their string representations. This function plays a crucial role in debugging and logging operations within the compiler, as well as in user interfaces that need to display quantum values.
 
-```cpp
-std::string QuantumValue::toString() const
-{
-    return std::visit([](const auto &v) -> std::string
-                      {
-        using T = std::decay_t<decltype(v)>;
-        if constexpr (std::is_same_v<T, QuantumNil>)  return "nil";
-        if constexpr (std::is_same_v<T, bool>)        return v ? "true" : "false";
-        if constexpr (std::is_same_v<T, double>) {
-            if (std::floor(v) == v && std::abs(v) < 1e15)
-                return std::to_string((long long)v);
-            std::ostringstream oss;
-            oss << std::setprecision(10) << v;
-            return oss.str();
-        }
-        if constexpr (std::is_same_v<T, std::string>) return v;
-        if constexpr (std::is_same_v<T, std::shared_ptr<Array>>) {
-            std::string s = "[";
-            for (size_t i = 0; i < v->size(); i++) {
-                if (i) s += ", ";
-                if ((*v)[i].isString()) s += "\"" + (*v)[i].toString() + "\"";
-                else s += (*v)[i].toString();
-            }
-            return s + "]";
-        }
-        if constexpr (std::is_same_v<T, std::shared_ptr<Dict>>) {
-            std::string s = "{";
-            bool first = true;
-            for (auto& [k, val] : *v) {
-                if (!first) s += ", ";
-                s += "\"" + k + "\": ";
-                if (val.isString()) s += "\"" + val.toString() + "\"";
-                else s += val.toString();
-                first = false;
-            }
-            return s + "}";
-        }
-        if constexpr (std::is_same_v<T, std::shared_ptr<QuantumFunction>>) return "<fn:" + v->name + ">";
-        if constexpr (std::is_same_v<T, std::shared_ptr<QuantumNative>>)   return "<native:" + v->name + ">";
-        if constexpr (std::is_same_v<T, std::shared_ptr<QuantumInstance>>) {
-            // Call __str__ if defined
-            auto k = v->klass.get();
-            while (k) {
-                auto mit = k->methods.find("__str__");
-                if (mit != k->methods.end()) {
-                    break;
-                }
-                k = k->base.get();
-            }
-            return "<instance:" + v->klass->name + ">";
-        }
-        if constexpr (std::is_same_v<T, std::shared_ptr<QuantumClass>>)    return "<class:" + v->name + ">";
-        if constexpr (std::is_same_v<T, std::shared_ptr<QuantumPointer>>) {
-            if (!v || v->isNull()) return "0x0";
-            // Show a deterministic fake address based on cell pointer value
-            // so repeated prints of the same pointer give the same address
-            std::ostringstream oss;
-            oss << "0x" << std::hex << std::uppercase
-                << (reinterpret_cast<uintptr_t>(v->cell.get()) + (size_t)v->offset * 8);
-            return oss.str();
-        }
-        return "?"; }, data);
-}
-```
+## How It Works
 
-## Code Explanation
+The function uses `std::visit` to handle different types of quantum values. Each type has its own conversion logic implemented within the lambda function passed to `std::visit`. The use of `if constexpr` allows for compile-time branching based on the type of the quantum value, ensuring efficient execution without runtime overhead.
 
-### Function Signature
--  `std::string QuantumValue::toString() const` - Member function that converts the value to its string representation
-  - Returns a string representation suitable for display
-  - `const` means this function doesn't modify the QuantumValue object
+### Conversion Logic
 
-###
--  `return std::visit([](const auto &v) -> std::string` - Uses std::visit to handle different value types
-  - Applies a visitor function to the active type in the variant
-  - Lambda returns a string representation
+- **QuantumNil**: Returns `"nil"` for `QuantumNil` instances. This represents the null or undefined state in quantum programming.
+  
+- **bool**: Converts boolean values (`true` or `false`) to their respective string representations.
 
-###
--  `{` - Opening brace for lambda function
--  `using T = std::decay_t<decltype(v)>;` - Gets the actual type of the value
--  Empty line for readability
+- **double**: Handles floating-point numbers. If the number is an integer (within a certain range), it converts to a long long integer. Otherwise, it formats the number to a string with up to 10 decimal places using `std::ostringstream`.
 
-###
--  `if constexpr (std::is_same_v<T, QuantumNil>)  return "nil";` - Nil values return "nil"
-  - Simple string representation for null values
+- **std::string**: Directly returns the string value.
 
-###
--  `if constexpr (std::is_same_v<T, bool>)        return v ? "true" : "false";` - Boolean values return "true" or "false"
-  - Uses ternary operator to convert boolean to string
+- **std::shared_ptr<Array>**: Iterates through each element in the array, converting them to strings. Elements are separated by commas, and strings are enclosed in quotes. The resulting array representation is enclosed in square brackets.
 
-###
--  `if constexpr (std::is_same_v<T, double>) {` - Start of number handling
--  `if (std::floor(v) == v && std::abs(v) < 1e15)` - Check if number is integer-like and within safe range
-  - `std::floor(v) == v` checks if number has no fractional part
-  - `std::abs(v) < 1e15` ensures number is within safe integer range
--  `return std::to_string((long long)v);` - Convert to integer string if integer-like
--  `std::ostringstream oss;` - Create string stream for floating point formatting
--  `oss << std::setprecision(10) << v;` - Format with 10 digits of precision
--  `return oss.str();` - Return formatted string
--  `}` - Close number handling block
+- **std::shared_ptr<Dict>**: Iterates through each key-value pair in the dictionary, converting both keys and values to strings. Key-value pairs are separated by commas, and each pair is formatted as `"key": value`. Strings are enclosed in quotes. The resulting dictionary representation is enclosed in curly braces.
 
-###
--  `if constexpr (std::is_same_v<T, std::string>) return v;` - Strings return themselves directly
-  - No additional formatting needed
+- **std::shared_ptr<QuantumFunction>**: Returns a string indicating the name of the quantum function, prefixed with `<fn:`.
 
-###
--  `if constexpr (std::is_same_v<T, std::shared_ptr<Array>>) {` - Start of array handling
--  `std::string s = "[";` - Start with opening bracket
--  `for (size_t i = 0; i < v->size(); i++) {` - Loop through array elements
--  `if (i) s += ", ";` - Add comma separator after first element
--  `if ((*v)[i].isString()) s += "\"" + (*v)[i].toString() + "\"";` - Quote string elements
--  `else s += (*v)[i].toString();` - Add non-string elements without quotes
--  `}` - Close loop
--  `return s + "]";` - Add closing bracket and return
--  `}` - Close array handling
+- **std::shared_ptr<QuantumNative>**: Similar to functions, but prefixed with `<native:` to indicate a native function.
 
-###
--  `if constexpr (std::is_same_v<T, std::shared_ptr<Dict>>) {` - Start of dictionary handling
--  `std::string s = "{";` - Start with opening brace
--  `bool first = true;` - Track first element for comma handling
--  `for (auto& [k, val] : *v) {` - Loop through key-value pairs
--  `if (!first) s += ", ";` - Add comma after first element
--  `s += "\"" + k + "\": ";` - Add quoted key and colon
--  `if (val.isString()) s += "\"" + val.toString() + "\"";` - Quote string values
--  `else s += val.toString();` - Add non-string values without quotes
--  `first = false;` - Mark that we've processed the first element
--  `}` - Close loop
--  `return s + "}";` - Add closing brace and return
--  `}` - Close dictionary handling
+- **std::shared_ptr<QuantumInstance>**: Checks if the class associated with the instance has a method named `__str__`. If found, it calls this method to get the string representation of the instance. If not found, it falls back to a default implementation.
 
-###
--  `if constexpr (std::is_same_v<T, std::shared_ptr<QuantumFunction>>) return "<fn:" + v->name + ">";` - User functions show name
--  `if constexpr (std::is_same_v<T, std::shared_ptr<QuantumNative>>)   return "<native:" + v->name + ">";` - Native functions show name
+## Parameters/Return Value
 
-###
--  `if constexpr (std::is_same_v<T, std::shared_ptr<QuantumInstance>>) {` - Start of instance handling
--  `// Call __str__ if defined` - Comment about custom string method
--  `auto k = v->klass.get();` - Get pointer to class
--  `while (k) {` - Walk inheritance chain
--  `auto mit = k->methods.find("__str__");` - Look for custom __str__ method
--  `if (mit != k->methods.end()) {` - If method found
--  `break;` - Break (method exists but not called in current implementation)
--  `}` - Close if
--  `k = k->base.get();` - Move to base class
--  `}` - Close while loop
--  `return "<instance:" + v->klass->name + ">";` - Return instance representation
--  `}` - Close instance handling
+- **Parameters**: None.
+- **Return Value**: A `std::string` representing the quantum value in a human-readable format.
 
-###
--  `if constexpr (std::is_same_v<T, std::shared_ptr<QuantumClass>>)    return "<class:" + v->name + ">";` - Classes show name
+## Edge Cases
 
-###
--  `if constexpr (std::is_same_v<T, std::shared_ptr<QuantumPointer>>) {` - Start of pointer handling
--  `if (!v || v->isNull()) return "0x0";` - Null pointers show as 0x0
--  `// Show a deterministic fake address based on cell pointer value` - Comment about address generation
--  `// so repeated prints of the same pointer give the same address` - Comment about consistency
--  `std::ostringstream oss;` - Create string stream
--  `oss << "0x" << std::hex << std::uppercase` - Format as hexadecimal with uppercase
--  `<< (reinterpret_cast<uintptr_t>(v->cell.get()) + (size_t)v->offset * 8);` - Calculate fake address
--  `return oss.str();` - Return formatted address
--  `}` - Close pointer handling
+- For `double` values, very large integers may be incorrectly converted to long long integers due to precision limitations.
+- Handling of custom classes without a `__str__` method might result in less informative string representations compared to those with a custom method.
 
-###
--  `return "?"; }, data);` - Default case returns "?" for unknown types
-  - Closes lambda and applies it to the `data` variant member
+## Interactions With Other Components
 
-## Summary
+- **Debugging and Logging**: The `toString()` function is used extensively in the compiler's logging system to provide readable output of quantum values during debugging sessions.
+- **User Interfaces**: Many parts of the compiler interact with user interfaces, which often require displaying quantum values in a string format. The `toString()` function facilitates this by providing a consistent way to represent all quantum data types as strings.
+- **Serialization**: While not directly shown in the provided code snippet, the string representation generated by `toString()` can be useful for serialization purposes, allowing quantum values to be stored or transmitted in a text-based format.
 
-The `toString()` function provides comprehensive string conversion for all Quantum Language value types:
-
-### Key Features
-- **Type-Safe**: Uses `std::visit` and `if constexpr` for compile-time type checking
-- **Formatted Output**: Proper formatting for collections (arrays, dictionaries)
-- **Human-Readable**: Clear representations for functions, classes, and instances
-- **Consistent**: Deterministic pointer addresses for debugging
-- **Language-Aware**: Follows conventions from multiple programming languages
-
-### Output Formats
-- **Nil**: "nil"
-- **Boolean**: "true" or "false"
-- **Numbers**: Integer format for whole numbers, decimal for floats
-- **Strings**: Direct string content
-- **Arrays**: `[elem1, elem2, ...]` with quoted strings
-- **Dictionaries**: `{"key": value, ...}` with quoted keys and string values
-- **Functions**: `<fn:name>` or `<native:name>`
-- **Classes**: `<class:name>`
-- **Instances**: `<instance:classname>`
-- **Pointers**: Hexadecimal addresses like "0x1234ABCD"
-
-This function is essential for debugging, printing, and string operations in the Quantum Language interpreter.
+Overall, the `toString()` function is a versatile tool that enhances the usability and interoperability of the Quantum Language compiler by enabling developers and users to easily understand and manipulate quantum data types.
