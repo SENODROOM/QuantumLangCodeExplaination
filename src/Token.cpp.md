@@ -2,47 +2,48 @@
 
 ## Overview
 
-The `Token.cpp` file is an integral component of the Quantum Language compiler, designed to represent and manipulate individual lexical tokens derived from the input source code. These tokens form the foundational elements of the syntax tree, which are subsequently utilized for semantic analysis and code generation phases.
+The `Token.cpp` file is a critical part of the Quantum Language compiler, responsible for representing and manipulating individual lexical tokens extracted from the input source code. These tokens serve as the building blocks of the syntax tree, essential for subsequent stages of semantic analysis and code generation.
+
+## Role in Compiler Pipeline
+
+This file plays a pivotal role in the lexer phase of the compiler. It defines how tokens are converted into strings, which aids in debugging and error reporting. The `Token` class encapsulates the properties of a token, such as its type, value, line number, and column position, providing a structured way to handle these elements throughout the compilation process.
 
 ## Key Design Decisions
 
 ### Utilization of `std::ostringstream` for String Formatting
 
-**WHY**: Leveraging `std::ostringstream` streamlines the process of string formatting. This decision enhances readability and maintainability by allowing complex strings to be constructed using intuitive method chaining rather than manual concatenation. Additionally, it provides type safety and ensures proper handling of different data types during formatting.
+**WHY**: Using `std::ostringstream` simplifies the process of string formatting. This approach enhances readability and maintainability by allowing complex string constructions through method chaining rather than manual concatenation. Additionally, it improves performance by reducing the overhead associated with multiple string concatenations.
 
-## Documentation of Classes and Functions
+## Documentation of Major Classes/Functions
 
 ### Class: `Token`
 
-**Purpose**: The `Token` class encapsulates information about a single token, including its type, value, line number, and column position within the source code.
+**Purpose**: Represents a single lexical token in the Quantum Language source code.
 
-#### Member Variables:
+**Behavior**:
+- **Constructor**: Initializes a token with its type, value, line number, and column position.
+- **Destructor**: Cleans up any resources held by the token object.
+- **Function: `toString()`**
+  - **Purpose**: Converts the token's properties into a human-readable string format.
+  - **Behavior**: Returns a string representation of the token in the format `[line:col value]`. For example, `[10:5 identifier myVar]`.
+  - **Tradeoffs**: While this method provides a clear and concise string representation, it may not be suitable for all use cases where more complex formatting is required.
 
-- `int line`: Stores the line number where the token was found.
-- `int col`: Stores the column number where the token was found.
-- `std::string value`: Holds the textual representation of the token.
-- `TokenType type`: Indicates the category of the token (e.g., keyword, identifier, operator).
+### Function: `Token::toString() const`
 
-#### Public Methods:
+**Purpose**: Converts the token's properties into a formatted string.
 
-- **Constructor**: Initializes a `Token` object with the provided line number, column number, value, and type.
-  ```cpp
-  Token(int line, int col, std::string value, TokenType type);
-  ```
-- **Destructor**: Cleans up any resources used by the `Token` object.
-  ```cpp
-  ~Token();
-  ```
-- **Method: `toString()`**
-  - **Purpose**: Returns a string representation of the token, formatted as `[line:col value]`.
-  - **Behavior**: Utilizes `std::ostringstream` to format the token's details into a readable string.
-  - **Tradeoffs/Limitations**: While enhancing readability, this approach may introduce slight performance overhead due to dynamic memory allocation associated with `std::ostringstream`. However, this is generally negligible compared to the benefits of improved code clarity and maintainability.
+**Behavior**:
+- Takes no parameters.
+- Uses `std::ostringstream` to construct a string in the format `[line:col value]`.
+- Returns the constructed string.
 
-## Tradeoffs and Limitations
+**Tradeoffs**: This function offers simplicity and readability but might lack flexibility for advanced formatting needs.
 
-- **Performance Overhead**: Although minimal, the use of `std::ostringstream` introduces a small performance cost due to dynamic memory management. This is typically not a significant issue unless the compiler processes extremely large source files.
-- **Complexity**: Introducing `std::ostringstream` adds some complexity to the codebase, particularly for developers unfamiliar with this library. However, this complexity is outweighed by the benefits of cleaner and more readable code.
+## Tradeoffs/Limitations
+
+- **Simplicity vs. Flexibility**: The choice of using `std::ostringstream` for string formatting sacrifices some flexibility in favor of ease of use and performance.
+- **Resource Management**: Although the destructor cleans up resources, the current implementation assumes that no dynamic memory is allocated within the `Token` class itself. If dynamic memory management is introduced, proper resource handling must be implemented in both the constructor and destructor.
 
 ## Conclusion
 
-The `Token.cpp` file plays a pivotal role in the Quantum Language compiler by providing a robust mechanism for representing and manipulating lexical tokens. By utilizing `std::ostringstream` for string formatting, the file achieves enhanced readability and maintainability, making it easier for developers to understand and work with the token objects throughout the compilation process.
+The `Token.cpp` file is a fundamental piece of the Quantum Language compiler, ensuring that lexical tokens are accurately represented and manipulated. By leveraging `std::ostringstream`, the file achieves a balance between simplicity and performance, making it an efficient choice for the lexer phase. However, developers should be aware of the tradeoffs involved when choosing this method for string formatting.
