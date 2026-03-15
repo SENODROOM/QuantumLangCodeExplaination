@@ -2,87 +2,60 @@
 
 ## Overview
 
-`Interpreter.cpp` is a crucial component of the Quantum Language compiler responsible for interpreting and executing quantum programs. This file contains the core logic of the interpreter, processing quantum instructions and managing the execution environment.
+`Interpreter.cpp` is a critical component of the Quantum Language compiler, focusing on interpreting and executing quantum programs. This file encapsulates the core logic of the interpreter, which processes quantum instructions and manages the execution environment.
 
 ## Role in Compiler Pipeline
 
-The `Interpreter` operates during the execution phase of the compiler pipeline. It accepts parsed quantum programs as input and executes them based on the language's rules.
+The `Interpreter` operates within the execution phase of the compiler pipeline. It takes in parsed quantum programs as input and executes them according to the language's rules. This ensures that the compiled code runs as intended, leveraging quantum computing principles effectively.
 
 ## Key Design Decisions
 
-### Token Buffering
+### Use of Static Variables
 
-- **WHY**: The C++ standard library's `cin >>` function reads whitespace-separated tokens, whereas `std::getline` reads entire lines. To handle cases where multiple inputs are expected in a single line, a token buffer (`s_cinBuffer`) was introduced.
-- **Tradeoff**: This approach adds complexity to manage the buffer, especially when dealing with different types of inputs.
+Static variables like `s_cinBuffer` are used to manage token buffering when reading input using `std::cin`. This decision was made to ensure that multiple `cin >>` operations can be performed without losing data between inputs. The choice of static storage duration allows the buffer to persist across function calls, facilitating seamless token management.
 
-### Error Handling
+### Custom Error Handling
 
-- **WHY**: Robust error handling is essential for a reliable interpreter. By throwing exceptions like `TypeError`, the interpreter can gracefully handle unexpected data types and provide clear error messages.
-- **Limitation**: While exceptions are powerful, they can lead to performance overhead and make debugging harder compared to traditional error codes.
+A custom error handling mechanism is implemented through the `Error` class. This approach was selected to provide more control over error reporting and recovery within the interpreter. By defining a dedicated error handling system, developers can tailor error messages to specific contexts, enhancing debugging and user experience.
 
-### Mathematical Constants
+### Support for Advanced Formatting
 
-- **WHY**: Defining mathematical constants (`M_PI`, `M_E`) within the interpreter allows for easy access and usage throughout the program without external dependencies.
-- **Tradeoff**: These definitions might conflict with other libraries using the same names, requiring careful management.
+The `applyFormat` function supports advanced formatting similar to C-style functions (`printf`, `sprintf`). This decision was made to enable users to format output strings flexibly, aligning closely with standard practices in other programming languages. While this adds complexity to the implementation, it significantly improves the usability of formatted output in quantum applications.
 
-### Platform-Specific Code
+## Documentation of Major Classes/Functions
 
-- **WHY**: Certain functionalities, such as generating random numbers securely, require platform-specific implementations. Including Windows cryptography headers ensures compatibility across different platforms.
-- **Limitation**: This makes the code less portable and requires additional setup for non-Windows environments.
+### Class: `Interpreter`
 
-## Classes and Functions Documentation
+**Purpose:** Manages the interpretation and execution of quantum programs.
 
-### `class QuantumValue`
+**Behavior:** Parses quantum instructions and executes them in the specified order. Handles errors gracefully and provides feedback through the `Error` class.
 
-**Purpose**: Represents a value in the Quantum Language, capable of holding various types including integers, floating-point numbers, strings, and booleans.
+### Function: `toNum`
 
-**Behavior**: Provides methods to check the type of the value, retrieve it as a specific type, and convert it to a string representation.
+**Purpose:** Converts a `QuantumValue` to a numeric type.
 
-### `function toNum(const QuantumValue &v, const std::string &ctx)`
+**Behavior:** Checks if the value is a number and returns it as a `double`. If not, throws a `TypeError`.
 
-**Purpose**: Converts a `QuantumValue` to a number.
+### Function: `toInt`
 
-**Behavior**: Throws a `TypeError` if the value is not numeric, otherwise returns the numeric value.
+**Purpose:** Converts a `QuantumValue` to an integer type.
 
-### `function toInt(const QuantumValue &v, const std::string &ctx)`
+**Behavior:** Calls `toNum` to get the numeric representation and then casts it to a `long long`. This function simplifies the conversion process for integer values.
 
-**Purpose**: Converts a `QuantumValue` to an integer.
+### Function: `applyFormat`
 
-**Behavior**: Calls `toNum` to get the numeric value and then casts it to an integer.
+**Purpose:** Applies formatting to a string based on provided arguments.
 
-### `function applyFormat(const std::string &fmt, const std::vector<QuantumValue> &args, size_t argStart = 1)`
+**Behavior:** Supports various format specifiers such as `%d`, `%f`, `%s`, etc., and applies them to the corresponding arguments. Handles flags like `-` for left alignment, `+` for forced sign, and `0` for zero-padding.
 
-**Purpose**: Applies formatting to a string using values from a vector of `QuantumValue`.
+## Tradeoffs/Limitations
 
-**Behavior**: Supports various format specifiers and flags, converting `QuantumValue` instances to their appropriate string representations and applying formatting rules.
+- **Performance Over Memory Usage:** The use of static variables for token buffering may lead to increased memory usage, especially in scenarios where many threads are involved. However, it offers better performance compared to dynamically allocating buffers for each operation.
+  
+- **Complexity in Error Handling:** Implementing a custom error handling system increases the complexity of the codebase. While this enhances flexibility and control, it requires additional resources and time for maintenance.
 
-## Tradeoffs and Limitations
+- **Limited Support for Quantum Operations:** The current implementation focuses on basic quantum instruction processing. Extending support for more complex quantum operations would require significant architectural changes and additional testing.
 
-- **Performance Overhead**: Using exceptions for error handling introduces some performance overhead, which could be mitigated by alternative approaches.
-- **Portability**: The inclusion of platform-specific code limits the interpreter's portability across different operating systems.
-- **Complexity Management**: Managing a token buffer for `cin >>` adds complexity to the interpreter's implementation, potentially impacting maintainability.
+## Conclusion
 
-## Usage Example
-
-To use the `Interpreter`, you would typically include the necessary header files and call its methods to parse and execute quantum programs:
-
-```cpp
-#include "Interpreter.h"
-
-int main()
-{
-    try
-    {
-        QuantumProgram program = parseQuantumProgram("example.qasm");
-        Interpreter interpreter(program);
-        interpreter.execute();
-    }
-    catch (const std::exception &e)
-    {
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-    return 0;
-}
-```
-
-This example demonstrates how to parse a quantum program and execute it using the `Interpreter`. Note that error handling is crucial due to the potential for exceptions thrown during parsing or execution.
+`Interpreter.cpp` plays a pivotal role in the Quantum Language compiler by interpreting and executing quantum programs efficiently. Through careful design decisions, including the use of static variables, custom error handling, and advanced formatting, the interpreter provides robust functionality tailored to the needs of quantum computing applications. Despite some inherent complexities and limitations, this implementation forms a solid foundation for further development and expansion.
