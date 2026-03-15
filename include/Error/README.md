@@ -1,161 +1,100 @@
-# Error.h - Error Handling Header File Explanation
+# Error.h — Error Handling & Terminal Colors
 
-## Complete Code
+This header defines the exception hierarchy used throughout the Quantum Language runtime and a namespace of ANSI terminal color codes used when printing error messages.
+
+---
+
+## Exception hierarchy
+
+```
+std::runtime_error
+    └── QuantumError          (base: adds line number + error kind)
+            ├── RuntimeError  (execution failures: division by zero, stack overflow, etc.)
+            ├── TypeError     (wrong type for an operation)
+            ├── NameError     (reference to an undefined variable)
+            └── IndexError    (out-of-bounds array/string access)
+```
+
+All Quantum exceptions inherit from `std::runtime_error`, which means they can be caught with a standard `catch (const std::exception& e)` block anywhere in the C++ host — useful for the REPL and test runner, which need to recover from user errors without crashing the process.
+
+### `QuantumError` — the base class
 
 ```cpp
-#pragma once
-#include <stdexcept>
-#include <string>
-
-class QuantumError : public std::runtime_error
-{
+class QuantumError : public std::runtime_error {
 public:
     int line;
     std::string kind;
 
-    QuantumError(const std::string &kind, const std::string &msg, int line = -1)
+    QuantumError(const std::string& kind, const std::string& msg, int line = -1)
         : std::runtime_error(msg), line(line), kind(kind) {}
 };
+```
 
-class RuntimeError : public QuantumError
-{
-public:
-    RuntimeError(const std::string &msg, int line = -1)
-        : QuantumError("RuntimeError", msg, line) {}
-};
+Two fields are added on top of `std::runtime_error`:
 
-class TypeError : public QuantumError
-{
-public:
-    TypeError(const std::string &msg, int line = -1)
-        : QuantumError("TypeError", msg, line) {}
-};
+- **`line`** — the source line where the error originated. Defaults to `-1` when the error is not traceable to a specific line (e.g., internal errors during initialization). The interpreter stores line numbers in every `ASTNode`, so most runtime errors can fill this in precisely.
+- **`kind`** — a human-readable error category string (`"TypeError"`, `"NameError"`, etc.). This is separate from the C++ type so that error messages can be formatted as `TypeError: cannot add int and string` without the caller needing to `dynamic_cast` to determine the error category.
 
-class NameError : public QuantumError
-{
-public:
-    NameError(const std::string &msg, int line = -1)
-        : QuantumError("NameError", msg, line) {}
-};
+### Derived error types
 
-class IndexError : public QuantumError
-{
-public:
-    IndexError(const std::string &msg, int line = -1)
-        : QuantumError("IndexError", msg, line) {}
-};
+Each subclass exists to distinguish error categories at the C++ type level, which allows the interpreter to catch specific error kinds selectively:
 
-namespace Colors
-{
-    inline const char *RED = "\033[31m";
-    inline const char *YELLOW = "\033[33m";
-    inline const char *WHITE = "\033[37m";
-    inline const char *CYAN = "\033[36m";
-    inline const char *GREEN = "\033[32m";
-    inline const char *BLUE = "\033[34m";
-    inline const char *BOLD = "\033[1m";
-    inline const char *RESET = "\033[0m";
-    inline const char *MAGENTA = "\033[35m";
+```cpp
+try {
+    result = evalBinary(expr);
+} catch (const TypeError& e) {
+    // report type mismatch with a specific message
+} catch (const QuantumError& e) {
+    // catch-all for other Quantum errors
 }
 ```
 
-## Code Explanation
+The derived constructors simply forward their arguments to `QuantumError` with the appropriate `kind` string hardcoded:
 
-###
--  `#pragma once` - Prevents the header from being included multiple times in the same compilation unit
--  `#include <stdexcept>` - Includes standard exception classes like `std::runtime_error`
--  `#include <string>` - Includes string functionality for error messages
+```cpp
+class RuntimeError : public QuantumError {
+public:
+    RuntimeError(const std::string& msg, int line = -1)
+        : QuantumError("RuntimeError", msg, line) {}
+};
+```
 
-###
+This pattern means throw sites are concise — `throw TypeError("cannot add int and string", node.line)` — while the kind string is never accidentally misspelled, because it is set once in the constructor.
 
-####
--  `class QuantumError : public std::runtime_error` - Declares the base error class that inherits from `std::runtime_error`
--  `{` - Opening brace for the class definition
+---
 
-####
--  `public:` - Starts the public section of the class
+## The `Colors` namespace
 
-####
--  `int line;` - Stores the line number where the error occurred
--  `std::string kind;` - Stores the type/kind of error (e.g., "TypeError", "NameError")
+```cpp
+namespace Colors {
+    inline const char* RED     = "\033[31m";
+    inline const char* YELLOW  = "\033[33m";
+    inline const char* GREEN   = "\033[32m";
+    inline const char* CYAN    = "\033[36m";
+    inline const char* BLUE    = "\033[34m";
+    inline const char* WHITE   = "\033[37m";
+    inline const char* MAGENTA = "\033[35m";
+    inline const char* BOLD    = "\033[1m";
+    inline const char* RESET   = "\033[0m";
+}
+```
 
-####
--  `QuantumError(const std::string &kind, const std::string &msg, int line = -1)` - Constructor that takes error kind, message, and optional line number
--  `: std::runtime_error(msg), line(line), kind(kind) {}` - Constructor initializer list that:
-  - Calls the base class constructor with the error message
-  - Initializes the line member variable
-  - Initializes the kind member variable
+These are ANSI SGR (Select Graphic Rendition) escape sequences. When written to a terminal that supports ANSI codes, they change the foreground color or style of subsequent text until `RESET` is written.
 
--  `};` - Closing brace for the QuantumError class
+**Why `inline` variables?** Before C++17, defining variables in a header included by multiple translation units caused linker errors ("multiple definition"). The `inline` specifier (C++17) tells the linker to merge all definitions into one, allowing this header to be included freely without a separate `.cpp` file for the color constants.
 
-###
+**Usage pattern** in the error reporter:
+```cpp
+std::cerr << Colors::BOLD << Colors::RED
+          << e.kind << ": "
+          << Colors::RESET << e.what()
+          << " (line " << e.line << ")\n";
+```
 
-####
--  `class RuntimeError : public QuantumError` - Declares RuntimeError class inheriting from QuantumError
--  `{` - Opening brace
--  `public:` - Public section
--  `RuntimeError(const std::string &msg, int line = -1)` - Constructor taking message and optional line
--  `: QuantumError("RuntimeError", msg, line) {}` - Calls base constructor with "RuntimeError" as the kind
--  `};` - Closing brace
+The error type is printed in bold red, then `RESET` restores normal formatting before the message text, giving the user a visually clear signal about what kind of error occurred without making the entire output hard to read.
 
-####
--  `class TypeError : public QuantumError` - Declares TypeError class
--  `{` - Opening brace
--  `public:` - Public section
--  `TypeError(const std::string &msg, int line = -1)` - Constructor
--  `: QuantumError("TypeError", msg, line) {}` - Calls base constructor with "TypeError" as the kind
--  `};` - Closing brace
+---
 
-####
--  `class NameError : public QuantumError` - Declares NameError class
--  `{` - Opening brace
--  `public:` - Public section
--  `NameError(const std::string &msg, int line = -1)` - Constructor
--  `: QuantumError("NameError", msg, line) {}` - Calls base constructor with "NameError" as the kind
--  `};` - Closing brace
+## Design note: what's missing
 
-####
--  `class IndexError : public QuantumError` - Declares IndexError class
--  `{` - Opening brace
--  `public:` - Public section
--  `IndexError(const std::string &msg, int line = -1)` - Constructor
--  `: QuantumError("IndexError", msg, line) {}` - Calls base constructor with "IndexError" as the kind
--  `};` - Closing brace
-
-###
-
-####
--  `namespace Colors` - Declares a namespace for color constants
-
-####
--  `inline const char *RED = "\033[31m";` - Red color escape sequence
--  `inline const char *YELLOW = "\033[33m";` - Yellow color escape sequence
--  `inline const char *WHITE = "\033[37m";` - White color escape sequence
--  `inline const char *CYAN = "\033[36m";` - Cyan color escape sequence
--  `inline const char *GREEN = "\033[32m";` - Green color escape sequence
--  `inline const char *BLUE = "\033[34m";` - Blue color escape sequence
--  `inline const char *BOLD = "\033[1m";` - Bold text escape sequence
--  `inline const char *RESET = "\033[0m";` - Reset formatting escape sequence
--  `inline const char *MAGENTA = "\033[35m";` - Magenta color escape sequence
-
--  `}` - Closing brace for the Colors namespace
-
-## Summary
-
-This header file provides a comprehensive error handling system for the Quantum Language compiler with:
-
-### Error Hierarchy
-- **Base Class**: `QuantumError` extends `std::runtime_error` with line number and error kind
-- **Specific Errors**: `RuntimeError`, `TypeError`, `NameError`, `IndexError` for different error types
-
-### Key Features
-- **Line Tracking**: All errors can track the source line where they occurred
-- **Error Classification**: Each error type has a specific kind string for identification
-- **Standard Compliance**: Inherits from `std::runtime_error` for compatibility with standard exception handling
-
-### Color Support
-- **ANSI Escape Codes**: Provides color constants for terminal output formatting
-- **Multiple Colors**: Supports red, yellow, white, cyan, green, blue, magenta, plus bold and reset
-- **Inline Variables**: Uses `inline` to allow header-only definition without multiple definition errors
-
-This design allows for structured error reporting with visual formatting to help developers identify and fix issues in their Quantum Language code.
+This hierarchy intentionally omits a `SyntaxError` type. Parse errors are reported and handled differently — they are detected during parsing before an `ASTNode` even exists, so there is no meaningful `line` field from a node. Parse errors are currently surfaced as thrown strings or `std::runtime_error` directly from the parser rather than going through this hierarchy. A future improvement would be to add `SyntaxError` here and route parser errors through it, giving parse failures the same structured reporting as runtime errors.

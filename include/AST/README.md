@@ -1,279 +1,26 @@
-# AST.h - Abstract Syntax Tree Header File Explanation
+# AST.h — Abstract Syntax Tree
 
-## Complete Code
+The AST is the central data structure of the Quantum Language compiler. After the lexer tokenizes source text and the parser validates its grammar, the result is a tree of `ASTNode` objects — one node per syntactic construct. The interpreter then walks this tree to execute the program. Nothing in the runtime ever touches raw source text; it works entirely through the AST.
+
+---
+
+## Memory model: why `unique_ptr`
+
+Every child node is stored as `ASTNodePtr`, which is `std::unique_ptr<ASTNode>`. Unique ownership means that when a parent node is destroyed, all its children are automatically freed — no manual `delete`, no garbage collector. This is RAII applied to the entire tree: constructing a node is allocation, and destroying it is deallocation.
 
 ```cpp
-#pragma once
-#include <memory>
-#include <string>
-#include <vector>
-#include <variant>
-
-// Forward declarations
-struct ASTNode;
 using ASTNodePtr = std::unique_ptr<ASTNode>;
+```
 
-// ─── Expression Types ───────────────────────────────────────────────────────
+The one exception is `TryStmt` and `ExceptClause`, which use `shared_ptr<ASTNode>` for their bodies. This is because exception handler bodies may need to be referenced from multiple places during error recovery.
 
-struct NumberLiteral
-{
-    double value;
-};
-struct StringLiteral
-{
-    std::string value;
-};
-struct BoolLiteral
-{
-    bool value;
-};
-struct NilLiteral
-{
-};
+---
 
-struct Identifier
-{
-    std::string name;
-};
+## The variant design: one type, every node
 
-struct BinaryExpr
-{
-    std::string op;
-    ASTNodePtr left, right;
-};
+Instead of a traditional class hierarchy with a virtual `eval()` method on every node, this AST uses `std::variant`:
 
-struct UnaryExpr
-{
-    std::string op;
-    ASTNodePtr operand;
-};
-
-struct AssignExpr
-{
-    std::string op; // = += -= *= /=
-    ASTNodePtr target;
-    ASTNodePtr value;
-};
-
-struct CallExpr
-{
-    ASTNodePtr callee;
-    std::vector<ASTNodePtr> args;
-};
-
-struct IndexExpr
-{
-    ASTNodePtr object;
-    ASTNodePtr index;
-};
-
-// Python slice: obj[start:stop:step]  — any part may be null (omitted)
-struct SliceExpr
-{
-    ASTNodePtr object;
-    ASTNodePtr start; // may be null → 0
-    ASTNodePtr stop;  // may be null → end
-    ASTNodePtr step;  // may be null → 1
-};
-
-struct MemberExpr
-{
-    ASTNodePtr object;
-    std::string member;
-};
-
-struct ArrayLiteral
-{
-    std::vector<ASTNodePtr> elements;
-};
-
-struct DictLiteral
-{
-    std::vector<std::pair<ASTNodePtr, ASTNodePtr>> pairs;
-};
-
-struct LambdaExpr
-{
-    std::vector<std::string> params;
-    std::vector<ASTNodePtr> defaultArgs;
-    ASTNodePtr body;
-};
-
-struct TernaryExpr
-{
-    ASTNodePtr condition;
-    ASTNodePtr thenExpr;
-    ASTNodePtr elseExpr;
-};
-
-// super(args) or super.method(args)
-struct SuperExpr
-{
-    std::string method; // empty = super constructor call
-};
-
-// ─── C++ Pointer Expression Types ────────────────────────────────────────────
-
-// &var — address-of operator
-struct AddressOfExpr
-{
-    ASTNodePtr operand;
-};
-
-// *ptr — dereference operator
-struct DerefExpr
-{
-    ASTNodePtr operand;
-};
-
-// ptr->member — arrow (member access through pointer)
-struct ArrowExpr
-{
-    ASTNodePtr object;
-    std::string member;
-};
-
-// ─── Statement Types ─────────────────────────────────────────────────────────
-
-struct VarDecl
-{
-    bool isConst;
-    std::string name;
-    ASTNodePtr initializer; // may be null
-    std::string typeHint;   // e.g. "int", "float", "char", "" = none
-    bool isPointer = false; // int* p = ...
-};
-
-struct FunctionDecl
-{
-    std::string name;
-    std::vector<std::string> params;
-    std::vector<bool> paramIsRef; // true = pass-by-reference (int& r), false = by-value
-    std::vector<ASTNodePtr> defaultArgs;
-    ASTNodePtr body;              // BlockStmt
-};
-
-struct ReturnStmt
-{
-    ASTNodePtr value; // may be null
-};
-
-struct IfStmt
-{
-    ASTNodePtr condition;
-    ASTNodePtr thenBranch;
-    // elif chains stored as else-if
-    ASTNodePtr elseBranch; // may be null
-};
-
-struct WhileStmt
-{
-    ASTNodePtr condition;
-    ASTNodePtr body;
-};
-
-struct ForStmt
-{
-    std::string var;
-    std::string var2; // optional second variable for tuple unpacking: for k, v in ...
-    ASTNodePtr iterable;
-    ASTNodePtr body;
-};
-
-// List comprehension: [expr for var in iterable (if cond)?]
-struct ListComp
-{
-    ASTNodePtr expr;               // the value expression
-    std::vector<std::string> vars; // loop variable(s) — supports tuple unpacking
-    ASTNodePtr iterable;
-    ASTNodePtr condition; // optional if-filter (may be null)
-};
-
-struct TupleLiteral
-{
-    std::vector<ASTNodePtr> elements;
-};
-
-struct BlockStmt
-{
-    std::vector<ASTNodePtr> statements;
-};
-
-struct ExprStmt
-{
-    ASTNodePtr expr;
-};
-
-struct PrintStmt
-{
-    std::vector<ASTNodePtr> args;
-    bool newline;
-    std::string sep = " ";  // Python default: space between args
-    std::string end = "\n"; // Python default: newline at end
-};
-
-struct InputStmt
-{
-    std::string target; // simple variable name (legacy)
-    ASTNodePtr prompt;
-    ASTNodePtr lvalueTarget; // optional: complex lvalue like arr[i]
-};
-
-struct BreakStmt
-{
-};
-struct ContinueStmt
-{
-};
-struct RaiseStmt
-{
-    ASTNodePtr value; // the exception value/message
-};
-
-struct ExceptClause
-{
-    std::string errorType; // e.g. "ValueError" — empty = bare except
-    std::string alias;     // "as e" — empty if none
-    std::shared_ptr<ASTNode> body;
-};
-
-struct TryStmt
-{
-    std::shared_ptr<ASTNode> body;
-    std::vector<ExceptClause> handlers;
-    std::shared_ptr<ASTNode> finallyBody; // may be null
-};
-
-struct ImportStmt
-{
-    std::string module; // e.g. "abc" for `from abc import...`, empty for `import sys`
-    struct Item
-    {
-        std::string name;
-        std::string alias; // empty if no alias
-    };
-    std::vector<Item> imports;
-};
-
-struct ClassDecl
-{
-    std::string name;
-    std::string base; // optional
-    std::vector<ASTNodePtr> methods;
-    std::vector<ASTNodePtr> staticMethods;
-    std::vector<ASTNodePtr> fields;
-};
-
-struct NewExpr
-{
-    std::string typeName;         // "int", "float", "MyClass", etc.
-    std::vector<ASTNodePtr> args; // constructor args for new T(args)
-    bool isArray = false;         // true for new T[n]
-    ASTNodePtr sizeExpr;          // size expression for new T[n]
-};
-
-// ─── ASTNode variant ─────────────────────────────────────────────────────────
-
+```cpp
 using NodeVariant = std::variant<
     NumberLiteral, StringLiteral, BoolLiteral, NilLiteral,
     Identifier,
@@ -291,124 +38,123 @@ using NodeVariant = std::variant<
     AddressOfExpr, DerefExpr, ArrowExpr,
     NewExpr>;
 
-struct ASTNode
-{
+struct ASTNode {
+    NodeVariant node;
+    int line = 0;
+    ...
+};
+```
+
+**Why variant over virtual dispatch?**
+
+- **No heap allocation per node type.** A virtual class hierarchy requires every node to be heap-allocated as its derived type. With variant, the node data is stored inline inside `ASTNode` — the size of the variant is just the size of the largest member.
+- **Exhaustive dispatch.** When the interpreter calls `std::visit` on a `NodeVariant`, the compiler enforces that every node type is handled. Adding a new AST node and forgetting to handle it in the interpreter is a compile-time error, not a silent runtime bug.
+- **Better cache locality.** Nodes are stored contiguously in their parent's `vector<ASTNodePtr>` pointer array rather than scattered across the heap via vtable pointers.
+
+The tradeoff is that adding a new node type requires recompiling every `std::visit` call site. For a compiler where the node set is stable, this is the right trade.
+
+---
+
+## Expression nodes
+
+| Node | Represents | Key fields |
+|------|-----------|------------|
+| `NumberLiteral` | A numeric constant | `double value` |
+| `StringLiteral` | A quoted string | `string value` |
+| `BoolLiteral` | `true` / `false` | `bool value` |
+| `NilLiteral` | `nil` / null | *(empty)* |
+| `Identifier` | A variable reference | `string name` |
+| `BinaryExpr` | `a + b`, `a == b`, etc. | `string op`, `left`, `right` |
+| `UnaryExpr` | `-a`, `!a` | `string op`, `operand` |
+| `AssignExpr` | `x = 5`, `x += 1` | `string op`, `target`, `value` |
+| `CallExpr` | `f(a, b)` | `callee`, `vector<> args` |
+| `IndexExpr` | `arr[i]` | `object`, `index` |
+| `SliceExpr` | `arr[1:5:2]` | `object`, `start`, `stop`, `step` (any may be null) |
+| `MemberExpr` | `obj.field` | `object`, `string member` |
+| `ArrayLiteral` | `[1, 2, 3]` | `vector<> elements` |
+| `DictLiteral` | `{"k": "v"}` | `vector<pair<>> pairs` |
+| `LambdaExpr` | `fn(x) => x*2` | `params`, `defaultArgs`, `body` |
+| `ListComp` | `[x*2 for x in arr]` | `expr`, `vars`, `iterable`, `condition` |
+| `TupleLiteral` | `(a, b)` | `vector<> elements` |
+| `TernaryExpr` | `a if cond else b` | `condition`, `thenExpr`, `elseExpr` |
+| `SuperExpr` | `super()` or `super.method()` | `string method` (empty = constructor) |
+
+### Pointer/C++-style expression nodes
+
+These bring low-level pointer semantics into the language:
+
+| Node | Operator | Purpose |
+|------|---------|---------|
+| `AddressOfExpr` | `&var` | Capture a reference to a variable's storage location |
+| `DerefExpr` | `*ptr` | Read through a pointer/reference |
+| `ArrowExpr` | `ptr->member` | Member access through a pointer |
+| `NewExpr` | `new T(args)` or `new T[n]` | Heap allocation; `isArray` distinguishes the two forms |
+
+---
+
+## Statement nodes
+
+| Node | Represents |
+|------|-----------|
+| `VarDecl` | `let`/`const` declaration, with optional type hint (`int x`) and pointer flag (`int* p`) |
+| `FunctionDecl` | Function with params, per-param ref flags (`paramIsRef`), defaults, and a `BlockStmt` body |
+| `ClassDecl` | Class with optional base, methods, static methods, and field declarations |
+| `IfStmt` | Condition + then branch + optional else (elif chains are nested as else-if) |
+| `WhileStmt` | Condition + body |
+| `ForStmt` | Python-style `for var in iterable` with optional `var2` for tuple unpacking (`for k, v in ...`) |
+| `BlockStmt` | A sequence of statements (function bodies, loop bodies, etc.) |
+| `ExprStmt` | An expression used as a statement (e.g., a bare function call) |
+| `PrintStmt` | `print(...)` with configurable `sep` and `end`, matching Python's signature |
+| `InputStmt` | `input(prompt)` assigned to either a simple variable or a complex lvalue like `arr[i]` |
+| `ReturnStmt` | `return` with optional value |
+| `BreakStmt` / `ContinueStmt` | Loop control (empty structs — their presence in the tree is the information) |
+| `RaiseStmt` | `raise expr` — throws a runtime exception |
+| `TryStmt` | `try` body + list of `ExceptClause` handlers + optional `finally` body |
+| `ImportStmt` | `from module import name as alias` — `module` is empty for bare `import` |
+
+### Why `FunctionDecl` carries `paramIsRef`
+
+Pass-by-reference parameters (`int& r`) are a syntactic distinction that must survive from the parser all the way to the interpreter's function-call logic. Rather than encoding this in a wrapper type or a separate AST node, the parallel `vector<bool> paramIsRef` flag array lets the interpreter check `paramIsRef[i]` when binding each argument, which keeps the dispatch path simple.
+
+---
+
+## The `ASTNode` wrapper
+
+```cpp
+struct ASTNode {
     NodeVariant node;
     int line = 0;
 
     template <typename T>
-    ASTNode(T &&n, int ln = 0) : node(std::forward<T>(n)), line(ln) {}
+    ASTNode(T&& n, int ln = 0) : node(std::forward<T>(n)), line(ln) {}
 
     template <typename T>
-    T &as() { return std::get<T>(node); }
-
-    template <typename T>
-    const T &as() const { return std::get<T>(node); }
+    T& as() { return std::get<T>(node); }
 
     template <typename T>
     bool is() const { return std::holds_alternative<T>(node); }
 };
 ```
 
-## Code Explanation
+Every node in the tree carries its source line number. This is used by the error system to produce messages like `TypeError at line 42` — the interpreter doesn't need a separate source-map structure because the line is embedded in the node itself.
 
-###
--  `#pragma once` - Prevents the header from being included multiple times
--  `#include <memory>` - Includes smart pointers like `unique_ptr`
--  `#include <string>` - Includes string functionality
--  `#include <vector>` - Includes dynamic array functionality
--  `#include <variant>` - Includes variant type for storing different types
+The `as<T>()` accessor throws `std::bad_variant_access` if the node isn't actually of type `T`, which is the correct behavior: a mismatch here is always an interpreter bug, not a user error, and a hard crash with a clear exception is preferable to silently reading the wrong field.
 
-###
--  Comment indicating forward declarations section
--  `struct ASTNode;` - Forward declares the ASTNode structure
--  `using ASTNodePtr = std::unique_ptr<ASTNode>;` - Creates a type alias for unique pointer to ASTNode
+---
 
-###
+## How the interpreter uses this
 
-####
-- **Lines 13-16**: `NumberLiteral` struct - Holds numeric values as double
-- **Lines 17-20**: `StringLiteral` struct - Holds text values
-- **Lines 21-24**: `BoolLiteral` struct - Holds true/false values
-- **Lines 25-27**: `NilLiteral` struct - Represents null/empty values
+The interpreter's `evaluate()` and `execute()` methods call `std::visit` on each `ASTNode`:
 
-####
-- **Lines 29-32**: `Identifier` struct - Represents variable names
-- **Lines 34-38**: `BinaryExpr` struct - Binary operations like `a + b`
-- **Lines 40-44**: `UnaryExpr` struct - Unary operations like `-a`
+```cpp
+QuantumValue Interpreter::evaluate(ASTNode& node) {
+    return std::visit(overloaded{
+        [&](BinaryExpr& e)  { return evalBinary(e); },
+        [&](CallExpr& e)    { return evalCall(e); },
+        [&](Identifier& e)  { return evalIdentifier(e); },
+        // ... all other expression types
+    }, node.node);
+}
+```
 
-####
-- **Lines 46-51**: `AssignExpr` struct - Assignment operations like `x = 5`
-- **Lines 53-57**: `CallExpr` struct - Function calls like `func(arg1, arg2)`
-
-####
-- **Lines 59-63**: `IndexExpr` struct - Array/object access like `arr[0]`
-- **Lines 65-72**: `SliceExpr` struct - Python-style slicing like `arr[1:5:2]`
-
-####
-- **Lines 74-78**: `MemberExpr` struct - Object member access like `obj.property`
-- **Lines 80-83**: `ArrayLiteral` struct - Array literals like `[1, 2, 3]`
-- **Lines 85-88**: `DictLiteral` struct - Dictionary literals like `{"key": "value"}`
-- **Lines 90-95**: `LambdaExpr` struct - Anonymous functions
-
-####
-- **Lines 97-102**: `TernaryExpr` struct - Conditional expressions like `condition ? true : false`
-- **Lines 104-109**: `SuperExpr` struct - Super class constructor/method calls
-
-###
-- **Lines 112-116**: `AddressOfExpr` struct - `&var` operator
-- **Lines 118-122**: `DerefExpr` struct - `*ptr` operator
-- **Lines 124-129**: `ArrowExpr` struct - `ptr->member` operator
-
-###
-
-####
-- **Lines 133-140**: `VarDecl` struct - Variable declarations with type hints
-- **Lines 142-149**: `FunctionDecl` struct - Function definitions
-
-####
-- **Lines 151-154**: `ReturnStmt` struct - Return statements
-- **Lines 156-162**: `IfStmt` struct - Conditional statements
-- **Lines 164-168**: `WhileStmt` struct - While loops
-- **Lines 170-176**: `ForStmt` struct - For loops with tuple unpacking support
-
-####
-- **Lines 178-185**: `ListComp` struct - List comprehensions
-- **Lines 187-190**: `TupleLiteral` struct - Tuple literals
-- **Lines 192-195**: `BlockStmt` struct - Code blocks
-- **Lines 197-200**: `ExprStmt` struct - Expression statements
-- **Lines 202-208**: `PrintStmt` struct - Print statements with formatting
-- **Lines 210-215**: `InputStmt` struct - Input statements
-- **Lines 217-222**: `BreakStmt` and `ContinueStmt` structs - Loop control
-- **Lines 223-226**: `RaiseStmt` struct - Exception throwing
-
-####
-- **Lines 228-233**: `ExceptClause` struct - Exception handlers
-- **Lines 235-240**: `TryStmt` struct - Try-catch-finally blocks
-
-####
-- **Lines 242-251**: `ImportStmt` struct - Module imports
-- **Lines 253-260**: `ClassDecl` struct - Class definitions
-- **Lines 262-268**: `NewExpr` struct - Object instantiation
-
-###
-
-####
-- **Lines 272-287**: `using NodeVariant = std::variant<...>` - Union type that can hold any AST node type
-
-####
-- **Lines 289-292**: `ASTNode` struct with node variant and line number
-- **Lines 294-295**: Constructor template that forwards any node type
-- **Lines 297-298**: `as()` method template for type-safe access
-- **Lines 300-301**: Const version of `as()` method
-- **Lines 303-304**: `is()` method template for type checking
-
-## Summary
-
-This header file defines the complete Abstract Syntax Tree structure for the Quantum Language compiler. It uses modern C++ features like:
-- **Smart pointers** for memory management
-- **Variants** for type-safe unions
-- **Templates** for generic operations
-- **Comprehensive node types** supporting multiple programming paradigms
-
-The AST supports expressions, statements, control flow, object-oriented features, and C++ pointer operations, making it a versatile foundation for a multi-paradigm language.
+This dispatch is zero-overhead at runtime: the compiler generates a jump table indexed by the variant's type index, equivalent to a switch statement over an enum.

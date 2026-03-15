@@ -1,220 +1,129 @@
-# Interpreter.h - Interpreter Header File Explanation
+# Interpreter.h — The Interpreter Interface
 
-## Complete Code
+The `Interpreter` class is the execution engine of the Quantum Language runtime. It takes a tree of `ASTNode` objects produced by the parser and executes them by walking the tree recursively. This header defines the public surface of the interpreter and the private method layout that mirrors the structure of the AST.
+
+---
+
+## Public interface
 
 ```cpp
-#pragma once
-#include "AST.h"
-#include "Value.h"
-#include <memory>
-
-class Interpreter
-{
+class Interpreter {
 public:
     Interpreter();
-    void execute(ASTNode &node);
-    QuantumValue evaluate(ASTNode &node);
-    void execBlock(BlockStmt &s, std::shared_ptr<Environment> scope = nullptr);
+    void execute(ASTNode& node);
+    QuantumValue evaluate(ASTNode& node);
+    void execBlock(BlockStmt& s, std::shared_ptr<Environment> scope = nullptr);
 
     std::shared_ptr<Environment> globals;
-
-private:
-    std::shared_ptr<Environment> env;
-    long long stepCount_ = 0; // guards against infinite loops (e.g. empty-stdin programs)
-    static constexpr long long MAX_STEPS = 2'000'000;
-
-    void registerNatives();
-
-    // Statement executors
-    void execVarDecl(VarDecl &s);
-    void execFunctionDecl(FunctionDecl &s);
-    void execClassDecl(ClassDecl &s);
-    void execIf(IfStmt &s);
-    void execWhile(WhileStmt &s);
-    void execFor(ForStmt &s);
-    void execReturn(ReturnStmt &s);
-    void execPrint(PrintStmt &s);
-    void execInput(InputStmt &s);
-    void execImport(ImportStmt &s);
-    void execExprStmt(ExprStmt &s);
-
-    // Expression evaluators
-    QuantumValue evalBinary(BinaryExpr &e);
-    QuantumValue evalUnary(UnaryExpr &e);
-    QuantumValue evalAssign(AssignExpr &e);
-    QuantumValue evalCall(CallExpr &e);
-    QuantumValue evalIndex(IndexExpr &e);
-    QuantumValue evalMember(MemberExpr &e);
-    QuantumValue evalArray(ArrayLiteral &e);
-    QuantumValue evalDict(DictLiteral &e);
-    QuantumValue evalLambda(LambdaExpr &e);
-    QuantumValue evalListComp(ListComp &e);
-    QuantumValue evalIdentifier(Identifier &e);
-
-    // ── C++ Pointer evaluators ─────────────────────────────────────────────
-    QuantumValue evalAddressOf(AddressOfExpr &e); // &var
-    QuantumValue evalDeref(DerefExpr &e);         // *ptr
-    QuantumValue evalArrow(ArrowExpr &e);         // ptr->member
-    QuantumValue evalNewExpr(NewExpr &e);         // new T(args)
-
-    QuantumValue callFunction(std::shared_ptr<QuantumFunction> fn, std::vector<QuantumValue> args);
-    QuantumValue callNative(std::shared_ptr<QuantumNative> fn, std::vector<QuantumValue> args);
-    QuantumValue callInstanceMethod(std::shared_ptr<QuantumInstance> inst, std::shared_ptr<QuantumFunction> fn, std::vector<QuantumValue> args);
-
-    // Built-in method dispatch
-    QuantumValue callMethod(QuantumValue &obj, const std::string &method, std::vector<QuantumValue> args);
-    QuantumValue callArrayMethod(std::shared_ptr<Array> arr, const std::string &method, std::vector<QuantumValue> args);
-    QuantumValue callStringMethod(const std::string &str, const std::string &method, std::vector<QuantumValue> args);
-    QuantumValue callDictMethod(std::shared_ptr<Dict> dict, const std::string &method, std::vector<QuantumValue> args);
-
-    void setLValue(ASTNode &target, QuantumValue val, const std::string &op);
+    ...
 };
 ```
 
-## Code Explanation
+Only three methods and one field are public:
 
-###
--  `#pragma once` - Prevents multiple inclusion of this header file
--  `#include "AST.h"` - Includes Abstract Syntax Tree definitions
--  `#include "Value.h"` - Includes value type definitions
--  `#include <memory>` - Includes smart pointer functionality
--  Empty line for readability
+- **`execute(node)`** — runs a statement node. Does not return a value. Internally dispatches to the appropriate `exec*` method based on the node's type.
+- **`evaluate(node)`** — evaluates an expression node and returns a `QuantumValue`. Internally dispatches to the appropriate `eval*` method.
+- **`execBlock(s, scope)`** — executes a sequence of statements. The optional `scope` parameter allows the caller to inject a pre-built environment (used when entering function bodies, where the function's argument bindings are already set up before execution begins).
+- **`globals`** — the top-level environment. Exposed publicly so the test runner and REPL can inspect or pre-populate global variables without going through the interpreter's execution path.
 
-###
--  `class Interpreter` - Declares the Interpreter class that executes Quantum Language code
+`execute` and `evaluate` are separated rather than unified into a single `eval` method because statements and expressions have a fundamentally different contract: expressions always produce a value, statements never do. Keeping the types distinct at the C++ level prevents the interpreter from accidentally using a statement result as a value.
 
-###
+---
 
-####
--  `public:` - Starts the public section of the class
--  `Interpreter();` - Default constructor declaration
+## Infinite-loop guard
 
-####
--  `void execute(ASTNode &node);` - Executes a statement AST node
--  `QuantumValue evaluate(ASTNode &node);` - Evaluates an expression AST node and returns its value
--  `void execBlock(BlockStmt &s, std::shared_ptr<Environment> scope = nullptr);` - Executes a block of statements with optional scope
+```cpp
+private:
+    long long stepCount_ = 0;
+    static constexpr long long MAX_STEPS = 2'000'000;
+```
 
-####
--  `std::shared_ptr<Environment> globals;` - Shared pointer to the global environment
+The interpreter counts execution steps and throws a `RuntimeError` if `MAX_STEPS` is exceeded. This is essential for the test runner, which runs programs without interactive stdin — a program that loops waiting for input would otherwise hang the test process indefinitely. Two million steps is generous enough for real programs but tight enough to catch runaway loops quickly.
 
-###
--  `private:` - Starts the private section of the class
+---
 
-###
+## Statement executors (private)
 
-####
--  `std::shared_ptr<Environment> env;` - Current execution environment
+Each `exec*` method handles exactly one statement node type:
 
-####
--  `long long stepCount_ = 0;` - Counter to track execution steps
--  `static constexpr long long MAX_STEPS = 2'000'000;` - Maximum allowed steps to prevent infinite loops
--  Empty line for readability
+| Method | Handles |
+|--------|---------|
+| `execVarDecl` | `let`/`const` declarations; type-checks against hint if present |
+| `execFunctionDecl` | Wraps params + body in a `QuantumFunction` and binds it in the current scope |
+| `execClassDecl` | Builds a `QuantumClass` object from method/field lists and stores it as a value |
+| `execIf` | Evaluates the condition and branches; recursively handles elif/else |
+| `execWhile` | Loops until condition is false or a `BreakSignal` is thrown |
+| `execFor` | Iterates over arrays, strings, dicts, and tuple-unpacks where `var2` is set |
+| `execReturn` | Throws a `ReturnSignal` carrying the return value up the call stack |
+| `execPrint` | Evaluates all args, joins with `sep`, appends `end` |
+| `execInput` | Reads a line from stdin; assigns to either a simple name or a complex lvalue |
+| `execImport` | Loads a `.sa` module file, runs it in an isolated interpreter, and copies its globals |
+| `execExprStmt` | Calls `evaluate()` and discards the result |
 
-###
--  `void registerNatives();` - Registers built-in native functions
+**Control flow via exceptions.** `return`, `break`, and `continue` are implemented as C++ exceptions (`ReturnSignal`, `BreakSignal`, `ContinueSignal`). This is the standard approach for tree-walking interpreters: rather than threading a "did-we-return?" flag through every method's return value, a signal exception unwinds the call stack directly to the loop or function boundary that catches it. It is slower than flag-threading in pathological cases but produces much cleaner code.
 
-###
+---
 
-####
--  `void execVarDecl(VarDecl &s);` - Executes variable declarations
--  `void execFunctionDecl(FunctionDecl &s);` - Executes function declarations
--  `void execClassDecl(ClassDecl &s);` - Executes class declarations
+## Expression evaluators (private)
 
-####
--  `void execIf(IfStmt &s);` - Executes if statements
--  `void execWhile(WhileStmt &s);` - Executes while loops
--  `void execFor(ForStmt &s);` - Executes for loops
--  `void execReturn(ReturnStmt &s);` - Executes return statements
--  `void execPrint(PrintStmt &s);` - Executes print statements
--  `void execInput(InputStmt &s);` - Executes input statements
+| Method | Handles |
+|--------|---------|
+| `evalBinary` | Arithmetic, comparison, logical, and bitwise operators; also string concatenation |
+| `evalUnary` | `-`, `!`, `~` |
+| `evalAssign` | `=` and compound assignment (`+=`, `-=`, etc.); delegates target-setting to `setLValue` |
+| `evalCall` | Resolves the callee to a function/native/class and dispatches to the right call handler |
+| `evalIndex` | Array/string/dict indexing; also handles `SliceExpr` |
+| `evalMember` | Dot access on instances, dicts, and built-in types |
+| `evalArray` | Evaluates each element and constructs an `Array` |
+| `evalDict` | Evaluates each key-value pair and constructs a `Dict` |
+| `evalLambda` | Captures the current environment and wraps it in a `QuantumFunction` (closure) |
+| `evalListComp` | Iterates the iterable, applies the optional filter, collects the result expression |
+| `evalIdentifier` | Walks the environment chain to find a variable's value |
 
-####
--  `void execImport(ImportStmt &s);` - Executes import statements
--  `void execExprStmt(ExprStmt &s);` - Executes expression statements
--  Empty line for readability
--  Comment indicating expression evaluators section
--  Empty line for readability
+### Pointer evaluators
 
-###
+```cpp
+QuantumValue evalAddressOf(AddressOfExpr& e); // &var
+QuantumValue evalDeref(DerefExpr& e);         // *ptr
+QuantumValue evalArrow(ArrowExpr& e);         // ptr->member
+QuantumValue evalNewExpr(NewExpr& e);         // new T(args) / new T[n]
+```
 
-####
--  `QuantumValue evalBinary(BinaryExpr &e);` - Evaluates binary expressions (a + b)
--  `QuantumValue evalUnary(UnaryExpr &e);` - Evaluates unary expressions (-a)
--  `QuantumValue evalAssign(AssignExpr &e);` - Evaluates assignment expressions (x = 5)
--  `QuantumValue evalCall(CallExpr &e);` - Evaluates function calls
--  `QuantumValue evalIndex(IndexExpr &e);` - Evaluates indexing expressions (arr[0])
+These implement C++-style pointer semantics within the interpreter. `evalAddressOf` returns a `QuantumPointer` that holds a reference to the variable's storage cell in the environment, rather than a copy of its value. `evalDeref` reads through that pointer. This is how reference parameters (`int& r`) work: the caller passes the address of the variable, and the function body dereferences it implicitly on each access.
 
-####
--  `QuantumValue evalMember(MemberExpr &e);` - Evaluates member access (obj.prop)
--  `QuantumValue evalArray(ArrayLiteral &e);` - Evaluates array literals
--  `QuantumValue evalDict(DictLiteral &e);` - Evaluates dictionary literals
--  `QuantumValue evalLambda(LambdaExpr &e);` - Evaluates lambda expressions
--  `QuantumValue evalListComp(ListComp &e);` - Evaluates list comprehensions
+---
 
-####
--  `QuantumValue evalIdentifier(Identifier &e);` - Evaluates identifier references
--  Empty line for readability
+## Function call dispatch
 
-###
+Three private methods handle different kinds of callables:
 
-####
--  Comment indicating C++ pointer evaluators section
--  `QuantumValue evalAddressOf(AddressOfExpr &e); // &var` - Evaluates address-of operator
--  `QuantumValue evalDeref(DerefExpr &e);         // *ptr` - Evaluates dereference operator
--  `QuantumValue evalArrow(ArrowExpr &e);         // ptr->member` - Evaluates arrow operator
--  `QuantumValue evalNewExpr(NewExpr &e);         // new T(args)` - Evaluates new expression
--  Empty line for readability
+```cpp
+QuantumValue callFunction(shared_ptr<QuantumFunction>, vector<QuantumValue> args);
+QuantumValue callNative(shared_ptr<QuantumNative>, vector<QuantumValue> args);
+QuantumValue callInstanceMethod(shared_ptr<QuantumInstance>, shared_ptr<QuantumFunction>, vector<QuantumValue> args);
+```
 
-###
+`evalCall` resolves the callee's type and dispatches to the appropriate one. `callFunction` handles user-defined functions: it creates a new environment scoped to the function, binds arguments (checking `paramIsRef` to decide whether to bind by value or by reference), and calls `execBlock`. `callNative` simply invokes the underlying C++ lambda. `callInstanceMethod` is like `callFunction` but additionally binds `this` in the function's scope.
 
-####
--  `QuantumValue callFunction(std::shared_ptr<QuantumFunction> fn, std::vector<QuantumValue> args);` - Calls user-defined functions
--  `QuantumValue callNative(std::shared_ptr<QuantumNative> fn, std::vector<QuantumValue> args);` - Calls native functions
--  `QuantumValue callInstanceMethod(std::shared_ptr<QuantumInstance> inst, std::shared_ptr<QuantumFunction> fn, std::vector<QuantumValue> args);` - Calls instance methods
+---
 
-###
+## Built-in method dispatch
 
-####
--  Comment indicating built-in method dispatch section
--  `QuantumValue callMethod(QuantumValue &obj, const std::string &method, std::vector<QuantumValue> args);` - Generic method dispatcher
--  `QuantumValue callArrayMethod(std::shared_ptr<Array> arr, const std::string &method, std::vector<QuantumValue> args);` - Array method dispatcher
--  `QuantumValue callStringMethod(const std::string &str, const std::string &method, std::vector<QuantumValue> args);` - String method dispatcher
--  `QuantumValue callDictMethod(std::shared_ptr<Dict> dict, const std::string &method, std::vector<QuantumValue> args);` - Dictionary method dispatcher
+```cpp
+QuantumValue callMethod(QuantumValue& obj, const string& method, vector<QuantumValue> args);
+QuantumValue callArrayMethod(shared_ptr<Array>, const string& method, ...);
+QuantumValue callStringMethod(const string&, const string& method, ...);
+QuantumValue callDictMethod(shared_ptr<Dict>, const string& method, ...);
+```
 
-###
+`evalMember` detects when the result of a dot-access is being called and routes to `callMethod`, which then branches on the object's type. This is how `arr.push(x)`, `str.split(",")`, and `dict.keys()` are implemented — as hardcoded cases in `callArrayMethod`, `callStringMethod`, and `callDictMethod` respectively. Adding a new built-in method requires only adding a case in the appropriate dispatch method.
 
-####
--  Empty line for readability
--  `void setLValue(ASTNode &target, QuantumValue val, const std::string &op);` - Sets the value of an l-value (target of assignment)
+---
 
-###
--  `};` - Closing brace for the Interpreter class
+## `setLValue` — assignment targets
 
-## Summary
+```cpp
+void setLValue(ASTNode& target, QuantumValue val, const string& op);
+```
 
-This header file defines the core interpreter class for the Quantum Language with:
-
-### Key Components
-- **Execution Engine**: Main methods for executing statements and evaluating expressions
-- **Environment Management**: Handles global and local scopes
-- **Infinite Loop Protection**: Step counter to prevent endless execution
-- **Native Function Support**: Built-in function registration and calling
-
-### Statement Execution
-- **Declarations**: Variables, functions, and classes
-- **Control Flow**: If statements, loops, returns
-- **I/O Operations**: Print and input statements
-- **Modules**: Import statement handling
-
-### Expression Evaluation
-- **Basic Operations**: Binary, unary, and assignment expressions
-- **Collections**: Arrays, dictionaries, and list comprehensions
-- **Object-Oriented**: Member access and method calls
-- **C++ Features**: Pointer operations and memory management
-
-### Method System
-- **Dynamic Dispatch**: Type-aware method calling
-- **Built-in Methods**: Native implementations for arrays, strings, and dictionaries
-- **Instance Methods**: Object-oriented method support
-
-The interpreter provides a complete runtime environment for executing Quantum Language programs with support for multiple programming paradigms and advanced language features.
+Assignment in Quantum Language can target more than just a variable name: `arr[i] = x`, `obj.field = x`, and `*ptr = x` are all valid. `setLValue` handles all of these by inspecting the target node's type and performing the appropriate write operation — environment update for identifiers, array mutation for index expressions, and pointer dereference-and-assign for deref expressions. The `op` parameter carries the operator (`=`, `+=`, etc.) so compound assignment is resolved here rather than requiring the caller to pre-compute the new value.
