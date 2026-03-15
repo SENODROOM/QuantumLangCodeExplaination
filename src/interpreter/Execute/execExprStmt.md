@@ -1,101 +1,30 @@
-# execExprStmt() Function Explanation
+# execExprStmt Method Explanation
 
-## Complete Code
+The `execExprStmt` method is a crucial component of the Quantum Language interpreter, responsible for executing expressions that appear as standalone statements in the source code. This method plays a pivotal role in interpreting and evaluating quantum expressions, ensuring they are executed correctly according to the language's semantics.
 
-```cpp
-void Interpreter::execExprStmt(ExprStmt &s)
-{
-    evaluate(*s.expr);
-}
-```
+## Purpose
 
-## Code Explanation
+The primary purpose of the `execExprStmt` method is to execute an expression statement. In the context of quantum programming, an expression statement typically involves evaluating a quantum expression and discarding its result. For instance, a simple expression statement might look like `H(qubit)`, where `H` represents a Hadamard gate operation on a qubit.
 
-### Function Signature
--  `void Interpreter::execExprStmt(ExprStmt &s)` - Execute expression statements
-  - `s`: Reference to ExprStmt AST node
-  - Returns void as expression statements don't produce values
+## Parameters
 
-###
--  `{` - Opening brace
--  `evaluate(*s.expr);` - Evaluate the expression
--  `}` - Closing brace for function
+- **s**: A reference to an `ExprStmt` object, which represents the expression statement to be executed. The `ExprStmt` class is part of the Abstract Syntax Tree (AST) used by the Quantum Language compiler to represent the structure of the program.
 
-## Summary
+## Return Value
 
-The `execExprStmt()` function handles expression statement execution in the Quantum Language:
+This method returns `void`. It does not return any value because the execution of the expression statement itself is the primary concern. The result of the expression evaluation is either used within the same scope or discarded, depending on the context in which the statement appears.
 
-### Key Features
-- **Side Effects**: Executes expressions for their side effects
-- **Value Discarding**: Result value is discarded
-- **Simple Interface**: Minimal implementation for efficiency
-- **Expression Support**: Supports any valid expression
+## Edge Cases
 
-### Expression Statement Process
-1. **Expression Access**: Get expression from statement
-2. **Expression Evaluation**: Evaluate the expression
-3. **Result Discarding**: Discard the result value
-4. **Side Effects**: Allow side effects to occur
+1. **Empty Expression**: If the `expr` member of the `ExprStmt` object is `nullptr`, indicating an empty expression statement, the method should handle this gracefully without performing any action.
+2. **Side Effects**: Some quantum operations may have side effects, such as modifying the state of qubits or updating registers. The `execExprStmt` method should ensure these side effects are applied during the execution of the expression statement.
 
-### Expression Statement Types
-- **Function Calls**: `print("hello");` - calls function for side effect
-- **Assignments**: `x = 5;` - assignment as statement
-- **Increment**: `x++;` - increment operation
-- **Method Calls**: `obj.method();` - method call for side effect
+## Interactions with Other Components
 
-### Side Effects Supported
-- **Variable Assignment**: Changes variable values
-- **I/O Operations**: Print and input statements
-- **Function Calls**: Functions with side effects
-- **Object Modification**: Method calls that modify objects
+- **Evaluator**: The `execExprStmt` method relies on the `evaluate` method, which is likely defined elsewhere in the interpreter. The `evaluate` method takes an expression (`*s.expr`) and computes its value. This interaction ensures that the expression statement is evaluated accurately.
+  
+- **Quantum Operations**: During the evaluation process, the `evaluate` method may invoke various quantum operations, such as applying gates to qubits or manipulating quantum states. These operations are handled by other parts of the interpreter, but the `execExprStmt` method orchestrates their execution based on the expression statement provided.
 
-### Value Handling
-- **Result Discarded**: Expression result is not used
-- **Memory Efficiency**: No unnecessary value storage
-- **Type Safety**: All expression types handled safely
-- **Error Propagation**: Errors in evaluation propagate up
+- **Scope Management**: While the `execExprStmt` method primarily focuses on evaluating the expression, it indirectly interacts with the scope management system of the interpreter. The evaluation of expressions can affect variables and registers within the current scope, so proper handling of scoping is essential.
 
-### Design Benefits
-- **Simplicity**: Minimal implementation for maximum efficiency
-- **Flexibility**: Supports any expression type
-- **Performance**: No unnecessary value copying
-- **Correctness**: Proper side effect handling
-
-### Use Cases
-- **Function Calls**: Statements that call functions for effects
-- **Assignments**: Variable assignment statements
-- **I/O Operations**: Print and input statements
-- **Object Operations**: Method calls with side effects
-
-### Integration with Other Statements
-- **Block Statements**: Expression statements can appear in blocks
-- **Control Flow**: Can appear in if, while, for statements
-- **Functions**: Can be part of function bodies
-- **Programs**: Top-level expression statements
-
-### Performance Characteristics
-- **Minimal Overhead**: Single function call
-- **No Allocation**: No additional memory allocation
-- **Fast Execution**: Direct expression evaluation
-- **Efficient**: No unnecessary value copying
-
-### Error Handling
-- **Expression Errors**: Errors in expression evaluation propagate up
-- **Type Errors**: Handled by expression evaluation
-- **Runtime Errors**: Proper error propagation
-- **Memory Safety**: No memory leaks from evaluation
-
-### Expression Examples
-- **Function Call**: `print("Hello");`
-- **Assignment**: `x = 42;`
-- **Increment**: `counter++;`
-- **Method Call**: `list.append(item);`
-- **Complex**: `result = calculate(a, b);`
-
-### Language Integration
-- **Statement/Expression**: Bridges statements and expressions
-- **Side Effects**: Enables imperative programming style
-- **Expression Power**: Full expression language support
-- **Clean Syntax**: Familiar statement syntax
-
-This function provides the foundation for expression statements in the Quantum Language, enabling side-effect-driven programming while maintaining efficiency through minimal overhead and proper integration with the expression evaluation system.
+In summary, the `execExprStmt` method is a fundamental part of the Quantum Language interpreter, responsible for executing expression statements. By leveraging the `evaluate` method and interacting with other components involved in quantum operations and scope management, this method ensures that quantum expressions are interpreted and executed correctly, contributing to the overall functionality of the interpreter.
