@@ -1,138 +1,49 @@
-# execInput() Function Explanation
+# `execInput` Function Explanation
 
-## Complete Code
+The `execInput` function is responsible for processing input statements in the Quantum Language compiler's interpreter. This function takes an `InputStmt` object as its parameter and executes the corresponding input operation based on the statement's properties.
 
-```cpp
-void Interpreter::execInput(InputStmt &s)
-{
-    // Evaluate the prompt string exactly once
-    std::string promptStr;
-    if (s.prompt)
-        promptStr = evaluate(*s.prompt).toString();
-    
-    // Display prompt
-    std::cout << promptStr;
-    std::cout.flush();
-    
-    // Read input
-    std::string line;
-    std::getline(std::cin, line);
-    
-    // Store in variable
-    env->define(s.target, QuantumValue(line));
-}
-```
+## What It Does
 
-## Code Explanation
+The primary task of `execInput` is to handle user input according to the specifications provided in the `InputStmt`. This includes displaying a prompt message to the user, reading their input, and converting it into the appropriate data type.
 
-### Function Signature
--  `void Interpreter::execInput(InputStmt &s)` - Execute input statements
-  - `s`: Reference to InputStmt AST node
-  - Returns void as input statements don't produce values
+## Why It Works This Way
 
-###
--  `{` - Opening brace
--  `// Evaluate the prompt string exactly once` - Comment about prompt evaluation
--  `std::string promptStr;` - Create prompt string variable
--  `if (s.prompt)` - Check if prompt provided
--  `promptStr = evaluate(*s.prompt).toString();` - Evaluate prompt expression
--  Empty line for readability
+The function works in a structured manner to ensure that prompts are displayed correctly and user inputs are handled efficiently. By evaluating the prompt string exactly once and then stripping out any format specifiers, the function maintains performance and clarity in handling different types of input requests.
 
-###
--  `// Display prompt` - Comment about prompt display
--  `std::cout << promptStr;` - Display prompt to user
--  `std::cout.flush();` - Flush output to ensure prompt appears
+### Detailed Steps
 
-###
--  Empty line for readability
--  `// Read input` - Comment about input reading
--  `std::string line;` - Create input line variable
--  `std::getline(std::cin, line);` - Read line from standard input
+1. **Evaluate Prompt String**:
+   - The function first checks if the `InputStmt` contains a prompt (`s.prompt`). If it does, the prompt string is evaluated using the `evaluate` method.
+   - The result of the evaluation is converted to a `std::string`, which represents the prompt message to be displayed to the user.
 
-###
--  Empty line for readability
--  `// Store in variable` - Comment about variable storage
--  `env->define(s.target, QuantumValue(line));` - Store input in target variable
--  `}` - Closing brace for function
+2. **Extract Format Specifier**:
+   - After obtaining the prompt string, the function searches for any format specifiers within the string. These specifiers typically start with `%` and may include various formatting options like `-`, `+`, ` `, `0`, `#`, and digits.
+   - Once a valid format specifier is found, it is extracted and stored in the `spec` variable. If no format specifier is present, `spec` remains set to `0`.
 
-## Summary
+3. **Strip Format Specifiers**:
+   - To display only the human-readable part of the prompt, the function iterates through the prompt string and constructs a new string (`display`) that excludes any format specifier sequences.
+   - This ensures that when the prompt is printed, only the intended text is shown, without any formatting instructions.
 
-The `execInput()` function handles input statement execution in the Quantum Language:
+4. **Display Prompt**:
+   - Finally, the function prints the stripped-down prompt message to the standard output using `std::cout`.
 
-### Key Features
-- **Optional Prompt**: Supports prompt display before input
-- **Single Evaluation**: Prompt evaluated exactly once
-- **Line Input**: Reads entire line including spaces
-- **Variable Storage**: Stores input in specified variable
+## Parameters/Return Value
 
-### Input Process
-1. **Prompt Evaluation**: Evaluate prompt expression if provided
-2. **Prompt Display**: Show prompt to user with flush
-3. **Input Reading**: Read complete line from stdin
-4. **Variable Storage**: Store input string in target variable
+- **Parameters**:
+  - `InputStmt &s`: A reference to the `InputStmt` object containing the details of the input statement to be executed.
 
-### Input Statement Types
-- **Simple Input**: `input variable;` - reads with no prompt
-- **Prompt Input**: `input variable = "Prompt: ";` - reads with prompt
-- **Expression Prompt**: `input variable = expression;` - evaluates prompt expression
+- **Return Value**:
+  - The function does not return any value explicitly. However, it indirectly affects the program state by updating variables or performing actions based on the user's input.
 
-### Prompt Handling
-- **String Literals**: Direct string prompts
-- **Expression Evaluation**: Any expression can be used as prompt
-- **Single Evaluation**: Prompt evaluated once before input
-- **Type Conversion**: Prompt converted to string for display
+## Edge Cases
 
-### Input Characteristics
-- **Line Input**: Reads entire line until newline
-- **Space Preservation**: Spaces within input are preserved
-- **Empty Input**: Returns empty string if user just presses Enter
-- **Unicode Support**: Handles Unicode characters in input
+- **Empty Prompt**: If the `InputStmt` does not contain a prompt, the function simply displays an empty string and proceeds with the next steps.
+- **Invalid Format Specifier**: If the prompt string contains an invalid format specifier sequence, the function will still strip out the entire sequence and display only the remaining text.
 
-### Variable Management
-- **Target Variable**: Input stored in specified variable name
-- **String Type**: Input always stored as string value
-- **Environment Scope**: Variable defined in current environment
-- **Override**: Existing variable value is overwritten
+## Interactions With Other Components
 
-### I/O Integration
-- **Standard Output**: Uses std::cout for prompt display
-- **Standard Input**: Uses std::cin for input reading
-- **Buffer Management**: Proper flushing for immediate prompt display
-- **Cross-Platform**: Works on all platforms with standard streams
+- **Evaluator**: The `evaluate` method is called to process the prompt string, which could involve evaluating expressions or retrieving values from the current execution context.
+- **Output Stream**: The function uses `std::cout` to display the prompt message, interacting with the output stream component of the interpreter.
+- **User Input Handling**: Depending on the format specifier, the function might need to interact with additional components to handle specific types of user input, such as parsing integers, floating-point numbers, or strings.
 
-### Design Benefits
-- **User-Friendly**: Familiar input behavior
-- **Flexibility**: Optional prompt with expression support
-- **Correctness**: Proper I/O handling and buffering
-- **Simplicity**: Clean, straightforward implementation
-
-### Use Cases
-- **User Interaction**: Interactive program communication
-- **Data Entry**: Collect user input for processing
-- **Configuration**: Read configuration values
-- **Debugging**: Interactive debugging sessions
-
-### Error Handling
-- **Prompt Errors**: Errors in prompt evaluation propagate up
-- **Input Errors**: Stream errors handled by standard library
-- **Variable Errors**: Environment handles variable name conflicts
-- **I/O Errors**: Standard I/O error handling applies
-
-### Input Examples
-- **Simple**: `input name;` - reads into name variable
-- **With Prompt**: `input age = "Enter your age: ";` - displays prompt
-- **Expression Prompt**: `input name = "Hello " + user + ": ";` - dynamic prompt
-
-### Performance Characteristics
-- **I/O Blocking**: Blocks waiting for user input
-- **Memory Efficient**: Single string allocation for input
-- **Buffer Management**: Proper stream buffering for performance
-- **Prompt Caching**: Prompt evaluated once for efficiency
-
-### Integration with Other Statements
-- **Variable Access**: Input variables can be used in subsequent statements
-- **Function Calls**: Input can be called from within functions
-- **Control Flow**: Input statements work within loops and conditionals
-- **Error Handling**: Input errors can be caught by try-catch blocks
-
-This function provides the foundation for user input in the Quantum Language, enabling interactive programs with flexible prompt support while maintaining proper I/O handling and variable management throughout the input process.
+By following this structured approach, the `execInput` function ensures that input operations are performed accurately and efficiently, enhancing the overall functionality and usability of the Quantum Language compiler's interpreter.
