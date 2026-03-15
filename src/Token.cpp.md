@@ -2,41 +2,46 @@
 
 ## Overview
 
-The `Token.cpp` file is an integral component of the Quantum Language compiler, designed to represent and manipulate individual lexical tokens extracted from the input source code. These tokens act as the foundational elements of the syntax tree, crucial for the subsequent phases of semantic analysis and code generation.
+The `Token.cpp` file is an essential part of the Quantum Language compiler, responsible for representing and manipulating individual lexical tokens extracted from the input source code. These tokens serve as the building blocks of the syntax tree, critical for the subsequent phases of semantic analysis and code generation.
 
 ## Role in Compiler Pipeline
 
-In the context of the compiler's pipeline, `Token.cpp` operates during the lexer phase. Its primary function is to convert tokens into human-readable string representations, which facilitate debugging and error reporting throughout the compilation process. This functionality ensures that any issues encountered can be pinpointed accurately within the source code.
+During the lexer phase of the compiler pipeline, `Token.cpp` plays a pivotal role. It converts raw characters from the source code into structured token objects that contain information such as the token type, value, line number, and column position. This process ensures that the compiler can accurately parse the source code and build a meaningful syntax tree.
 
 ## Key Design Decisions
 
-### Use of `std::ostringstream` for String Conversion
+### Use of `std::ostringstream` for String Formatting
 
-**WHY:** The choice of using `std::ostringstream` for converting token information into strings was driven by its efficiency and flexibility. `std::ostringstream` allows for dynamic string construction, making it ideal for combining various pieces of token data such as line number, column number, and token value into a single formatted string. Additionally, its performance is comparable to `std::stringstream`, but it avoids the overhead of creating multiple intermediate strings, thus optimizing memory usage and execution speed.
+**WHY**: The choice to use `std::ostringstream` for string formatting was driven by its efficiency and flexibility. `std::ostringstream` allows for dynamic construction of strings, which is ideal for creating complex token representations that include various attributes like line number, column, and value. Additionally, it provides better performance compared to concatenating strings using `+`, especially when dealing with multiple attributes.
 
-## Documentation of Major Classes/Functions
+### Encapsulation of Token Attributes
+
+**WHY**: By encapsulating token attributes within the `Token` class, we ensure data hiding and abstraction. This approach prevents direct manipulation of token properties from outside the class, reducing the risk of errors and improving maintainability. It also allows us to add validation logic or modify how certain attributes are accessed without affecting other parts of the compiler.
+
+## Classes and Functions Documentation
 
 ### Class: `Token`
 
-**Purpose:** Represents a single lexical token extracted from the source code.
+**Purpose**: Represents a single lexical token extracted from the source code.
 
-**Behavior:** 
-- The `Token` class encapsulates the properties of a token, including its type, value, line number, and column position.
-- It provides methods for accessing these properties and converting the token into a readable string format.
+**Attributes**:
+- `line`: Line number where the token appears.
+- `col`: Column position where the token begins.
+- `value`: The actual text value of the token.
 
-### Function: `toString()` const
+**Functions**:
+- `toString() const`: Returns a string representation of the token in the format `[line:col value]`.
 
-**Purpose:** Converts the current token into a string representation.
+### Function: `Token::toString() const`
 
-**Behavior:**
-- The `toString()` method constructs a string that includes the token's line number, column number, and value.
-- It uses `std::ostringstream` to efficiently format the token data into a single string.
+**Purpose**: Converts the token object into a human-readable string format.
 
-## Tradeoffs/Limitations
+**Behaviour**: Utilizes `std::ostringstream` to construct a string containing the token's line number, column position, and value. This method is particularly useful for debugging and logging purposes, allowing developers to easily understand the structure and content of tokens.
 
-- **Memory Usage:** While `std::ostringstream` is efficient, it may still consume more memory compared to static string concatenation techniques, especially when dealing with large volumes of tokens.
-- **Performance:** Although `std::ostringstream` offers good performance, there might be scenarios where even higher performance could be achieved through alternative string manipulation techniques.
+**Tradeoffs/Limitations**:
+- **Performance**: While `std::ostringstream` is efficient for most cases, it may introduce minor overhead compared to simpler string concatenation methods. However, this tradeoff is acceptable given the benefits of improved readability and maintainability.
+- **Flexibility**: Although `std::ostringstream` offers extensive formatting capabilities, it can be more verbose than necessary for simple token representations. Future enhancements might consider using simpler methods for basic tokens while retaining the powerful formatting features for more complex scenarios.
 
 ## Conclusion
 
-The `Token.cpp` file is a vital element of the Quantum Language compiler, ensuring accurate representation and manipulation of lexical tokens. By leveraging `std::ostringstream` for string conversion, the file optimizes both memory usage and performance, facilitating effective debugging and error handling. However, developers should be aware of potential tradeoffs and consider alternative approaches if extremely high performance is required.
+The `Token.cpp` file is a fundamental module in the Quantum Language compiler, ensuring accurate tokenization and representation of the source code. Through strategic design choices and robust implementation, it contributes significantly to the overall functionality and reliability of the compiler.
