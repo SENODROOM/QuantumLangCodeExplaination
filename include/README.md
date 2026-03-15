@@ -1,118 +1,136 @@
-# QuantumLanguage Compiler - AST.h
+# QuantumLanguage Compiler - Error.h
 
 ## Overview
 
-The `include/AST.h` header file is an essential component of the QuantumLanguage compiler, responsible for defining the Abstract Syntax Tree (AST) structure. The AST serves as a hierarchical representation of the syntactic structure of a program written in QuantumLanguage. This file includes various structures and types that represent different components of the language syntax, such as expressions, statements, and literals. By providing a structured and flexible way to represent the program's syntax, `AST.h` facilitates semantic analysis, code generation, and other stages of the compilation process.
+The `include/Error.h` header file is an essential component of the QuantumLanguage compiler, responsible for managing and reporting errors encountered during the compilation process. It provides a structured way to handle different types of errors such as runtime, type, name, index, and quantum-specific errors, along with utilities for formatting error messages in a colorful and informative manner.
 
-## Key Design Decisions
+This file plays a critical role in ensuring that the compiler can effectively communicate issues to the user, allowing them to debug their code more efficiently. By centralizing error handling logic, it helps maintain consistency across the compiler's various stages and components.
 
-### Use of `std::variant` for Expressions
+## Design Decisions
 
-One of the primary design decisions in `AST.h` is the use of `std::variant` to represent different types of expressions. This choice allows for a single unified type (`Expression`) to hold various expression variants without requiring multiple inheritance or additional type-checking mechanisms. By using `std::variant`, we can efficiently manage and dispatch operations on expressions based on their actual type.
+### Inheritance from `std::runtime_error`
 
-**Why:** Using `std::variant` simplifies the implementation of the visitor pattern, which is crucial for traversing and processing the AST during various phases of compilation. It also reduces the overhead associated with multiple inheritance and provides a more straightforward and intuitive way to handle different expression types.
+Inheriting from `std::runtime_error` allows the custom error classes (`QuantumError`, `RuntimeError`, `TypeError`, etc.) to utilize the standard exception handling mechanisms provided by C++. This includes the ability to catch exceptions using a base class pointer and leveraging polymorphism to handle specific error types differently.
 
-### Separate Structures for Statements and Literals
+**Why:** Standard library exceptions provide a well-established framework for error handling, making it easier to integrate with existing tools and practices. The use of inheritance simplifies the management of error types and behaviors.
 
-Another significant decision is the separation of structures for statements and literals. This distinction ensures that each category has its own dedicated set of fields and behaviors, making the codebase easier to understand and maintain. For example, statements like variable declarations and function definitions have specific attributes related to their scope, initialization, and return types, while literals (like numbers and strings) contain only their values.
+### Adding Line Information
 
-**Why:** Separating statements and literals into distinct structures helps in clearly distinguishing between the syntactic roles they play in the program. It also makes it easier to implement specialized handling for each category, ensuring that the AST accurately reflects the program's structure and semantics.
+Each error class includes a `line` member variable, which stores the line number where the error occurred. This information is crucial for pinpointing the exact location of the problem in the source code.
 
-## Documentation of Major Classes/Functions
+**Why:** Providing line numbers enhances the debugging experience by allowing developers to quickly locate and fix issues within their code. This feature is particularly valuable when dealing with complex programs where errors may not be immediately apparent.
 
-### `NumberLiteral`
+### Colorful Output
 
-Represents a numeric literal in the program. Contains a `double` value.
+The `Colors` namespace contains constants for ANSI escape codes, enabling the compiler to output error messages in different colors. For example, runtime errors might be displayed in red, while syntax errors could be highlighted in yellow.
 
-- **Purpose:** To store numeric constants encountered in the source code.
-- **Behavior:** Provides easy access to the numeric value and supports arithmetic operations during semantic analysis.
+**Why:** Visual cues help users quickly identify the type of error they are encountering. Using color coding makes error messages more readable and distinguishes between different categories of issues.
 
-### `StringLiteral`
+## Classes and Functions
 
-Represents a string literal in the program. Contains a `std::string` value.
+### QuantumError
 
-- **Purpose:** To store string constants encountered in the source code.
-- **Behavior:** Allows for string manipulation and concatenation during semantic analysis.
+```cpp
+class QuantumError : public std::runtime_error
+{
+public:
+    int line;
+    std::string kind;
 
-### `Identifier`
+    QuantumError(const std::string &kind, const std::string &msg, int line = -1)
+        : std::runtime_error(msg), line(line), kind(kind) {}
+};
+```
 
-Represents an identifier (variable, function, etc.) in the program. Contains a `std::string` name.
+**Purpose:** Base class for all custom QuantumLanguage errors. Provides a common structure for storing error kind, message, and line number.
 
-- **Purpose:** To identify variables, functions, and other named entities in the source code.
-- **Behavior:** Used to resolve references to these entities during symbol table construction and semantic analysis.
+**Behavior:** Accepts an error kind, message, and optional line number. Initializes the base class with the message and adds the additional error details.
 
-### `BinaryExpr`
+### RuntimeError
 
-Represents a binary expression (e.g., addition, multiplication) in the program. Contains an operation string and two operands.
+```cpp
+class RuntimeError : public QuantumError
+{
+public:
+    RuntimeError(const std::string &msg, int line = -1)
+        : QuantumError("RuntimeError", msg, line) {}
+};
+```
 
-- **Purpose:** To model binary operations in the AST.
-- **Behavior:** Supports evaluation of the expression during code generation and runtime interpretation.
+**Purpose:** Represents runtime errors that occur during program execution.
 
-### `UnaryExpr`
+**Behavior:** Inherits from `QuantumError` and initializes it with the "RuntimeError" kind and the provided message and line number.
 
-Represents a unary expression (e.g., negation, increment) in the program. Contains an operation string and one operand.
+### TypeError
 
-- **Purpose:** To model unary operations in the AST.
-- **Behavior:** Enables the evaluation of the expression during code generation and runtime interpretation.
+```cpp
+class TypeError : public QuantumError
+{
+public:
+    TypeError(const std::string &msg, int line = -1)
+        : QuantumError("TypeError", msg, line) {}
+};
+```
 
-### `AssignExpr`
+**Purpose:** Represents errors related to incorrect data types being used in operations.
 
-Represents an assignment expression in the program. Contains an operation string, a target variable, and a value.
+**Behavior:** Inherits from `QuantumError` and initializes it with the "TypeError" kind and the provided message and line number.
 
-- **Purpose:** To model variable assignments in the AST.
-- **Behavior:** Handles both simple and compound assignments, updating the target variable's value accordingly.
+### NameError
 
-### `CallExpr`
+```cpp
+class NameError : public QuantumError
+{
+public:
+    NameError(const std::string &msg, int line = -1)
+        : QuantumError("NameError", msg, line) {}
+};
+```
 
-Represents a function call expression in the program. Contains a callee and a list of arguments.
+**Purpose:** Represents errors related to undefined names or variables.
 
-- **Purpose:** To model function calls in the AST.
-- **Behavior:** Supports passing arguments by value or reference and invokes the appropriate function during code generation.
+**Behavior:** Inherits from `QuantumError` and initializes it with the "NameError" kind and the provided message and line number.
 
-### `IndexExpr`
+### IndexError
 
-Represents an indexing expression (e.g., array access, dictionary lookup) in the program. Contains an object and an index.
+```cpp
+class IndexError : public QuantumError
+{
+public:
+    IndexError(const std::string &msg, int line = -1)
+        : QuantumError("IndexError", msg, line) {}
+};
+```
 
-- **Purpose:** To model indexing operations in the AST.
-- **Behavior:** Enables access to elements within arrays or dictionaries during code execution.
+**Purpose:** Represents errors related to invalid array or dictionary indices.
 
-### `SliceExpr`
+**Behavior:** Inherits from `QuantumError` and initializes it with the "IndexError" kind and the provided message and line number.
 
-Represents a slicing expression in the program. Contains an object and optional start, stop, and step indices.
+### Colors Namespace
 
-- **Purpose:** To model slicing operations in the AST.
-- **Behavior:** Supports extracting subarrays or substrings from the object during code execution.
+```cpp
+namespace Colors
+{
+    inline const char *RED = "\033[31m";
+    inline const char *YELLOW = "\033[33m";
+    inline const char *WHITE = "\033[37m";
+    inline const char *CYAN = "\033[36m";
+    inline const char *GREEN = "\033[32m";
+    inline const char *BLUE = "\033[34m";
+    inline const char *BOLD = "\033[1m";
+    inline const char *RESET = "\033[0m";
+    inline const char *MAGENTA = "\033[35m";
+}
+```
 
-### `MemberExpr`
+**Purpose:** Contains constants for ANSI escape codes to enable colorful output of error messages.
 
-Represents a member access expression (e.g., struct field access) in the program. Contains an object and a member name.
+**Behavior:** Provides predefined escape codes for different colors and styles, which can be easily integrated into error message formatting.
 
-- **Purpose:** To model member access operations in the AST.
-- **Behavior:** Enables accessing fields or methods of objects during code execution.
+## Tradeoffs and Limitations
 
-### `ArrayLiteral`
+- **Performance Overhead:** Using colored output via ANSI escape codes introduces a minor performance overhead, especially on systems without terminal support.
+- **Complexity:** While providing a clear and informative interface for error reporting, the introduction of multiple error classes and color codes increases the complexity of the codebase.
+- **Portability:** The use of ANSI escape codes limits the portability of the compiler to environments that do not support these codes.
 
-Represents an array literal in the program. Contains a vector of element expressions.
-
-- **Purpose:** To model array literals in the AST.
-- **Behavior:** Facilitates the creation and initialization of arrays during code generation.
-
-### `DictLiteral`
-
-Represents a dictionary literal in the program. Contains a vector of key-value pairs.
-
-- **Purpose:** To model dictionary literals in the AST.
-- **Behavior:** Enables the creation and initialization of dictionaries during code generation.
-
-### `LambdaExpr`
-
-Represents a lambda expression in the program. Contains parameters, parameter types, default arguments, a return type, and a body.
-
-- **Purpose:** To model anonymous functions in the AST.
-- **Behavior:** Supports capturing local variables and generating executable code for the lambda function.
-
-### `TernaryExpr`
-
-Represents a ternary conditional expression in the program. Contains a condition, a 'then' expression, and an 'else' expression.
-
-- **Purpose:** To model conditional logic in the AST
+Despite these limitations, the benefits of
