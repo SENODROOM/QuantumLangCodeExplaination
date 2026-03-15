@@ -1,69 +1,83 @@
-# QuantumLanguage Compiler - Interpreter.h
+# Lexer.h in QuantumLanguage Compiler
 
 ## Overview
 
-The `include/Interpreter.h` header file is an essential part of the QuantumLanguage compiler, focusing on the execution phase of the language. This file defines the `Interpreter` class, which is responsible for interpreting and executing abstract syntax tree (AST) nodes according to the rules of the QuantumLanguage. The `Interpreter` class encapsulates the logic needed to traverse the AST and perform operations based on the node types, including variable declarations, function calls, control structures, and more. By leveraging C++'s type system and features like `std::variant`, it ensures flexibility and efficiency in handling different value types during interpretation.
+The `Lexer.h` header file is an integral part of the QuantumLanguage compiler, specifically designed for lexical analysis. This process involves breaking down the input source code into meaningful tokens that can then be processed by the parser. The `Lexer` class plays a pivotal role in this step by converting raw characters into structured tokens, which represent different elements like identifiers, numbers, strings, operators, and keywords.
 
 ## Key Design Decisions
 
-### Use of `std::variant` for Value Types
+### Use of `std::variant` for Token Types
 
-**WHY:** Using `std::variant` allows the `Interpreter` to manage multiple value types within a single container without resorting to unions or pointers. This approach enhances safety and readability while providing a clear and expressive way to represent the diverse data types encountered in QuantumLanguage.
+**WHY:** Leveraging `std::variant` allows the lexer to encapsulate multiple potential token types within a single variable, simplifying the handling and management of these diverse types. This decision enhances flexibility and reduces boilerplate code compared to traditional union-based approaches.
 
-### Environment Management with `std::shared_ptr`
+### Support for F-Strings
 
-**WHY:** Managing environments using smart pointers (`std::shared_ptr`) helps in maintaining reference counts and automatically deallocating memory when environments go out of scope. This simplifies memory management and prevents resource leaks, making the interpreter robust and scalable.
+**WHY:** F-strings provide a powerful feature for string formatting in Python-like languages. By implementing support for f-strings in the lexer, we enable the compiler to handle complex string manipulations directly at the lexical level, facilitating more efficient parsing and interpretation.
 
-### Static Analysis for Loop Guards
+### Preprocessor Macros
 
-**WHY:** Implementing a static analysis mechanism to guard against infinite loops through a fixed maximum step count (`MAX_STEPS`) provides a simple yet effective safeguard. While not foolproof, it significantly reduces the risk of running into infinite loops due to erroneous or malicious code, ensuring the interpreter remains stable under various conditions.
+**WHY:** Incorporating a mechanism to parse and expand preprocessor macros (`#define`) is essential for maintaining compatibility with existing C/C++ codebases. This feature allows the lexer to preprocess the source code before further processing, ensuring that any macro expansions are correctly handled during the compilation phase.
 
-## Classes and Functions Documentation
+## Class and Function Documentation
 
-### Class: `Interpreter`
+### Lexer Class
 
-**Purpose:** The primary class responsible for interpreting and executing AST nodes.
+**Purpose:** The `Lexer` class is the primary class responsible for performing lexical analysis on the source code. It initializes with a source string and processes it character by character to generate a sequence of tokens.
 
 **Behavior:**
-- **Constructor:** Initializes the interpreter with global and local environments.
-- **Methods:**
-  - `execute(ASTNode &node):` Executes the given AST node.
-  - `evaluate(ASTNode &node):` Evaluates the given AST node and returns its value.
-  - `execBlock(BlockStmt &s, std::shared_ptr<Environment> scope = nullptr):` Executes a block statement within a specified environment.
-  - `registerNatives():` Registers native functions available to the interpreter.
-  - Various statement executor methods (`execVarDecl`, `execFunctionDecl`, etc.) handle specific types of AST statements.
-  - Various expression evaluator methods (`evalBinary`, `evalUnary`, etc.) handle evaluation of different AST expressions.
-  - Methods for evaluating C++ pointer expressions (`evalAddressOf`, `evalDeref`, etc.).
-  - Method dispatchers for calling built-in methods on objects (`callMethod`, `callArrayMethod`, etc.).
+- **Constructor:** Takes a `const std::string &source` as input and initializes the lexer.
+- **tokenize():** Processes the entire source code and returns a vector of `Token` objects representing the lexical structure of the code.
 
-### Function: `callFunction`
+### Private Member Functions
 
-**Purpose:** Calls a user-defined function with provided arguments.
+#### current() const
 
-**Behavior:** Takes a shared pointer to a `QuantumFunction` and a vector of `QuantumValue` arguments, then executes the function, passing the arguments and returning the result.
+**Purpose:** Returns the current character being processed by the lexer without advancing the position.
 
-### Function: `callNative`
+#### peek(int offset = 1) const
 
-**Purpose:** Calls a native function with provided arguments.
+**Purpose:** Returns the character at a specified offset ahead of the current position without advancing the position.
 
-**Behavior:** Similar to `callFunction`, but specifically handles native functions registered with the interpreter.
+#### advance()
 
-### Function: `callInstanceMethod`
+**Purpose:** Advances the lexer's position to the next character and returns it.
 
-**Purpose:** Calls a method on an instance object with provided arguments.
+#### skipWhitespace()
 
-**Behavior:** Takes a shared pointer to an instance object, a shared pointer to a `QuantumFunction`, and a vector of `QuantumValue` arguments, then invokes the method on the instance.
+**Purpose:** Skips over any whitespace characters in the source code.
 
-### Function: `setLValue`
+#### skipComment()
 
-**Purpose:** Sets the value of an l-value target node.
+**Purpose:** Skips over a single-line comment starting with `//`.
 
-**Behavior:** Handles setting values for variables, array elements, dictionary keys, and other l-values, supporting both assignment and compound assignment operators.
+#### skipBlockComment()
+
+**Purpose:** Skips over a multi-line comment enclosed between `/*` and `*/`.
+
+#### readNumber()
+
+**Purpose:** Reads and constructs a numeric token from the source code.
+
+#### readString(char quote)
+
+**Purpose:** Reads and constructs a string token from the source code, using the provided quote character.
+
+#### readTemplateLiteral(std::vector<Token> &out, int startLine, int startCol)
+
+**Purpose:** Handles the reading and expansion of template literals (f-strings) in the source code, storing the resulting tokens in the provided output vector.
+
+#### readIdentifierOrKeyword()
+
+**Purpose:** Reads and constructs an identifier or keyword token from the source code.
+
+#### readOperator()
+
+**Purpose:** Reads and constructs an operator token from the source code.
 
 ## Tradeoffs and Limitations
 
-- **Static Step Guard:** The use of a fixed maximum step count for loop detection is a simple solution but may not cover all potential cases of infinite loops.
-- **Memory Management:** Smart pointers provide automatic memory management, but they introduce overhead compared to raw pointers. Careful consideration must be given to balancing safety and performance.
-- **Type Safety:** `std::variant` offers strong type safety, but it requires compile-time knowledge of all possible types, which might limit the flexibility of adding new types in the future.
+- **Complexity:** Supporting f-strings and preprocessor macros adds complexity to the lexer, requiring additional logic to handle these features.
+- **Performance:** While `std::variant` provides flexibility, it may introduce slight performance overhead compared to simpler data structures.
+- **Error Handling:** The lexer primarily focuses on tokenization and may not catch certain syntax errors immediately. Error handling is typically addressed by the parser.
 
-This README.md provides a comprehensive overview of the `Interpreter.h` file, detailing its role, key design decisions, and the functionality of its classes and functions. It also acknowledges the tradeoffs and limitations inherent in the implementation, offering insights into areas where further optimization or flexibility could be beneficial.
+This README.md provides a comprehensive overview of the `Lexer.h` file, detailing its functionality, design decisions, and potential limitations.
