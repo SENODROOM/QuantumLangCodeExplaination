@@ -2,79 +2,145 @@
 
 ## Overview
 
-`Lexer.cpp` is a crucial component of the Quantum Language compiler, responsible for the lexical analysis phase. This phase converts the input source code into a sequence of tokens, essential for the parser to accurately interpret and construct the abstract syntax tree (AST). The lexer processes various elements like keywords, operators, identifiers, literals, and whitespace, ensuring that the compiler can proceed to the syntactic and semantic phases without errors.
+`Lexer.cpp` is a vital part of the Quantum Language compiler, tasked with performing the lexical analysis phase. This phase converts the input source code into a series of tokens, which are then used by the parser to build the abstract syntax tree (AST). The lexer handles various elements such as keywords, operators, identifiers, literals, and whitespace, ensuring accurate parsing.
 
 ## Key Design Decisions
 
 ### Tokenization Rules
 
-The decision to use a combination of regular expressions and state machines was made to balance flexibility and performance. Regular expressions provide an efficient way to match complex patterns, while state machines allow for more nuanced handling of edge cases and context-dependent lexing rules.
+- **Keywords**: A comprehensive list of language-specific keywords is defined using an unordered map (`keywords`). Each keyword maps to a corresponding `TokenType`.
+  
+  ```cpp
+  const std::unordered_map<std::string, TokenType> Lexer::keywords = {
+      {"let", TokenType::LET},
+      {"const", TokenType::CONST},
+      // ... other keywords
+  };
+  ```
 
-### Error Handling
+  **Why**: This approach allows for efficient lookup and ensures that all recognized keywords are handled uniformly.
 
-Implementing robust error handling mechanisms ensures that the lexer can gracefully handle unexpected characters and malformed tokens. By throwing exceptions when encountering errors, the lexer alerts the parser about issues early in the compilation process, facilitating easier debugging and maintenance.
+### Character Handling
 
-### Whitespace Management
+- **Current Character**: The `current()` function returns the character at the current position.
+  
+  ```cpp
+  char Lexer::current() const
+  {
+      return pos < src.size() ? src[pos] : '\0';
+  }
+  ```
+  
+  **Why**: It simplifies accessing the current character without checking bounds manually.
 
-Deciding to treat whitespace as significant but not directly generating tokens allowed for cleaner parsing logic. This approach simplifies the parser by removing the need to explicitly handle spaces between tokens, focusing instead on meaningful token sequences.
+- **Peek Function**: The `peek(int offset)` function allows looking ahead by a specified number of characters without advancing the position.
+  
+  ```cpp
+  char Lexer::peek(int offset) const
+  {
+      size_t p = pos + offset;
+      return p < src.size() ? src[p] : '\0';
+  }
+  ```
+  
+  **Why**: This is useful for lookahead in parsing rules that require context beyond the current token.
 
-## Documentation
+- **Advance Function**: The `advance()` function moves to the next character, updating the line and column numbers accordingly.
+  
+  ```cpp
+  char Lexer::advance()
+  {
+      char c = src[pos++];
+      if (c == '\n')
+      {
+          line++;
+          col = 1;
+      }
+      else
+          col++;
+      return c;
+  }
+  ```
+  
+  **Why**: Keeping track of line and column numbers helps in generating meaningful error messages.
+
+### Whitespace Skipping
+
+- **SkipWhitespace Function**: The `skipWhitespace()` function advances past any whitespace characters, including comments.
+  
+  ```cpp
+  void Lexer::skipWhitespace()
+  {
+      while (pos < src.size() && (current() == ' ' || current() == '\t' || current() == '\r'))
+          advance();
+  }
+  ```
+  
+  **Why**: Ignoring whitespace is essential for parsing, but it can clutter the source code. By skipping it automatically, we maintain cleaner source code while still allowing for proper parsing.
+
+## Major Classes/Functions Documentation
 
 ### Lexer Class
 
-**Purpose:** Manages the lexical analysis of the source code, converting it into a stream of tokens.
+**Purpose**: Manages the lexical analysis process, converting source code into tokens.
 
-**Behavior:** 
+**Behavior**:
 - Initializes with the source code string.
-- Advances through the source code, identifying and categorizing tokens.
-- Handles errors and skips over whitespace.
+- Provides methods to access and advance through the source code.
+- Handles tokenization based on predefined rules.
 
 ### Keywords Map
 
-**Purpose:** Maps common keywords in the Quantum Language to their corresponding `TokenType`.
+**Purpose**: Maps language keywords to their respective token types.
 
-**Behavior:** 
-- Contains predefined keyword strings and their associated types.
-- Used during tokenization to quickly identify and classify keywords.
+**Behavior**:
+- Contains a set of keywords and their associated `TokenType`.
+- Used during the tokenization process to identify and categorize keywords.
 
-### Current Function
+### current() Function
 
-**Purpose:** Returns the character at the current position in the source code.
+**Purpose**: Returns the current character being processed.
 
-**Behavior:** 
-- Checks if the current position is within bounds.
-- Returns the character at the current position; otherwise, returns `\0`.
+**Behavior**:
+- Checks if the current position is within the bounds of the source code.
+- Returns the character at the current position or null terminator if out of bounds.
 
-### Peek Function
+### peek(int offset) Function
 
-**Purpose:** Allows peeking ahead in the source code by a specified offset.
+**Purpose**: Allows peeking ahead in the source code by a specified number of characters.
 
-**Behavior:** 
-- Calculates the position based on the current position and the provided offset.
-- Returns the character at the calculated position; otherwise, returns `\0`.
+**Behavior**:
+- Calculates the position based on the current position and the given offset.
+- Returns the character at the calculated position or null terminator if out of bounds.
 
-### Advance Function
+### advance() Function
 
-**Purpose:** Advances the lexer to the next character in the source code.
+**Purpose**: Advances the lexer to the next character and updates line and column tracking.
 
-**Behavior:** 
-- Increments the position pointer.
-- Updates line and column numbers accordingly.
-- Returns the advanced character.
+**Behavior**:
+- Moves the current position forward by one character.
+- Updates the line and column numbers when encountering newline characters.
 
-### SkipWhitespace Function
+### skipWhitespace() Function
 
-**Purpose:** Skips over any whitespace characters in the source code.
+**Purpose**: Skips over whitespace characters and comments in the source code.
 
-**Behavior:** 
+**Behavior**:
 - Continuously advances the lexer until a non-whitespace character is encountered.
-- Handles newline characters by updating line and column numbers.
+- Handles both single-line and multi-line comments.
 
 ## Tradeoffs and Limitations
 
-- **Complexity:** The combined use of regular expressions and state machines adds complexity to the lexer implementation.
-- **Performance:** While regular expressions offer high performance for pattern matching, managing states efficiently requires careful optimization.
-- **Edge Cases:** Handling all possible edge cases and context-dependent lexing rules can be challenging and may require additional testing.
-- **Language Variants:** Supporting multiple language variants or extensions might necessitate adjustments to the lexer, potentially increasing its complexity.
+- **Complexity**: Managing a large number of keywords and handling different types of comments adds complexity to the lexer.
+  
+  **Solution**: Using an unordered map for keywords provides efficient lookup, reducing overall complexity.
 
-This README provides a comprehensive overview of the `Lexer.cpp` file, detailing its functionality, design decisions, and potential tradeoffs. For further details, refer to the source code and accompanying documentation.
+- **Error Handling**: The lexer currently lacks detailed error handling for malformed tokens.
+  
+  **Solution**: Implementing more robust error handling mechanisms will improve the user experience by providing clearer and more actionable error messages.
+
+- **Performance**: Frequent updates to line and column numbers might impact performance, especially for very long source files.
+  
+  **Solution**: Optimizing the update mechanism could help mitigate potential performance issues.
+
+This README provides a detailed overview of the `Lexer.cpp` file, explaining its role in the compiler pipeline, the reasons behind key design decisions, and documenting each major class and function. It also highlights potential tradeoffs and limitations, guiding future improvements.
