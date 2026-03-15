@@ -1,147 +1,51 @@
-# evalMember() Function Explanation
+# `evalMember` Function Explanation
 
-## Complete Code
+The `evalMember` function in the Quantum Language compiler evaluates a member expression, which typically involves accessing a field or method of an object. This function is crucial for handling dynamic member access during runtime, ensuring that the correct value or callable is returned based on the type of the object being accessed.
 
-```cpp
-QuantumValue Interpreter::evalMember(MemberExpr &e)
-{
-    auto obj = evaluate(*e.object);
-    if (obj.isPointer())
-    {
-        obj = obj.asPointer()->deref();
-    }
-    if (obj.isInstance())
-    {
-        return obj.asInstance()->getField(e.member);
-    }
-    if (obj.isClass())
-    {
-        auto klass = obj.asClass();
-        auto method = klass->findMethod(e.member);
-        if (method)
-            return QuantumValue(method);
-        throw TypeError("No method '" + e.member + "' on " + obj.typeName());
-    }
-    throw TypeError("No member '" + e.member + "' on " + obj.typeName());
-}
-```
+## What It Does
 
-## Code Explanation
+The primary purpose of `evalMember` is to resolve a member expression into its corresponding value or callable. This can involve several types of objects, including instances, classes, dictionaries, strings, and arrays. Depending on the object type, the function retrieves the specified member either directly from the object or through its class hierarchy.
 
-### Function Signature
--  `QuantumValue Interpreter::evalMember(MemberExpr &e)` - Evaluate member access expressions
-  - `e`: Reference to MemberExpr AST node
-  - Returns QuantumValue result of member access
+## Why It Works This Way
 
-###
--  `{` - Opening brace
--  `auto obj = evaluate(*e.object);` - Evaluate object expression
--  `if (obj.isPointer())` - Check if object is a pointer
--  `{` - Opening brace for pointer case
--  `obj = obj.asPointer()->deref();` - Dereference pointer
+1. **Object Evaluation**: The function starts by evaluating the object part of the member expression using the `evaluate` method. This ensures that any expressions within the object part are resolved before attempting to access its members.
 
-###
--  `}` - Closing brace for pointer case
--  `if (obj.isInstance())` - Check if object is instance
--  `{` - Opening brace for instance case
--  `return obj.asInstance()->getField(e.member);` - Return instance field
--  `}` - Closing brace for instance case
+2. **Dereferencing Pointers**: If the evaluated object is a pointer, the function dereferences it to get the actual object it points to. This is necessary because pointers allow indirect access to objects.
 
-###
--  `if (obj.isClass())` - Check if object is class
--  `{` - Opening brace for class case
--  `auto klass = obj.asClass();` - Get class reference
--  `auto method = klass->findMethod(e.member);` - Find method in class
--  `if (method)` - Check if method found
--  `return QuantumValue(method);` - Return method function
--  `throw TypeError("No method '" + e.member + "' on " + obj.typeName());` - Error for missing method
--  `}` - Closing brace for class case
+3. **Instance Access**: For instance objects, the function attempts to retrieve the member directly from the instance's fields. If the member is not found, it checks the class hierarchy starting from the instance's class up to its base classes. This allows for inheritance-based member resolution.
 
-###
--  Empty line for readability
--  `throw TypeError("No member '" + e.member + "' on " + obj.typeName());` - Error for non-member types
--  `}` - Closing brace for function
+4. **Static Member Access**: For class objects, the function looks for the member in the class's static methods and fields. If the member is not found at the class level, it recursively searches the base classes until the member is found or the hierarchy ends.
 
-## Summary
+5. **Dictionary Access**: For dictionary objects, the function simply looks up the key in the dictionary. If the key exists, the corresponding value is returned; otherwise, an empty `QuantumValue` is returned.
 
-The `evalMember()` function handles member access expressions for objects and classes in the Quantum Language:
+6. **String Properties**: Special handling is provided for string objects, allowing access to the `length` property, which returns the size of the string.
 
-### Key Features
-- **Pointer Support**: Automatic dereferencing of pointer objects
-- **Instance Fields**: Access to instance variables and properties
-- **Class Methods**: Access to static methods on classes
-- **Error Handling**: Clear error messages for missing members
+7. **Native Object Member Access**: The function also supports accessing native object properties and methods, such as `String.fromCharCode`, `Array.from`, `Object.keys`, etc. These are handled by returning a bound callable that captures the object and member name.
 
-### Member Access Types Supported
-- **Instance Fields**: `object.field` - access instance variables
-- **Class Methods**: `Class.method` - access static methods
-- **Pointer Dereference**: `pointer.field` - auto-dereference and access
+## Parameters/Return Value
 
-### Pointer Handling
-- **Automatic Dereference**: Pointers automatically dereferenced
-- **Transparent Access**: Same syntax for pointers and objects
-- **Type Safety**: Proper pointer type checking
-- **Memory Safety**: Safe pointer dereferencing
+- **Parameters**:
+  - `MemberExpr &e`: A reference to the member expression node that needs to be evaluated.
 
-### Instance Field Access
-- **Field Lookup**: Direct access to instance fields
-- **Inheritance**: Fields from base classes accessible
-- **Type Safety**: Proper field type checking
-- **Error Handling**: Clear errors for missing fields
+- **Return Value**:
+  - `QuantumValue`: The result of evaluating the member expression, which can be a value, callable, or an empty `QuantumValue` if the member does not exist.
 
-### Class Method Access
-- **Method Lookup**: Search for methods in class hierarchy
-- **Static Methods**: Access to class-level methods
-- **Inheritance**: Methods from base classes accessible
-- **Function Objects**: Methods returned as callable objects
+## Edge Cases
 
-### Member Resolution Process
-1. **Object Evaluation**: Evaluate the object expression
-2. **Pointer Handling**: Dereference if object is pointer
-3. **Type Dispatch**: Determine object type (instance/class)
-4. **Member Lookup**: Find field or method by name
-5. **Value Return**: Return the found member value
+1. **Null Pointer Dereference**: If the object part of the member expression is a null pointer, the function will handle this gracefully by returning an empty `QuantumValue`.
 
-### Design Benefits
-- **Object-Oriented**: Proper support for OOP features
-- **Pointer Integration**: Seamless pointer-to-object access
-- **Inheritance Support**: Methods and fields from base classes
-- **Type Safety**: Comprehensive type checking
+2. **Non-existent Member**: If the member does not exist in the object or its class hierarchy, the function throws a `TypeError`. This ensures that errors related to undefined member access are caught early and appropriately handled.
 
-### Use Cases
-- **Instance Variables**: `obj.property` - access object properties
-- **Static Methods**: `Class.method` - access class methods
-- **Pointer Access**: `ptr->field` - access through pointers
-- **Method Objects**: Get method objects for later calling
+3. **Special Properties**: The function handles special properties like `length` for strings and arrays, providing a straightforward way to access these properties without additional logic.
 
-### Integration with Other Components
-- **Instance Class**: Uses instance field storage
-- **Class System**: Uses class method lookup
-- **Pointer System**: Integrates with pointer dereferencing
-- **Error System**: Uses TypeError for missing members
+## Interactions With Other Components
 
-### Performance Characteristics
-- **Direct Access**: O(1) field and method access
-- **Pointer Overhead**: Minimal pointer dereferencing cost
-- **Type Dispatch**: Efficient type checking
-- **Inheritance Search**: Linear search through class hierarchy
+- **Evaluator**: The `evalMember` function interacts with the `evaluate` method, which is responsible for resolving any sub-expressions within the object part of the member expression.
 
-### Member Access Examples
-- **Instance Field**: `person.name` - returns person's name
-- **Class Method**: `Math.sqrt` - returns sqrt function
-- **Pointer Field**: `ptr->value` - auto-dereference and access
-- **Missing Member**: `obj.unknown` - throws TypeError
+- **Type System**: The function uses various aspects of the type system, including checking if an object is a pointer, instance, class, or dictionary, to determine how to proceed with member evaluation.
 
-### Error Handling
-- **TypeError**: Thrown for missing members
-- **Pointer Errors**: Safe pointer dereferencing
-- **Type Safety**: Proper type validation
-- **Descriptive Messages**: Clear error descriptions
+- **Field Access**: When accessing fields of an instance or class, the function interacts with the field storage mechanisms, such as instance fields and static fields.
 
-### Inheritance Support
-- **Base Class Fields**: Access fields from parent classes
-- **Base Class Methods**: Access methods from parent classes
-- **Method Override**: Derived class methods override base methods
-- **Search Order**: Current class first, then base classes
+- **Callable Binding**: For native object member access, the function binds the callable to the captured object and member name, allowing for subsequent calls to the member.
 
-This function provides the foundation for object-oriented programming in the Quantum Language, enabling proper member access for instances and classes while maintaining seamless pointer integration and comprehensive error handling throughout the member access process.
+This comprehensive approach ensures that `evalMember` can handle a wide range of scenarios related to member access in the Quantum Language, making it a robust and versatile component of the interpreter.
