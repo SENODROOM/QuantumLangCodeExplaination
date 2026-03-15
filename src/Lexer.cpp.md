@@ -2,60 +2,60 @@
 
 ## Overview
 
-`Lexer.cpp` is a crucial component of the Quantum Language compiler, responsible for converting the input source code into a sequence of tokens. This process is essential for syntax analysis and semantic processing. The lexer reads through the source text character by character, identifying meaningful units such as keywords, identifiers, literals, operators, and punctuation.
+`Lexer.cpp` is a critical component of the Quantum Language compiler, responsible for converting the input source code into a sequence of tokens. This process is fundamental for syntax analysis and semantic processing. The lexer iterates over the source text character by character, identifying meaningful units such as keywords, identifiers, literals, operators, and punctuation.
+
+## Role in the Compiler Pipeline
+
+The lexer operates at the beginning of the compilation process. It takes the raw source code as input and produces a stream of tokens. These tokens are then consumed by the parser to construct an abstract syntax tree (AST). The lexer ensures that the source code is correctly interpreted and breaks it down into manageable parts for further processing.
 
 ## Key Design Decisions
 
 ### Tokenization Strategy
 
-The decision to use a `std::unordered_map` for keyword mapping was made to optimize lookup times. Unordered maps provide average-case O(1) time complexity for lookups, which is ideal for quickly identifying reserved words during lexical analysis.
+The decision to use a state machine for tokenization was made to efficiently handle different types of characters and sequences. A state machine allows the lexer to transition between states based on the current character, enabling it to recognize complex patterns like numbers, strings, and operators.
+
+**Why:** State machines provide a structured and efficient way to process input streams, making them ideal for lexing tasks where multiple rules need to be applied sequentially.
+
+### Handling Unicode Characters
+
+To support a wide range of programming languages and scripts, the lexer includes logic to handle Unicode characters. This ensures that the compiler can accurately parse source code written in various international alphabets.
+
+**Why:** Supporting Unicode characters broadens the scope of the language, allowing developers from around the world to contribute to the project without encountering encoding issues.
 
 ### Error Handling
 
-Incorporating error handling within the lexer allows for early detection and reporting of issues such as unrecognized characters or unterminated strings. This proactive approach ensures that subsequent stages of the compiler can operate on valid input without encountering unexpected errors.
+Effective error handling is crucial for any compiler. `Lexer.cpp` implements robust error reporting mechanisms to identify and report lexical errors such as invalid characters, unterminated strings, and unexpected end-of-file conditions. Errors are logged with their line and column positions, facilitating quick debugging.
 
-### Character Stream Management
+**Why:** Accurate error reporting helps developers understand and fix issues in their source code more effectively, improving overall development productivity.
 
-Using a single pass through the source code with functions like `current()`, `peek(int offset)`, and `advance()` simplifies the implementation of the lexer. These functions manage the position in the string efficiently, allowing easy navigation and lookahead capabilities without duplicating code.
-
-## Class and Function Documentation
+## Documentation of Major Classes/Functions
 
 ### Lexer Class
 
-**Purpose:**  
-The `Lexer` class encapsulates the logic for converting the source code into tokens. It maintains the state of the lexer, including the current position, line number, and column number.
+**Purpose:** The `Lexer` class encapsulates the functionality required to tokenize the source code. It maintains the current position in the source text, tracks line and column numbers, and provides methods to read and advance through the input.
 
-**Behavior:**  
-- **Constructor (`Lexer(const std::string &source)`):** Initializes the lexer with the provided source code.
-- **`current()` Method:** Returns the character at the current position in the source code.
-- **`peek(int offset)` Method:** Returns the character at the specified offset ahead of the current position.
-- **`advance()` Method:** Advances the lexer to the next character and updates the line and column numbers accordingly.
-- **`skipWhitespace()` Method:** Skips over any whitespace characters in the source code, updating the position and line/column tracking.
-- **Tokenization Methods:** Various methods like `nextToken()`, `number()`, `identifier()`, etc., handle specific types of token extraction.
+**Behavior:** The constructor initializes the lexer with the source code string. The `current()` method returns the character at the current position. The `peek(int offset)` method looks ahead by a specified number of characters without advancing the position. The `advance()` method moves to the next character and updates the line and column counters accordingly. The `skipWhitespace()` method skips over whitespace characters until a non-whitespace character is encountered.
 
-### Keywords Map
+### skipWhitespace Function
 
-**Purpose:**  
-The `keywords` map stores all recognized keywords and their corresponding token types. This map is used to identify reserved words during the tokenization process.
+**Purpose:** The `skipWhitespace()` function advances the lexer past any leading whitespace characters, including spaces, tabs, and newlines.
 
-**Behavior:**  
-- **Initialization:** The map is initialized with a set of predefined keywords and their associated token types.
-- **Lookup:** During tokenization, the lexer checks if the current sequence of characters matches any keyword in the map.
+**Behavior:** It repeatedly calls the `advance()` method until a non-whitespace character is found. Newline characters increment the line counter and reset the column counter.
 
-## Tradeoffs and Limitations
+### Keywords Mapping
 
-### Keyword Case Sensitivity
+**Purpose:** The `keywords` unordered map stores keyword strings and their corresponding `TokenType`. This mapping facilitates quick lookup of keywords during tokenization.
 
-While the lexer correctly identifies both lowercase and uppercase versions of keywords like `true` and `True`, this could be seen as a limitation. However, it aligns with the language's conventions and provides flexibility in how keywords are written.
+**Behavior:** When a potential keyword is identified, the lexer checks against this map to determine if it is indeed a keyword and assigns the appropriate `TokenType`.
 
-### Single Pass Implementation
+## Tradeoffs or Limitations
 
-The single-pass nature of the lexer simplifies the implementation but may limit the ability to perform complex lookahead operations. For languages with more intricate grammar rules, additional passes or more sophisticated parsing techniques might be necessary.
+- **Performance:** While state machines offer efficiency, they can become complex when handling numerous token types and edge cases.
+  
+- **Unicode Support:** Although Unicode characters are supported, the lexer may still encounter issues with certain script-specific characters or combining marks.
 
-### Error Reporting
-
-The lexer currently reports errors using simple messages. While this is sufficient for basic error handling, more advanced features like error recovery or detailed diagnostic information might be required for larger projects.
+- **Error Reporting:** The current error reporting mechanism focuses on basic lexical errors. More sophisticated error recovery techniques could improve the user experience but would add complexity to the implementation.
 
 ## Conclusion
 
-`Lexer.cpp` plays a vital role in the Quantum Language compiler by breaking down the source code into manageable tokens. Its efficient design and robust error handling make it a solid foundation for further development of the compiler. By understanding the key design decisions and limitations, developers can better appreciate the challenges and opportunities in building a comprehensive and reliable compiler.
+`Lexer.cpp` plays a vital role in the Quantum Language compiler by breaking down the source code into tokens. Its design decisions, particularly the use of a state machine and comprehensive keyword mapping, ensure that the lexer can handle a variety of inputs accurately and efficiently. However, the lexer also faces challenges related to performance, Unicode support, and error reporting, which require ongoing optimization and enhancement.

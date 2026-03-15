@@ -2,104 +2,54 @@
 
 ## Overview
 
-The `include/Value.h` header file is an integral part of the QuantumLanguage compiler's core infrastructure. It defines various data structures and types used to represent values within the language, including basic types like integers, doubles, strings, arrays, dictionaries, functions, native functions, instances, classes, and pointers. This file plays a crucial role in managing value semantics across different stages of compilation and execution.
+The `include/Value.h` header file is a critical component of the QuantumLanguage compiler's architecture. It encapsulates the definition of various data structures and types essential for representing values within the language. These values include basic types such as integers, doubles, strings, arrays, dictionaries, functions, native functions, instances, classes, and pointers. This file facilitates the management of value semantics throughout the compilation process, ensuring efficient and accurate handling of data at different stages.
 
 ## Key Design Decisions
 
-### Use of Variants for Value Representation
+### Use of `std::variant`
+**Why:** The use of `std::variant` allows for a flexible representation of multiple value types without resorting to unions or inheritance. This choice enhances type safety and readability while providing a clear and concise way to handle different value types within a single structure.
 
-One of the primary design decisions in `Value.h` is the use of `std::variant` to represent different types of values. This choice was made to provide a type-safe way to handle multiple value types without resorting to unions or void pointers. By encapsulating all possible value types within a single variant, the compiler can maintain strong typing throughout the evaluation process, reducing runtime errors and improving performance.
+### Non-Owning Pointers for Function Bodies
+**Why:** By using non-owning pointers (`std::weak_ptr`) for function bodies, the compiler avoids unnecessary memory allocations and reduces overhead. This approach ensures that the function body can be shared among multiple instances without causing ownership issues or memory leaks.
 
-### Smart Pointers for Memory Management
+### Shared Ownership for Complex Types
+**Why:** For complex types such as arrays, dictionaries, functions, native functions, instances, classes, and pointers, the compiler uses `std::shared_ptr`. This ensures that these objects can be safely shared and managed across different parts of the compiler without worrying about premature deallocation or dangling references.
 
-To ensure efficient memory management and prevent memory leaks, smart pointers (`std::shared_ptr`) are extensively used in `Value.h`. These pointers automatically manage the lifecycle of dynamically allocated objects, ensuring that resources are properly freed when they are no longer needed. The use of shared pointers also facilitates easier sharing of state between different parts of the interpreter, which is essential for handling closures and function calls.
-
-### Non-Owning Pointers for AST Nodes
-
-In the context of representing function bodies, non-owning pointers (`std::weak_ptr`) to `ASTNode` are used instead of owning pointers (`std::shared_ptr`). This decision was made to avoid circular references and potential memory issues during garbage collection. By using weak pointers, the compiler ensures that AST nodes can be safely referenced without causing ownership cycles, leading to more robust and scalable code.
-
-## Documentation
+## Detailed Documentation
 
 ### QuantumNil
-
-Represents the "nil" value, often used as a placeholder or default value.
-
-**Purpose:** To provide a standard representation for the "nil" value in the compiler.
+**Purpose:** Represents the `nil` value in QuantumLanguage.
+**Behaviour:** This struct is empty and serves as a placeholder for the `nil` value.
 
 ### QuantumFunction
-
-Represents a user-defined function in the QuantumLanguage.
-
-**Fields:**
-- `name`: The name of the function.
-- `params`: A vector of parameter names.
-- `paramIsRef`: A vector indicating whether each parameter should be passed by reference.
-- `defaultArgs`: A vector of default argument expressions.
-- `body`: A non-owning pointer to the function body's AST node.
-- `closure`: A shared pointer to the environment capturing the function's scope.
-
-**Purpose:** To store information about user-defined functions and facilitate their execution.
-
-### QuantumClass
-
-Represents a user-defined class in the QuantumLanguage.
-
-**Purpose:** To store information about user-defined classes and enable object-oriented programming features.
-
-### QuantumInstance
-
-Represents an instance of a user-defined class.
-
-**Purpose:** To store state and behavior associated with specific instances of classes.
-
-### QuantumNative
-
-Represents a native function implemented in another language (e.g., C++).
-
-**Fields:**
-- `name`: The name of the native function.
-- `fn`: A callable object representing the native function.
-
-**Purpose:** To integrate external functionality into the QuantumLanguage compiler.
+**Purpose:** Represents a user-defined function in QuantumLanguage.
+**Behaviour:** Contains information about the function, including its name, parameters, default arguments, body, and closure environment. Parameters can be passed by value or reference, indicated by the `paramIsRef` vector.
 
 ### QuantumNativeFunc
+**Purpose:** A function type alias for native functions.
+**Behaviour:** Defines a callable object that takes a vector of `QuantumValue`s and returns a `QuantumValue`.
 
-A type alias for a function that takes a vector of `QuantumValue`s and returns a `QuantumValue`.
-
-**Purpose:** To define the signature for native functions.
-
-### QuantumPointer
-
-Represents a pointer to a variable in the QuantumLanguage.
-
-**Fields:**
-- `cell`: A shared pointer to the actual variable storage.
-- `varName`: The name of the variable for display/debug purposes.
-- `offset`: An optional integer offset for pointer arithmetic.
-
-**Methods:**
-- `isNull()`: Checks if the pointer is null.
-- `deref()`: Dereferences the pointer and returns a reference to the underlying value. Throws an exception if the pointer is null.
-
-**Purpose:** To support pointer operations and facilitate dynamic memory management.
+### QuantumNative
+**Purpose:** Represents a native function in QuantumLanguage.
+**Behaviour:** Holds the name of the native function and its corresponding callable object (`QuantumNativeFunc`). Native functions are those implemented in C++ rather than QuantumLanguage itself.
 
 ### QuantumValue
+**Purpose:** The primary data structure for representing values in QuantumLanguage.
+**Behaviour:** Utilizes `std::variant` to store one of several possible value types, including `QuantumNil`, booleans, doubles, strings, arrays, dictionaries, functions, native functions, instances, classes, and pointers. Each constructor initializes the variant with a specific value type.
 
-Represents a generic value in the QuantumLanguage.
-
-**Type Alias:**
-- `Data`: A variant containing all possible value types.
-
-**Constructor Overloads:**
-- Default constructor initializes to `QuantumNil`.
-- Explicit constructors for boolean, double, string, array, dictionary, function, native function, instance, class, and pointer types.
-
-**Purpose:** To serve as a versatile container for any value type in the QuantumLanguage.
+### QuantumPointer
+**Purpose:** Represents a pointer to a variable in QuantumLanguage.
+**Behaviour:** Contains a shared pointer to the variable storage (`QuantumPointer`), the name of the variable, and an optional offset for pointer arithmetic. Provides methods for checking if the pointer is null and dereferencing it to access the underlying variable.
 
 ## Tradeoffs and Limitations
 
-- **Memory Overhead:** Using smart pointers introduces some overhead compared to raw pointers, but it significantly improves memory safety and reduces manual memory management.
-- **Complexity:** The use of variants and smart pointers adds complexity to the codebase, making it harder to understand and debug at times.
-- **Performance:** While smart pointers help prevent memory leaks, they may introduce slight performance penalties due to additional indirection and locking mechanisms.
+### Memory Management
+While `std::shared_ptr` provides robust memory management, it may lead to increased memory usage due to reference counting. Additionally, non-owning pointers (`std::weak_ptr`) require careful handling to avoid dangling references.
 
-Overall, the design choices in `Value.h` aim to balance safety, flexibility, and performance, providing a solid foundation for the QuantumLanguage compiler's value system.
+### Performance
+Using `std::variant` can introduce some performance overhead compared to traditional union types. However, this is mitigated by modern compilers' optimizations and the flexibility gained from being able to represent multiple types within a single structure.
+
+### Complexity
+The introduction of multiple value types and their associated constructors can increase the complexity of the codebase. However, this complexity is necessary to provide a comprehensive and flexible representation of values within the QuantumLanguage compiler.
+
+By understanding these details, developers can better appreciate the design choices behind the `Value.h` header file and how they contribute to the overall functionality and efficiency of the QuantumLanguage compiler.

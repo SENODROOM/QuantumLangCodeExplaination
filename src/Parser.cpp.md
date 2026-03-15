@@ -2,59 +2,58 @@
 
 ## Overview
 
-`Parser.cpp` is a crucial component of the Quantum Language compiler, responsible for converting a sequence of tokens into an Abstract Syntax Tree (AST). This process involves understanding the structure and semantics of the language to ensure correct parsing and error handling.
+`Parser.cpp` is a vital component of the Quantum Language compiler, tasked with transforming a stream of tokens into an Abstract Syntax Tree (AST). This conversion ensures the program adheres to the syntax rules of the Quantum Language, enabling subsequent semantic analysis and code generation phases.
 
-## Design Decisions
+## Key Design Decisions
 
 ### Tokenization vs Lexical Analysis
 
-**Why:** Tokenization is the first step in any compiler where individual characters are converted into meaningful units called tokens. In `Parser.cpp`, we assume that tokenization has already been handled by another module, focusing instead on the syntactic analysis phase. This separation allows for modular development and easier testing of both phases independently.
+**WHY:** Tokenization is the initial stage in any compiler, breaking down the input source code into discrete units called tokens. This separation allows the parser to focus solely on the syntactic structure without being concerned about lexical details such as whitespace and comments. By treating tokenization as a separate step, `Parser.cpp` can efficiently manage the flow of tokens during parsing, enhancing modularity and maintainability.
 
-### Use of Smart Pointers
+## Documentation of Major Classes and Functions
 
-**Why:** To manage memory efficiently and avoid manual deletion of dynamically allocated objects, smart pointers (`std::unique_ptr`) are used extensively throughout the parser. This choice ensures that resources are automatically released when they are no longer needed, reducing the risk of memory leaks.
+### Class: Parser
 
-### Error Handling
-
-**Why:** Robust error handling is essential for compilers to provide useful feedback to users. In `Parser.cpp`, errors are thrown as exceptions (`ParseError`). This approach allows for immediate termination of parsing upon encountering a syntax error, making it easier to locate and fix issues in the source code.
-
-## Class and Function Documentation
-
-### Parser Class
-
-**Purpose:** Manages the parsing process, including state tracking and error handling.
+**Purpose:** The `Parser` class encapsulates the logic for converting a sequence of tokens into an AST. It manages the parsing process, including error handling and skipping unnecessary tokens.
 
 **Behavior:**
 - **Constructor:** Initializes the parser with a vector of tokens.
-- **current():** Returns the current token being processed.
-- **peek(offset):** Returns the token at the specified offset ahead without advancing the position.
-- **consume():** Advances the position and returns the current token.
-- **expect(t, msg):** Consumes the current token if it matches the expected type, otherwise throws a `ParseError`.
-- **check(t):** Checks if the current token matches the specified type.
-- **match(t):** Consumes the current token if it matches the specified type and returns `true`; otherwise, returns `false`.
-- **atEnd():** Determines if the end of the token stream has been reached.
-- **skipNewlines():** Skips over newline tokens until the end of the stream or a non-newline token is encountered.
-- **parse():** Parses the entire input stream into an AST starting with a `BlockStmt`.
-- **parseStatement():** Parses a single statement from the input stream.
+- **Current Token:** Returns the current token being processed.
+- **Peek Token:** Returns the token at a specified offset relative to the current position.
+- **Consume Token:** Advances the parser's position to the next token and returns it.
+- **Expect Token:** Verifies if the current token matches the expected type; throws an exception if not.
+- **Check Token:** Checks if the current token matches a specific type.
+- **Match Token:** Consumes the current token if it matches the specified type; returns `false` otherwise.
+- **At End:** Determines if the parser has reached the end of the token stream.
+- **Skip Newlines:** Skips all newline tokens until the end of the stream or a non-newline token is encountered.
+- **Parse:** Begins the parsing process, constructing an AST from the token stream.
+- **Parse Statement:** Parses a single statement from the token stream, handling various types of statements including variable declarations and expressions.
 
-### ASTNodePtr Type
+### Function: parse()
 
-**Purpose:** Represents a shared pointer to an abstract syntax tree node, facilitating efficient memory management.
+**Purpose:** The primary function of the `Parser` class, `parse()`, initiates the parsing process by creating a root `BlockStmt` node and populating it with statements parsed from the token stream.
 
-### BlockStmt Structure
+**Behavior:**
+- Creates a unique pointer to a `BlockStmt` node.
+- Iteratively parses statements using `parseStatement()` and appends them to the block's list of statements.
+- Skips newlines between statements to ensure proper parsing.
 
-**Purpose:** Defines the structure for a block statement in the AST, which can contain multiple statements.
+### Function: parseStatement()
 
-### parseVarDecl(bool isConst)
+**Purpose:** Parses a single statement from the token stream, identifying and processing different types of statements.
 
-**Purpose:** Parses variable declarations, handling both regular and constant declarations.
-
-**Behavior:** Consumes the `let` or `const` keyword and then proceeds to parse the variable declaration.
+**Behavior:**
+- Skips newlines before processing the statement.
+- Handles Python-style decorators by consuming them and their arguments.
+- Skips C/C++ storage class specifiers like `static`, `extern`, etc., allowing them to precede variable declarations.
+- Identifies and processes variable declarations (`LET` and `CONST`) and other statements based on the current token type.
 
 ## Tradeoffs and Limitations
 
-- **Performance:** While smart pointers help manage memory effectively, they may introduce some overhead compared to raw pointers.
-- **Complexity:** Handling different types of storage class specifiers and Python-style decorators adds complexity to the parser but enhances its flexibility.
-- **Error Reporting:** Immediate exception throwing simplifies error reporting but might not be suitable for all use cases, especially those requiring more granular control over error handling.
+- **Python-like Decorators:** While `Parser.cpp` supports Python-style decorators, it may not handle all edge cases, particularly those involving complex argument lists or nested decorators.
+- **C/C++ Storage Specifiers:** Although these specifiers are skipped, they might interfere with the intended use of variables in certain contexts, requiring careful consideration during semantic analysis.
+- **Error Handling:** Basic error handling is implemented through exceptions, which may need refinement for more sophisticated error reporting and recovery mechanisms.
 
-This README provides a comprehensive overview of `Parser.cpp`, detailing its functionality, design choices, and potential limitations. It serves as a guide for developers working on the Quantum Language compiler, ensuring they understand the role of this component and how it contributes to the overall compilation process.
+## Conclusion
+
+`Parser.cpp` plays a critical role in the Quantum Language compiler by converting tokenized input into an AST. Through strategic design decisions, it ensures efficient parsing and robust error handling, setting the foundation for further stages of compilation. Despite some limitations, its modular approach facilitates easy maintenance and extension.
