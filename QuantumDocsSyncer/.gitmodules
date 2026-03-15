@@ -1,6 +1,0 @@
-[submodule "frontend"]
-	path = frontend
-	url = https://github.com/SENODROOM/QuantumDocsSyncer-Frontend.git
-[submodule "backend"]
-	path = backend
-	url = https://github.com/SENODROOM/QuantumDocsSyncer-Backend.git
