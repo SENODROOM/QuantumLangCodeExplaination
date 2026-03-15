@@ -1,140 +1,13 @@
-# Token.h - Token Header File Explanation
+# Token.h — Token Types and the Token Structure
 
-## Complete Code
+Tokens are the currency of the compiler pipeline. The lexer produces them; the parser consumes them. This header defines what a token is and what kinds exist.
+
+---
+
+## The `Token` struct
 
 ```cpp
-#pragma once
-#include <string>
-
-enum class TokenType
-{
-    // Literals
-    NUMBER,
-    STRING,
-    TEMPLATE_STRING, // backtick template literal segment (text before ${)
-    BOOL_TRUE,
-    BOOL_FALSE,
-    NIL,
-
-    // Identifiers & Keywords
-    IDENTIFIER,
-    LET,
-    CONST,
-    FN,
-    DEF,      // Python: def
-    FUNCTION, // JavaScript: function
-    CLASS,    // class keyword
-    EXTENDS,  // extends / inherits
-    NEW,      // new keyword
-    THIS,     // this (JS alias for self)
-    SUPER,    // super keyword
-    RETURN,
-    IF,
-    ELSE,
-    ELIF,
-    WHILE,
-    FOR,
-    IN,
-    OF, // JavaScript for...of
-    BREAK,
-    CONTINUE,
-    RAISE,
-    TRY,
-    EXCEPT,
-    FINALLY,
-    AS,
-    PRINT,
-    INPUT,
-    COUT, // cout
-    CIN,  // cin
-    FROM,
-    IMPORT,
-    // C/C++ style type keywords
-    TYPE_INT,
-    TYPE_FLOAT,
-    TYPE_DOUBLE,
-    TYPE_CHAR,
-    TYPE_STRING,
-    TYPE_BOOL,
-    TYPE_VOID,
-    TYPE_LONG,
-    TYPE_SHORT,
-    TYPE_UNSIGNED,
-
-    // Cybersecurity reserved keywords (future)
-    SCAN,
-    PAYLOAD,
-    ENCRYPT,
-    DECRYPT,
-    HASH,
-
-    // Operators
-    PLUS,
-    MINUS,
-    STAR,
-    SLASH,
-    FLOOR_DIV, // // integer division (Python)
-    PERCENT,
-    POWER,
-    EQ,         // ==
-    NEQ,        // !=
-    STRICT_EQ,  // ===
-    STRICT_NEQ, // !==
-    NULL_COALESCE, // ??
-    LT,
-    GT,
-    LTE,
-    GTE,
-    AND,
-    OR,
-    NOT,
-    IS,
-    ASSIGN,
-    PLUS_ASSIGN,
-    MINUS_ASSIGN,
-    STAR_ASSIGN,
-    SLASH_ASSIGN,
-    AND_ASSIGN, // &=
-    OR_ASSIGN,  // |=
-    XOR_ASSIGN, // ^=
-    MOD_ASSIGN, // %=
-    FAT_ARROW,  // =>
-    PLUS_PLUS,
-    MINUS_MINUS,
-    BIT_AND,
-    BIT_OR,
-    BIT_XOR,
-    BIT_NOT,
-    LSHIFT,
-    RSHIFT,
-    AND_AND, // &&
-    OR_OR,   // ||
-
-    // Delimiters
-    LPAREN,
-    RPAREN,
-    LBRACE,
-    RBRACE,
-    LBRACKET,
-    RBRACKET,
-    COMMA,
-    SEMICOLON,
-    COLON,
-    DOT,
-    ARROW,
-    QUESTION,
-    DECORATOR,
-    NEWLINE,
-    
-    // Special
-    EOF_TOKEN,
-    UNKNOWN,
-    INDENT, // Python-style indentation block start
-    DEDENT, // Python-style indentation block end
-};
-
-struct Token
-{
+struct Token {
     TokenType type;
     std::string value;
     int line;
@@ -147,237 +20,87 @@ struct Token
 };
 ```
 
-## Code Explanation
+Every token carries four pieces of information:
 
-###
--  `#pragma once` - Prevents the header from being included multiple times
--  `#include <string>` - Includes string functionality for token values
+- **`type`** — what kind of token this is (a number, an operator, a keyword, etc.)
+- **`value`** — the raw text of the token as it appeared in the source. For a number token, this is the numeric string (`"42"`, `"3.14"`, `"0xFF"`). For a keyword, it's the keyword word (`"if"`, `"while"`). For operators and delimiters, it's the operator text (`"+"`, `"=="`). The parser uses `value` when it needs the actual content, not just the category.
+- **`line`**, **`col`** — the source position of the token's first character. These propagate into `ASTNode::line` during parsing and ultimately into `QuantumError::line` when a runtime error is thrown. Tracking both line and column allows error messages to point to the exact character.
 
-###
--  `enum class TokenType` - Declares a strongly-typed enumeration for token types
+The constructor takes `value` by value and moves it, avoiding an extra copy when the lexer constructs tokens from temporary strings.
 
-###
+`toString()` is implemented in `Token.cpp` and produces a human-readable representation used in debug output and error messages.
 
-####
--  Comment indicating literal token types section
--  `NUMBER,` - Numeric literals (e.g., 42, 3.14)
--  `STRING,` - String literals (e.g., "hello")
--  `TEMPLATE_STRING, // backtick template literal segment (text before ${)` - Template literal segments
--  `BOOL_TRUE,` - Boolean true literal
--  `BOOL_FALSE,` - Boolean false literal
--  `NIL,` - Null/nil literal
--  Empty line for readability
+---
 
-###
+## `enum class TokenType`
 
-####
--  Comment indicating identifiers and keywords section
--  `IDENTIFIER,` - Variable and function names
--  `LET,` - Variable declaration keyword (JavaScript-style)
--  `CONST,` - Constant declaration keyword
+Using `enum class` rather than a plain `enum` prevents accidental comparisons between token types and integers, and avoids name collisions with identifiers in the rest of the codebase (a plain `enum` would pollute the global namespace with names like `PLUS` and `IF`).
 
-####
--  `FN,` - Function keyword (short form)
--  `DEF,      // Python: def` - Function definition (Python-style)
--  `FUNCTION, // JavaScript: function` - Function keyword (JavaScript-style)
+### Literals
 
-####
--  `CLASS,    // class keyword` - Class declaration
--  `EXTENDS,  // extends / inherits` - Inheritance keyword
--  `NEW,      // new keyword` - Object instantiation
--  `THIS,     // this (JS alias for self)` - Self-reference
--  `SUPER,    // super keyword` - Parent class reference
--  Empty line for readability
+| Token | Represents |
+|-------|-----------|
+| `NUMBER` | Any numeric literal: integer, float, or hex |
+| `STRING` | A `"..."` or `'...'` quoted string with escapes resolved |
+| `TEMPLATE_STRING` | One text segment of a backtick template literal (the part before `${`) |
+| `BOOL_TRUE` / `BOOL_FALSE` | The keywords `true` and `false` |
+| `NIL` | The keyword `nil` |
 
-####
--  `RETURN,` - Return statement
--  `IF,` - Conditional statement
--  `ELSE,` - Else clause
--  `ELIF,` - Else if clause (Python-style)
--  `WHILE,` - While loop
--  `FOR,` - For loop
--  `IN,` - Iteration keyword
--  `OF, // JavaScript for...of` - For-of loop (JavaScript-style)
--  `BREAK,` - Loop break
--  `CONTINUE,` - Loop continue
--  `RAISE,` - Exception throwing
--  `TRY,` - Exception handling start
--  `EXCEPT,` - Exception handler (Python-style)
--  `FINALLY,` - Exception cleanup
--  `AS,` - Exception alias (Python-style)
--  Empty line for readability
+### Identifiers and keywords
 
-####
--  `PRINT,` - Print statement
--  `INPUT,` - Input statement
--  `COUT, // cout` - C++ output stream
--  `CIN,  // cin` - C++ input stream
+The token type distinguishes between user-defined identifiers (`IDENTIFIER`) and reserved words. This means the parser never needs to check whether an identifier is reserved — if a token arrives as `IDENTIFIER`, it's guaranteed to be a user-defined name.
 
-####
--  `FROM,` - Import from module
--  `IMPORT,` - Import statement
--  Empty line for readability
+**Function declaration keywords** — three aliases for the same concept:
+- `FN` — Quantum's native syntax (`fn foo() { }`)
+- `DEF` — Python syntax (`def foo(): `)
+- `FUNCTION` — JavaScript syntax (`function foo() { }`)
 
-###
+The parser accepts all three interchangeably.
 
-####
--  Comment indicating C/C++ style type keywords
--  `TYPE_INT,` - Integer type
--  `TYPE_FLOAT,` - Float type
--  `TYPE_DOUBLE,` - Double precision type
--  `TYPE_CHAR,` - Character type
--  `TYPE_STRING,` - String type
--  `TYPE_BOOL,` - Boolean type
--  `TYPE_VOID,` - Void type
--  `TYPE_LONG,` - Long integer type
--  `TYPE_SHORT,` - Short integer type
--  `TYPE_UNSIGNED,` - Unsigned type modifier
+**Class and object keywords** — `CLASS`, `EXTENDS`, `NEW`, `THIS`, `SUPER` provide a JavaScript/Python-style OOP vocabulary. `THIS` is an alias for `self`, matching JavaScript convention.
 
-###
+**Control flow** — `IF`, `ELSE`, `ELIF`, `WHILE`, `FOR`, `IN`, `OF`, `BREAK`, `CONTINUE`, `RETURN`. The `OF` token specifically supports JavaScript's `for...of` loop syntax as an alternative to `for...in`.
 
-####
--  Comment indicating cybersecurity reserved keywords
--  `SCAN,` - Network scanning
--  `PAYLOAD,` - Attack payload
--  `ENCRYPT,` - Encryption operation
--  `DECRYPT,` - Decryption operation
--  `HASH,` - Hashing operation
+**Exception handling** — `TRY`, `EXCEPT`, `FINALLY`, `RAISE`, `AS`. Python's exception vocabulary rather than C++'s `try`/`catch`/`throw`.
 
-###
+**I/O keywords** — `PRINT`, `INPUT` are first-class statement keywords rather than library functions. `COUT` and `CIN` are also keywords, allowing C++-style `cout << x` and `cin >> x` syntax.
 
-####
--  Comment indicating operators section
--  `PLUS,` - Addition (+)
--  `MINUS,` - Subtraction (-)
--  `STAR,` - Multiplication (*)
--  `SLASH,` - Division (/)
--  `FLOOR_DIV, // // integer division (Python)` - Integer division (//)
--  `PERCENT,` - Modulo (%)
--  `POWER,` - Exponentiation (** or ^)
+**C/C++ type keywords** — `TYPE_INT`, `TYPE_FLOAT`, `TYPE_DOUBLE`, `TYPE_CHAR`, `TYPE_STRING`, `TYPE_BOOL`, `TYPE_VOID`, `TYPE_LONG`, `TYPE_SHORT`, `TYPE_UNSIGNED`. These allow C-style variable declarations (`int x = 5`, `float* p = ...`) and are checked by `isCTypeKeyword()` in the parser.
 
-####
--  `EQ,         // ==` - Equality comparison
--  `NEQ,        // !=` - Not equal comparison
--  `STRICT_EQ,  // ===` - Strict equality (JavaScript)
--  `STRICT_NEQ, // !==` - Strict not equal (JavaScript)
--  `NULL_COALESCE, // ??` - Null coalescing operator
--  `LT,` - Less than (<)
--  `GT,` - Greater than (>)
--  `LTE,` - Less than or equal (<=)
--  `GTE,` - Greater than or equal (>=)
--  Empty line for readability
+**Cybersecurity reserved keywords** — `SCAN`, `PAYLOAD`, `ENCRYPT`, `DECRYPT`, `HASH`. These are reserved but not yet connected to any language construct. Reserving them now prevents user code from using them as variable names, making a future implementation non-breaking.
 
-####
--  `AND,` - Logical and
--  `OR,` - Logical or
--  `NOT,` - Logical not
--  `IS,` - Identity comparison
--  Empty line for readability
+### Operators
 
-####
--  `ASSIGN,` - Simple assignment (=)
--  `PLUS_ASSIGN,` - Addition assignment (+=)
--  `MINUS_ASSIGN,` - Subtraction assignment (-=)
--  `STAR_ASSIGN,` - Multiplication assignment (*=)
--  `SLASH_ASSIGN,` - Division assignment (/=)
--  `AND_ASSIGN, // &=` - Bitwise and assignment
--  `OR_ASSIGN,  // |=` - Bitwise or assignment
--  `XOR_ASSIGN, // ^=` - Bitwise xor assignment
--  `MOD_ASSIGN, // %=` - Modulo assignment
--  Empty line for readability
+The operator set covers three overlapping syntactic traditions:
 
-####
--  `FAT_ARROW,  // =>` - Arrow function (=>)
--  `PLUS_PLUS,` - Increment (++)
--  `MINUS_MINUS,` - Decrement (--)
--  `BIT_AND,` - Bitwise and (&)
--  `BIT_OR,` - Bitwise or (|)
--  `BIT_XOR,` - Bitwise xor (^)
--  `BIT_NOT,` - Bitwise not (~)
--  Empty line for readability
+**Arithmetic** — `PLUS`, `MINUS`, `STAR`, `SLASH`, `PERCENT`, `POWER` (`**`), `FLOOR_DIV` (`//` integer division from Python).
 
-####
--  `LSHIFT,` - Left shift (<<)
--  `RSHIFT,` - Right shift (>>)
--  `AND_AND, // &&` - Logical and (&&)
--  `OR_OR,   // ||` - Logical or (||)
--  Empty line for readability
+**Comparison** — `EQ` (`==`), `NEQ` (`!=`), `STRICT_EQ` (`===`), `STRICT_NEQ` (`!==`), `LT`, `GT`, `LTE`, `GTE`. The strict equality operators mirror JavaScript — they distinguish value equality from identity equality.
 
-###
+**Logical** — `AND`, `OR`, `NOT` (Python-style keyword operators), plus `AND_AND` (`&&`) and `OR_OR` (`||`) (C/JavaScript-style symbol operators). Both spellings are valid; the parser treats them identically.
 
-####
--  Comment indicating delimiters section
--  `LPAREN,` - Left parenthesis (()
--  `RPAREN,` - Right parenthesis ())
--  `LBRACE,` - Left brace ({)
--  `RBRACE,` - Right brace (})
--  `LBRACKET,` - Left bracket ([)
--  `RBRACKET,` - Right bracket (])
--  `COMMA,` - Comma (,)
--  `SEMICOLON,` - Semicolon (;)
--  `COLON,` - Colon (:)
--  `DOT,` - Dot (.)
--  `ARROW,` - Arrow (->)
--  `QUESTION,` - Question mark (?)
--  `DECORATOR,` - Decorator (@)
--  `NEWLINE,` - Newline character
--  Empty line for readability
+**Bitwise** — `BIT_AND` (`&`), `BIT_OR` (`|`), `BIT_XOR` (`^`), `BIT_NOT` (`~`), `LSHIFT` (`<<`), `RSHIFT` (`>>`).
 
-###
+**Assignment** — `ASSIGN` (`=`), `PLUS_ASSIGN` (`+=`), `MINUS_ASSIGN` (`-=`), `STAR_ASSIGN` (`*=`), `SLASH_ASSIGN` (`/=`), `AND_ASSIGN` (`&=`), `OR_ASSIGN` (`|=`), `XOR_ASSIGN` (`^=`), `MOD_ASSIGN` (`%=`). All compound assignments are first-class tokens, not synthesized by the parser.
 
-####
--  Comment indicating special tokens
--  `EOF_TOKEN,` - End of file marker
--  `UNKNOWN,` - Unknown/unrecognized token
--  `INDENT, // Python-style indentation block start` - Indentation increase
--  `DEDENT, // Python-style indentation block end` - Indentation decrease
+**Other** — `FAT_ARROW` (`=>`), used for arrow function syntax. `PLUS_PLUS` (`++`) and `MINUS_MINUS` (`--`). `NULL_COALESCE` (`??`) from JavaScript. `IS` for identity comparison.
 
-###
+### Delimiters
 
-####
--  `struct Token` - Declares the Token structure
--  `{` - Opening brace for struct definition
--  `TokenType type;` - Token type enumeration
--  `std::string value;` - Token text value
--  `int line;` - Line number where token appears
--  `int col;` - Column number where token appears
--  Empty line for readability
+`LPAREN`, `RPAREN`, `LBRACE`, `RBRACE`, `LBRACKET`, `RBRACKET`, `COMMA`, `SEMICOLON`, `COLON`, `DOT`, `ARROW` (`->`), `QUESTION`, `DECORATOR` (`@`), `NEWLINE`.
 
-####
--  `Token(TokenType t, std::string v, int ln, int c)` - Constructor taking type, value, line, and column
--  `: type(t), value(std::move(v)), line(ln), col(c) {}` - Constructor initializer list that:
-  - Sets token type
-  - Moves string value (efficient transfer)
-  - Sets line and column numbers
+`NEWLINE` is emitted by the lexer but currently not used as a statement terminator — Quantum uses braces, not significant newlines, for block structure. The token exists because some error recovery logic uses newlines as sync points.
 
-####
--  `std::string toString() const;` - Method to convert token to string representation
+### Special tokens
 
-###
--  `};` - Closing brace for Token struct
+- `EOF_TOKEN` — always the last token in the vector. The parser checks `atEnd()` by looking for this token, which avoids out-of-bounds vector access.
+- `UNKNOWN` — emitted for unrecognized characters. The parser treats any `UNKNOWN` token as a syntax error, producing a specific error message rather than a crash.
+- `INDENT` / `DEDENT` — reserved for Python-style significant indentation. Currently not emitted; the lexer uses braces for block structure. These exist to support a future indentation-sensitive parsing mode.
 
-## Summary
+---
 
-This header file defines the complete token system for the Quantum Language compiler with:
+## Why `value` is always a string
 
-### Comprehensive Token Coverage
-- **Literals**: Numbers, strings, booleans, null values, and template literals
-- **Keywords**: Multi-paradigm keywords from Python, JavaScript, and C++
-- **Operators**: Complete set of arithmetic, logical, bitwise, and assignment operators
-- **Delimiters**: All punctuation and bracket types
-- **Special Tokens**: End-of-file, indentation, and error markers
+Every token stores its text as a `string`, even for numbers. This means the lexer never needs to decide between `int` and `float` parsing — that decision belongs to the parser, which has enough context to know whether an integer or floating-point value is expected. It also means numeric formatting (hex vs decimal vs scientific notation) is preserved if the code is ever pretty-printed or error-reported.
 
-### Multi-Paradigm Support
-- **Python-style**: `def`, `elif`, `try/except`, indentation tokens
-- **JavaScript-style**: `function`, `let`, `const`, `===`, `??`
-- **C++ style**: Type keywords, `cout/cin`, pointer operators
-- **Cybersecurity**: Reserved keywords for future security features
-
-### Key Features
-- **Strong Typing**: `enum class` prevents accidental type conversions
-- **Source Location**: Line and column tracking for precise error reporting
-- **Efficient Design**: Move semantics for string values
-- **Extensible**: Easy to add new token types for language evolution
-
-### Language Integration
-The token system supports the Quantum Language's goal of being a multi-paradigm language that combines the best features from multiple programming languages while adding specialized cybersecurity capabilities. The comprehensive token set enables rich syntax expression and clear error reporting throughout the compilation process.
+The cost is a heap allocation per string token. For typical source files this is negligible; if profiling ever identified token construction as a bottleneck, `std::string_view` into the original source would be an option, at the cost of tying token lifetime to source string lifetime.

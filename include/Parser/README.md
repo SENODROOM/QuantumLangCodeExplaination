@@ -1,273 +1,169 @@
-# Parser.h - Parser Header File Explanation
+# Parser.h — The Parser
 
-## Complete Code
+The parser takes the flat `vector<Token>` from the lexer and produces a tree of `ASTNodePtr` nodes representing the program's structure. It is a hand-written recursive descent parser with a layered descent approach for expressions.
+
+---
+
+## `ParseError`
 
 ```cpp
-#pragma once
-#include "Token.h"
-#include "AST.h"
-#include <vector>
-#include <stdexcept>
-
-class ParseError : public std::runtime_error
-{
+class ParseError : public std::runtime_error {
 public:
     int line, col;
-    ParseError(const std::string &msg, int l, int c)
+    ParseError(const std::string& msg, int l, int c)
         : std::runtime_error(msg), line(l), col(c) {}
-};
-
-class Parser
-{
-public:
-    explicit Parser(std::vector<Token> tokens);
-    ASTNodePtr parse();
-
-private:
-    std::vector<Token> tokens;
-    size_t pos;
-
-    // Token helpers
-    Token &current();
-    Token &peek(int offset = 1);
-    Token &consume();
-    Token &expect(TokenType t, const std::string &msg);
-    bool check(TokenType t) const;
-    bool match(TokenType t);
-    bool atEnd() const;
-    void skipNewlines();
-
-    // Parsing methods
-    ASTNodePtr parseStatement();
-    ASTNodePtr parseBlock();
-    ASTNodePtr parseBodyOrStatement(); // block OR single statement (brace-optional)
-    ASTNodePtr parseVarDecl(bool isConst);
-    ASTNodePtr parseFunctionDecl();
-    ASTNodePtr parseClassDecl();
-    ASTNodePtr parseIfStmt();
-    ASTNodePtr parseWhileStmt();
-    ASTNodePtr parseForStmt();
-    ASTNodePtr parseReturnStmt();
-    ASTNodePtr parsePrintStmt();
-    ASTNodePtr parseInputStmt();
-    ASTNodePtr parseCoutStmt(); // cout << x << y << endl
-    ASTNodePtr parseCinStmt();  // cin >> x >> y
-    ASTNodePtr parseImportStmt(bool isFrom = false);
-    ASTNodePtr parseExprStmt();
-    ASTNodePtr parseCTypeVarDecl(const std::string &typeHint); // int x = ...  / int* p = ...
-    bool isCTypeKeyword(TokenType t) const;
-
-    // Expression parsing (Pratt-style precedence)
-    ASTNodePtr parseExpr();
-    ASTNodePtr parseAssignment();
-    ASTNodePtr parseOr();
-    ASTNodePtr parseAnd();
-    ASTNodePtr parseBitwise();
-    ASTNodePtr parseEquality();
-    ASTNodePtr parseComparison();
-    ASTNodePtr parseShift();
-    ASTNodePtr parseAddSub();
-    ASTNodePtr parseMulDiv();
-    ASTNodePtr parsePower();
-    ASTNodePtr parseUnary();
-    ASTNodePtr parsePostfix();
-    ASTNodePtr parsePrimary();
-
-    ASTNodePtr parseArrayLiteral();
-    ASTNodePtr parseDictLiteral();
-    ASTNodePtr parseLambda();
-    ASTNodePtr parseArrowFunction(std::vector<std::string> params, int ln);
-    std::vector<ASTNodePtr> parseArgList();
-    // Returns param names; populates outIsRef with true for each & (reference) param
-    std::vector<std::string> parseParamList(std::vector<bool> *outIsRef = nullptr, std::vector<ASTNodePtr> *outDefaultArgs = nullptr);
 };
 ```
 
-## Code Explanation
+`ParseError` is separate from the runtime `QuantumError` hierarchy in `Error.h` because parse errors occur before any `ASTNode` exists — there is no node to attach a line number to. Instead, `ParseError` carries its own `line` and `col` directly, derived from the offending token. The main entry point in `main.cpp` catches `ParseError` separately from `QuantumError` and formats it differently in the error output.
 
-###
--  `#pragma once` - Prevents multiple inclusion of this header file
--  `#include "Token.h"` - Includes token type definitions
--  `#include "AST.h"` - Includes Abstract Syntax Tree definitions
--  `#include <vector>` - Includes vector for storing tokens
--  `#include <stdexcept>` - Includes standard exception classes
+---
 
-###
+## Public interface
 
-####
--  `class ParseError : public std::runtime_error` - Declares ParseError class inheriting from std::runtime_error
+```cpp
+class Parser {
+public:
+    explicit Parser(std::vector<Token> tokens);
+    ASTNodePtr parse();
+    ...
+};
+```
 
-####
--  `public:` - Starts the public section
+The parser takes ownership of the token vector by value. `parse()` consumes the tokens and returns a single `ASTNodePtr` wrapping a `BlockStmt` containing all top-level statements. The choice to return a single root node (rather than `vector<ASTNodePtr>`) means the top-level program has the same representation as any other block, which simplifies the interpreter's entry point.
 
-####
--  `int line, col;` - Stores line and column where the parse error occurred
+---
 
-####
--  `ParseError(const std::string &msg, int l, int c)` - Constructor taking error message, line, and column
--  `: std::runtime_error(msg), line(l), col(c) {}` - Constructor initializer list that:
-  - Calls base class constructor with error message
-  - Initializes line and column members
--  Empty line for readability
+## Token navigation helpers
 
--  `};` - Closing brace for ParseError class
+```cpp
+Token& current();           // token at pos
+Token& peek(int offset=1);  // token at pos+offset
+Token& consume();           // return current, advance pos
+Token& expect(TokenType t, const std::string& msg); // consume or throw ParseError
+bool   check(TokenType t) const;  // current().type == t, no consume
+bool   match(TokenType t);        // if check(t): consume and return true
+bool   atEnd() const;       // current().type == EOF_TOKEN
+void   skipNewlines();      // consume NEWLINE tokens
+```
 
-###
--  `class Parser` - Declares the Parser class that converts tokens into AST
+These seven primitives are the only way the parser reads from the token stream. The distinction between `check` (non-consuming) and `match` (consuming) is the same pattern used by the Crafting Interpreters book and most hand-written parsers — it keeps the lookahead logic local to the decision point rather than spreading advances across multiple methods.
 
-###
+`expect()` is used when a token is grammatically required: `expect(LBRACE, "expected '{'")` either returns the brace token or throws a `ParseError` with the given message and the current token's position. This is the primary error-reporting mechanism — parse errors are produced exactly where the grammar fails, not in a centralized error handler.
 
-####
--  `public:` - Starts the public section of the Parser class
--  `explicit Parser(std::vector<Token> tokens);` - Constructor that takes vector of tokens
-  - `explicit` prevents implicit conversions
+`skipNewlines()` is called at the start of most statement-level parse methods, allowing newlines to appear freely between statements without being treated as syntax errors. This makes source formatting flexible — whether a programmer puts opening braces on the same line or the next line, the parser accepts it.
 
-####
--  `ASTNodePtr parse();` - Main method that parses tokens into an AST node
+---
 
-###
--  `private:` - Starts the private section of the class
+## Statement parsing
 
-###
+`parseStatement()` is the dispatcher. It inspects `current()` and calls the appropriate specific parse method:
 
-####
--  `std::vector<Token> tokens;` - Stores the tokens to be parsed
--  `size_t pos;` - Current position in the token vector
--  Empty line for readability
+| Current token(s) | Method called |
+|-----------------|--------------|
+| `LET` / `CONST` | `parseVarDecl(isConst)` |
+| `FN` / `DEF` / `FUNCTION` | `parseFunctionDecl()` |
+| `CLASS` | `parseClassDecl()` |
+| `IF` | `parseIfStmt()` |
+| `WHILE` | `parseWhileStmt()` |
+| `FOR` | `parseForStmt()` |
+| `RETURN` | `parseReturnStmt()` |
+| `PRINT` | `parsePrintStmt()` |
+| `INPUT` | `parseInputStmt()` |
+| `COUT` | `parseCoutStmt()` |
+| `CIN` | `parseCinStmt()` |
+| `FROM` / `IMPORT` | `parseImportStmt(isFrom)` |
+| `TYPE_INT` etc. | `parseCTypeVarDecl(typeHint)` |
+| anything else | `parseExprStmt()` |
 
-###
+`isCTypeKeyword(t)` checks whether a token is one of `TYPE_INT`, `TYPE_FLOAT`, `TYPE_DOUBLE`, `TYPE_CHAR`, `TYPE_STRING`, `TYPE_BOOL`, `TYPE_VOID`, `TYPE_LONG`, `TYPE_SHORT`, or `TYPE_UNSIGNED`. When true, `parseStatement()` calls `parseCTypeVarDecl()` to handle C-style declarations like `int x = 5` or `float* p = &y`.
 
-####
--  Comment indicating token helpers section
--  `Token &current();` - Returns the current token
--  `Token &peek(int offset = 1);` - Looks ahead at token with optional offset
--  `Token &consume();` - Consumes and advances to next token
--  `Token &expect(TokenType t, const std::string &msg);` - Expects a specific token type or throws error
--  Empty line for readability
+### `parseBodyOrStatement()`
 
-####
--  `bool check(TokenType t) const;` - Checks if current token matches type
--  `bool match(TokenType t);` - Matches and consumes if token type matches
--  `bool atEnd() const;` - Checks if at end of token stream
+```cpp
+ASTNodePtr parseBodyOrStatement(); // block OR single statement (brace-optional)
+```
 
-####
--  `void skipNewlines();` - Skips newline tokens
--  Empty line for readability
+Several constructs (if bodies, loop bodies, function bodies) can be either a full `{ ... }` block or a single statement without braces, matching JavaScript/Rust convention. `parseBodyOrStatement()` checks whether the next non-newline token is `LBRACE`: if so, it calls `parseBlock()`; otherwise it calls `parseStatement()` and wraps the single result in a `BlockStmt`. This is called from `parseIfStmt()`, `parseWhileStmt()`, `parseForStmt()`, and `parseFunctionDecl()`.
 
-###
+### `parseFunctionDecl()` and `parseParamList()`
 
-####
--  Comment indicating parsing methods section
--  `ASTNodePtr parseStatement();` - Parses a general statement
--  `ASTNodePtr parseBlock();` - Parses a block of statements
--  `ASTNodePtr parseBodyOrStatement(); // block OR single statement (brace-optional)` - Parses block or single statement
+```cpp
+std::vector<std::string> parseParamList(
+    std::vector<bool>* outIsRef = nullptr,
+    std::vector<ASTNodePtr>* outDefaultArgs = nullptr
+);
+```
 
-####
--  `ASTNodePtr parseVarDecl(bool isConst);` - Parses variable declarations
--  `ASTNodePtr parseFunctionDecl();` - Parses function declarations
--  `ASTNodePtr parseClassDecl();` - Parses class declarations
+`parseParamList()` is the most complex helper in the parser. It reads a comma-separated parameter list inside parentheses and simultaneously populates three parallel structures:
+- The return value: the parameter name strings
+- `outIsRef`: `true` for each parameter declared with `&` (`int& r`)
+- `outDefaultArgs`: the default value expression for each parameter, or `nullptr` if none
 
-####
--  `ASTNodePtr parseIfStmt();` - Parses if statements
--  `ASTNodePtr parseWhileStmt();` - Parses while loops
--  `ASTNodePtr parseForStmt();` - Parses for loops
--  `ASTNodePtr parseReturnStmt();` - Parses return statements
--  Empty line for readability
+These three vectors are kept parallel so that index `i` in all three refers to the same parameter. The `FunctionDecl` AST node stores all three. Keeping them parallel rather than using a struct-per-parameter is a deliberate space optimization — most parameters have no default and are not references, so storing booleans and pointers separately avoids padding waste.
 
-####
--  `ASTNodePtr parsePrintStmt();` - Parses print statements
--  `ASTNodePtr parseInputStmt();` - Parses input statements
--  `ASTNodePtr parseCoutStmt(); // cout << x << y << endl` - Parses C++ cout statements
--  `ASTNodePtr parseCinStmt();  // cin >> x >> y` - Parses C++ cin statements
+### `parseCoutStmt()` and `parseCinStmt()`
 
-####
--  `ASTNodePtr parseImportStmt(bool isFrom = false);` - Parses import statements
--  `ASTNodePtr parseExprStmt();` - Parses expression statements
--  `ASTNodePtr parseCTypeVarDecl(const std::string &typeHint); // int x = ...  / int* p = ...` - Parses C-style variable declarations
--  `bool isCTypeKeyword(TokenType t) const;` - Checks if token is a C type keyword
--  Empty line for readability
--  Empty line for readability
+```cpp
+ASTNodePtr parseCoutStmt(); // cout << x << y << endl
+ASTNodePtr parseCinStmt();  // cin >> x >> y
+```
 
-###
+These handle C++-style I/O syntax. `parseCoutStmt()` reads a chain of `<<` operators after `cout` and converts it to a `PrintStmt` AST node. `parseCinStmt()` reads a chain of `>>` operators after `cin` and converts it to an `InputStmt`. This means the interpreter only ever sees `PrintStmt` and `InputStmt` nodes — it never needs to handle `cout`/`cin` as special cases. The parser absorbs the syntactic difference between Python-style `print(x)` and C++-style `cout << x`.
 
-####
--  Comment indicating Pratt-style precedence parsing
--  `ASTNodePtr parseExpr();` - Main expression parsing entry point
--  `ASTNodePtr parseAssignment();` - Parses assignment expressions
+---
 
-####
--  `ASTNodePtr parseOr();` - Parses logical OR expressions
--  `ASTNodePtr parseAnd();` - Parses logical AND expressions
+## Expression parsing — layered descent
 
-####
--  `ASTNodePtr parseBitwise();` - Parses bitwise operations
--  `ASTNodePtr parseEquality();` - Parses equality comparisons
--  `ASTNodePtr parseComparison();` - Parses comparison operations
--  `ASTNodePtr parseShift();` - Parses bit shift operations
--  Empty line for readability
+The comment in the header says "Pratt-style precedence" but the implementation is actually layered recursive descent: one method per precedence level, each calling the next higher level. The call chain is:
 
-####
--  `ASTNodePtr parseAddSub();` - Parses addition and subtraction
--  `ASTNodePtr parseMulDiv();` - Parses multiplication and division
--  `ASTNodePtr parsePower();` - Parses exponentiation
--  Empty line for readability
+```
+parseExpr()
+  └─ parseAssignment()       // =  +=  -=  *=  /=  etc.
+       └─ parseOr()          // or  ||
+            └─ parseAnd()    // and  &&
+                 └─ parseBitwise()    // |  ^  &
+                      └─ parseEquality()   // ==  !=  ===  !==  is
+                           └─ parseComparison()  // <  >  <=  >=
+                                └─ parseShift()  // <<  >>
+                                     └─ parseAddSub()  // +  -
+                                          └─ parseMulDiv()  // *  /  //  %
+                                               └─ parsePower()  // **
+                                                    └─ parseUnary()   // -  !  ~  &  *  not
+                                                         └─ parsePostfix()  // ()  []  .  ->  ++  --
+                                                              └─ parsePrimary()
+```
 
-####
--  `ASTNodePtr parseUnary();` - Parses unary operations
--  `ASTNodePtr parsePostfix();` - Parses postfix operations
--  `ASTNodePtr parsePrimary();` - Parses primary expressions (literals, identifiers)
--  Empty line for readability
+Each level calls the level below for its operands, and handles its own operators in a loop. For example, `parseAddSub()` calls `parseMulDiv()`, then loops as long as the current token is `PLUS` or `MINUS`, consuming the operator and calling `parseMulDiv()` again for the right operand. This naturally implements left-associativity.
 
-###
+`parsePower()` implements right-associativity (since `2**3**4` should parse as `2**(3**4)`) by recursing right: rather than looping, it calls itself for the right operand.
 
-####
--  `ASTNodePtr parseArrayLiteral();` - Parses array literals
--  `ASTNodePtr parseDictLiteral();` - Parses dictionary literals
+`parseAssignment()` also recurses right for the same reason: `a = b = 5` should parse as `a = (b = 5)`.
 
-####
--  `ASTNodePtr parseLambda();` - Parses lambda expressions
--  `ASTNodePtr parseArrowFunction(std::vector<std::string> params, int ln);` - Parses arrow functions
--  `std::vector<ASTNodePtr> parseArgList();` - Parses function argument lists
+### `parsePostfix()`
 
-####
--  `// Returns param names; populates outIsRef with true for each & (reference) param` - Comment explaining parameter parsing
--  `std::vector<std::string> parseParamList(std::vector<bool> *outIsRef = nullptr, std::vector<ASTNodePtr> *outDefaultArgs = nullptr);` - Parses function parameter lists with reference and default argument support
+Postfix operators — function calls `()`, indexing `[]`, member access `.`, arrow access `->`, and increment/decrement `++`/`--` — all have the same high precedence and are all left-associative. `parsePostfix()` calls `parsePrimary()` first, then loops consuming any postfix operator it finds, building the AST left-to-right. This handles chained expressions like `obj.method(args)[0].field` correctly.
 
-###
--  `};` - Closing brace for the Parser class
+### `parsePrimary()`
 
-## Summary
+`parsePrimary()` handles the leaves of the expression tree: literals, identifiers, grouped expressions `(expr)`, array literals, dict literals, lambdas, arrow functions, `new` expressions, `super` expressions, template literals, and the address-of `&` and dereference `*` operators (when they appear as prefix unary operators in `parseUnary()`).
 
-This header file defines the parser for the Quantum Language compiler with:
+### Lambda vs arrow function
 
-### Error Handling
-- **ParseError Class**: Custom exception with line/column information for precise error reporting
+Two syntaxes for anonymous functions are supported:
 
-### Core Functionality
-- **Token Processing**: Manages token stream with position tracking
-- **AST Generation**: Converts tokens into Abstract Syntax Tree
-- **Pratt Parsing**: Uses precedence-based parsing for expressions
+- **Lambda**: `fn(x, y) { return x + y }` — parsed by `parseLambda()`
+- **Arrow function**: `(x, y) => x + y` — parsed by `parseArrowFunction(params, ln)` after `parsePrimary()` detects `FAT_ARROW` following a parenthesized parameter list
 
-### Statement Parsing
-- **Declarations**: Variables, functions, classes with C-style type hints
-- **Control Flow**: If statements, loops, returns
-- **I/O Operations**: Print, input, and C++ style cout/cin statements
-- **Modules**: Import statement handling
+`parseArrowFunction()` takes the already-parsed parameter list as an argument because by the time the parser sees `=>`, it has already consumed the `(params)` part thinking it might be a grouped expression.
 
-### Expression Parsing
-- **Precedence Hierarchy**: From assignment down to primary expressions
-- **Operator Types**: Logical, bitwise, comparison, arithmetic operations
-- **Advanced Features**: Unary, postfix, and function call parsing
+---
 
-### Language Features
-- **Multi-paradigm**: Supports both Python-like and C++ syntax
-- **Type System**: C-style type hints and pointer declarations
-- **Functions**: Lambda expressions and arrow functions
-- **Collections**: Array and dictionary literals
+## `parseArgList()` vs `parseParamList()`
 
-### Design Patterns
-- **Pratt Parser**: Efficient precedence-based expression parsing
-- **Recursive Descent**: Clear structure for statement parsing
-- **Error Recovery**: Detailed error reporting with source locations
+These are distinct:
 
-The parser serves as the second phase of compilation, transforming the token stream from the lexer into a structured AST that the interpreter can execute, supporting a rich set of language features from multiple programming paradigms.
+- `parseArgList()` — parses **call arguments**: expressions separated by commas, e.g. `f(x+1, y, 42)`. Returns `vector<ASTNodePtr>`.
+- `parseParamList()` — parses **function parameters**: name declarations, optionally with `&` for reference and `= expr` for defaults. Returns `vector<string>` plus parallel output vectors.
+
+The distinction matters because at a call site, arguments are expressions. At a declaration site, parameters are names with metadata. Mixing these up would be a significant bug.

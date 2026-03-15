@@ -1,51 +1,59 @@
-# TypeChecker Header Documentation
+# TypeChecker.h — Static Type Analysis
 
-## 📋 Overview
+The type checker is an optional pass between parsing and interpretation. It walks the AST and infers or validates types for declarations and expressions, reporting errors before the program ever runs. It is intentionally shallow: the goal is to catch the most common mistakes (wrong type in a typed declaration, use of an unknown variable) without requiring full type annotations on every expression.
 
-This directory contains the header file for the TypeChecker component, which defines the interface and data structures for static type analysis in Quantum Language.
+---
 
-## 📁 Files
+## `StaticTypeError`
 
-### TypeChecker.h
-The main header file containing:
-- **StaticTypeError**: Exception class for type-related errors
-- **TypeEnv**: Type environment structure for lexical scoping
-- **TypeChecker**: Main type checker class interface
-
-## 🔧 Key Components
-
-### StaticTypeError Class
 ```cpp
 class StaticTypeError : public std::runtime_error {
 public:
     int line;
-    StaticTypeError(const std::string &msg, int l)
+    StaticTypeError(const std::string& msg, int l)
         : std::runtime_error(msg), line(l) {}
 };
 ```
-- **Purpose**: Exception handling for type errors
-- **Features**: Line number tracking for error location
-- **Inheritance**: Extends std::runtime_error
 
-### TypeEnv Structure
+`StaticTypeError` is kept separate from the runtime `QuantumError` hierarchy because it is raised in a different phase and caught by different code. The main entry point catches `StaticTypeError` and reports it before launching the interpreter — a static type error should never reach the interpreter at all.
+
+The class is minimal: a message string (inherited from `std::runtime_error`) and a source line number. There is no `kind` field unlike `QuantumError`, because there is only one category of static error. If the type checker is extended to produce warnings as well as errors, a `severity` field would be the natural addition.
+
+---
+
+## `TypeEnv` — the type environment
+
 ```cpp
 struct TypeEnv {
     std::map<std::string, std::string> vars;
     std::shared_ptr<TypeEnv> parent;
-    
+
     TypeEnv(std::shared_ptr<TypeEnv> p = nullptr) : parent(p) {}
-    
-    void define(const std::string& name, const std::string& type);
-    std::string resolve(const std::string& name);
+
+    void define(const std::string& name, const std::string& type) {
+        vars[name] = type;
+    }
+
+    std::string resolve(const std::string& name) {
+        if (vars.count(name)) return vars[name];
+        if (parent) return parent->resolve(name);
+        return "any";
+    }
 };
 ```
-- **Purpose**: Type environment for lexical scoping
-- **Features**: Variable-to-type mapping with parent chain
-- **Methods**: 
-  - `define()`: Add variable to environment
-  - `resolve()`: Look up variable in scope chain
 
-### TypeChecker Class
+`TypeEnv` mirrors the runtime `Environment` class but stores type strings instead of `QuantumValue` objects. The same parent-chain scoping model is used: `resolve()` walks up the chain until it finds the variable or reaches the root. If a variable is not found anywhere in the chain, it returns `"any"` rather than throwing an error — this is the type checker's graceful-degradation policy for unrecognized names.
+
+**Why `std::map` rather than `std::unordered_map`?** The runtime `Environment` uses `unordered_map` for O(1) average-case lookup. The type checker uses `std::map` (sorted, O(log n)). Since type checking runs once at startup rather than on every statement execution, the performance difference is negligible, and `std::map` has deterministic iteration order which helps when debugging type environment state.
+
+**Types are strings.** The type system represents types as plain strings: `"float"`, `"string"`, `"bool"`, `"fn"`, `"void"`, `"any"`. This is the simplest possible representation and is appropriate for a shallow type checker. A richer type system (generics, union types, function signatures) would require a dedicated `Type` algebraic data type, but that is a significant complexity increase for uncertain benefit in a dynamically-typed language.
+
+The special type `"any"` acts as the type checker's escape hatch. Any operation involving an `"any"`-typed value is permitted without error. This means unannotated variables, variables from unresolved scopes, and return values of most native functions all have type `"any"`, making the type checker opt-in rather than all-or-nothing.
+
+---
+
+## `TypeChecker` — the main class
+
 ```cpp
 class TypeChecker {
 public:
@@ -58,100 +66,64 @@ private:
     std::shared_ptr<TypeEnv> globalEnv;
 };
 ```
-- **Purpose**: Main type checking interface
-- **Public Methods**:
-  - `TypeChecker()`: Constructor with built-in registration
-  - `check(nodes)`: Check multiple AST nodes
-  - `check(node)`: Check single AST node
-  - `checkNode()`: Core type checking logic
-- **Private Members**:
-  - `globalEnv`: Global type environment
 
-## 🎯 Design Patterns
+### Constructor
 
-### Environment Chain Pattern
-- **Lexical Scoping**: Variables resolved in nearest enclosing scope
-- **Parent Links**: Environment chain for scope traversal
-- **Isolation**: Each scope has its own type environment
+`TypeChecker()` initializes `globalEnv` and pre-registers the types of built-in functions. For example, `len` is registered as a function that returns `"float"` (since all numbers are `double`), `typeof` returns `"string"`, and `print` returns `"void"`. This ensures that calls to built-ins don't produce spurious "unknown function" warnings.
 
-### Visitor Pattern Interface
-- **AST Traversal**: Methods for different AST node types
-- **Type Dispatch**: Returns type strings for expressions
-- **Extensibility**: Easy to add new node type handlers
+### `check()` — entry points
 
-## 🔍 Type System
+Two overloads:
+- `check(const vector<ASTNodePtr>& nodes)` — the top-level entry point, iterates over the program's statement list and calls `check(node)` for each.
+- `check(const ASTNodePtr& node)` — calls `checkNode(node, globalEnv)`.
 
-### Supported Types
-- **Primitive Types**: `float`, `string`, `bool`, `any`
-- **Complex Types**: `fn` (function), `void` (no return)
-- **Type Hints**: Optional static type annotations
-- **Built-ins**: Pre-registered global function types
+The split exists so that `check(nodes)` can be called from `main.cpp` with the full program, while individual nodes can be checked in isolation for testing.
 
-### Type Checking Features
-- **Variable Declarations**: Type hint vs initializer validation
-- **Function Signatures**: Parameter and return type checking
-- **Expression Inference**: Type inference for operations
-- **Scope Management**: Lexical scoping with environment chains
+### `checkNode()` — the core
 
-## 🛡️ Error Handling
-
-### Exception Hierarchy
 ```cpp
-StaticTypeError : std::runtime_error
+std::string checkNode(const ASTNodePtr& node, std::shared_ptr<TypeEnv> env);
 ```
-- **Line Information**: Error location tracking
-- **Type Context**: Detailed type mismatch information
-- **Integration**: Works with overall error system
 
-### Warning System
-- **Non-Fatal**: Type warnings don't stop compilation
-- **Informative**: Clear messages with variable names and types
-- **Location**: Line numbers for error location
+`checkNode` is the type checker's equivalent of the interpreter's `evaluate()`. It takes a node and the current type environment, and returns the inferred type of the node as a string. For statement nodes it returns `"void"`. For expression nodes it returns the inferred type of the expression.
 
-## 🔄 Integration
+Internally, `checkNode` uses `std::visit` on the node's variant, dispatching to per-node-type logic. The key cases:
 
-### With Parser
-- **Input**: Receives AST from Parser component
-- **Timing**: Runs after parsing, before interpretation
-- **Dependencies**: Requires AST node definitions
+**`VarDecl`** — if the declaration has a type hint (`int x = expr`), `checkNode` infers the type of `expr` and verifies it matches the hint. A mismatch throws `StaticTypeError`. If there is no hint, the inferred type of `expr` is stored as the variable's type in `env`. If there is no initializer either, the variable gets type `"any"`.
 
-### With Interpreter
-- **Output**: Type-validated AST for execution
-- **Optimization**: Type information for runtime optimization
-- **Safety**: Early error detection before execution
+**`FunctionDecl`** — the function is registered in `env` with type `"fn"`. The body is checked in a new child `TypeEnv` with the parameters defined. Parameter types come from type annotations if present, otherwise `"any"`.
 
-## 📊 Performance
+**`BinaryExpr`** — both operands are checked recursively. If both have the same concrete type (e.g. both `"float"`), the result type is that type. If either is `"any"`, the result is `"any"`. A small number of obviously invalid combinations (e.g. `"bool" + "string"`) may raise a `StaticTypeError`, but most combinations pass as `"any"` to avoid false positives.
 
-### Memory Management
-- **Shared Pointers**: Efficient environment sharing
-- **Automatic Cleanup**: RAII for environment destruction
-- **Parent Sharing**: Minimal memory duplication
-
-### Lookup Performance
-- **Current Scope**: O(1) map lookup
-- **Parent Traversal**: O(depth) chain resolution
-- **Caching**: Potential for type result caching
-
-## 🔮 Future Enhancements
-
-### Advanced Types
-- **Generic Types**: Template-like type parameters
-- **Union Types**: Type unions for flexibility
-- **Null Safety**: Explicit null/undefined types
-- **Type Aliases**: Custom type definitions
-
-### Enhanced Checking
-- **Function Overloading**: Multiple signature support
-- **Interface Types**: Structural typing
-- **Type Inference**: More sophisticated inference
-- **Flow Analysis**: Control flow type checking
-
-### IDE Integration
-- **Language Services**: Type information for IDEs
-- **Autocomplete**: Type-aware completion
-- **Refactoring**: Type-safe code transformations
-- **Error Highlighting**: Real-time type checking
+**`Identifier`** — looks up the name in `env` via `resolve()`. If `resolve()` returns `"any"` (name not found), no error is raised — the type checker defers to the runtime for unknown names.
 
 ---
 
-*This header defines the complete interface for Quantum Language's type checking system, providing static analysis capabilities while maintaining the language's dynamic nature.*
+## How it integrates into the pipeline
+
+```
+Parser → vector<ASTNodePtr> → TypeChecker::check() → Interpreter::execute()
+```
+
+The type checker does not modify the AST. It reads the tree, building up a `TypeEnv` in parallel with the AST's structure, and either completes silently (no errors) or throws `StaticTypeError` at the first violation. The AST passed to the interpreter is the same object that was passed to the type checker.
+
+Type checking is currently opt-in: `main.cpp` enables it based on a command-line flag or a pragma in the source file. If the type checker is not run, the program executes with full dynamic typing. This means a program can be developed without annotations and then progressively annotated over time.
+
+---
+
+## Current limitations and honest assessment
+
+The type system is deliberately shallow. Things it catches:
+
+- `int x = "hello"` — assigning a string to an explicitly int-typed variable
+- `const x = 5; x = 6` — mutation of a const variable (caught by the interpreter, not the type checker, via `constants` in `Environment`)
+- Calls to undefined functions (if the function name is not in any reachable `TypeEnv`)
+
+Things it does not catch:
+
+- Type errors in function return values (return type checking is not implemented)
+- Type errors through containers (`arr.push("hello")` on an int array)
+- Type errors through indirect references (`*ptr = "wrong"`)
+- Any error involving `"any"`-typed intermediates, which is most of them in unannotated code
+
+A full type checker for this language would need to track function return types, container element types, and pointer target types — a significantly larger undertaking than the current pass.

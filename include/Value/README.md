@@ -1,75 +1,13 @@
-# Value.h - Value System Header File Explanation
+# Value.h — The Runtime Value System
 
-## Complete Code
+This header is the foundation of the interpreter. It defines every type a Quantum Language value can have at runtime, how values are stored and passed around, how the environment manages variable bindings, how classes and instances are represented, and how control flow signals work. Everything the interpreter touches at runtime is defined here.
+
+---
+
+## `QuantumValue` — the universal value type
 
 ```cpp
-#pragma once
-#include <string>
-#include <vector>
-#include <unordered_map>
-#include <memory>
-#include <functional>
-#include <variant>
-#include <stdexcept>
-
-class Environment;
-struct ASTNode;
-class Interpreter;
-
-// ─── Value Types ──────────────────────────────────────────────────────────────
-
-struct QuantumNil
-{
-};
-
-struct QuantumFunction
-{
-    std::string name;
-    std::vector<std::string> params;
-    std::vector<bool> paramIsRef; // true = pass-by-reference (int& r)
-    std::vector<ASTNode*> defaultArgs;
-    ASTNode *body;                // non-owning ptr
-    std::shared_ptr<Environment> closure;
-};
-
-struct QuantumClass;
-struct QuantumInstance;
-
-using QuantumNativeFunc = std::function<struct QuantumValue(std::vector<struct QuantumValue>)>;
-
-struct QuantumNative
-{
-    std::string name;
-    QuantumNativeFunc fn;
-};
-
-struct QuantumValue;
-
-using Array = std::vector<QuantumValue>;
-using Dict = std::unordered_map<std::string, QuantumValue>;
-
-// ─── Pointer Type ─────────────────────────────────────────────────────────────
-
-struct QuantumPointer
-{
-    std::shared_ptr<QuantumValue> cell; // live reference to variable storage
-    std::string varName;                // for display/debug
-    int offset = 0;                     // for pointer arithmetic
-
-    QuantumPointer() : cell(nullptr), varName(""), offset(0) {}
-
-    bool isNull() const { return cell == nullptr; }
-
-    QuantumValue &deref() const
-    {
-        if (!cell)
-            throw std::runtime_error("Null pointer dereference");
-        return *cell;
-    }
-};
-
-struct QuantumValue
-{
+struct QuantumValue {
     using Data = std::variant<
         QuantumNil,
         bool,
@@ -84,83 +22,155 @@ struct QuantumValue
         std::shared_ptr<QuantumPointer>>;
 
     Data data;
-
-    // Constructors
-    QuantumValue() : data(QuantumNil{}) {}
-    explicit QuantumValue(bool b) : data(b) {}
-    explicit QuantumValue(double d) : data(d) {}
-    explicit QuantumValue(const std::string &s) : data(s) {}
-    explicit QuantumValue(std::string &&s) : data(std::move(s)) {}
-    explicit QuantumValue(std::shared_ptr<Array> a) : data(std::move(a)) {}
-    explicit QuantumValue(std::shared_ptr<Dict> d) : data(std::move(d)) {}
-    explicit QuantumValue(std::shared_ptr<QuantumFunction> f) : data(std::move(f)) {}
-    explicit QuantumValue(std::shared_ptr<QuantumNative> n) : data(std::move(n)) {}
-    explicit QuantumValue(std::shared_ptr<QuantumInstance> i) : data(std::move(i)) {}
-    explicit QuantumValue(std::shared_ptr<QuantumClass> c) : data(std::move(c)) {}
-    explicit QuantumValue(std::shared_ptr<QuantumPointer> p) : data(std::move(p)) {}
-
-    // Type checks
-    bool isNil() const { return std::holds_alternative<QuantumNil>(data); }
-    bool isBool() const { return std::holds_alternative<bool>(data); }
-    bool isNumber() const { return std::holds_alternative<double>(data); }
-    bool isString() const { return std::holds_alternative<std::string>(data); }
-    bool isArray() const { return std::holds_alternative<std::shared_ptr<Array>>(data); }
-    bool isDict() const { return std::holds_alternative<std::shared_ptr<Dict>>(data); }
-    bool isFunction() const { return std::holds_alternative<std::shared_ptr<QuantumFunction>>(data) || std::holds_alternative<std::shared_ptr<QuantumNative>>(data); }
-    bool isInstance() const { return std::holds_alternative<std::shared_ptr<QuantumInstance>>(data); }
-    bool isClass() const { return std::holds_alternative<std::shared_ptr<QuantumClass>>(data); }
-    bool isPointer() const { return std::holds_alternative<std::shared_ptr<QuantumPointer>>(data); }
-
-    // Accessors
-    bool asBool() const { return std::get<bool>(data); }
-    double asNumber() const { return std::get<double>(data); }
-    std::string asString() const { return std::get<std::string>(data); }
-    std::shared_ptr<Array> asArray() const { return std::get<std::shared_ptr<Array>>(data); }
-    std::shared_ptr<Dict> asDict() const { return std::get<std::shared_ptr<Dict>>(data); }
-    std::shared_ptr<QuantumFunction> asFunction() const { return std::get<std::shared_ptr<QuantumFunction>>(data); }
-    std::shared_ptr<QuantumInstance> asInstance() const { return std::get<std::shared_ptr<QuantumInstance>>(data); }
-    std::shared_ptr<QuantumClass> asClass() const { return std::get<std::shared_ptr<QuantumClass>>(data); }
-    std::shared_ptr<QuantumPointer> asPointer() const { return std::get<std::shared_ptr<QuantumPointer>>(data); }
-
-    bool isNative() const;
-    std::shared_ptr<QuantumNative> asNative() const;
-
-    bool isTruthy() const;
-    std::string toString() const;
-    std::string typeName() const;
+    ...
 };
+```
 
-// ─── Environment ──────────────────────────────────────────────────────────────
+Every value in the runtime — a number, a string, a function, an object instance — is a `QuantumValue`. The active type is tracked by `std::variant`, which stores exactly one of the listed types at a time and remembers which one.
 
-class Environment : public std::enable_shared_from_this<Environment>
-{
+### Why variant, not inheritance?
+
+An alternative design would be a base class `Value` with derived classes `NumberValue`, `StringValue`, etc., and virtual dispatch. The variant approach has two advantages here:
+
+1. **No extra heap allocation.** With inheritance, every value must be heap-allocated as its derived type and accessed through a base pointer. With variant, small values like `bool` and `double` are stored directly inside `QuantumValue` — no allocation, no pointer indirection.
+2. **Exhaustive checking.** `std::visit` on a variant forces every possible type to be handled. Adding a new type to `Data` without updating every `std::visit` call site is a compile error.
+
+The tradeoff is that `QuantumValue` is as large as its largest member. With `std::string` in the variant (typically 24–32 bytes on 64-bit systems), every `QuantumValue` is at least 32 bytes. Values that don't need that space (booleans, nil) still occupy the same memory.
+
+### Value types in detail
+
+**`QuantumNil`** — an empty struct representing `nil`. The default constructor `QuantumValue()` produces nil. `isNil()` checks for it.
+
+**`bool`** — stored directly, not boxed. The `explicit QuantumValue(bool b)` constructor prevents accidental construction from integers (without `explicit`, `QuantumValue(0)` would be ambiguous between `bool` and `double`).
+
+**`double`** — all numeric values, both integer and floating-point, are stored as `double`. This unifies the number type, simplifying arithmetic operations (no `int`/`float` dispatch). The cost is precision loss for integers larger than 2^53 (~9 quadrillion), which is outside the range of typical cybersecurity script values.
+
+**`std::string`** — strings are stored by value inside the variant. Assigning one `QuantumValue` string to another copies the string. This is value semantics, matching Python's immutable string behavior: modifying one variable's string value never affects another variable that previously held the same string.
+
+**`shared_ptr<Array>` and `shared_ptr<Dict>`** — arrays and dictionaries use reference semantics. `Array` is `vector<QuantumValue>`; `Dict` is `unordered_map<string, QuantumValue>`. When a `QuantumValue` holding an array is assigned to another variable, both variables share the same underlying `vector`. Mutations through either variable are visible to the other, matching Python's mutable container semantics.
+
+**`shared_ptr<QuantumFunction>`** — user-defined functions. Passed by shared pointer so closures work correctly: a lambda that captures a function and stores it can safely outlive the scope where the function was defined.
+
+**`shared_ptr<QuantumNative>`** — C++ functions registered in `registerNatives()`. The `fn` field is a `std::function<QuantumValue(vector<QuantumValue>)>`, which can hold any callable including lambdas. `isFunction()` returns true for both `QuantumFunction` and `QuantumNative`, so call sites don't need to distinguish at the check level.
+
+**`shared_ptr<QuantumInstance>` and `shared_ptr<QuantumClass>`** — class definitions and object instances. Classes are values that can be passed around and stored in variables; calling a class value creates an instance.
+
+**`shared_ptr<QuantumPointer>`** — a pointer/reference to a variable's storage cell, described below.
+
+### Constructors
+
+Every type has a corresponding `explicit` constructor. `explicit` prevents implicit conversions — without it, a call like `callFunction(fn, {true})` could accidentally construct a `QuantumValue` from a `shared_ptr<QuantumFunction>` where a `bool` was intended. The move constructors for `string` and all `shared_ptr` types avoid redundant reference count increments.
+
+### Type checks and accessors
+
+Each type has a paired `is*()` and `as*()` method:
+
+```cpp
+bool isNumber() const { return std::holds_alternative<double>(data); }
+double asNumber() const { return std::get<double>(data); }
+```
+
+`as*()` uses `std::get`, which throws `std::bad_variant_access` if the type is wrong. The interpreter always calls `is*()` before `as*()` in cases where the type is uncertain. In cases where the type is known from context (e.g. inside `evalBinary` after already checking `isNumber()`), calling `as*()` directly is safe and avoids a redundant check.
+
+`isTruthy()`, `toString()`, and `typeName()` are declared in the header but defined in `Value.cpp`. `isTruthy()` determines the boolean interpretation of any value (nil → false, 0.0 → false, "" → false, empty array → true, everything else → true). `typeName()` returns a string like `"int"`, `"float"`, `"string"`, `"array"` used in error messages.
+
+---
+
+## `QuantumFunction` — user-defined functions and closures
+
+```cpp
+struct QuantumFunction {
+    std::string name;
+    std::vector<std::string> params;
+    std::vector<bool> paramIsRef;
+    std::vector<ASTNode*> defaultArgs;
+    ASTNode* body;                   // non-owning ptr
+    std::shared_ptr<Environment> closure;
+};
+```
+
+When a function is declared, the interpreter creates a `QuantumFunction` and stores it as a `QuantumValue` in the current scope. The crucial field is `closure`: it holds a `shared_ptr` to the environment that was active at the time of declaration. When the function is later called, a new scope is created with `closure` as its parent — this is what makes closures work.
+
+`body` is a raw (non-owning) pointer to the `ASTNode` that was parsed for the function body. The AST owns the node through `unique_ptr` chains; the `QuantumFunction` just borrows a view of it. This is safe as long as the AST outlives all function values derived from it, which is guaranteed because the AST lives in `main.cpp`'s stack frame for the duration of execution.
+
+`defaultArgs` is a parallel vector of raw `ASTNode*` pointers (or `nullptr` for parameters without defaults). Default expressions are re-evaluated on each call, matching Python's semantics for call-time default evaluation. (Python actually evaluates defaults at definition time for the common `def f(x=[]):` footgun; Quantum avoids this by re-evaluating each time.)
+
+---
+
+## `QuantumPointer` — references and pointer arithmetic
+
+```cpp
+struct QuantumPointer {
+    std::shared_ptr<QuantumValue> cell;  // live reference to variable storage
+    std::string varName;                 // for display/debug
+    int offset = 0;                      // for pointer arithmetic
+
+    bool isNull() const { return cell == nullptr; }
+
+    QuantumValue& deref() const {
+        if (!cell) throw std::runtime_error("Null pointer dereference");
+        return *cell;
+    }
+};
+```
+
+`QuantumPointer` provides the mechanism behind the `&var` address-of operator. When code writes `&x`, the interpreter calls `Environment::getCell("x")`, which promotes the variable's storage to a `shared_ptr<QuantumValue>` and returns it. The `QuantumPointer` holds that `shared_ptr`. Dereferencing the pointer (`*ptr`) returns a reference to the live storage, so writes through the pointer affect the original variable.
+
+The `offset` field supports basic pointer arithmetic (`ptr + 1`). This is currently limited — it doesn't yet implement C-style array-pointer equivalence — but the field is present for future use.
+
+`varName` is stored purely for error messages and debug output: `Null pointer dereference: 'x'` is more useful than `Null pointer dereference`.
+
+---
+
+## `Environment` — variable scoping
+
+```cpp
+class Environment : public std::enable_shared_from_this<Environment> {
 public:
     explicit Environment(std::shared_ptr<Environment> parent = nullptr);
 
-    void define(const std::string &name, QuantumValue val, bool isConst = false);
-    // defineRef: bind a parameter name directly to a shared cell (pass-by-reference)
-    void defineRef(const std::string &name, std::shared_ptr<QuantumValue> cell);
-    QuantumValue get(const std::string &name) const;
-    void set(const std::string &name, QuantumValue val);
-    bool has(const std::string &name) const;
-    const std::unordered_map<std::string, QuantumValue> &getVars() const { return vars; }
+    void define(const std::string& name, QuantumValue val, bool isConst = false);
+    void defineRef(const std::string& name, std::shared_ptr<QuantumValue> cell);
+    QuantumValue get(const std::string& name) const;
+    void set(const std::string& name, QuantumValue val);
+    bool has(const std::string& name) const;
+    const std::unordered_map<std::string, QuantumValue>& getVars() const;
 
-    // Pointer support: get a shared cell for a variable so &var returns a live reference
-    std::shared_ptr<QuantumValue> getCell(const std::string &name);
+    std::shared_ptr<QuantumValue> getCell(const std::string& name);
 
     std::shared_ptr<Environment> parent;
 
 private:
     std::unordered_map<std::string, QuantumValue> vars;
     std::unordered_map<std::string, bool> constants;
-    // Shared cells — created on first &var, keeps pointer alive
     std::unordered_map<std::string, std::shared_ptr<QuantumValue>> cells;
 };
+```
 
-// ─── Class & Instance ────────────────────────────────────────────────────────
+`Environment` inherits `enable_shared_from_this` so it can produce a `shared_ptr<Environment>` to itself (`shared_from_this()`) when needed — this is used when capturing the current scope as a closure.
 
-struct QuantumClass
-{
+### Three storage maps
+
+The environment has three parallel maps keyed by variable name:
+
+- **`vars`** — the primary value store. `get()` reads from here (and parent chain). `set()` writes to the innermost scope that already defines the name.
+- **`constants`** — a flag per variable name. Set to `true` when `define()` is called with `isConst = true`. `set()` checks this map and throws a `RuntimeError` if a write to a const is attempted.
+- **`cells`** — created lazily by `getCell()`. When code first takes the address of a variable (`&x`), `getCell("x")` promotes the variable's entry from `vars` into a `shared_ptr<QuantumValue>` stored in `cells`. From that point forward, reads and writes to `x` go through the cell. This ensures that any pointer to `x` sees the same storage as a direct access to `x`.
+
+### `defineRef()` — reference parameters
+
+```cpp
+void defineRef(const std::string& name, std::shared_ptr<QuantumValue> cell);
+```
+
+When a reference parameter (`int& r`) is bound at a call site, the interpreter obtains the caller's cell for the argument variable and calls `defineRef("r", cell)` in the function's scope. This inserts the cell directly into `cells`, bypassing `vars`. Subsequent reads and writes to `r` in the function body go through the shared cell and directly affect the caller's variable.
+
+---
+
+## `QuantumClass` and `QuantumInstance`
+
+```cpp
+struct QuantumClass {
     std::string name;
     std::shared_ptr<QuantumClass> base;
     std::unordered_map<std::string, std::shared_ptr<QuantumFunction>> methods;
@@ -168,309 +178,36 @@ struct QuantumClass
     std::unordered_map<std::string, QuantumValue> staticFields;
 };
 
-struct QuantumInstance
-{
+struct QuantumInstance {
     std::shared_ptr<QuantumClass> klass;
     std::unordered_map<std::string, QuantumValue> fields;
     std::shared_ptr<Environment> env;
 
-    QuantumValue getField(const std::string &name) const;
-    void setField(const std::string &name, QuantumValue val);
-};
-
-// ─── Control Flow Signals ────────────────────────────────────────────────────
-
-struct ReturnSignal
-{
-    QuantumValue value;
-    explicit ReturnSignal(QuantumValue v) : value(std::move(v)) {}
-};
-
-struct BreakSignal
-{
-};
-struct ContinueSignal
-{
+    QuantumValue getField(const std::string& name) const;
+    void setField(const std::string& name, QuantumValue val);
 };
 ```
 
-## Code Explanation
+`QuantumClass` stores the class's name, a pointer to its base class (for single inheritance), its instance methods, its static methods, and its static fields. Instance methods are stored as `QuantumFunction` objects rather than raw `ASTNode*` chains, so a class value is fully self-contained — it doesn't need the AST to dispatch method calls.
 
-###
--  `#pragma once` - Prevents multiple inclusion of this header file
--  `#include <string>` - Includes string functionality
--  `#include <vector>` - Includes dynamic array functionality
--  `#include <unordered_map>` - Includes hash map functionality
--  `#include <memory>` - Includes smart pointers
--  `#include <functional>` - Includes function objects
--  `#include <variant>` - Includes variant type for type-safe unions
--  `#include <stdexcept>` - Includes standard exceptions
--  Empty line for readability
+`QuantumInstance` holds a back-pointer to its class (used to look up methods), a per-instance field map, and an `env` — the scope the instance was created in, used when bound methods need to capture the instance's context.
 
-###
--  `class Environment;` - Forward declares Environment class
--  `struct ASTNode;` - Forward declares ASTNode structure
--  `class Interpreter;` - Forward declares Interpreter class
+Method resolution follows the inheritance chain: `callInstanceMethod` first checks `klass->methods` for the method name; if not found, it walks `klass->base` upward until found or until the base chain is exhausted.
 
-###
+---
 
-####
--  Comment indicating value types section
--  `struct QuantumNil` - Empty struct representing null values
--  `{` - Opening brace
--  `};` - Closing brace
+## Control flow signals
 
-####
--  `struct QuantumFunction` - Function value structure
--  `{` - Opening brace
--  `std::string name;` - Function name
--  `std::vector<std::string> params;` - Parameter names
--  `std::vector<bool> paramIsRef; // true = pass-by-reference (int& r)` - Reference parameter flags
--  `std::vector<ASTNode*> defaultArgs;` - Default argument expressions
--  `ASTNode *body;                // non-owning ptr` - Function body (non-owning pointer)
--  `std::shared_ptr<Environment> closure;` - Lexical closure environment
--  Empty line for readability
--  Forward declarations for class and instance
--  `struct QuantumClass;`
--  `struct QuantumInstance;`
+```cpp
+struct ReturnSignal { QuantumValue value; explicit ReturnSignal(QuantumValue v) : value(std::move(v)) {} };
+struct BreakSignal {};
+struct ContinueSignal {};
+```
 
-####
--  `using QuantumNativeFunc = std::function<struct QuantumValue(std::vector<struct QuantumValue>)>;` - Type alias for native function signature
--  Empty line for readability
--  `struct QuantumNative` - Native function structure
--  `{` - Opening brace
--  `std::string name;` - Function name
--  `QuantumNativeFunc fn;` - Function callable
--  `};` - Closing brace
+These three structs are thrown as C++ exceptions to implement non-local control flow. They are not `std::exception` subclasses — they are not errors. They are purely a mechanism for unwinding the call stack to a specific catch point:
 
-####
--  `struct QuantumValue;` - Forward declaration
--  Empty line for readability
--  `using Array = std::vector<QuantumValue>;` - Array type alias
--  `using Dict = std::unordered_map<std::string, QuantumValue>;` - Dictionary type alias
--  Empty line for readability
+- `ReturnSignal` is caught by `callFunction()`, which extracts the return value.
+- `BreakSignal` is caught by `execWhile()` and `execFor()`, which exit their loop.
+- `ContinueSignal` is caught by `execWhile()` and `execFor()`, which skip to the next iteration.
 
-###
-
-####
--  Comment indicating pointer type section
--  `struct QuantumPointer` - Pointer value structure
--  `{` - Opening brace
--  `std::shared_ptr<QuantumValue> cell; // live reference to variable storage` - Shared reference to value
--  `std::string varName;                // for display/debug` - Variable name for debugging
--  `int offset = 0;                     // for pointer arithmetic` - Offset for pointer arithmetic
--  Empty line for readability
-
-####
--  `QuantumPointer() : cell(nullptr), varName(""), offset(0) {}` - Default constructor
--  Empty line for readability
-
-####
--  `bool isNull() const { return cell == nullptr; }` - Checks if pointer is null
--  Empty line for readability
--  `QuantumValue &deref() const` - Dereference operator
--  `{` - Opening brace
--  `if (!cell)` - Check for null pointer
--  `throw std::runtime_error("Null pointer dereference");` - Throw exception if null
--  `return *cell;` - Return dereferenced value
--  `}` - Closing brace
--  `};` - Closing brace for QuantumPointer
--  Empty line for readability
-
-###
-
-####
--  `struct QuantumValue` - Main value structure
--  `{` - Opening brace
--  `using Data = std::variant<` - Type alias for variant data
--  `QuantumNil,` - Null value
--  `bool,` - Boolean value
--  `double,` - Numeric value
--  `std::string,` - String value
--  `std::shared_ptr<Array>,` - Array value
--  `std::shared_ptr<Dict>,` - Dictionary value
--  `std::shared_ptr<QuantumFunction>,` - Function value
--  `std::shared_ptr<QuantumNative>,` - Native function value
--  `std::shared_ptr<QuantumInstance>,` - Object instance value
--  `std::shared_ptr<QuantumClass>,` - Class value
--  `std::shared_ptr<QuantumPointer>>;` - Pointer value
--  Empty line for readability
-
-####
--  `Data data;` - Variant data member
-
-####
--  Empty line for readability
--  Comment indicating constructors section
--  `QuantumValue() : data(QuantumNil{}) {}` - Default constructor (nil)
--  `explicit QuantumValue(bool b) : data(b) {}` - Boolean constructor
--  `explicit QuantumValue(double d) : data(d) {}` - Number constructor
--  `explicit QuantumValue(const std::string &s) : data(s) {}` - String constructor (copy)
--  `explicit QuantumValue(std::string &&s) : data(std::move(s)) {}` - String constructor (move)
--  `explicit QuantumValue(std::shared_ptr<Array> a) : data(std::move(a)) {}` - Array constructor
--  `explicit QuantumValue(std::shared_ptr<Dict> d) : data(std::move(d)) {}` - Dictionary constructor
--  `explicit QuantumValue(std::shared_ptr<QuantumFunction> f) : data(std::move(f)) {}` - Function constructor
--  `explicit QuantumValue(std::shared_ptr<QuantumNative> n) : data(std::move(n)) {}` - Native function constructor
--  `explicit QuantumValue(std::shared_ptr<QuantumInstance> i) : data(std::move(i)) {}` - Instance constructor
--  `explicit QuantumValue(std::shared_ptr<QuantumClass> c) : data(std::move(c)) {}` - Class constructor
--  `explicit QuantumValue(std::shared_ptr<QuantumPointer> p) : data(std::move(p)) {}` - Pointer constructor
--  Empty line for readability
-
-####
--  Comment indicating type checks section
--  `bool isNil() const { return std::holds_alternative<QuantumNil>(data); }` - Check if nil
--  `bool isBool() const { return std::holds_alternative<bool>(data); }` - Check if boolean
--  `bool isNumber() const { return std::holds_alternative<double>(data); }` - Check if number
--  `bool isString() const { return std::holds_alternative<std::string>(data); }` - Check if string
--  `bool isArray() const { return std::holds_alternative<std::shared_ptr<Array>>(data); }` - Check if array
--  `bool isDict() const { return std::holds_alternative<std::shared_ptr<Dict>>(data); }` - Check if dictionary
--  `bool isFunction() const { return std::holds_alternative<std::shared_ptr<QuantumFunction>>(data) || std::holds_alternative<std::shared_ptr<QuantumNative>>(data); }` - Check if function
--  `bool isInstance() const { return std::holds_alternative<std::shared_ptr<QuantumInstance>>(data); }` - Check if instance
--  `bool isClass() const { return std::holds_alternative<std::shared_ptr<QuantumClass>>(data); }` - Check if class
--  `bool isPointer() const { return std::holds_alternative<std::shared_ptr<QuantumPointer>>(data); }` - Check if pointer
--  Empty line for readability
-
-####
--  Comment indicating accessors section
--  `bool asBool() const { return std::get<bool>(data); }` - Get boolean value
--  `double asNumber() const { return std::get<double>(data); }` - Get number value
--  `std::string asString() const { return std::get<std::string>(data); }` - Get string value
--  `std::shared_ptr<Array> asArray() const { return std::get<std::shared_ptr<Array>>(data); }` - Get array value
--  `std::shared_ptr<Dict> asDict() const { return std::get<std::shared_ptr<Dict>>(data); }` - Get dictionary value
--  `std::shared_ptr<QuantumFunction> asFunction() const { return std::get<std::shared_ptr<QuantumFunction>>(data); }` - Get function value
--  `std::shared_ptr<QuantumInstance> asInstance() const { return std::get<std::shared_ptr<QuantumInstance>>(data); }` - Get instance value
--  `std::shared_ptr<QuantumClass> asClass() const { return std::get<std::shared_ptr<QuantumClass>>(data); }` - Get class value
--  `std::shared_ptr<QuantumPointer> asPointer() const { return std::get<std::shared_ptr<QuantumPointer>>(data); }` - Get pointer value
--  Empty line for readability
-
-####
--  `bool isNative() const;` - Check if native function (implementation elsewhere)
--  `std::shared_ptr<QuantumNative> asNative() const;` - Get native function (implementation elsewhere)
-
-####
--  `bool isTruthy() const;` - Check truthiness (implementation elsewhere)
--  `std::string toString() const;` - Convert to string (implementation elsewhere)
--  `std::string typeName() const;` - Get type name (implementation elsewhere)
--  `};` - Closing brace for QuantumValue
-
-###
-
-####
--  Comment indicating environment section
--  `class Environment : public std::enable_shared_from_this<Environment>` - Environment class with shared_from_this support
--  `{` - Opening brace
-
-####
--  `public:` - Public section
--  `explicit Environment(std::shared_ptr<Environment> parent = nullptr);` - Constructor with optional parent
--  Empty line for readability
-
-####
--  `void define(const std::string &name, QuantumValue val, bool isConst = false);` - Define variable
--  `// defineRef: bind a parameter name directly to a shared cell (pass-by-reference)` - Comment explaining reference binding
--  `void defineRef(const std::string &name, std::shared_ptr<QuantumValue> cell);` - Define reference variable
--  `QuantumValue get(const std::string &name) const;` - Get variable value
--  `void set(const std::string &name, QuantumValue val);` - Set variable value
--  `bool has(const std::string &name) const;` - Check if variable exists
--  `const std::unordered_map<std::string, QuantumValue> &getVars() const { return vars; }` - Get all variables
-
-####
--  Empty line for readability
--  `// Pointer support: get a shared cell for a variable so &var returns a live reference` - Comment explaining pointer support
--  `std::shared_ptr<QuantumValue> getCell(const std::string &name);` - Get shared cell for pointer
--  Empty line for readability
-
-####
--  `std::shared_ptr<Environment> parent;` - Parent environment reference
-
-####
--  `private:` - Private section
--  `std::unordered_map<std::string, QuantumValue> vars;` - Variable storage
--  `std::unordered_map<std::string, bool> constants;` - Constant flags
--  `// Shared cells — created on first &var, keeps pointer alive` - Comment explaining shared cells
--  `std::unordered_map<std::string, std::shared_ptr<QuantumValue>> cells;` - Shared cell storage
--  `};` - Closing brace for Environment
-
-###
-
-####
--  Comment indicating class and instance section
--  `struct QuantumClass` - Class definition structure
--  `{` - Opening brace
--  `std::string name;` - Class name
--  `std::shared_ptr<QuantumClass> base;` - Base class (inheritance)
--  `std::unordered_map<std::string, std::shared_ptr<QuantumFunction>> methods;` - Instance methods
--  `std::unordered_map<std::string, std::shared_ptr<QuantumFunction>> staticMethods;` - Static methods
--  `std::unordered_map<std::string, QuantumValue> staticFields;` - Static fields
--  `};` - Closing brace
-
-####
--  Empty line for readability
--  `struct QuantumInstance` - Object instance structure
--  `{` - Opening brace
--  `std::shared_ptr<QuantumClass> klass;` - Reference to class
--  `std::unordered_map<std::string, QuantumValue> fields;` - Instance fields
--  `std::shared_ptr<Environment> env;` - Instance environment
--  Empty line for readability
-
-####
--  `QuantumValue getField(const std::string &name) const;` - Get instance field
--  `void setField(const std::string &name, QuantumValue val);` - Set instance field
--  `};` - Closing brace for QuantumInstance
-
-###
-
-####
--  Comment indicating control flow signals section
--  `struct ReturnSignal` - Return control flow signal
--  `{` - Opening brace
--  `QuantumValue value;` - Return value
--  `explicit ReturnSignal(QuantumValue v) : value(std::move(v)) {}` - Constructor
--  `};` - Closing brace
--  Empty line for readability
-
-####
--  `struct BreakSignal` - Break loop signal
--  `{` - Opening brace
--  `};` - Closing brace
--  `struct ContinueSignal` - Continue loop signal
--  `{` - Opening brace
--  `};` - Closing brace
-
-## Summary
-
-This header file defines the complete value system for the Quantum Language runtime with:
-
-### Core Value System
-- **QuantumValue**: Main value container using std::variant for type-safe unions
-- **Multiple Types**: Nil, bool, number, string, array, dict, function, instance, class, pointer
-- **Type Safety**: Comprehensive type checking and accessor methods
-
-### Advanced Features
-- **Pointers**: C-style pointer support with live references and arithmetic
-- **Functions**: Both user-defined and native function support
-- **Objects**: Complete object-oriented system with inheritance
-- **Collections**: Arrays and dictionaries with smart pointer management
-
-### Environment System
-- **Scoping**: Hierarchical environment with parent-child relationships
-- **Variables**: Support for constants and regular variables
-- **References**: Pass-by-reference parameter support
-- **Memory Management**: Shared cells for pointer operations
-
-### Object-Oriented Support
-- **Classes**: Method storage, inheritance, static members
-- **Instances**: Field management and environment binding
-- **Methods**: Instance and static method support
-
-### Control Flow
-- **Signals**: Exception-like control flow for returns, breaks, continues
-- **Non-Local**: Enables proper control flow in nested structures
-
-### Design Principles
-- **Memory Safety**: Smart pointers prevent memory leaks
-- **Type Safety**: Variant prevents invalid type access
-- **Performance**: Move semantics for efficient transfers
-- **Extensibility**: Easy to add new value types
-
-This value system provides a robust foundation for a multi-paradigm language with advanced features like pointers, objects, and functions while maintaining type safety and memory efficiency.
+Using exceptions for this is standard practice for tree-walking interpreters. The alternative — threading a `ControlFlow` enum through every `execute()` return value — would require every statement executor to propagate the flag upward, adding conditionals to every level of the call stack. The exception approach is cleaner and makes the code at each level independent of whether it's inside a loop or function.
