@@ -2,61 +2,66 @@
 
 ## Overview
 
-`TypeChecker.cpp` is a critical component of the Quantum Language compiler, responsible for performing static type checking on the Abstract Syntax Tree (AST). This essential step ensures that all expressions and statements adhere to their specified types, thereby mitigating runtime errors due to type mismatches.
+`TypeChecker.cpp` is a crucial component of the Quantum Language compiler, responsible for performing static type checking on the Abstract Syntax Tree (AST). This essential step ensures that all expressions and statements adhere to their specified types, thereby mitigating runtime errors due to type mismatches.
 
 ## Role in the Compiler Pipeline
 
-The `TypeChecker` operates during the semantic analysis phase of the compilation process. Specifically, it traverses the AST and checks the types of various nodes such as variables, functions, and binary expressions. By enforcing type constraints, the `TypeChecker` helps maintain the integrity and correctness of the program before actual execution begins.
+The `TypeChecker` operates during the semantic analysis phase of the compilation process. It traverses the AST and checks the types of various nodes such as literals, identifiers, variable declarations, function declarations, and binary expressions. The results of these checks help in generating more accurate and efficient machine code.
 
-## Key Design Decisions and Justifications
+## Key Design Decisions
 
-### Environment Management
-**Decision:** The `TypeChecker` uses an environment (`TypeEnv`) to manage variable and function scopes.
-**Justification:** This approach allows for easy tracking of variable types throughout different parts of the program. It also supports nested scopes, which are necessary for handling local variables within functions.
+### Use of Shared Pointers for Environment Management
 
-### Built-in Function Handling
-**Decision:** Built-in functions like `print`, `input`, `len`, `sha256`, and `aes128` are predefined with specific types.
-**Justification:** Predefining these functions simplifies the type checking process by providing known types for common operations. This avoids unnecessary complexity and potential errors in user-defined implementations.
+**WHY**: Using shared pointers (`std::shared_ptr`) for managing the environment allows multiple parts of the compiler to share the same environment without copying it. This reduces memory usage and improves performance by avoiding unnecessary duplication of data structures.
 
-### Dynamic Typing Support
-**Decision:** The `TypeChecker` supports dynamic typing through the use of the `"any"` type hint.
-**Justification:** Quantum programming often requires flexibility in data types, especially when dealing with quantum states and operations. Allowing `"any"` type hints provides a balance between strict type safety and practicality in certain scenarios.
+### Simplified Function Type Representation
+
+**WHY**: In the current implementation, functions are represented as simply `"fn"` in the environment. This simplification avoids handling complex function types directly, which can complicate the type checking logic. However, this approach limits the ability to differentiate between different function signatures, potentially leading to subtle bugs if not handled carefully.
+
+### Error Handling through Standard Streams
+
+**WHY**: Errors are reported using standard streams (`std::cerr`). This choice provides a straightforward way to output error messages to the console, making it easy for developers to identify issues during the compilation process. However, this method lacks flexibility compared to dedicated error reporting mechanisms, which might be necessary for more advanced tools like IDEs.
 
 ## Documentation of Major Classes/Functions
 
-### Class: TypeChecker
-**Purpose:** Manages the type checking process for the entire AST.
-**Behaviour:** Initializes the global type environment and iterates through the AST nodes, calling `checkNode()` to validate each node's type.
+### Class: `TypeChecker`
 
-### Function: check()
-**Purpose:** Checks the types of nodes within a given list of AST nodes.
-**Behaviour:** Iterates through each node in the provided list and calls `checkNode()` to validate its type. Handles both individual nodes and blocks of statements.
+**Purpose**: Manages the type checking process for the entire AST.
 
-### Function: checkNode()
-**Purpose:** Validates the type of a single AST node.
-**Behaviour:** Depending on the node type, performs different checks:
-- **NumberLiteral**: Returns `"float"`.
-- **StringLiteral**: Returns `"string"`.
-- **BoolLiteral**: Returns `"bool"`.
-- **Identifier**: Resolves the identifier's type using the current environment.
-- **VarDecl**: Checks the type of the variable declaration against its initializer (if any) and updates the environment accordingly.
-- **FunctionDecl**: Defines the function's parameters and body within a new scope and validates its return type.
-- **BlockStmt**: Creates a new scope for the block and recursively checks each statement within it.
+**Behaviour**:
+- Initializes the global environment with built-in functions.
+- Traverses the AST and performs type checking on each node.
+- Handles nested environments for function scopes.
 
-## Tradeoffs and Limitations
+### Function: `check(const std::vector<ASTNodePtr>& nodes)`
 
-### Flexibility vs. Strictness
-**Tradeoff:** The support for dynamic typing via `"any"` type hints offers flexibility but can lead to less predictable behavior at runtime.
-**Limitation:** Users must be cautious when using `"any"` to avoid unintended type mismatches.
+**Purpose**: Checks the types of a list of AST nodes.
 
-### Scope Management Complexity
-**Tradeoff:** While managing nested scopes enhances type checking accuracy, it adds complexity to the implementation.
-**Limitation:** Properly handling scoping rules is crucial but can introduce bugs if not implemented correctly.
+**Behaviour**:
+- Iterates over each node in the provided vector and calls `checkNode`.
 
-### Built-in Functions
-**Tradeoff:** Predefining built-in functions simplifies type checking but may limit customization options.
-**Limitation:** Users cannot redefine built-in functions with different types, which could be useful in some advanced use cases.
+### Function: `check(const ASTNodePtr& node)`
 
-## Conclusion
+**Purpose**: Checks the type of a single AST node.
 
-`TypeChecker.cpp` plays a vital role in ensuring the type safety of the Quantum Language programs. Through careful design decisions and comprehensive functionality, it effectively prevents runtime errors and maintains the integrity of the compiled code. However, users should be aware of its limitations and tradeoffs, particularly regarding dynamic typing and scope management.
+**Behaviour**:
+- If the node is a `BlockStmt`, recursively checks each statement within the block.
+- Otherwise, calls `checkNode` directly.
+
+### Function: `checkNode(const ASTNodePtr& node, std::shared_ptr<TypeEnv> env)`
+
+**Purpose**: Performs type checking on a specific AST node.
+
+**Behaviour**:
+- Determines the type of the node based on its kind (e.g., number literal, string literal).
+- Resolves identifiers against the provided environment.
+- Validates variable declarations and function parameters against their type hints.
+- Recursively checks the body of function declarations.
+
+## Tradeoffs/Limitations
+
+- **Simplified Function Types**: The representation of function types as `"fn"` limits the ability to handle overloaded functions or functions with specific parameter types.
+- **Standard Stream Error Reporting**: While simple and effective for basic error reporting, this method may not scale well for more sophisticated tools requiring structured error information.
+- **Memory Usage**: Although shared pointers reduce memory duplication, they introduce overhead associated with reference counting.
+
+These tradeoffs reflect the balance between simplicity, performance, and feature completeness in the design of the `TypeChecker`.
