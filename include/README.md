@@ -2,92 +2,61 @@
 
 ## Overview
 
-The `include/Value.h` header file is a crucial component of the QuantumLanguage compiler, responsible for defining the data structures and types that represent various values within the language. These values include basic types such as integers, doubles, strings, arrays, dictionaries, functions, native functions, instances, classes, and pointers. By managing these value semantics effectively, the compiler can accurately evaluate expressions, handle function calls, and maintain state during execution.
+The `include/Value.h` header file is a fundamental part of the QuantumLanguage compiler, serving as the backbone for representing various data types and values within the language. This file defines a comprehensive set of structures and types that encapsulate different kinds of values, including basic types like integers, doubles, strings, arrays, dictionaries, functions, native functions, instances, classes, and pointers. By providing a robust framework for handling these values, the compiler ensures accurate evaluation and manipulation of expressions throughout the compilation process.
 
 ## Key Design Decisions
 
 ### Use of `std::variant`
-**Why:** The use of `std::variant` allows for a single type (`QuantumValue`) to hold any one of several different types without requiring dynamic memory allocation. This choice enhances performance and reduces overhead compared to traditional union-based approaches.
+The primary reason for choosing `std::variant` over traditional unions is its type safety and ease of use. `std::variant` allows for multiple possible types within a single variable, ensuring that each value has a well-defined type at compile time. This approach eliminates the risk of undefined behavior due to incorrect type access and simplifies the implementation of type-specific operations.
 
-### Non-Owning Pointers for Function Bodies
-**Why:** By storing function bodies as non-owning pointers (`ASTNode* body`), the compiler avoids unnecessary copying of large AST nodes. This decision minimizes memory usage and improves efficiency, especially when dealing with complex programs.
+### Smart Pointers (`std::shared_ptr`)
+Smart pointers, specifically `std::shared_ptr`, are used extensively to manage memory and ensure proper resource deallocation. By employing smart pointers, the compiler avoids manual memory management issues such as dangling pointers and memory leaks. Additionally, `std::shared_ptr` facilitates easy sharing of resources between different parts of the compiler, enhancing modularity and reusability.
 
-### Shared Ownership for Environments and Pointers
-**Why:** Using `std::shared_ptr` ensures that environments and pointers have shared ownership, preventing premature deallocation and enabling safe concurrent access. This approach is essential for maintaining correct behavior in multi-threaded scenarios.
+### Non-Owning Pointers (`std::weak_ptr`)
+In scenarios where a value needs to refer to another value without taking ownership, `std::weak_ptr` is utilized. This helps prevent circular references and memory leaks while still allowing for efficient sharing of resources. The use of `std::weak_ptr` ensures that the referenced object remains valid as long as there is an owning `std::shared_ptr`.
 
-## Classes and Functions Documentation
+## Class Documentation
 
 ### QuantumNil
-**Purpose:** Represents the nil value in QuantumLanguage.
-**Behavior:** A simple struct with no members.
+**Purpose**: Represents the null value in QuantumLanguage.
+**Behavior**: A simple struct indicating the absence of a value.
 
 ### QuantumFunction
-**Purpose:** Represents a user-defined function in QuantumLanguage.
-**Members:**
-- `name`: The name of the function.
-- `params`: A vector of parameter names.
-- `paramIsRef`: A vector indicating whether each parameter should be passed by reference.
-- `defaultArgs`: A vector of default argument expressions.
-- `body`: A non-owning pointer to the function's body node.
-- `closure`: A shared pointer to the environment in which the function was defined.
+**Purpose**: Encapsulates information about a function defined in QuantumLanguage.
+**Behavior**: Contains details such as the function's name, parameters, default arguments, body, and closure environment.
 
-**Behavior:** Constructs a new function object with the specified parameters and body.
+#### Tradeoffs/Limitations:
+- Does not support variadic arguments directly.
+- Limited flexibility in parameter passing modes beyond pass-by-value and pass-by-reference.
 
 ### QuantumClass
-**Purpose:** Represents a user-defined class in QuantumLanguage.
-**Members:** 
-- Not explicitly shown in the snippet but would typically include information about class attributes, methods, and inheritance.
-
-**Behavior:** Defines the structure of a class, including its properties and behaviors.
+**Purpose**: Represents a class definition in QuantumLanguage.
+**Behavior**: Not fully implemented in the provided snippet but intended to store class metadata and methods.
 
 ### QuantumInstance
-**Purpose:** Represents an instance of a class in QuantumLanguage.
-**Members:** 
-- Not explicitly shown in the snippet but would typically include references to the class definition and instance-specific data.
-
-**Behavior:** Manages the state of an object, allowing it to interact with the class's methods and attributes.
+**Purpose**: Represents an instance of a class in QuantumLanguage.
+**Behavior**: Stores attributes and methods associated with a particular class instance.
 
 ### QuantumNativeFunc
-**Purpose:** A type alias for a native function in QuantumLanguage.
-**Definition:** A `std::function` that takes a vector of `QuantumValue`s and returns a `QuantumValue`.
-
-**Behavior:** Allows the integration of external C++ functions into the QuantumLanguage runtime.
+**Purpose**: A function type alias for native functions in QuantumLanguage.
+**Behavior**: Defines a callable entity that takes a vector of `QuantumValue`s and returns a `QuantumValue`.
 
 ### QuantumNative
-**Purpose:** Represents a native function in QuantumLanguage.
-**Members:**
-- `name`: The name of the native function.
-- `fn`: A `QuantumNativeFunc` representing the actual implementation.
-
-**Behavior:** Wraps a native function, providing a way to call it from within the QuantumLanguage interpreter.
-
-### QuantumPointer
-**Purpose:** Represents a pointer to a variable in QuantumLanguage.
-**Members:**
-- `cell`: A shared pointer to the variable's storage.
-- `varName`: The name of the variable being pointed to.
-- `offset`: An integer offset for pointer arithmetic.
-
-**Functions:**
-- `isNull()`: Checks if the pointer is null.
-- `deref()`: Dereferences the pointer, returning a reference to the underlying `QuantumValue`. Throws an exception if the pointer is null.
-
-**Behavior:** Enables pointer operations within the QuantumLanguage runtime, supporting features like dynamic memory management and pointer arithmetic.
+**Purpose**: Encapsulates information about a native function in QuantumLanguage.
+**Behavior**: Holds the function's name and its callable entity.
 
 ### QuantumValue
-**Purpose:** Represents a generic value in QuantumLanguage.
-**Members:**
-- `data`: A `std::variant` containing one of several possible value types (`QuantumNil`, `bool`, `double`, etc.).
+**Purpose**: A versatile structure capable of holding any value type supported by QuantumLanguage.
+**Behavior**: Utilizes `std::variant` to store different types of values, including custom types like functions, instances, and classes. Provides constructors for initializing various value types and a method for accessing the stored value.
 
-**Constructors:**
-- Various constructors for initializing `QuantumValue` objects of different types.
+#### Tradeoffs/Limitations:
+- Performance overhead associated with `std::variant`.
+- Complexity in implementing type-specific operations.
 
-**Behavior:** Provides a unified interface for handling values of multiple types, leveraging `std::variant` for efficient type-safe storage and retrieval.
+## Function Documentation
 
-## Tradeoffs and Limitations
+No specific functions are documented in the provided snippet. However, it includes constructors for the `QuantumValue` struct, which facilitate creating instances of `QuantumValue` with different underlying types.
 
-- **Performance Overhead:** While `std::variant` offers improved performance, it may introduce some overhead compared to simpler unions due to its more complex type safety checks.
-- **Complexity:** Managing multiple value types and their interactions through `std::variant` adds complexity to the codebase, potentially increasing maintenance costs.
-- **Memory Usage:** Although `std::shared_ptr` helps reduce memory usage by sharing ownership, it still incurs additional overhead for reference counting and garbage collection.
+## Conclusion
 
-These tradeoffs reflect the balance between type safety, performance, and simplicity required in a modern compiler.
+The `include/Value.h` header file plays a critical role in the QuantumLanguage compiler by providing a unified framework for representing various value types. Through strategic design choices such as the use of `std::variant` and smart pointers, the compiler ensures both type safety and efficient memory management. While some limitations exist, particularly regarding performance and complexity, the overall architecture provides a solid foundation for further development and expansion of the QuantumLanguage compiler.
