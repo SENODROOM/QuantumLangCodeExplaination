@@ -2,75 +2,72 @@
 
 ## Overview
 
-`src/main.cpp` is the main entry point for the Quantum Language compiler. It orchestrates the entire compilation process by initializing various components such as the lexer, parser, interpreter, type checker, and error handler. This file also handles command-line arguments and manages the execution flow based on user inputs.
+`src/main.cpp` serves as the central hub for the Quantum Language compiler, managing the overall compilation process. It initializes essential components like the lexer, parser, interpreter, type checker, and error handler. Additionally, it processes command-line arguments and controls the execution flow based on user inputs.
 
 ## Key Design Decisions
 
 ### Modular Architecture
 
-The decision to use a modular architecture was driven by the need to separate concerns and improve maintainability. Each component (lexer, parser, interpreter, etc.) has its own header and implementation files, making it easier to manage and scale individual features without affecting others.
+**WHY:** Adopting a modular architecture enhances maintainability and scalability. Each component (lexer, parser, etc.) can be developed, tested, and modified independently without affecting others. This separation allows for easier debugging and updates, ensuring that changes in one area do not disrupt the functionality of other parts of the compiler.
 
-**Why:** This approach enhances modularity, allowing developers to work independently on different parts of the compiler.
+### Command-Line Argument Handling
 
-### Error Handling
+**WHY:** Implementing robust command-line argument handling provides flexibility and control over the compiler's behavior. Users can specify options such as input files, output formats, and test modes directly from the command line, making the compiler more versatile and user-friendly.
 
-A robust error handling system was implemented using exceptions and custom error classes (`Error`). This allows for clear and consistent error reporting throughout the compiler.
+### Error Handling and Reporting
 
-**Why:** Proper error handling is crucial for debugging and providing meaningful feedback to users.
+**WHY:** Comprehensive error handling ensures that issues are identified and reported accurately, aiding developers in diagnosing problems efficiently. By providing detailed error messages and context, the compiler helps users understand where errors occurred and how they can be resolved.
 
-### Command-Line Arguments
-
-The program accepts command-line arguments to control its behavior, such as enabling test mode (`--test`) and specifying input files.
-
-**Why:** Allowing customization through command-line arguments makes the compiler more flexible and suitable for both development and production environments.
-
-## Classes and Functions Documentation
+## Major Classes and Functions
 
 ### `printBanner()`
-
-- **Purpose:** Prints the banner at the start of the program, introducing the Quantum Language compiler.
-- **Behavior:** Outputs a colorful ASCII art banner followed by version information.
+- **PURPOSE:** Displays the banner text at the start of the program, introducing the Quantum Language compiler.
+- **BEHAVIOUR:** Outputs a colorful ASCII art banner along with version information.
 
 ### `printAura()`
+- **PURPOSE:** Highlights achievements and features of the Quantum Language compiler.
+- **BEHAVIOUR:** Prints a list of completed milestones and features using colored text.
 
-- **Purpose:** Displays achievements related to the Quantum Language compiler.
-- **Behavior:** Outputs a list of completed milestones in a visually appealing format.
-
-### Global Variables
-
-- **`g_testMode`**: A boolean flag indicating whether the program is running in test mode. When set to `true`, the `input()` function will return an empty string immediately, bypassing any blocking behavior.
+### `main(int argc, char* argv[])`
+- **PURPOSE:** The primary function that drives the Quantum Language compiler.
+- **BEHAVIOUR:**
+  - Parses command-line arguments to determine the mode of operation (e.g., compiling a file, running in interactive mode).
+  - Initializes the lexer, parser, interpreter, type checker, and error handler.
+  - Reads the input file and processes it according to the selected mode.
+  - Handles any errors encountered during the compilation process and reports them to the user.
 
 ## Tradeoffs and Limitations
 
-- **Modular Design Over Simplicity:** While the modular approach improves maintainability, it may introduce additional complexity and overhead compared to a monolithic design.
-- **Error Handling Over Performance:** The emphasis on comprehensive error handling can lead to performance penalties, especially in critical sections of the compiler.
-- **Command-Line Arguments Over Hardcoded Inputs:** Although flexible, the reliance on command-line arguments might make the compiler less convenient for quick testing or integration into other systems.
+- **Performance:** The current implementation may not be optimized for large-scale projects due to simplicity and ease of development.
+- **Complexity:** While the modular approach improves maintainability, it adds complexity to the setup and configuration process.
+- **Error Reporting:** Although detailed error messages are provided, they might not cover all edge cases or provide sufficient context for complex errors.
 
 ## Usage
 
-To compile and run the Quantum Language compiler, execute the following commands:
+To compile a Quantum Language file, run:
 
 ```sh
-mkdir build
-cd build
-cmake ..
-make
-./quantum_language [options] [file]
+./quantum_compiler input.q
 ```
 
-### Options
-
-- `--test`: Enables test mode, causing the `input()` function to return an empty string immediately.
-- `[file]`: Specifies the input file to be compiled. If not provided, the compiler will enter REPL mode.
-
-### Example
+For an interactive shell, use:
 
 ```sh
-./quantum_language --test example.qc
+./quantum_compiler --repl
 ```
 
-This command will run the compiler in test mode, processing the `example.qc` file.
+In test mode, which is useful for automated testing, set the global variable `g_testMode` to `true`.
 
-## Conclusion
+## Contributing
 
-`src/main.cpp` serves as the central hub for the Quantum Language compiler, coordinating the interactions between various components. Its modular design, comprehensive error handling, and customizable command-line options make it a versatile tool for both development and production use. However, these features come with their respective tradeoffs, which should be considered when evaluating the overall performance and usability of the compiler.
+Contributions to the Quantum Language compiler are welcome! Please follow these guidelines:
+
+1. Fork the repository.
+2. Create a new branch (`feature/X` or `fix/Y`).
+3. Make your changes and commit them.
+4. Push to the branch (`git push origin feature/X`).
+5. Open a pull request.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
