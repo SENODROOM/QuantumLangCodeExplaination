@@ -1,117 +1,77 @@
-# Parser.h
+# Token.h - Header File for Quantum Language Compiler
 
 ## Overview
 
-`Parser.h` is a header file for the parser component of the Quantum Language compiler. This file defines the `Parser` class responsible for converting a sequence of tokens into an Abstract Syntax Tree (AST). The parser follows a top-down approach, utilizing various parsing functions to handle different types of statements and expressions in the language.
+The `Token.h` header file is an essential component of the Quantum Language compiler, responsible for defining the structure and enumeration of tokens used during lexical analysis. This file serves as the foundation for converting raw text into meaningful units that can be processed further by the parser.
 
-## Design Decisions
+## Key Design Decisions
 
-### Error Handling
+### Use of Enum Class for Token Types
 
-The `ParseError` class extends `std::runtime_error` to provide additional context about errors during parsing, such as the line and column numbers where the error occurred. This decision was made to enhance debugging capabilities and provide more precise error messages to the user.
+**WHY:** Using `enum class` ensures that token types are strongly typed and scoped within their own namespace, preventing potential conflicts with other identifiers and enhancing code readability and maintainability.
 
-### Pratt Parsing Algorithm
+### String-Based Token Values
 
-The parser uses the Pratt parsing algorithm for expression evaluation. This algorithm allows for flexible handling of operator precedence and associativity without requiring complex recursive descent parsers. It simplifies the implementation and improves performance.
+**WHY:** Storing token values as strings allows for easy representation of literals, identifiers, and keywords. It also simplifies the process of comparing token values during semantic analysis.
 
-### Modular Parsing Functions
+### Line and Column Information
 
-Each major type of construct (e.g., variable declarations, function definitions, control structures) has its own parsing function. This modular approach makes the parser easier to understand, maintain, and extend.
+**WHY:** Keeping track of the line and column numbers where each token appears facilitates error reporting and debugging. This information is crucial for providing precise location details when syntax errors occur.
 
-## Classes and Functions
+## Classes and Functions Documentation
 
-### ParseError
+### TokenType Enum Class
 
-**Purpose:** Custom exception class for parsing errors.
+**Purpose:** Defines all possible token types encountered during lexical analysis.
 
-**Behavior:** Inherits from `std::runtime_error` and adds line and column information.
+**Behavior:** Each member represents a distinct type of token, such as literals, identifiers, keywords, operators, delimiters, and special symbols like EOF (End of File).
 
-```cpp
-class ParseError : public std::runtime_error
-{
-public:
-    int line, col;
-    ParseError(const std::string &msg, int l, int c);
-};
-```
+### Token Struct
 
-### Parser
+**Purpose:** Represents a single token in the quantum language source code.
 
-**Purpose:** Main parser class that converts tokens into an AST.
+**Behavior:** The `Token` struct contains four main fields:
+- `type`: Specifies the type of the token using the `TokenType` enum.
+- `value`: Holds the string value associated with the token.
+- `line`: Records the line number where the token was found.
+- `col`: Records the column number where the token was found.
 
-**Behavior:** Takes a vector of tokens and provides a method to parse them into an AST.
+#### Constructor
 
 ```cpp
-class Parser
-{
-public:
-    explicit Parser(std::vector<Token> tokens);
-    ASTNodePtr parse();
-
-private:
-    std::vector<Token> tokens;
-    size_t pos;
-
-    // Token helpers
-    Token &current();
-    Token &peek(int offset = 1);
-    Token &consume();
-    Token &expect(TokenType t, const std::string &msg);
-    bool check(TokenType t) const;
-    bool match(TokenType t);
-    bool atEnd() const;
-    void skipNewlines();
-
-    // Parsing methods
-    ASTNodePtr parseStatement();
-    ASTNodePtr parseBlock();
-    ASTNodePtr parseBodyOrStatement(); // block OR single statement (brace-optional)
-    ASTNodePtr parseVarDecl(bool isConst);
-    ASTNodePtr parseFunctionDecl();
-    ASTNodePtr parseClassDecl();
-    ASTNodePtr parseIfStmt();
-    ASTNodePtr parseWhileStmt();
-    ASTNodePtr parseForStmt();
-    ASTNodePtr parseReturnStmt();
-    ASTNodePtr parsePrintStmt();
-    ASTNodePtr parseInputStmt();
-    ASTNodePtr parseCoutStmt(); // cout << x << y << endl
-    ASTNodePtr parseCinStmt();  // cin >> x >> y
-    ASTNodePtr parseImportStmt(bool isFrom = false);
-    ASTNodePtr parseExprStmt();
-    ASTNodePtr parseCTypeVarDecl(const std::string &typeHint); // int x = ...  / int* p = ...
-    bool isCTypeKeyword(TokenType t) const;
-
-    // Expression parsing (Pratt-style precedence)
-    ASTNodePtr parseExpr();
-    ASTNodePtr parseAssignment();
-    ASTNodePtr parseOr();
-    ASTNodePtr parseAnd();
-    ASTNodePtr parseBitwise();
-    ASTNodePtr parseEquality();
-    ASTNodePtr parseComparison();
-    ASTNodePtr parseShift();
-    ASTNodePtr parseAddSub();
-    ASTNodePtr parseMulDiv();
-    ASTNodePtr parsePower();
-    ASTNodePtr parseUnary();
-    ASTNodePtr parsePostfix();
-    ASTNodePtr parsePrimary();
-
-    ASTNodePtr parseArrayLiteral();
-    ASTNodePtr parseDictLiteral();
-    ASTNodePtr parseLambda();
-    ASTNodePtr parseArrowFunction(std::vector<std::string> params, int ln);
-    std::vector<ASTNodePtr> parseArgList();
-    // Returns param names; populates outIsRef with true for each & (reference) param
-    std::vector<std::string> parseParamList(std::vector<bool> *outIsRef = nullptr, std::vector<ASTNodePtr> *outDefaultArgs = nullptr, std::vector<std::string> *outParamTypes = nullptr);
-};
+Token(TokenType t, std::string v, int ln, int c);
 ```
+**Purpose:** Initializes a new `Token` object with the specified type, value, line number, and column number.
+
+**Parameters:**
+- `t`: The type of the token (`TokenType`).
+- `v`: The string value of the token (`std::string`).
+- `ln`: The line number where the token occurs (`int`).
+- `c`: The column number where the token occurs (`int`).
+
+#### toString Method
+
+```cpp
+std::string toString() const;
+```
+**Purpose:** Converts the `Token` object to a human-readable string format, which is useful for debugging and logging purposes.
+
+**Return Value:** A string representing the token's type, value, line, and column.
 
 ## Tradeoffs and Limitations
 
-- **Flexibility vs. Complexity:** While the Pratt parsing algorithm offers flexibility, it can also lead to more complex implementations compared to traditional recursive descent parsers.
-- **Error Reporting:** Providing detailed error reporting requires careful tracking of token positions, which can add overhead to the parsing process.
-- **Language Features:** The current implementation focuses on basic constructs. Extending the parser to support advanced features may require significant changes to existing code.
+### Memory Overhead
 
-This README.md provides a comprehensive overview of the `Parser.h` file, including its role in the compiler pipeline, key design decisions, and documentation of major classes/functions.
+Storing token values as strings incurs some memory overhead compared to storing them directly as integers or characters. However, this approach provides flexibility and ease of use, especially when dealing with variable-length literals and identifiers.
+
+### Performance Considerations
+
+While the string-based representation offers convenience, it may impact performance slightly during token comparison and processing. For large-scale projects, optimizing these operations might be necessary.
+
+### Limited Type Safety
+
+Using `enum class` for token types enhances safety but requires explicit casting when performing comparisons or operations on token types. This adds a bit of complexity to the codebase.
+
+## Conclusion
+
+The `Token.h` header file plays a critical role in the Quantum Language compiler by defining the structure and enumeration of tokens. Its design choices aim to balance usability, flexibility, and performance, while also ensuring strong typing and scope management for token types. Although there are some tradeoffs, particularly regarding memory usage and performance, the benefits of clear and maintainable code outweigh these concerns.
