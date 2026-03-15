@@ -6,68 +6,90 @@
 
 ## Role in the Compiler Pipeline
 
-The parser plays a pivotal role in the compilation process. It takes the output from the lexer, which breaks down the input source code into individual tokens, and constructs a structured representation of these tokens as an AST. This AST represents the syntactic structure of the program, making it easier for subsequent phases of the compiler to perform semantic analysis and generate executable code.
+The parser plays a pivotal role in the compilation process by taking the output of the lexer (tokens) and constructing a structured representation of the program's syntactic elements. It processes these tokens sequentially, building up the AST as it goes. The parsed AST can then be used by subsequent phases of the compiler to perform deeper analysis and generate executable code.
 
 ## Key Design Decisions
 
-### Token Consumption and Lookahead
+### Token Stream Management
 
-- **Why**: To ensure that the parser can correctly identify and handle different types of statements and expressions.
-- **How**: The `consume()` function advances the token pointer, returning the current token and moving to the next one. The `peek()` function allows the parser to look ahead at upcoming tokens without advancing the pointer.
+- **Token Vector**: The parser operates on a vector of `Token` objects, which allows efficient access and manipulation of tokens.
+- **Position Tracking**: A `pos` variable keeps track of the current position in the token stream, enabling sequential parsing.
 
 ### Error Handling
 
-- **Why**: To provide clear and informative error messages when the input code does not conform to the language's syntax rules.
-- **How**: The `expect()` function checks if the current token matches the expected type and throws a `ParseError` if it does not. This helps in identifying syntax errors early in the compilation process.
+- **ParseError Exception**: Custom exceptions (`ParseError`) are thrown when syntax errors are encountered, providing clear error messages along with line and column information.
+- **Early Termination**: Upon encountering a syntax error, the parser immediately terminates, ensuring that any subsequent processing is not performed on invalid input.
 
-### Support for Decorators and Storage Class Specifiers
+### Flexibility and Extensibility
 
-- **Why**: To accommodate features commonly found in other programming languages such as Python and C++, enhancing the flexibility and compatibility of the Quantum Language.
-- **How**: The parser includes mechanisms to skip over Python-style decorators and C/C++ storage class specifiers. These mechanisms allow the parser to ignore these elements during the initial parsing phase, focusing on the core syntax of the Quantum Language.
+- **Decorator Support**: The parser includes logic to handle Python-style decorators, allowing for future extensions without modifying core parsing mechanisms.
+- **Storage Class Specifiers**: It supports C/C++ style storage class specifiers such as `static`, `extern`, etc., making the parser more versatile and capable of handling various language features.
 
 ## Documentation of Major Classes/Functions
 
 ### Parser Class
 
-**Purpose**: Manages the parsing process, converting a sequence of tokens into an AST.
+**Purpose**: Manages the parsing of the token stream into an AST.
 
-**Behavior**:
+**Behaviour**:
 - Initializes with a vector of tokens.
-- Provides methods to access and consume tokens.
-- Parses the entire input into a block statement containing multiple statements.
+- Provides methods to access and manipulate the current token and peek ahead.
+- Consumes tokens and checks their types.
+- Parses statements and constructs the AST.
 
 ### parse() Function
 
-**Purpose**: Entry point for parsing the entire input source code.
+**Purpose**: Main entry point for parsing the entire token stream.
 
-**Behavior**:
-- Creates a new block statement node.
-- Continuously parses statements until the end of the input is reached.
-- Ignores newlines and decorators before parsing each statement.
+**Behaviour**:
+- Creates a root `BlockStmt` node.
+- Iteratively parses statements until the end of the token stream is reached.
+- Skips newlines between statements.
 
 ### parseStatement() Function
 
-**Purpose**: Parses individual statements from the input.
+**Purpose**: Parses individual statements from the token stream.
 
-**Behavior**:
-- Skips any leading newlines or decorators.
-- Handles variable declarations (`let`) and constant declarations (`const`).
-- Supports optional decorator arguments in C-style syntax.
+**Behaviour**:
+- Handles Python-style decorators by skipping them.
+- Skips C/C++ storage class specifiers.
+- Dispatches based on the type of the current token to parse different kinds of statements (e.g., variable declarations).
 
-## Tradeoffs/Limitations
+### skipNewlines() Function
 
-- **Flexibility vs. Complexity**: Supporting features like decorators and storage class specifiers increases the complexity of the parser but enhances the language's usability and compatibility.
-- **Performance**: Ignoring unnecessary tokens (like decorators) can improve performance, especially for large inputs with many such elements.
-- **Error Reporting**: Clear error messages require additional logic to track and report issues accurately.
+**Purpose**: Skips over newline tokens.
 
-## Usage Example
+**Behaviour**:
+- Continuously consumes newline tokens until a non-newline token is encountered.
 
-To use the `Parser.cpp`, you would typically create an instance of the `Parser` class with a vector of `Token` objects generated by the lexer. Then, you would call the `parse()` method to obtain the AST.
+### expect() Function
 
-```cpp
-std::vector<Token> tokens = ...; // Tokens generated by the lexer
-Parser parser(tokens);
-ASTNodePtr ast = parser.parse();
-```
+**Purpose**: Ensures the current token matches the expected type.
 
-This README provides a comprehensive overview of the `Parser.cpp` file, detailing its role, design decisions, and functionality. It also highlights the tradeoffs and limitations associated with the implementation, ensuring a balanced understanding of the system.
+**Behaviour**:
+- Throws a `ParseError` if the current token does not match the expected type.
+- Consumes the token if it matches.
+
+### match() Function
+
+**Purpose**: Checks if the current token matches the given type and advances if it does.
+
+**Behaviour**:
+- Returns `true` if the current token matches the given type and advances the position.
+- Returns `false` otherwise.
+
+### atEnd() Function
+
+**Purpose**: Determines if the end of the token stream has been reached.
+
+**Behaviour**:
+- Returns `true` if the current token is an EOF token.
+- Returns `false` otherwise.
+
+## Tradeoffs or Limitations
+
+- **Single-Pass Parsing**: The parser currently implements a single-pass approach, which may limit its ability to handle complex grammatical structures or recover from errors gracefully.
+- **Language-Specific Features**: While the parser supports some common language features like decorators and storage class specifiers, it may need adjustments for other specific language features or dialects.
+- **Performance**: Sequentially accessing tokens and building the AST can be memory-intensive and slow for large programs. Optimizations could be explored to improve performance.
+
+This README provides a comprehensive overview of `Parser.cpp`, detailing its role, design decisions, and functionality.
