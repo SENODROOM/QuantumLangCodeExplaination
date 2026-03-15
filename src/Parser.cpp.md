@@ -2,58 +2,70 @@
 
 ## Overview
 
-`Parser.cpp` is a vital component of the Quantum Language compiler, tasked with transforming a stream of tokens into an Abstract Syntax Tree (AST). This conversion ensures the program adheres to the syntax rules of the Quantum Language, enabling subsequent semantic analysis and code generation phases.
+`Parser.cpp` is a crucial component of the Quantum Language compiler, responsible for converting a sequence of tokens into an Abstract Syntax Tree (AST). This transformation ensures that the program conforms to the syntax rules of the Quantum Language, facilitating further semantic analysis and code generation stages.
+
+## Role in the Compiler Pipeline
+
+The parser plays a pivotal role in the compilation process by taking the output of the lexer (tokenized input) and constructing a structured representation of the code. This AST serves as the foundation for subsequent stages such as semantic analysis and code generation.
 
 ## Key Design Decisions
 
 ### Tokenization vs Lexical Analysis
 
-**WHY:** Tokenization is the initial stage in any compiler, breaking down the input source code into discrete units called tokens. This separation allows the parser to focus solely on the syntactic structure without being concerned about lexical details such as whitespace and comments. By treating tokenization as a separate step, `Parser.cpp` can efficiently manage the flow of tokens during parsing, enhancing modularity and maintainability.
+**WHY:** Tokenization is the initial stage in breaking down the source code into individual lexical elements (tokens), whereas lexical analysis involves understanding the structure and meaning of these tokens. By separating these concerns, `Parser.cpp` can focus on the syntactic correctness of the code without delving into its semantics.
+
+### Handling Decorators and Storage Class Specifiers
+
+**WHY:** To maintain compatibility with existing programming paradigms, it was decided to allow Python-like decorators (e.g., `@property`, `@dataclass`) and C/C++ storage class specifiers (e.g., `static`, `extern`). These features enable developers to use familiar patterns while writing quantum programs, enhancing readability and maintainability.
 
 ## Documentation of Major Classes and Functions
 
-### Class: Parser
+### Parser Class
 
-**Purpose:** The `Parser` class encapsulates the logic for converting a sequence of tokens into an AST. It manages the parsing process, including error handling and skipping unnecessary tokens.
+**Purpose:** The `Parser` class is the main driver for parsing the tokenized input. It manages the position within the token list and provides methods for consuming tokens, checking their types, and skipping newlines.
 
 **Behavior:**
 - **Constructor:** Initializes the parser with a vector of tokens.
-- **Current Token:** Returns the current token being processed.
-- **Peek Token:** Returns the token at a specified offset relative to the current position.
-- **Consume Token:** Advances the parser's position to the next token and returns it.
-- **Expect Token:** Verifies if the current token matches the expected type; throws an exception if not.
-- **Check Token:** Checks if the current token matches a specific type.
-- **Match Token:** Consumes the current token if it matches the specified type; returns `false` otherwise.
-- **At End:** Determines if the parser has reached the end of the token stream.
-- **Skip Newlines:** Skips all newline tokens until the end of the stream or a non-newline token is encountered.
-- **Parse:** Begins the parsing process, constructing an AST from the token stream.
-- **Parse Statement:** Parses a single statement from the token stream, handling various types of statements including variable declarations and expressions.
+- **current():** Returns the current token being processed.
+- **peek(offset):** Returns the token at the specified offset ahead in the token list.
+- **consume():** Advances the parser's position and returns the current token.
+- **expect(t, msg):** Consumes the next token if it matches the expected type, otherwise throws a `ParseError`.
+- **check(t):** Checks if the current token matches the specified type.
+- **match(t):** Attempts to match and consume the next token if it matches the specified type.
+- **atEnd():** Determines if the parser has reached the end of the token list.
+- **skipNewlines():** Skips any newline tokens encountered during parsing.
+- **parse():** Parses the entire input, constructing an AST starting with a block statement.
+- **parseStatement():** Parses individual statements, handling various syntax constructs including variable declarations and expressions.
 
-### Function: parse()
+### Tradeoffs and Limitations
 
-**Purpose:** The primary function of the `Parser` class, `parse()`, initiates the parsing process by creating a root `BlockStmt` node and populating it with statements parsed from the token stream.
+- **Flexibility vs Simplicity:** Allowing both Python-like decorators and C/C++ storage class specifiers increases the flexibility of the language but adds complexity to the parser.
+- **Error Handling:** The parser uses exceptions (`throw ParseError(...)`) to handle syntax errors, which simplifies error reporting but may not be suitable for all environments.
+- **Performance:** The recursive descent approach used in the parser can lead to performance issues for deeply nested structures, although this is mitigated by careful optimization.
 
-**Behavior:**
-- Creates a unique pointer to a `BlockStmt` node.
-- Iteratively parses statements using `parseStatement()` and appends them to the block's list of statements.
-- Skips newlines between statements to ensure proper parsing.
+## Usage Example
 
-### Function: parseStatement()
+To use the `Parser.cpp` module, follow these steps:
 
-**Purpose:** Parses a single statement from the token stream, identifying and processing different types of statements.
+1. **Tokenize Input:** Use the lexer to tokenize your source code.
+2. **Create Parser Instance:** Pass the tokenized input to the `Parser` constructor.
+3. **Parse Code:** Call the `parse()` method to construct the AST.
 
-**Behavior:**
-- Skips newlines before processing the statement.
-- Handles Python-style decorators by consuming them and their arguments.
-- Skips C/C++ storage class specifiers like `static`, `extern`, etc., allowing them to precede variable declarations.
-- Identifies and processes variable declarations (`LET` and `CONST`) and other statements based on the current token type.
+```cpp
+#include "Lexer.h"
+#include "Parser.h"
 
-## Tradeoffs and Limitations
+int main() {
+    std::string sourceCode = "let x = 42;";
+    Lexer lexer(sourceCode);
+    std::vector<Token> tokens = lexer.tokenize();
 
-- **Python-like Decorators:** While `Parser.cpp` supports Python-style decorators, it may not handle all edge cases, particularly those involving complex argument lists or nested decorators.
-- **C/C++ Storage Specifiers:** Although these specifiers are skipped, they might interfere with the intended use of variables in certain contexts, requiring careful consideration during semantic analysis.
-- **Error Handling:** Basic error handling is implemented through exceptions, which may need refinement for more sophisticated error reporting and recovery mechanisms.
+    Parser parser(tokens);
+    ASTNodePtr ast = parser.parse();
 
-## Conclusion
+    // Further processing of the AST...
+    return 0;
+}
+```
 
-`Parser.cpp` plays a critical role in the Quantum Language compiler by converting tokenized input into an AST. Through strategic design decisions, it ensures efficient parsing and robust error handling, setting the foundation for further stages of compilation. Despite some limitations, its modular approach facilitates easy maintenance and extension.
+This example demonstrates how to integrate `Parser.cpp` with the lexer to parse a simple quantum program.

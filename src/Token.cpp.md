@@ -2,34 +2,71 @@
 
 ## Overview
 
-The `Token.cpp` file is an integral component of the Quantum Language compiler, focusing on the representation and manipulation of individual tokens derived from the input source code. These tokens form the fundamental elements of the syntax tree, pivotal for subsequent stages such as semantic analysis and code generation.
+The `Token.cpp` file is a crucial part of the Quantum Language compiler, responsible for representing and manipulating individual tokens extracted from the input source code. Tokens serve as the basic building blocks of the syntax tree, essential for further stages like semantic analysis and code generation.
 
 ## Key Design Decisions
 
 ### Utilization of `std::ostringstream` for String Formatting
 
-**WHY**: Employing `std::ostringstream` facilitates efficient string formatting within the `Token` class. This approach allows for easy concatenation of various token attributes (line number, column number, and value) into a single formatted string, enhancing readability and maintainability of the code.
+**WHY**: Using `std::ostringstream` simplifies string formatting operations. It provides a flexible way to construct strings dynamically, which is particularly useful when dealing with various token types and their associated information. This approach enhances readability and maintainability compared to manual string concatenation.
 
-## Documentation of Classes and Functions
+### Choice of `const` Methods
+
+**WHY**: Declaring member functions as `const` ensures that they do not modify the state of the object. This is important for methods that need to be called on constant objects, such as those used during the construction of the syntax tree. By marking these methods as `const`, we can guarantee that the integrity of the token objects is preserved throughout the compilation process.
+
+## Classes and Functions Documentation
 
 ### Class: Token
 
-**Purpose**: Represents an individual token parsed from the input source code. Each token encapsulates metadata about its position in the source code and its value.
+**Purpose**: Represents a single token in the Quantum Language source code. Each token contains information about its type, value, and location within the source file.
 
-**Major Functions**:
+#### Member Variables:
 
-- **Constructor (`Token(int line, int col, const std::string& value)`)**: Initializes a new token with specified line number, column number, and value.
-- **Destructor (`~Token()`)**: Cleans up any resources associated with the token instance.
-- **Function: `toString() const`**
-  - **Purpose**: Converts the token into a human-readable string format.
-  - **Behaviour**: Returns a string representing the token in the format `[<line>:<col> <value>]`, where `<line>` and `<col>` denote the line and column numbers respectively, and `<value>` represents the token's value.
-  - **Tradeoffs**: Using `std::ostringstream` ensures flexibility in string formatting but may introduce slight performance overhead compared to direct string concatenation. However, this tradeoff is generally negligible given the simplicity and clarity it provides.
+- `line`: The line number where the token appears in the source code.
+- `col`: The column number where the token starts in the source code.
+- `value`: The actual text value of the token.
+- `type`: The type of the token (e.g., keyword, identifier, operator).
 
-## Tradeoffs and Limitations
+#### Member Functions:
 
-- **Performance Overhead**: The use of `std::ostringstream` introduces a minor performance cost due to dynamic memory allocation and copying operations involved in string construction. For high-performance critical applications, this might be a concern.
-- **Resource Management**: While `std::ostringstream` manages resources internally, improper usage could lead to resource leaks if not handled correctly. However, in this context, the destructor ensures proper cleanup.
+- **Constructor (`Token(int line, int col, const std::string& value, TokenType type`)**:
+  - Initializes a new `Token` object with the specified line number, column number, value, and type.
+
+- **Destructor (`~Token()`)**:
+  - Cleans up any resources held by the `Token` object.
+
+- **Method (`std::string toString() const`)**:
+  - Returns a string representation of the token in the format `[line:col value]`. This method uses `std::ostringstream` for efficient string formatting.
+
+### Function: `std::string Token::toString() const`
+
+**Purpose**: Converts the `Token` object into a human-readable string format.
+
+**Behavior**:
+- Constructs a formatted string using `std::ostringstream`.
+- The format includes the line number, column number, and the token's value.
+- Returns the formatted string.
+
+**Trade-offs/Limitations**:
+- While `std::ostringstream` provides flexibility and efficiency, it may introduce overhead if used excessively.
+- The function assumes that the `Token` object is valid and properly initialized.
+
+## Usage Example
+
+Here's how you might use the `Token` class in your compiler:
+
+```cpp
+#include "Token.h"
+
+int main() {
+    Token token(1, 5, "example", TokenType::IDENTIFIER);
+    std::cout << "Token: " << token.toString() << std::endl;
+    return 0;
+}
+```
+
+This example creates a `Token` object representing an identifier named "example" at line 1, column 5, and prints its string representation.
 
 ## Conclusion
 
-The `Token.cpp` file plays a crucial role in the Quantum Language compiler by providing a structured way to represent and manipulate tokens. Its design decisions, particularly the choice of `std::ostringstream` for string formatting, enhance both readability and functionality without significant performance penalties. By thoroughly documenting each class and function, developers can better understand and utilize the components effectively.
+The `Token.cpp` file plays a vital role in the Quantum Language compiler by providing a robust and efficient mechanism for handling individual tokens. Through the strategic use of `std::ostringstream` and `const` methods, the file ensures both performance and safety, making it an indispensable part of the compiler's architecture.
