@@ -2,50 +2,50 @@
 
 ## Overview
 
-`Value.cpp` is a critical component of the Quantum Language compiler, responsible for managing and manipulating various data types encountered during the compilation process. This module introduces the `QuantumValue` class and associated utility functions, ensuring efficient and accurate handling of these values throughout the compiler's execution phases.
+`Value.cpp` is a central part of the Quantum Language compiler, focusing on the management and manipulation of various data types encountered during the compilation process. It introduces the `QuantumValue` class and associated utility functions, ensuring efficient and accurate handling of these values across different stages of the compiler's execution.
 
 ## Role in the Compiler Pipeline
 
-`Value.cpp` acts as a foundational layer, providing essential functionalities for value representation and manipulation. It is integral to the semantic analysis phase, where it helps in determining the truthiness of expressions, converting them into strings, and performing type-specific operations. Additionally, it supports the generation of machine code by providing representations of values suitable for the target architecture.
+`Value.cpp` plays a crucial role in the compiler's pipeline by providing a unified representation for all data types. This allows for seamless integration and processing of data throughout the compilation stages, from parsing to optimization and code generation.
 
 ## Key Design Decisions
 
-### Use of `std::variant` for Value Storage
+### Use of `std::variant` for Data Storage
 
-The decision to use `std::variant` for storing different types of values was driven by the need for flexibility and type safety. By encapsulating various value types within a single variant, we can avoid manual type checking and casting, reducing the risk of runtime errors and improving code readability.
+The decision to use `std::variant` for storing different data types was driven by the need for type safety and flexibility. By leveraging `std::variant`, we can represent any value as one of several possible types without sacrificing compile-time type checking. This approach ensures that operations on values are safe and prevent runtime errors due to incorrect type assumptions.
 
-### Overloading Functions with `std::visit`
+### Visitor Pattern for Operations
 
-To handle different types of values without resorting to multiple function overloads, `std::visit` is employed. This approach allows us to define behavior for each specific type within a single function, making the code more maintainable and scalable.
+To facilitate operations on `QuantumValue` instances regardless of their underlying type, the visitor pattern was employed. This design choice allows us to define a set of operations once and then apply them to any `QuantumValue` instance through a single interface. The visitor pattern enhances maintainability and scalability by decoupling the operations from the data structure, making it easier to add new operations or modify existing ones without affecting the core data representation.
 
-## Documentation of Classes and Functions
+## Classes and Functions Documentation
 
 ### QuantumValue Class
 
-**Purpose**: Represents a value in the Quantum Language, capable of holding various data types including numbers, strings, arrays, and functions.
+**Purpose:** Represents a value in the Quantum Language, capable of holding various data types including nil, boolean, number, string, array, dictionary, function, native, and instance.
 
-**Behavior**:
-- The `isTruthy()` method determines whether a value is considered "truthy" based on its underlying type.
-- The `toString()` method converts the value to its string representation, handling different types appropriately.
-
-**Trade-offs**: While `std::variant` provides flexibility, it may lead to increased memory usage compared to fixed-size unions. Additionally, the use of `std::visit` can result in less readable code if not properly managed.
+**Behavior:** Provides methods for checking truthiness (`isTruthy`) and converting the value to a string (`toString`). These methods utilize `std::visit` to handle different data types efficiently.
 
 ### isTruthy Function
 
-**Purpose**: Determines the truthiness of a `QuantumValue`.
+**Purpose:** Determines whether a `QuantumValue` instance is considered "truthy" in the context of the Quantum Language.
 
-**Behavior**: Utilizes `std::visit` to apply a lambda function that checks the truthiness based on the value's type. For example, a boolean value is considered true if it holds `true`, and a non-empty string is also considered true.
+**Behavior:** Returns `true` if the value is not nil, boolean `true`, non-zero number, non-empty string, non-empty array, non-null pointer, or any other type that represents a valid truthy value. For numeric types, it checks if the value is zero. For strings, it considers an empty string or a string containing only a null character as falsy.
 
 ### toString Function
 
-**Purpose**: Converts a `QuantumValue` to its string representation.
+**Purpose:** Converts a `QuantumValue` instance to its string representation.
 
-**Behavior**: Again, employing `std::visit`, this function transforms the value into a string format appropriate for its type. Arrays and dictionaries are represented in their respective list and dictionary formats, with strings enclosed in quotes.
+**Behavior:** Utilizes `std::visit` to convert the value to a string based on its underlying type. Special handling is provided for arrays and dictionaries, which recursively convert their elements to strings. Numeric values are formatted with up to 10 decimal places to ensure precision.
 
-## Limitations and Tradeoffs
+## Tradeoffs and Limitations
 
-- **Memory Usage**: Using `std::variant` can increase memory consumption due to the overhead of type storage.
-- **Readability**: Overloaded functions with `std::visit` might make the code harder to read and understand, especially when dealing with complex types.
-- **Performance**: Depending on the number of types supported and the complexity of the operations, performance can be impacted.
+- **Type Safety vs. Flexibility:** While `std::variant` provides strong type safety, it may introduce some overhead compared to traditional union-based implementations. However, the benefits of safer and more expressive code outweigh the potential performance impact.
+  
+- **Visitor Pattern Complexity:** Although the visitor pattern offers flexibility and scalability, it can lead to complex and verbose code when dealing with many different data types. However, this complexity is manageable through proper abstraction and design patterns.
 
-Despite these limitations, the design choices in `Value.cpp` provide a robust foundation for handling diverse data types efficiently and accurately within the Quantum Language compiler.
+- **Precision Loss:** When converting floating-point numbers to strings, there might be a slight loss of precision due to the limited number of decimal places. This limitation is acceptable given the typical usage of quantum computing where exactness is often less critical than performance and simplicity.
+
+## Conclusion
+
+`Value.cpp` is a vital module in the Quantum Language compiler, ensuring robust and flexible handling of various data types. Its design choices, particularly the use of `std::variant` and the visitor pattern, provide a solid foundation for future enhancements and optimizations in the compiler. While there are some tradeoffs, the overall benefits in terms of type safety, maintainability, and expressiveness make this implementation well-suited for the needs of the Quantum Language project.

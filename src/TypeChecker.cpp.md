@@ -2,57 +2,61 @@
 
 ## Overview
 
-`TypeChecker.cpp` is a crucial part of the Quantum Language compiler, focusing on static type checking within the Abstract Syntax Tree (AST). This phase ensures that all expressions and statements conform to the specified types, thus preventing runtime errors caused by type mismatches.
+`TypeChecker.cpp` is a critical component of the Quantum Language compiler, responsible for performing static type checking on the Abstract Syntax Tree (AST). This essential step ensures that all expressions and statements adhere to their specified types, thereby mitigating runtime errors due to type mismatches.
 
 ## Role in the Compiler Pipeline
 
-The `TypeChecker` executes during the semantic analysis stage of the compilation process. Its primary function is to validate the types of variables, literals, function parameters, and return values throughout the program. By doing so, it helps catch potential errors early in the development cycle, improving overall code quality and reliability.
+The `TypeChecker` operates during the semantic analysis phase of the compilation process. Specifically, it traverses the AST and checks the types of various nodes such as variables, functions, and binary expressions. By enforcing type constraints, the `TypeChecker` helps maintain the integrity and correctness of the program before actual execution begins.
 
-## Key Design Decisions
+## Key Design Decisions and Justifications
 
 ### Environment Management
-
-**Decision:** The use of environment management (`TypeEnv`) to track variable and function types.
-**Why:** This approach allows for dynamic scope resolution and type tracking across different parts of the AST. By maintaining separate environments for blocks and functions, we can accurately reflect the local scope and ensure type consistency within nested structures.
+**Decision:** The `TypeChecker` uses an environment (`TypeEnv`) to manage variable and function scopes.
+**Justification:** This approach allows for easy tracking of variable types throughout different parts of the program. It also supports nested scopes, which are necessary for handling local variables within functions.
 
 ### Built-in Function Handling
+**Decision:** Built-in functions like `print`, `input`, `len`, `sha256`, and `aes128` are predefined with specific types.
+**Justification:** Predefining these functions simplifies the type checking process by providing known types for common operations. This avoids unnecessary complexity and potential errors in user-defined implementations.
 
-**Decision:** Defining built-in functions like `print`, `input`, `len`, `sha256`, and `aes128` with default types.
-**Why:** Built-in functions often operate on specific data types, and providing default types ensures that the compiler can handle them correctly without additional user input. This simplifies the type-checking logic for these functions.
+### Dynamic Typing Support
+**Decision:** The `TypeChecker` supports dynamic typing through the use of the `"any"` type hint.
+**Justification:** Quantum programming often requires flexibility in data types, especially when dealing with quantum states and operations. Allowing `"any"` type hints provides a balance between strict type safety and practicality in certain scenarios.
 
-### Flexible Type Hints
+## Documentation of Major Classes/Functions
 
-**Decision:** Allowing users to provide type hints for variable declarations.
-**Why:** Type hints enhance code readability and allow developers to explicitly specify their intentions regarding variable types. However, they also introduce complexity as the compiler must reconcile these hints with actual type usage.
+### Class: TypeChecker
+**Purpose:** Manages the type checking process for the entire AST.
+**Behaviour:** Initializes the global type environment and iterates through the AST nodes, calling `checkNode()` to validate each node's type.
 
-## Class and Function Documentation
+### Function: check()
+**Purpose:** Checks the types of nodes within a given list of AST nodes.
+**Behaviour:** Iterates through each node in the provided list and calls `checkNode()` to validate its type. Handles both individual nodes and blocks of statements.
 
-### TypeChecker Class
-
-**Purpose:** Manages the overall type-checking process, traversing the AST and validating types against the current environment.
-
-**Behavior:**
-- **Constructor:** Initializes the global type environment with predefined built-in functions.
-- **check(const std::vector<ASTNodePtr>& nodes):** Iterates over a list of AST nodes and checks each one using `checkNode`.
-- **check(const ASTNodePtr& node):** Recursively checks individual AST nodes, handling blocks specially by creating a new sub-environment.
-
-### checkNode Function
-
-**Purpose:** Validates the type of a single AST node based on its structure and the current environment.
-
-**Behavior:**
-- **NumberLiteral:** Returns `"float"` as the type.
-- **StringLiteral:** Returns `"string"` as the type.
-- **BoolLiteral:** Returns `"bool"` as the type.
-- **Identifier:** Resolves the identifier's type in the current environment.
-- **VarDecl:** Checks the initializer's type against any provided type hint and defines the variable in the environment.
-- **FunctionDecl:** Sets up a new sub-environment for the function's body, defining parameters and the function itself.
-- **BlockStmt:** Creates a new sub-environment for the block, checking each statement within it.
+### Function: checkNode()
+**Purpose:** Validates the type of a single AST node.
+**Behaviour:** Depending on the node type, performs different checks:
+- **NumberLiteral**: Returns `"float"`.
+- **StringLiteral**: Returns `"string"`.
+- **BoolLiteral**: Returns `"bool"`.
+- **Identifier**: Resolves the identifier's type using the current environment.
+- **VarDecl**: Checks the type of the variable declaration against its initializer (if any) and updates the environment accordingly.
+- **FunctionDecl**: Defines the function's parameters and body within a new scope and validates its return type.
+- **BlockStmt**: Creates a new scope for the block and recursively checks each statement within it.
 
 ## Tradeoffs and Limitations
 
-- **Flexibility vs. Complexity:** Allowing type hints adds flexibility but increases the complexity of the type-checking logic. Users may provide incorrect hints leading to subtle bugs.
-- **Default Types for Built-ins:** While simplifying type handling for built-in functions, it might not always align with user expectations, especially when dealing with quantum operations which could require more specific types.
-- **Limited Support for Advanced Types:** The current implementation supports basic types (`float`, `string`, `bool`). Extending support for advanced types like arrays, structs, or custom types would require significant changes and testing.
+### Flexibility vs. Strictness
+**Tradeoff:** The support for dynamic typing via `"any"` type hints offers flexibility but can lead to less predictable behavior at runtime.
+**Limitation:** Users must be cautious when using `"any"` to avoid unintended type mismatches.
 
-This README provides a comprehensive overview of the `TypeChecker.cpp` file, explaining its role, key design decisions, and functional details while acknowledging inherent tradeoffs and limitations.
+### Scope Management Complexity
+**Tradeoff:** While managing nested scopes enhances type checking accuracy, it adds complexity to the implementation.
+**Limitation:** Properly handling scoping rules is crucial but can introduce bugs if not implemented correctly.
+
+### Built-in Functions
+**Tradeoff:** Predefining built-in functions simplifies type checking but may limit customization options.
+**Limitation:** Users cannot redefine built-in functions with different types, which could be useful in some advanced use cases.
+
+## Conclusion
+
+`TypeChecker.cpp` plays a vital role in ensuring the type safety of the Quantum Language programs. Through careful design decisions and comprehensive functionality, it effectively prevents runtime errors and maintains the integrity of the compiled code. However, users should be aware of its limitations and tradeoffs, particularly regarding dynamic typing and scope management.

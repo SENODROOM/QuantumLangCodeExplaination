@@ -2,76 +2,64 @@
 
 ## Overview
 
-`Lexer.cpp` is a crucial component of the Quantum Language compiler responsible for the lexical analysis phase. This phase transforms the input source code into a sequence of tokens, which are subsequently utilized by the parser to construct the abstract syntax tree (AST). The lexer effectively handles various lexical elements including keywords, operators, identifiers, literals, and whitespace, ensuring precise parsing.
+`Lexer.cpp` is a critical component of the Quantum Language compiler, specifically designed for the lexical analysis phase. This phase converts the input source code into a sequence of tokens, which serve as the fundamental building blocks for further processing by the parser. The lexer handles a variety of lexical elements such as keywords, operators, identifiers, literals, and whitespace, ensuring accurate parsing of the source code.
 
 ## Key Design Decisions
 
 ### Tokenization Strategy
+The decision was made to use a combination of character-by-character scanning and lookahead to accurately identify and categorize tokens. This approach allows for the detection of multi-character tokens like `==`, `!=`, and `&&`.
 
-The decision to use a map-based approach for keyword recognition was pivotal because it allowed for efficient lookup and easy maintenance of the language's reserved words. By storing keywords in an unordered map, the lexer can quickly determine if a sequence of characters represents a keyword, thereby simplifying the overall parsing process.
+**Why:** Multi-character tokens often require more than one character to be recognized correctly. A single-pass character-by-character scan would miss these cases, leading to incorrect tokenization.
+
+### Handling Whitespace
+A dedicated function `skipWhitespace()` is implemented to handle all forms of whitespace, including spaces, tabs, and newlines. This ensures that the lexer can ignore unnecessary characters without affecting the token stream.
+
+**Why:** Ignoring whitespace is essential for maintaining readability and simplicity in the source code. However, it must be done carefully to avoid misinterpreting the structure of the code.
 
 ### Error Handling
+The lexer includes robust error handling mechanisms to manage unexpected characters and malformed tokens. Errors are reported using custom exceptions defined in the `Error.h` header file.
 
-Implementing robust error handling mechanisms within the lexer was essential to provide meaningful feedback during compilation. The inclusion of custom exceptions and error reporting functions enables the compiler to identify and report syntax errors accurately, facilitating easier debugging and correction of issues in the source code.
+**Why:** Accurate error reporting is crucial for debugging and improving the quality of the compiler. It helps developers understand where issues lie in their code and how to fix them.
 
-## Major Classes/Functions Documentation
+## Documentation of Major Classes/Functions
 
-### `Lexer` Class
+### Lexer Class
+- **Purpose:** Manages the lexical analysis process.
+- **Behavior:** Initializes with the source code string and iteratively processes it to generate tokens.
 
-**Purpose**: 
-The `Lexer` class encapsulates the functionality required for lexical analysis. It processes the input source code character by character, converting them into tokens that represent the syntactic structure of the program.
+### skipWhitespace Function
+- **Purpose:** Skips over any whitespace characters in the source code.
+- **Behavior:** Advances the position pointer until a non-whitespace character is encountered.
 
-**Behavior**:
-- Initializes with the source code string.
-- Provides methods to read and advance through the source code.
-- Recognizes and categorizes different types of tokens such as keywords, operators, identifiers, and literals.
-- Handles whitespace and newline characters appropriately to maintain accurate line and column tracking.
+### advance Function
+- **Purpose:** Moves to the next character in the source code.
+- **Behavior:** Returns the current character and advances the position pointer. Handles newline characters by incrementing the line number and resetting the column number.
 
-### `tokenize()` Function
+### current Function
+- **Purpose:** Retrieves the current character being processed.
+- **Behavior:** Returns the character at the current position pointer. If the end of the source code is reached, returns `\0`.
 
-**Purpose**:
-This function is the core method of the lexer, responsible for generating tokens from the input source code.
-
-**Behavior**:
-- Iterates over each character in the source code.
-- Skips whitespace and identifies the start of a new token.
-- Determines the type of token based on the character(s) read.
-- Returns a vector containing all the tokens generated from the source code.
-
-### `keywords` Map
-
-**Purpose**:
-The `keywords` map stores all the reserved keywords of the Quantum Language along with their corresponding token types.
-
-**Behavior**:
-- Maps strings representing keywords to specific `TokenType` values.
-- Enables quick identification of keywords during the lexing process.
-- Supports case-insensitive matching for certain keywords like "true" and "false".
+### peek Function
+- **Purpose:** Allows looking ahead at a specified number of characters in the source code.
+- **Behavior:** Returns the character at the current position plus the specified offset. If the end of the source code is reached, returns `\0`.
 
 ## Tradeoffs and Limitations
 
-- **Performance**: While the map-based approach provides fast keyword lookup, it may not be the most memory-efficient solution for languages with a large number of keywords.
-- **Complexity**: Adding new keywords requires updating the map, which could introduce complexity in maintaining the lexer's state.
-- **Case Sensitivity**: Although the lexer supports case-insensitive matching for some keywords, it might not be suitable for languages where case sensitivity is critical.
+### Complexity
+The implementation of multi-character token detection adds complexity to the lexer. While this enhances accuracy, it also increases the overhead during tokenization.
 
-## Usage Example
+**Limitation:** The lexer may become slower on larger source files due to the increased number of checks required for multi-character tokens.
 
-To utilize the `Lexer` class in your Quantum Language compiler project, you would typically instantiate it with the source code string and call the `tokenize()` function to obtain a list of tokens.
+### Case Sensitivity
+While the lexer recognizes some keywords case-insensitively (e.g., `true` and `True`), others remain sensitive. This could lead to confusion when writing code across different platforms or languages.
 
-```cpp
-#include "src/Lexer.cpp"
+**Limitation:** Developers should be aware of the case sensitivity rules for keywords and ensure consistency in their code.
 
-int main() {
-    std::string sourceCode = "let x = 5;";
-    Lexer lexer(sourceCode);
-    std::vector<Token> tokens = lexer.tokenize();
+### Unicode Support
+The current implementation does not support Unicode characters beyond basic ASCII. Extending the lexer to handle Unicode would require additional logic and testing.
 
-    for (const auto& token : tokens) {
-        std::cout << token.type << ": " << token.value << std::endl;
-    }
+**Limitation:** The lexer may not correctly interpret or tokenize source code containing non-ASCII characters.
 
-    return 0;
-}
-```
+## Conclusion
 
-This example demonstrates how to create a `Lexer` object, pass it the source code, and print out the resulting tokens.
+`Lexer.cpp` plays a vital role in the Quantum Language compiler by converting source code into a sequence of tokens. Its design choices focus on accuracy, simplicity, and robust error handling. While there are some tradeoffs and limitations, the lexer provides a solid foundation for the subsequent phases of the compilation process.
