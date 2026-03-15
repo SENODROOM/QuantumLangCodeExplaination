@@ -1,91 +1,151 @@
-# QuantumLanguage Compiler - AST.h
+# QuantumLanguage Compiler - Error.h
 
 ## Overview
 
-The `include/AST.h` header file is a fundamental component of the QuantumLanguage compiler, responsible for defining the Abstract Syntax Tree (AST) nodes that represent the structure of the language's programs. These AST nodes serve as the foundation for semantic analysis, code generation, and other phases of the compilation process.
+The `include/Error.h` header file is an essential component of the QuantumLanguage compiler's error handling mechanism. It defines custom exception classes for various types of errors that can occur during the compilation and execution phases of the compiler. These classes extend the standard `std::runtime_error` and provide additional information such as the error type and the line number where the error occurred. The file also includes a namespace `Colors` containing ANSI escape codes for text coloring, which can be used to highlight error messages in the console output.
 
-This file includes definitions for various expression and statement types, which are essential for accurately representing the syntax of QuantumLanguage. By using these AST nodes, the compiler can maintain a clear understanding of the program's structure and semantics throughout the entire compilation pipeline.
+This header file plays a critical role in ensuring robust error reporting and facilitating easier debugging by providing clear and specific error information throughout the compiler's lifecycle.
 
-## Key Design Decisions
+## Design Decisions
 
-### Use of `std::variant` for Expressions
+### Custom Exception Classes
 
-One of the primary design decisions in `AST.h` is the use of `std::variant` to represent expressions. This approach allows for a flexible and extensible way to define different types of expressions without requiring multiple inheritance or complex visitor patterns. By encapsulating all possible expression types within a single variant, the compiler can easily work with and manipulate expressions at runtime.
+Key design decisions were made to create custom exception classes for different types of errors. This approach allows for more precise error identification and handling, making it easier to diagnose issues and respond appropriately. By extending `std::runtime_error`, these classes inherit all the functionality of the base exception class while adding their own unique attributes.
 
-**Why:** Using `std::variant` simplifies the implementation of the AST by reducing the overhead associated with multiple inheritance and making it easier to add new expression types in the future.
+#### Tradeoffs
 
-### Separate Visitor Pattern for Statements
+- **Increased Complexity**: Defining multiple custom exception classes adds complexity to the codebase.
+- **Memory Overhead**: Each exception object carries additional data (e.g., line number), which may lead to increased memory usage.
 
-Unlike expressions, statements do not directly inherit from a common base class. Instead, a separate visitor pattern is used to handle different statement types. This design choice ensures that each statement type has a well-defined interface for visiting, making it easier to implement and extend the visitor pattern.
+### Error Type and Line Number
 
-**Why:** Separating the visitor pattern for statements into its own namespace allows for more modular and maintainable code. It also makes it easier to understand the purpose and behavior of each statement type, as they are isolated from one another.
+Including both the error type and the line number in the exception classes provides valuable context for developers. Knowing the exact type of error and its location helps in pinpointing the cause of the issue quickly.
 
-## Documentation of Major Classes/Functions
+#### Limitations
 
-### ASTNode
+- **Line Numbers**: While line numbers are useful, they might not always be available or accurate, especially in cases of syntax errors or dynamically generated code.
+- **Error Types**: Although error types help categorize issues, they might not cover every possible scenario, leading to potential gaps in error handling.
 
-The `ASTNode` struct serves as the base class for all AST nodes. It contains a `type` field that indicates the type of the node, as well as a `location` field that stores information about the node's position in the source code.
+### Text Coloring
 
-**Purpose:** The `ASTNode` struct provides a common interface for all AST nodes, allowing them to be manipulated and traversed uniformly.
+Using ANSI escape codes to color text in the console output enhances readability and visual distinction between different types of error messages. This feature is particularly useful during development and testing phases when debugging is frequent.
 
-**Behavior:** When creating an AST node, you should set the `type` field to indicate the type of the node, and the `location` field to store information about the node's position in the source code.
+#### Limitations
 
-### NumberLiteral
+- **Platform Compatibility**: Not all platforms support ANSI escape codes, which could limit the effectiveness of this feature on certain systems.
+- **Readability**: Overuse of colored text might reduce overall readability, especially if not properly contrasted against the background.
 
-The `NumberLiteral` struct represents a numeric literal in the source code. It contains a `value` field that stores the numeric value represented by the literal.
+## Documentation
 
-**Purpose:** The `NumberLiteral` struct allows the compiler to represent numeric literals in the AST, enabling subsequent semantic analysis and code generation.
+### QuantumError
 
-**Behavior:** When creating a `NumberLiteral`, you should set the `value` field to the desired numeric value.
+**Purpose**: Base class for all custom exceptions in the QuantumLanguage compiler. Provides common functionality for all error types.
 
-### StringLiteral
+**Behavior**: Inherits from `std::runtime_error` and adds two additional members: `line` and `kind`.
 
-The `StringLiteral` struct represents a string literal in the source code. It contains a `value` field that stores the string value represented by the literal.
+```cpp
+class QuantumError : public std::runtime_error
+{
+public:
+    int line; // Line number where the error occurred
+    std::string kind; // Type of error
 
-**Purpose:** The `StringLiteral` struct allows the compiler to represent string literals in the AST, enabling subsequent semantic analysis and code generation.
+    QuantumError(const std::string &kind, const std::string &msg, int line = -1)
+        : std::runtime_error(msg), line(line), kind(kind) {}
+};
+```
 
-**Behavior:** When creating a `StringLiteral`, you should set the `value` field to the desired string value.
+### RuntimeError
 
-### BoolLiteral
+**Purpose**: Represents runtime errors that occur during the execution of the program.
 
-The `BoolLiteral` struct represents a boolean literal in the source code. It contains a `value` field that stores the boolean value represented by the literal.
+**Behavior**: Inherits from `QuantumError` and sets the error kind to "RuntimeError".
 
-**Purpose:** The `BoolLiteral` struct allows the compiler to represent boolean literals in the AST, enabling subsequent semantic analysis and code generation.
+```cpp
+class RuntimeError : public QuantumError
+{
+public:
+    RuntimeError(const std::string &msg, int line = -1)
+        : QuantumError("RuntimeError", msg, line) {}
+};
+```
 
-**Behavior:** When creating a `BoolLiteral`, you should set the `value` field to either `true` or `false`.
+### TypeError
 
-### NilLiteral
+**Purpose**: Represents type-related errors that occur due to mismatched data types.
 
-The `NilLiteral` struct represents a nil literal in the source code. It does not contain any fields, as it simply indicates the absence of a value.
+**Behavior**: Inherits from `QuantumError` and sets the error kind to "TypeError".
 
-**Purpose:** The `NilLiteral` struct allows the compiler to represent nil literals in the AST, enabling subsequent semantic analysis and code generation.
+```cpp
+class TypeError : public QuantumError
+{
+public:
+    TypeError(const std::string &msg, int line = -1)
+        : QuantumError("TypeError", msg, line) {}
+};
+```
 
-**Behavior:** When creating a `NilLiteral`, you should not set any fields, as it simply indicates the absence of a value.
+### NameError
 
-### Identifier
+**Purpose**: Represents errors related to undefined names or variables.
 
-The `Identifier` struct represents an identifier in the source code. It contains a `name` field that stores the name of the identifier.
+**Behavior**: Inherits from `QuantumError` and sets the error kind to "NameError".
 
-**Purpose:** The `Identifier` struct allows the compiler to represent identifiers in the AST, enabling subsequent semantic analysis and code generation.
+```cpp
+class NameError : public QuantumError
+{
+public:
+    NameError(const std::string &msg, int line = -1)
+        : QuantumError("NameError", msg, line) {}
+};
+```
 
-**Behavior:** When creating an `Identifier`, you should set the `name` field to the desired identifier name.
+### IndexError
 
-### BinaryExpr
+**Purpose**: Represents errors related to accessing invalid indices in arrays or collections.
 
-The `BinaryExpr` struct represents a binary expression in the source code. It contains an `op` field that stores the operator of the expression, as well as `left` and `right` fields that store pointers to the operands of the expression.
+**Behavior**: Inherits from `QuantumError` and sets the error kind to "IndexError".
 
-**Purpose:** The `BinaryExpr` struct allows the compiler to represent binary expressions in the AST, enabling subsequent semantic analysis and code generation.
+```cpp
+class IndexError : public QuantumError
+{
+public:
+    IndexError(const std::string &msg, int line = -1)
+        : QuantumError("IndexError", msg, line) {}
+};
+```
 
-**Behavior:** When creating a `BinaryExpr`, you should set the `op` field to the desired operator, and the `left` and `right` fields to pointers to the operands of the expression.
+### Colors Namespace
 
-### UnaryExpr
+**Purpose**: Contains ANSI escape codes for text coloring, enhancing the visual presentation of error messages.
 
-The `UnaryExpr` struct represents a unary expression in the source code. It contains an `op` field that stores the operator of the expression, as well as an `operand` field that stores a pointer to the operand of the expression.
+**Behavior**: Provides constants for different colors and formatting options.
 
-**Purpose:** The `UnaryExpr` struct allows the compiler to represent unary expressions in the AST, enabling subsequent semantic analysis and code generation.
+```cpp
+namespace Colors
+{
+    inline const char *RED = "\033[31m";
+    inline const char *YELLOW = "\033[33m";
+    inline const char *WHITE = "\033[37m";
+    inline const char *CYAN = "\033[36m";
+    inline const char *GREEN = "\033[32m";
+    inline const char *BLUE = "\033[34m";
+    inline const char *BOLD = "\033[1m";
+    inline const char *RESET = "\033[0m";
+    inline const char *MAGENTA = "\033[35m";
+}
+```
 
-**Behavior:** When creating a `UnaryExpr`, you should set the `op` field to the desired operator, and the `operand` field to a pointer to the operand of the expression.
+## Usage
 
-### AssignExpr
+To use these error classes, simply throw an instance of the appropriate class when an error occurs. For example:
 
-The `AssignExpr` struct represents an assignment expression in the source code. It contains an
+```cpp
+throw RuntimeError("Division by zero", 42);
+```
+
+When catching these exceptions, you can access the error message, line number, and kind using the respective member variables:
+
+```cpp
+try {
+    // Some code that might throw
