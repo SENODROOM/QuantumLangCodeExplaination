@@ -2,80 +2,58 @@
 
 ## Overview
 
-`Interpreter.cpp` is a crucial component of the Quantum Language compiler, responsible for interpreting and executing quantum programs. This file contains the implementation of the interpreter, which processes quantum instructions and manages the execution environment.
+`Interpreter.cpp` is an essential part of the Quantum Language compiler, tasked with interpreting and executing quantum programs. This file houses the core logic of the interpreter, which processes quantum instructions and manages the execution environment.
+
+## Role in Compiler Pipeline
+
+This component operates at the execution phase of the compiler pipeline. It takes parsed quantum programs as input and executes them according to the rules defined in the language specification. The output of the interpreter can be used to simulate quantum operations or generate executable code for real quantum hardware.
 
 ## Key Design Decisions
 
 ### Use of `std::istringstream` for Token Buffering
 
-The decision to use `std::istringstream` for token buffering was made to handle the peculiarities of `std::cin >>`. Unlike `std::getline`, `std::cin >>` reads whitespace-separated tokens, which can lead to issues when dealing with multi-token inputs. By buffering leftover tokens, we ensure that subsequent `std::cin >>` operations read the correct values, even after a newline has been consumed.
+**WHY**: The choice to use `std::istringstream` for token buffering stems from the behavior of `std::cin >>`, which reads whitespace-delimited tokens. In contrast, `std::getline` reads an entire line. To ensure that subsequent `std::cin >>` operations can correctly parse multiple tokens on a single line, we buffer the remaining tokens using `std::istringstream`. This allows us to maintain the expected behavior of `std::cin >>` without disrupting the flow of input handling.
 
-**Why:** To maintain consistent behavior between `std::cin >>` and `std::getline`, especially when handling user input.
+## Major Classes/Functions Documentation
 
-### Custom Error Handling
+### Helper Functions
 
-A custom error handling mechanism is implemented using the `Error` class. This allows for more precise control over error messages and their propagation throughout the compiler.
+#### `toNum(const QuantumValue &v, const std::string &ctx)`
 
-**Why:** To provide clear and informative error messages that help developers understand and fix issues in their quantum programs.
+**Purpose**: Converts a `QuantumValue` to a numeric type (`double`). If the value is not a number, it throws a `TypeError`.
 
-### Support for Various Formatting Options
+**Behavior**: 
+- Checks if the `QuantumValue` is a number.
+- Returns the numeric value if it is.
+- Throws a `TypeError` with a context message if the value is not a number.
 
-The `applyFormat` function supports a wide range of formatting options, including `%d`, `%f`, `%s`, and more. These options allow for flexible output formatting, making it easier to generate human-readable results.
+#### `toInt(const QuantumValue &v, const std::string &ctx)`
 
-**Why:** To enable users to customize the output of their quantum programs according to their needs.
+**Purpose**: Converts a `QuantumValue` to an integer type (`long long`). Utilizes `toNum` internally to perform the conversion.
 
-## Classes and Functions Documentation
+**Behavior**: 
+- Calls `toNum` to convert the `QuantumValue` to a `double`.
+- Casts the result to a `long long` and returns it.
+- Throws a `TypeError` with a context message if the value cannot be converted to a number.
 
-### `class Interpreter`
+### Format Engine
 
-**Purpose:** Manages the interpretation and execution of quantum programs.
+#### `applyFormat(const std::string &fmt, const std::vector<QuantumValue> &args, size_t argStart = 1)`
 
-**Behavior:** The interpreter reads quantum instructions from an input stream and executes them, updating the program state accordingly.
+**Purpose**: Applies formatted strings to arguments, supporting various format specifiers such as `%d`, `%f`, `%s`, etc.
 
-### `static double toNum(const QuantumValue &v, const std::string &ctx)`
+**Behavior**: 
+- Iterates through the format string character by character.
+- When encountering a format specifier, it extracts the corresponding argument from the `args` vector.
+- Applies the specified formatting to the argument and appends the result to the output string.
+- Handles different flags like `-` (left-align), `+` (force sign), `0` (zero-pad), etc., and applies them accordingly.
+- Supports width and precision specifications for numerical values and strings.
 
-**Purpose:** Converts a `QuantumValue` to a numeric type.
-
-**Behavior:** If the `QuantumValue` is a number, it returns the corresponding numeric value. Otherwise, it throws a `TypeError`.
-
-### `static long long toInt(const QuantumValue &v, const std::string &ctx)`
-
-**Purpose:** Converts a `QuantumValue` to an integer type.
-
-**Behavior:** Calls `toNum` to convert the `QuantumValue` to a numeric type and then casts it to a `long long`.
-
-### `static std::string applyFormat(const std::string &fmt, const std::vector<QuantumValue> &args, size_t argStart = 1)`
-
-**Purpose:** Applies a format string to a vector of arguments.
-
-**Behavior:** Parses the format string and replaces placeholders with the corresponding arguments from the vector. Supports various formatting options such as integers, floating-point numbers, strings, and more.
-
-## Tradeoffs and Limitations
-
-- **Performance:** Using `std::istringstream` for token buffering may introduce some performance overhead compared to simpler methods.
-- **Complexity:** Supporting a wide range of formatting options increases the complexity of the codebase.
-- **Cross-Platform Compatibility:** The inclusion of Windows-specific cryptographic headers (`CryptGenRandom`) limits cross-platform compatibility, although this is not a concern for the target platform.
-
-## Usage Example
-
-Here's a simple example demonstrating how the `Interpreter` class might be used:
-
-```cpp
-#include "Interpreter.h"
-
-int main()
-{
-    Interpreter interpreter;
-    interpreter.execute("H 0");
-    interpreter.execute("CNOT 0 1");
-    interpreter.execute("M 0 1");
-
-    return 0;
-}
-```
-
-This example creates an `Interpreter` object and executes three quantum instructions: applying a Hadamard gate to qubit 0, creating a CNOT gate between qubits 0 and 1, and measuring both qubits.
+**Tradeoffs/Limitations**:
+- Limited support for complex format specifiers and flags beyond those listed.
+- No support for locale-specific formatting.
+- Potential performance overhead due to repeated parsing and formatting operations.
 
 ## Conclusion
 
-`Interpreter.cpp` plays a vital role in the Quantum Language compiler by providing the functionality to interpret and execute quantum programs. Its design decisions aim to balance flexibility, precision, and performance, ensuring that users can effectively develop and test their quantum applications. While there are some limitations, these are outweighed by the benefits provided by the interpreter's capabilities.
+`Interpreter.cpp` plays a pivotal role in the Quantum Language compiler by interpreting and executing quantum programs. Its design decisions, particularly the use of `std::istringstream` for token buffering, address specific challenges in handling user input. By documenting each major function and highlighting potential tradeoffs, this README provides a comprehensive understanding of the file's functionality and limitations.
