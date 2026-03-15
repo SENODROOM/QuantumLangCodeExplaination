@@ -1,58 +1,59 @@
-# QuantumLanguage Compiler - Interpreter.h
+# Lexer.h in QuantumLanguage Compiler
 
 ## Overview
 
-The `include/Interpreter.h` header file is an integral part of the QuantumLanguage compiler's execution phase. It defines the `Interpreter` class responsible for evaluating and executing abstract syntax tree (AST) nodes to produce runtime behavior. The file includes methods for handling different types of statements and expressions, facilitating the dynamic interpretation of the QuantumLanguage program.
+The `Lexer.h` header file is an integral part of the QuantumLanguage compiler's architecture, responsible for converting raw text into a sequence of tokens. Tokens represent the smallest meaningful units in the language, forming the basis for further parsing and semantic analysis. This file plays a crucial role in the initial phase of the compiler pipeline, where it takes the input source code and breaks it down into manageable pieces.
 
 ## Key Design Decisions
 
-### Use of ASTNodes for Evaluation
+### Tokenization Strategy
 
-**Why:** By using `ASTNode` objects directly for evaluation, the interpreter can handle any type of statement or expression without needing to differentiate between them explicitly at compile time. This approach simplifies the implementation and allows for a more flexible and extensible system.
+- **Flexibility**: The lexer supports both regular and template literals, allowing for complex string representations.
+- **Efficiency**: Utilizing character lookahead and state transitions to efficiently parse through the source code.
+- **Error Handling**: Designed to handle syntax errors gracefully, providing clear error messages indicating the location and nature of issues.
 
-### Environment Management
+### State Management
 
-**Why:** An environment (`std::shared_ptr<Environment>`) is used to manage variable bindings and scopes. This decision ensures that variables declared in different parts of the program are properly isolated and accessible, preventing name clashes and unintended side effects.
+- **Current Position Tracking**: Maintaining the position (`pos`) within the source code helps in accurately reporting errors and managing tokenization states.
+- **Line and Column Counting**: Keeping track of the current line (`line`) and column (`col`) positions aids in generating precise error messages and debugging information.
 
-### Step Count Limitation
+## Class and Function Documentation
 
-**Why:** To guard against infinite loops, especially in cases like reading from an empty input stream, a maximum step count (`MAX_STEPS`) is implemented. This limitation helps maintain the stability and responsiveness of the interpreter.
+### Lexer Class
 
-## Documentation of Major Classes/Functions
+**Purpose**: The primary class responsible for tokenizing the source code.
 
-### Interpreter Class
+**Behavior**:
+- **Constructor**: Initializes the lexer with the provided source code.
+- **tokenize() Method**: Processes the entire source code and returns a vector of tokens.
 
-**Purpose:** Manages the overall state of the interpreter, including the global environment and step count tracking.
+#### Private Members:
 
-**Behaviour:**
-- **Constructor (`Interpreter()`):** Initializes the interpreter with a global environment.
-- **execute (`void execute(ASTNode &node)`):** Executes a single AST node.
-- **evaluate (`QuantumValue evaluate(ASTNode &node)`):** Evaluates an AST node and returns its result as a `QuantumValue`.
-- **execBlock (`void execBlock(BlockStmt &s, std::shared_ptr<Environment> scope = nullptr)`):** Executes a block of statements within a specified scope.
-- **registerNatives (`void registerNatives()`):** Registers built-in functions and methods available to the interpreter.
-- **Statement Executors:** Methods like `execVarDecl`, `execFunctionDecl`, etc., handle specific types of statements.
-- **Expression Evaluators:** Methods like `evalBinary`, `evalUnary`, etc., handle various expression types.
-- **C++ Pointer Evaluators:** Methods like `evalAddressOf`, `evalDeref`, etc., handle pointer-related operations.
-- **callFunction, callNative, callInstanceMethod:** Functions to invoke user-defined, native, and instance methods respectively.
-- **Built-in Method Dispatch:** Methods like `callArrayMethod`, `callStringMethod`, etc., dispatch calls to built-in methods on specific object types.
-- **setLValue (`void setLValue(ASTNode &target, QuantumValue val, const std::string &op)`):** Sets the value of an l-value target based on the operation performed.
+- **src**: Stores the source code being processed.
+- **pos**: Tracks the current position within the source code.
+- **line**, **col**: Track the current line and column numbers during processing.
+- **keywords**: A static unordered map defining reserved keywords and their corresponding token types.
+- **pendingTokens_**: Used temporarily during f-string expansion to store intermediate tokens.
+- **defines_**: Stores C preprocessor macros, mapping macro names to lists of replacement tokens.
 
-### QuantumValue Class
+#### Private Methods:
 
-**Purpose:** Represents a value in the QuantumLanguage runtime environment, capable of holding various data types including integers, doubles, strings, arrays, dictionaries, functions, and pointers.
+- **current()**: Returns the character at the current position.
+- **peek(int offset)**: Returns the character at the specified offset ahead of the current position.
+- **advance()**: Advances the current position and returns the character that was previously at that position.
+- **skipWhitespace()**: Skips over any whitespace characters until a non-whitespace character is encountered.
+- **skipComment()**: Skips over single-line comments starting with `//`.
+- **skipBlockComment()**: Skips over multi-line comments enclosed between `/*` and `*/`.
+- **readNumber()**: Reads and returns a numeric token (integer or double).
+- **readString(char quote)**: Reads and returns a string token using the specified quotation marks.
+- **readTemplateLiteral(std::vector<Token> &out, int startLine, int startCol)**: Handles template literal parsing, storing intermediate results in `out`.
+- **readIdentifierOrKeyword()**: Reads and returns an identifier or keyword token.
+- **readOperator()**: Reads and returns an operator token.
 
-**Trade-offs:** While providing flexibility, the use of a union-like structure (`QuantumValue`) for storing multiple data types introduces potential issues with alignment and performance optimizations.
+## Tradeoffs and Limitations
 
-### Environment Class
+- **Complexity**: Supporting both regular and template literals adds complexity to the lexer implementation.
+- **Performance**: While efficient, the lexer may still be a bottleneck for very large source files due to its need to process every character.
+- **Error Reporting**: Precise error messages require accurate tracking of line and column positions, which can add overhead.
 
-**Purpose:** Manages variable bindings and scopes, ensuring that variables are properly isolated and accessible during execution.
-
-**Trade-offs:** Maintaining a hierarchical scope system adds complexity but provides necessary functionality for managing nested scopes and variable lifetimes.
-
-## Tradeoffs/Limitations
-
-- **Infinite Loop Prevention:** The step count limit prevents certain types of infinite loops but may be too restrictive for some valid programs.
-- **Performance:** The use of `QuantumValue` for multi-type storage might impact performance due to alignment and memory usage considerations.
-- **Complexity:** Managing environments and handling different types of expressions/statements adds complexity to the interpreter.
-
-This README documents the core components and design decisions of the `Interpreter.h` file, providing insights into how the QuantumLanguage compiler executes and evaluates programs.
+This README provides a comprehensive overview of the `Lexer.h` file, detailing its functionality, design decisions, and potential challenges.
