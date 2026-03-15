@@ -1,151 +1,92 @@
-# execClassDecl() Function Explanation
+# `execClassDecl` Function Explanation
 
-## Complete Code
+The `execClassDecl` function in the Quantum Language compiler is responsible for interpreting and executing a class declaration (`ClassDecl`) provided by the user. It creates a new `QuantumClass` object, sets its name, and handles potential inheritance from another class. Additionally, it compiles and stores any instance methods associated with the class.
 
-```cpp
-void Interpreter::execClassDecl(ClassDecl &s)
-{
-    auto klass = std::make_shared<QuantumClass>();
-    klass->name = s.name;
-    klass->base = nullptr;
-    
-    // Handle inheritance
-    if (s.baseClass)
-    {
-        auto baseVal = evaluate(*s.baseClass);
-        if (baseVal.isClass())
-            klass->base = baseVal.asClass();
-        else
-            throw TypeError("Base class must be a class");
-    }
-    
-    // Set up methods
-    for (auto &method : s.methods)
-    {
-        auto fn = std::make_shared<QuantumFunction>();
-        fn->name = method->name;
-        fn->params = method->params;
-        fn->paramIsRef = method->paramIsRef;
-        fn->defaultArgs = method->defaultArgs;
-        fn->body = method->body;
-        fn->closure = env;
-        klass->methods[method->name] = QuantumValue(fn);
-    }
-    
-    env->define(s.name, QuantumValue(klass));
-}
-```
+## Parameters
+- `s`: A reference to a `ClassDecl` object representing the class declaration to be executed.
 
-## Code Explanation
+## Return Value
+- The function does not explicitly return a value; however, it modifies the internal state of the interpreter by creating and populating a `QuantumClass`.
 
-### Function Signature
--  `void Interpreter::execClassDecl(ClassDecl &s)` - Execute class declarations
-  - `s`: Reference to ClassDecl AST node
-  - Returns void as class declarations don't produce values
+## How It Works
+1. **Create a New Class Object**: 
+   ```cpp
+   auto klass = std::make_shared<QuantumClass>();
+   ```
+   A shared pointer to a `QuantumClass` object is created. This object will hold all the information about the class being declared.
 
-###
--  `{` - Opening brace
--  `auto klass = std::make_shared<QuantumClass>();` - Create shared class object
--  `klass->name = s.name;` - Set class name
--  `klass->base = nullptr;` - Initialize base class to null
+2. **Set the Class Name**:
+   ```cpp
+   klass->name = s.name;
+   ```
+   The name of the class is set based on the `name` attribute of the `ClassDecl` object.
 
-###
--  Empty line for readability
--  `// Handle inheritance` - Comment about inheritance
--  `if (s.baseClass)` - Check if base class specified
--  `{` - Opening brace for inheritance
--  `auto baseVal = evaluate(*s.baseClass);` - Evaluate base class expression
--  `if (baseVal.isClass())` - Check if base is a class
--  `klass->base = baseVal.asClass();` - Set base class reference
--  `else` - Base is not a class
+3. **Handle Inheritance**:
+   ```cpp
+   if (!s.base.empty())
+   {
+       try
+       {
+           auto baseVal = env->get(s.base);
+           if (baseVal.isClass())
+               klass->base = baseVal.asClass();
+           // If base is a native stub (e.g. ABC from our import stubs), silently skip —
+           // we don't need true abstract-class enforcement at runtime.
+       }
+       catch (NameError &)
+       {
+           // Base not defined at all — treat as a rootless class rather than crashing.
+           // This mirrors Python's lenient behaviour when stubs are missing.
+       }
+   }
+   ```
+   If the class inherits from another class (`s.base` is not empty), the function attempts to retrieve the base class from the environment (`env`). If successful and the retrieved value is indeed a class, it sets the `base` attribute of the current class to this base class. If the base class is not found or is not a class, it catches the `NameError` exception and treats the class as a rootless class, meaning it does not inherit from any other class.
 
-###
--  `throw TypeError("Base class must be a class");` - Throw error for invalid base
--  `}` - Closing brace for inheritance
--  Empty line for readability
+4. **Compile Instance Methods**:
+   ```cpp
+   for (auto &m : s.methods)
+   {
+       if (m->is<FunctionDecl>())
+       {
+           auto &fd = m->as<FunctionDecl>();
+           auto fn = std::make_shared<QuantumFunction>();
+           fn->name = fd.name;
+           fn->params = fd.params;
+           fn->body = fd.body.get();
+           fn->closure = env;
 
-###
--  `// Set up methods` - Comment about method setup
--  `for (auto &method : s.methods)` - Loop through method declarations
--  `{` - Opening brace for method loop
--  `auto fn = std::make_shared<QuantumFunction>();` - Create function object
--  `fn->name = method->name;` - Set method name
--  `fn->params = method->params;` - Copy parameter names
--  `fn->paramIsRef = method->paramIsRef;` - Copy reference parameter flags
--  `fn->defaultArgs = method->defaultArgs;` - Copy default arguments
--  `fn->body = method->body;` - Copy method body
--  `fn->closure = env;` - Set closure to current environment
--  `klass->methods[method->name] = QuantumValue(fn);` - Store method in class
+           // Support method overloading: if name already exists, also store under name#argcount
+           if (klass->methods.count(fd.name))
+           {
+               // Store the existing one under name#argcount if not already done
+               auto existing = klass->methods[fd.name];
+               size_t existingParamStart = (!existing->params.empty() &&
+                                            (existing->params[0] == "self" || existing->params[0] == "this"))
+                                              ? 1
+                                              : 0;
+               std::string existingKey = fd.name + "#" + std::to_string(existing->params.size() - existingParamStart);
+               if (!klass->methods.count(existingKey))
+                   klass->methods[existingKey] = existing;
+           }
+           klass->methods[fd.name] = fn;
 
-###
--  `}` - Closing brace for method loop
--  Empty line for readability
--  `env->define(s.name, QuantumValue(klass));` - Define class in environment
--  `}` - Closing brace for function
+           // Always store an overload-specific version
+           ...
+       }
+   }
+   ```
+   The function iterates through each member (`m`) in the list of members (`s.methods`) of the class declaration. If a member is a function declaration (`FunctionDecl`), it proceeds to compile this function into a `QuantumFunction` object. The function's name, parameters, body, and closure (environment) are copied into the `QuantumFunction` object.
 
-## Summary
+   To support method overloading, the function checks if a method with the same name already exists in the class. If it does, it generates a unique key by appending the number of parameters to the method name (excluding the first parameter if it is named "self" or "this"). This allows multiple methods with the same name but different numbers of parameters to coexist within the same class.
 
-The `execClassDecl()` function handles class declaration and method setup in the Quantum Language:
+   Finally, the compiled `QuantumFunction` object is stored in the `methods` map of the `QuantumClass` object, either under its original name or the generated overload-specific key.
 
-### Key Features
-- **Inheritance Support**: Single inheritance with base class resolution
-- **Method Registration**: Automatic method binding with closures
-- **Class Objects**: Creates QuantumClass objects for runtime use
-- **Type Safety**: Validates base class types during declaration
+## Edge Cases
+- **Inheritance Not Found**: If the base class specified in the `ClassDecl` is not found in the environment, the function treats the class as a rootless class, avoiding a crash.
+- **Method Overloading**: The function supports method overloading by storing methods under both their original names and unique keys based on parameter counts.
 
-### Class Creation Process
-1. **Class Object Creation**: Create shared QuantumClass object
-2. **Name Assignment**: Set class name for identification
-3. **Inheritance Setup**: Handle base class if specified
-4. **Method Registration**: Add all methods to class
-5. **Environment Registration**: Store class in current scope
-
-### Inheritance Features
-- **Single Inheritance**: One base class per class
-- **Base Class Validation**: Ensures base is actually a class
-- **Method Resolution**: Base class methods available through inheritance
-- **Constructor Chaining**: Base class constructor called during instantiation
-
-### Method Setup
-- **Function Objects**: Each method becomes a QuantumFunction
-- **Closure Capture**: Methods capture declaration environment
-- **Parameter Support**: Full parameter features (reference, defaults)
-- **Method Storage**: Methods stored in class method dictionary
-
-### Class Properties
-- **Name**: Class identifier for debugging and type checking
-- **Base Class**: Reference to parent class for inheritance
-- **Methods**: Dictionary of method functions
-- **Instance Creation**: Used to create class instances
-
-### Class Declaration Syntaxes
-- **Simple Class**: `class Name { methods }`
-- **Inheritance**: `class Name : BaseClass { methods }`
-- **Methods**: `method name(params) { body }`
-- **Empty Class**: `class Name { }`
-
-### Design Benefits
-- **Object-Oriented**: Proper inheritance and method resolution
-- **Memory Safety**: Smart pointers manage class lifetime
-- **Lexical Scoping**: Methods capture proper environment
-- **Type Safety**: Base class validation prevents errors
-
-### Use Cases
-- **Class Definitions**: All class declarations in programs
-- **Inheritance**: Creating class hierarchies
-- **Method Definitions**: Adding behavior to classes
-- **Object Creation**: Classes serve as templates for instances
-
-### Error Handling
-- **Base Class Errors**: TypeError for invalid base classes
-- **Method Errors**: Handled during method execution
-- **Name Conflicts**: Environment handles class name conflicts
-- **Inheritance Cycles**: Detected during method resolution
-
-### Method Resolution
-- **Instance Methods**: Called on class instances
-- **Inheritance**: Base class methods available to derived classes
-- **Override**: Derived class methods override base methods
-- **Super Access**: Base class methods accessible through super
-
-This function provides the foundation for object-oriented programming in the Quantum Language, enabling class creation, inheritance, and method definition while maintaining proper memory management and type safety throughout the class system.
+## Interactions With Other Components
+- **Environment (`env`)**: The function uses the environment to look up the base class if inheritance is specified. It also stores the compiled functions in the environment's scope, allowing them to be accessible within the class.
+- **Class Declaration (`ClassDecl`)**: The function takes a `ClassDecl` object as input, which contains details about the class such as its name, base class, and methods.
+- **Quantum Class (`QuantumClass`)**: The function creates and populates a `QuantumClass` object with the class's name and methods. This object is then used to represent the class throughout the rest of the program execution.
+- **Quantum Function (`QuantumFunction`)**: The function compiles individual method declarations into `QuantumFunction` objects, which are stored in the
