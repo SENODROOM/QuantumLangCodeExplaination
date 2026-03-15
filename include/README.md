@@ -1,121 +1,79 @@
-# QuantumLanguage Compiler - Token.h
+# QuantumLanguage Compiler - TypeChecker.h
 
 ## Overview
 
-The `include/Token.h` header file is an essential part of the QuantumLanguage compiler, focusing on the representation and handling of tokens within the language. Tokens serve as the fundamental building blocks for parsing and interpreting the source code. This file defines the `TokenType` enum class and the `Token` struct, which encapsulate the type, value, and location information of each token.
+The `include/TypeChecker.h` header file is an essential part of the QuantumLanguage compiler, focusing on the type checking mechanism. This file defines the `StaticTypeError`, `TypeEnv`, and `TypeChecker` classes, which work together to ensure that the syntax tree adheres to the specified type rules during compilation. The primary role of this file is to validate the types of variables, function parameters, and return values throughout the program, preventing runtime errors related to type mismatches.
 
 ## Key Design Decisions
 
-### TokenType Enum Class
+### Use of Exceptions for Error Handling
 
-- **Purpose**: The `TokenType` enum class categorizes different types of tokens used in QuantumLanguage. Each category corresponds to a specific token type.
-  
-- **Why**: This design decision allows for clear and unambiguous identification of token types, facilitating the parsing process and ensuring that the correct actions are taken based on the token's nature.
+**Why:** The decision to use exceptions (`std::runtime_error`) for error handling was made to provide clear and structured feedback about static type errors. This approach allows the compiler to propagate error information up the call stack, making it easier to pinpoint the exact location where the error occurred (line number). It also aligns with common practices in C++ for handling exceptional conditions.
 
-- **Trade-offs**: While this approach provides a comprehensive list of token types, it may lead to increased complexity if new token types need to be added frequently. Additionally, maintaining this list requires careful consideration to avoid conflicts between existing categories.
+### Hierarchical Type Environment
 
-### Token Struct
+**Why:** A hierarchical type environment (`TypeEnv`) was designed to support nested scopes in the quantum language. Each scope has its own type environment, and when a variable is not found in the current scope, the compiler looks up the parent scope. This design ensures that local variables shadow outer variables, maintaining consistency with how scoping works in other programming languages.
 
-- **Purpose**: The `Token` struct represents a single token in the source code. It contains the token's type, value, and position (line and column numbers).
-  
-- **Why**: This design choice enables efficient storage and retrieval of token information during the parsing phase. By storing the line and column numbers, the compiler can provide precise error messages when syntax errors occur.
+### Shared Pointer for Type Environment
 
-- **Trade-offs**: Storing the entire token value as a string might consume more memory than necessary, especially for large tokens. However, this approach simplifies token comparison and manipulation operations.
+**Why:** Using `std::shared_ptr` for the parent environment allows for efficient memory management and sharing of type environments between different parts of the compiler without copying them. This is particularly useful for large programs with many nested scopes.
 
-## Documentation
+## Class Documentation
 
-### TokenType Enum Class
+### StaticTypeError
+
+**Purpose:** Represents a static type error encountered during compilation.
+
+**Behavior:** Inherits from `std::runtime_error` and adds a line number attribute to indicate where the error occurred.
+
+**Tradeoffs:** While exceptions are powerful, they can lead to performance overhead and complex error handling logic. However, for a compiler, static type errors are critical issues that need immediate attention, making exceptions a suitable choice.
+
+### TypeEnv
+
+**Purpose:** Manages the type environment for a given scope, including variable definitions and resolution.
+
+**Behavior:** 
+- Contains a map of variable names to their types.
+- Supports hierarchical scoping through a shared pointer to the parent environment.
+- Provides methods to define new variables and resolve existing ones.
+
+**Tradeoffs:** This design simplifies the implementation of scoping but may increase complexity when dealing with large programs. Additionally, using shared pointers can introduce reference counting overhead, which might be significant in a high-performance compiler.
+
+### TypeChecker
+
+**Purpose:** Performs type checking on the abstract syntax tree (AST) of the quantum language program.
+
+**Behavior:** 
+- Initializes with a global type environment.
+- Offers methods to check entire ASTs or individual nodes.
+- Utilizes the type environment to validate types during traversal of the AST.
+
+**Tradeoffs:** Centralizing the type checking logic in a single class makes the compiler easier to understand and maintain. However, it might limit parallelism in type checking operations, especially for very large programs.
+
+## Usage Example
+
+Below is a simplified example demonstrating how these components might be used together:
 
 ```cpp
-enum class TokenType
-{
-    // Literals
-    NUMBER,          // Represents numeric literals
-    STRING,          // Represents string literals
-    TEMPLATE_STRING, // Backtick template literal segment (text before ${)
-    BOOL_TRUE,       // Represents the boolean true value
-    BOOL_FALSE,      // Represents the boolean false value
-    NIL,             // Represents the nil value
+#include "TypeChecker.h"
 
-    // Identifiers & Keywords
-    IDENTIFIER,      // Represents variable names and identifiers
-    LET,             // Keyword for variable declaration
-    CONST,           // Keyword for constant declaration
-    FN,              // Keyword for function definition
-    DEF,             // Python: def
-    FUNCTION,        // JavaScript: function
-    CLASS,           // Class keyword
-    EXTENDS,         // Extends / Inherits keyword
-    NEW,             // New keyword
-    THIS,            // This keyword (JavaScript alias for self)
-    SUPER,           // Super keyword
-    RETURN,          // Return keyword
-    IF,              // If keyword
-    ELSE,            // Else keyword
-    ELIF,            // Elif keyword
-    WHILE,           // While loop keyword
-    FOR,             // For loop keyword
-    IN,              // In keyword
-    OF,              // JavaScript for...of keyword
-    BREAK,           // Break statement keyword
-    CONTINUE,        // Continue statement keyword
-    RAISE,           // Raise exception keyword
-    TRY,             // Try block keyword
-    EXCEPT,          // Except block keyword
-    FINALLY,         // Finally block keyword
-    AS,              // As keyword
-    PRINT,           // Print statement keyword
-    INPUT,           // Input statement keyword
-    COUT,            // C++ cout keyword
-    CIN,             // C++ cin keyword
-    FROM,            // From keyword
-    IMPORT,          // Import statement keyword
+int main() {
+    // Create a vector of AST nodes representing the program
+    std::vector<ASTNodePtr> nodes = ...;
 
-    // C/C++ style type keywords
-    TYPE_INT,        // Integer type
-    TYPE_FLOAT,      // Floating-point type
-    TYPE_DOUBLE,     // Double precision floating-point type
-    TYPE_CHAR,       // Character type
-    TYPE_STRING,     // String type
-    TYPE_BOOL,       // Boolean type
-    TYPE_VOID,       // Void type
-    TYPE_LONG,       // Long integer type
-    TYPE_SHORT,      // Short integer type
-    TYPE_UNSIGNED,   // Unsigned integer type
+    // Initialize the type checker
+    TypeChecker tc;
 
-    // Operators
-    PLUS,            // Addition operator
-    MINUS,           // Subtraction operator
-    STAR,            // Multiplication operator
-    SLASH,           // Division operator
-    FLOOR_DIV,       // Integer division operator (Python)
-    PERCENT,         // Modulus operator
-    POWER,           // Exponentiation operator
-    EQ,              // Equality operator
-    NEQ,             // Inequality operator
-    STRICT_EQ,       // Strict equality operator
-    STRICT_NEQ,      // Strict inequality operator
-    NULL_COALESCE,   // Null coalescing operator (??
-    LT,              // Less than operator
-    GT,              // Greater than operator
-    LTE,             // Less than or equal to operator
-    GTE,             // Greater than or equal to operator
-    AND,             // Logical AND operator
-    OR,              // Logical OR operator
-    NOT,             // Logical NOT operator
-    IS,              // Identity operator
-    ASSIGN,          // Assignment operator
-    PLUS_ASSIGN,     // Addition assignment operator
-    MINUS_ASSIGN,    // Subtraction assignment operator
-    STAR_ASSIGN,     // Multiplication assignment operator
-    SLASH_ASSIGN,    // Division assignment operator
-    AND_ASSIGN,      // Bitwise AND assignment operator
-    OR_ASSIGN,       // Bitwise OR assignment operator
-    XOR_ASSIGN,      // Bitwise XOR assignment operator
-    MOD_ASSIGN,      // Modulus assignment operator
-    FAT_ARROW,       // Fat arrow operator (=>)
-    PLUS_PLUS,       // Increment operator
-    MINUS_MINUS,     // Decrement operator
-    BIT_AND,         // Bitwise AND operator
-    BIT_OR,          // Bitwise OR operator
-    BIT_XOR,
+    try {
+        // Check the entire AST
+        tc.check(nodes);
+    } catch (const StaticTypeError& e) {
+        // Handle static type errors
+        std::cerr << "Static type error at line " << e.line << ": " << e.what() << std::endl;
+    }
+
+    return 0;
+}
+```
+
+This example shows the initialization of the `TypeChecker` and the attempt to check an AST, with proper error handling for static type errors.
