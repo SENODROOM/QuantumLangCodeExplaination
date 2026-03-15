@@ -1,43 +1,49 @@
-# QuantumLanguage Compiler - TypeChecker.h
+# QuantumLanguage Compiler - Value.h
 
 ## Overview
 
-The `include/TypeChecker.h` header file is a crucial component of the QuantumLanguage compiler, responsible for ensuring that the code adheres to its type system during compilation. This file plays a vital role in the compiler pipeline, acting as a bridge between the abstract syntax tree (AST) generation phase and the code generation phase. It helps catch errors early in the development process, improving overall code quality and maintainability.
+The `include/Value.h` header file is a crucial component of the QuantumLanguage compiler, responsible for defining and managing various data types and values within the language. This file provides the foundational structure necessary for the interpreter to handle expressions, statements, and function calls efficiently. By utilizing C++'s type system and features such as `std::variant`, it enables the representation of multiple value types in a single unified class, enhancing code readability and maintainability.
 
-### Key Design Decisions and Why
+## Role in Compiler Pipeline
 
-1. **Static Typing with Runtime Error Handling**:
-   - The compiler uses static typing to enforce type safety at compile time. However, it also handles runtime type errors gracefully using exceptions (`StaticTypeError`). This dual approach ensures both compile-time checks and robust error handling at runtime.
+In the QuantumLanguage compiler pipeline, `Value.h` plays a pivotal role during the evaluation phase. The interpreter uses these definitions to represent and manipulate values at runtime. It ensures that all operations performed on variables or literals are correctly handled based on their data type, providing robust error checking and type safety.
 
-2. **Hierarchical Type Environment**:
-   - A hierarchical type environment (`TypeEnv`) is implemented to manage variable types in nested scopes. This design allows for easy resolution of variable types even when they are defined in different scopes, providing flexibility and scalability in handling complex programs.
+## Key Design Decisions and Why
 
-3. **Separation of Concerns**:
-   - The `TypeChecker` class encapsulates the logic for type checking, making the code modular and easier to understand. By separating type checking into individual methods, such as `check`, `checkNode`, and `define`, the class becomes more manageable and reusable.
+1. **Use of `std::variant`**: The primary design decision in `Value.h` is the use of `std::variant` to encapsulate different value types within a single `QuantumValue` struct. This choice simplifies the management of multiple types without requiring complex type casting or inheritance hierarchies. It also enhances performance by avoiding unnecessary memory allocations and copies.
+
+2. **Shared Ownership with `std::shared_ptr`**: To manage memory effectively and ensure that values can be shared across different parts of the program, `Value.h` leverages `std::shared_ptr`. This allows for automatic memory management, preventing memory leaks and dangling pointers, which are common issues in languages with manual memory handling.
+
+3. **Separate Structures for Complex Types**: For more complex data structures like functions, native functions, instances, and classes, separate structs (`QuantumFunction`, `QuantumNative`, `QuantumInstance`, `QuantumClass`) are defined. These structs provide additional metadata and functionality specific to each type, enabling the interpreter to execute them appropriately.
+
+4. **Error Handling with Exceptions**: The inclusion of exception handling mechanisms, such as `throw std::runtime_error`, ensures that errors related to invalid operations or null references are caught and handled gracefully. This improves the reliability and user experience of the interpreter.
 
 ## Major Classes/Functions Overview
 
-### 1. `StaticTypeError`
-- **Role**: Inherits from `std::runtime_error` and includes additional information about the line number where the error occurred.
-- **Why**: Provides a clear and specific way to report type-related errors, facilitating debugging and maintenance.
+### QuantumValue
 
-### 2. `TypeEnv`
-- **Role**: Represents a type environment, which maps variable names to their types. It supports hierarchical environments through a shared pointer to a parent environment.
-- **Why**: Enables efficient management of variable types across different scopes, supporting nested functions and blocks without losing track of variable definitions.
+The central class in `Value.h` is `QuantumValue`, which represents any value in the QuantumLanguage. It contains a `std::variant` named `data` that can hold one of several predefined types, including basic types (`bool`, `double`, `std::string`), collections (`Array`, `Dict`), and more complex entities (`QuantumFunction`, `QuantumNative`, `QuantumInstance`, `QuantumClass`, `QuantumPointer`). Each constructor initializes the variant with the corresponding type, ensuring type safety.
 
-### 3. `TypeChecker`
-- **Role**: Manages the overall type checking process. It initializes a global type environment and provides methods to check entire ASTs or individual nodes.
-- **Why**: Centralizes the type checking logic, making it easier to integrate and extend. The separation of concerns allows for focused development and testing of each component.
+### QuantumPointer
+
+This struct represents a pointer to a value in the QuantumLanguage. It holds a `std::shared_ptr` to the actual value, allowing for dynamic memory management and sharing. The `isNull()` method checks if the pointer is null, while the `deref()` method safely dereferences the pointer, throwing an exception if the pointer is null to prevent undefined behavior.
+
+### QuantumFunction
+
+This struct defines a function in the QuantumLanguage. It includes the function's name, parameters, whether each parameter is passed by reference, default arguments, the body of the function (as an AST node), and a closure that captures the environment in which the function was defined. This structure facilitates the execution of functions and the preservation of their state.
+
+### QuantumNative
+
+This struct represents a native function, which is a function implemented in C++ rather than QuantumLanguage itself. It includes the function's name and a callable object (`QuantumNativeFunc`) that performs the actual computation. Native functions are used for performance-critical operations or when interfacing with external systems.
 
 ## Tradeoffs
 
-1. **Performance vs. Flexibility**:
-   - Using exceptions for runtime type errors can be slower compared to other error handling mechanisms. However, it provides greater flexibility and clarity in reporting errors, especially in complex scenarios involving multiple nested scopes.
+While the design choices in `Value.h` offer significant advantages in terms of simplicity, performance, and type safety, they also introduce some tradeoffs:
 
-2. **Memory Usage**:
-   - Hierarchical type environments require additional memory to store parent pointers. While this adds overhead, it enhances the expressiveness and usability of the type system, particularly in large and complex programs.
+1. **Performance Overhead**: Using `std::variant` and `std::shared_ptr` adds overhead compared to simpler types. However, this tradeoff is often outweighed by the benefits of flexibility and robustness.
 
-3. **Complexity vs. Simplicity**:
-   - Encapsulating type checking logic within a single class (`TypeChecker`) simplifies the interface but may increase complexity internally due to the need to manage state and handle different types of AST nodes. Balancing these factors is essential for maintaining a maintainable and scalable codebase.
+2. **Complexity**: The introduction of multiple structs and variants increases the complexity of the codebase. While this might lead to longer compile times, it results in a more modular and easier-to-maintain system.
 
-Overall, the `TypeChecker.h` file is designed to provide a comprehensive and flexible type checking mechanism for the QuantumLanguage compiler, while balancing performance, memory usage, and complexity considerations.
+3. **Memory Usage**: Dynamic memory allocation with `std::shared_ptr` means higher memory usage compared to static memory allocation. However, this is generally managed well through smart pointers and garbage collection.
+
+Overall, the design of `Value.h` strikes a balance between simplicity, performance, and robustness, making it a vital part of the QuantumLanguage compiler's architecture.
