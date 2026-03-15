@@ -1,136 +1,80 @@
-# evalDict() Function Explanation
+# `evalDict` Function Explanation
 
-## Complete Code
+The `evalDict` function in the Quantum Language compiler evaluates a dictionary literal and returns a `QuantumValue` containing the evaluated dictionary. This function is crucial for handling dictionary operations within the quantum programming language, ensuring that keys and values are properly computed before being stored in the final dictionary.
 
-```cpp
-QuantumValue Interpreter::evalDict(DictLiteral &e)
-{
-    auto dict = std::make_shared<Dict>();
-    for (auto &[k, v] : e.pairs)
-    {
-        dict->set(evaluate(*k), evaluate(*v));
-    }
-    return QuantumValue(dict);
-}
-```
+## Parameters/Return Value
 
-## Code Explanation
+- **Parameters**:
+  - `e`: A reference to a `DictLiteral` object representing the dictionary literal to be evaluated. The `DictLiteral` contains pairs of keys and values that need to be processed.
 
-### Function Signature
--  `QuantumValue Interpreter::evalDict(DictLiteral &e)` - Evaluate dictionary literal expressions
-  - `e`: Reference to DictLiteral AST node
-  - Returns QuantumValue containing the created dictionary
+- **Return Value**:
+  - Returns a `QuantumValue` object encapsulating the evaluated dictionary. The dictionary is represented as a shared pointer to a `Dict` object, which stores key-value pairs.
 
-###
--  `{` - Opening brace
--  `auto dict = std::make_shared<Dict>();` - Create shared dictionary object
--  `for (auto &[k, v] : e.pairs)` - Loop through key-value pairs
--  `{` - Opening brace for pair loop
+## How It Works
 
-###
--  `dict->set(evaluate(*k), evaluate(*v));` - Evaluate key and value, store in dictionary
--  `}` - Closing brace for pair loop
--  Empty line for readability
--  `return QuantumValue(dict);` - Return dictionary as QuantumValue
--  `}` - Closing brace for function
+1. **Initialization**: 
+   ```cpp
+   auto dict = std::make_shared<Dict>();
+   ```
+   A new shared pointer to a `Dict` object is created to store the evaluated key-value pairs.
 
-## Summary
+2. **Iterating Over Pairs**:
+   ```cpp
+   for (auto &[k, v] : e.pairs)
+   {
+       ...
+   }
+   ```
+   The function iterates over each pair in the `DictLiteral`. Each pair consists of a key (`k`) and a value (`v`).
 
-The `evalDict()` function handles dictionary literal creation in the Quantum Language:
+3. **Handling Spread Operator**:
+   ```cpp
+   if (!k)
+   {
+       // Spread: {...obj} — copy all fields from obj into dict
+       auto spreadVal = evaluate(*v);
+       if (spreadVal.isDict())
+           for (auto &p : *spreadVal.asDict())
+               (*dict)[p.first] = p.second;
+       else if (spreadVal.isInstance())
+           for (auto &p : spreadVal.asInstance()->fields)
+               (*dict)[p.first] = p.second;
+       continue;
+   }
+   ```
+   If the key is `nullptr`, it indicates that the current pair is using the spread operator (`...`). The function evaluates the value (`v`) and checks if it is a dictionary or an instance. If it's a dictionary, all its key-value pairs are copied into the main dictionary. If it's an instance, all its fields (which act like dictionary entries) are also copied into the main dictionary.
 
-### Key Features
-- **Dictionary Creation**: Creates shared Dict objects
-- **Key-Value Evaluation**: Evaluates both keys and values
-- **Type Flexibility**: Keys and values can be any QuantumValue types
-- **Memory Management**: Uses smart pointers for automatic cleanup
+4. **Evaluating Key and Value**:
+   ```cpp
+   auto key = evaluate(*k);
+   auto val = evaluate(*v);
+   ```
+   For regular dictionary entries, both the key and the value are evaluated using the `evaluate` method. The key is converted to a string representation using the `toString` method.
 
-### Dictionary Creation Process
-1. **Dictionary Object**: Create shared Dict instance
-2. **Pair Loop**: Iterate through all key-value pairs
-3. **Key Evaluation**: Evaluate each key expression
-4. **Value Evaluation**: Evaluate each value expression
-5. **Pair Storage**: Store evaluated pair in dictionary
-6. **Value Return**: Return dictionary as QuantumValue
+5. **Setting Key-Value Pair**:
+   ```cpp
+   (*dict)[key.toString()] = std::move(val);
+   ```
+   The evaluated key and value are then set in the dictionary. The `std::move` ensures that the value is moved rather than copied, optimizing memory usage.
 
-### Dictionary Characteristics
-- **Key-Value Storage**: Stores arbitrary key-value pairs
-- **String Keys**: Keys converted to strings for lookup
-- **Dynamic Size**: Dictionaries can grow and shrink
-- **Reference Type**: Dictionaries are reference types
+6. **Returning the Result**:
+   ```cpp
+   return QuantumValue(dict);
+   ```
+   Finally, the function returns a `QuantumValue` object containing the shared pointer to the evaluated dictionary.
 
-### Key Types Supported
-- **Strings**: `{"key": "value"}` - string keys
-- **Numbers**: `{1: "one", 2: "two"}` - numeric keys
-- **Booleans**: `{true: "yes", false: "no"}` - boolean keys
-- **Objects**: `{obj: "value"}` - object keys (converted to string)
-- **Expressions**: `{x+1: y*2}` - computed keys
+## Edge Cases
 
-### Value Types Supported
-- **Numbers**: `{"age": 25}` - numeric values
-- **Strings**: `{"name": "John"}` - string values
-- **Booleans**: `{"active": true}` - boolean values
-- **Arrays**: `{"items": [1, 2, 3]}` - array values
-- **Objects**: `{"person": personObj}` - object values
+- **Empty Dictionary Literal**: If the `DictLiteral` is empty, the function will simply create an empty `Dict` and return it.
+- **Spread Operator with Non-Dictionary/Instance Values**: If the spread operator is used but the value is not a dictionary or an instance, the function may throw an error or behave unpredictably depending on how the error handling is implemented.
+- **Duplicate Keys**: If multiple pairs have the same key, only the last one will be kept in the dictionary due to the nature of the `Dict` class.
 
-### Evaluation Process
-- **Expression Evaluation**: Both keys and values are full expressions
-- **Side Effects**: Key and value expressions can have side effects
-- **Order Preservation**: Pairs processed in order
-- **Error Propagation**: Errors in evaluation propagate up
+## Interactions with Other Components
 
-### Key Conversion
-- **String Conversion**: Keys converted to strings for storage
-- **Type Safety**: All key types handled safely
-- **Lookup Performance**: String keys enable efficient lookup
-- **Consistency**: Consistent key representation
+- **Evaluator Class**: The `evalDict` function relies on the `evaluate` method of the `Evaluator` class to compute the values of keys and values in the dictionary literal. This method handles various types of expressions and literals.
+  
+- **Dict Class**: The `Dict` class is responsible for storing and managing key-value pairs. The `evalDict` function uses methods of this class to add entries to the dictionary.
 
-### Memory Management
-- **Shared Pointers**: Dictionaries use std::shared_ptr for sharing
-- **Automatic Cleanup**: Memory freed when no references remain
-- **Reference Counting**: Tracks dictionary usage across program
-- **Efficient Copy**: Shared references avoid copying dictionaries
+- **Memory Management**: By using `std::shared_ptr`, the `evalDict` function manages memory efficiently, preventing memory leaks and allowing for automatic garbage collection when dictionaries are no longer in use.
 
-### Design Benefits
-- **Flexibility**: Supports arbitrary key and value types
-- **Performance**: Efficient string-based key lookup
-- **Type Safety**: All values are QuantumValue objects
-- **Memory Safety**: Automatic memory management
-
-### Use Cases
-- **Data Mapping**: Map keys to related values
-- **Configuration**: Store configuration settings
-- **Object Properties**: Represent object properties
-- **Lookup Tables**: Fast key-based value lookup
-
-### Integration with Other Components
-- **Dict Class**: Uses Dict class for storage
-- **QuantumValue**: Wraps dictionary in value system
-- **Expression System**: Integrates with expression evaluation
-- **String System**: Uses string conversion for keys
-
-### Performance Characteristics
-- **Pair Evaluation**: O(n) where n is number of pairs
-- **Key Conversion**: O(1) string conversion for keys
-- **Lookup Performance**: O(1) average case lookup
-- **Memory Allocation**: Single allocation for dictionary object
-
-### Dictionary Examples
-- **Empty Dict**: `{}` - creates empty dictionary
-- **Simple Dict**: `{"a": 1, "b": 2}` - string keys, numeric values
-- **Mixed Types**: `{1: "one", true: false}` - mixed key types
-- **Expressions**: `{x+1: y*2, z: w}` - computed keys and values
-- **Nested**: `{"arr": [1, 2], "dict": {"nested": true}}` - nested structures
-
-### Error Handling
-- **Expression Errors**: Errors in key/value evaluation propagate up
-- **Memory Errors**: Handled by shared pointer system
-- **Type Errors**: All types accepted, no type errors
-- **Allocation Errors**: Handled by standard library
-
-### Dictionary Operations
-- **Lookup**: `dict["key"]` - access values by key
-- **Length**: `len(dict)` - get dictionary size
-- **Iteration**: `for key, value in dict` - loop through pairs
-- **Update**: `dict["key"] = value` - update or add pairs
-
-This function provides the foundation for dictionary creation in the Quantum Language, enabling flexible key-value mapping with proper memory management and type safety while supporting mixed-type keys and values and efficient string-based lookup throughout the dictionary creation process.
+Overall, the `evalDict` function plays a vital role in evaluating dictionary literals within the Quantum Language compiler, ensuring that the resulting dictionary accurately reflects the intended structure and contents.
