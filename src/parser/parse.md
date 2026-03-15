@@ -1,89 +1,68 @@
-# parse() Function Explanation
+# `parse()` Function Explanation
 
-## Complete Code
+The `parse()` function is the primary method in the `Parser` class of the Quantum Language compiler. It is responsible for parsing the input source code into an Abstract Syntax Tree (AST). This AST represents the syntactic structure of the source code and can be used for further analysis or compilation steps.
 
-```cpp
-ASTNodePtr Parser::parse()
-{
-    auto block = std::make_unique<ASTNode>(BlockStmt{}, 0);
-    auto &stmts = block->as<BlockStmt>().statements;
-    skipNewlines();
-    while (!atEnd())
-    {
-        stmts.push_back(parseStatement());
-        skipNewlines();
-    }
-    return block;
-}
-```
+## What It Does
 
-## Code Explanation
+The `parse()` function reads the input source code and constructs an AST by breaking down the code into individual statements. Each statement is parsed using the `parseStatement()` method and added to the list of statements within a `BlockStmt`.
 
-### Function Signature
--  `ASTNodePtr Parser::parse()` - Main parsing entry point
-  - Returns pointer to AST node containing the entire program
-  - Creates top-level block for all statements
+## Why It Works This Way
 
-###
--  `{` - Opening brace
--  `auto block = std::make_unique<ASTNode>(BlockStmt{}, 0);` - Create AST node for program block
-  - `BlockStmt{}` creates empty block statement structure
-  - `0` indicates line number (program start)
-  - `std::make_unique` creates smart pointer for memory management
--  `auto &stmts = block->as<BlockStmt>().statements;` - Get reference to statements vector
-  - `as<BlockStmt>()` safely casts to BlockStmt type
-  - `statements` is the vector that will hold all program statements
+This design allows the parser to handle multiple statements sequentially, ensuring that each statement is correctly parsed before moving on to the next. The use of a `BlockStmt` encapsulates all parsed statements, making it easier to manage and manipulate them later during the compilation process.
 
-###
--  `skipNewlines();` - Skip leading whitespace/newlines
-  - Ensures parsing starts at first actual statement
+## Parameters/Return Value
 
-###
--  `while (!atEnd())` - Loop until end of token stream
--  `{` - Opening brace for loop body
--  `stmts.push_back(parseStatement());` - Parse each statement and add to block
-  - `parseStatement()` handles individual statement types
-  - `push_back()` adds parsed statement to program block
--  `skipNewlines();` - Skip whitespace between statements
--  `}` - Closing brace for loop body
+- **Parameters**: None
+- **Return Value**: An `ASTNodePtr`, which is a unique pointer to an `ASTNode`. The returned node contains a `BlockStmt` with all the parsed statements as its children.
 
-###
--  `return block;` - Return completed AST
-  - Returns smart pointer to root of program AST
--  `}` - Closing brace for function
+## Edge Cases
 
-## Summary
+1. **Empty Input**: If the input source code is empty, the function will return an empty `BlockStmt`.
+2. **Multiple Statements**: The function can handle multiple statements separated by newlines or semicolons.
+3. **Comments and Whitespace**: The `skipNewlines()` method ensures that comments and unnecessary whitespace do not interfere with the parsing process.
 
-The `parse()` function is the main entry point for the parsing process:
+## Interactions With Other Components
 
-### Key Features
-- **Program Structure**: Wraps entire program in a BlockStmt
-- **Memory Management**: Uses smart pointers for automatic cleanup
-- **Whitespace Handling**: Automatically skips formatting tokens
-- **Comprehensive Parsing**: Processes all statements until EOF
+- **Lexer**: The `parse()` function relies on the lexer to tokenize the input source code. Tokens are passed to the parser to determine the structure of the statements.
+- **Error Handling**: During parsing, errors are detected and reported using error handling mechanisms provided by the compiler framework. These errors help in identifying issues in the source code and guiding the user towards corrections.
+- **Symbol Table**: Although not explicitly shown in the code snippet, the parser interacts with the symbol table to resolve identifiers and ensure they are declared before use.
 
-### Parsing Process
-1. **Initialize Block**: Create container for all statements
-2. **Skip Whitespace**: Clean up leading formatting
-3. **Parse Loop**: Process each statement sequentially
-4. **Clean Separation**: Handle whitespace between statements
-5. **Return AST**: Provide complete program structure
+## Detailed Implementation
 
-### AST Structure
-- **Root Node**: BlockStmt containing all program statements
-- **Statements**: Sequential list of parsed statements
-- **Line Numbers**: Preserved for error reporting
-- **Type Safety**: Uses variant-based AST nodes
+Here's a more detailed breakdown of how the `parse()` function works:
 
-### Error Handling
-- **Statement Level**: Individual statement parsing handles errors
-- **Position Tracking**: Line numbers maintained throughout
-- **Graceful Recovery**: Continues parsing after statement errors
+1. **Create Block Node**:
+   ```cpp
+   auto block = std::make_unique<ASTNode>(BlockStmt{}, 0);
+   ```
+   A unique pointer to an `ASTNode` containing a `BlockStmt` is created. The `BlockStmt` will hold all the parsed statements.
 
-### Design Benefits
-- **Simple Interface**: Single function call to parse entire program
-- **Clean Output**: Well-structured AST for interpreter/compiler
-- **Efficient**: Single pass through token stream
-- **Extensible**: Easy to add new statement types
+2. **Get Statement List Reference**:
+   ```cpp
+   auto &stmts = block->as<BlockStmt>().statements;
+   ```
+   A reference to the list of statements (`statements`) within the `BlockStmt` is obtained.
 
-This function transforms the linear token stream into a hierarchical Abstract Syntax Tree ready for interpretation or compilation.
+3. **Skip Newlines**:
+   ```cpp
+   skipNewlines();
+   ```
+   This method skips any leading newline characters, ensuring that the parser starts processing the actual content of the source code.
+
+4. **Parse Loop**:
+   ```cpp
+   while (!atEnd())
+   {
+       stmts.push_back(parseStatement());
+       skipNewlines();
+   }
+   ```
+   The parser enters a loop that continues until the end of the input source code is reached (`atEnd()` returns `true`). In each iteration, it calls `parseStatement()` to parse the current statement and adds it to the `statements` list. After parsing a statement, it skips any additional newlines.
+
+5. **Return Block Node**:
+   ```cpp
+   return block;
+   ```
+   Once all statements have been parsed, the function returns the unique pointer to the `BlockStmt` containing all the parsed statements.
+
+By following this approach, the `parse()` function efficiently handles the parsing of multiple statements, ensuring that the resulting AST accurately reflects the structure of the source code.
