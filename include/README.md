@@ -1,85 +1,60 @@
-# QuantumLanguage Compiler - Interpreter.h
+# QuantumLanguage Compiler - Lexer.h
 
 ## Overview
 
-The `include/Interpreter.h` header file is an essential component of the QuantumLanguage compiler, responsible for interpreting and executing abstract syntax tree (AST) nodes. It provides the core functionality to evaluate expressions, execute statements, manage environments, and handle built-in methods. This file serves as the bridge between the AST generation phase and the runtime execution phase, ensuring that the compiled code can be executed efficiently.
+The `include/Lexer.h` header file is an essential component of the QuantumLanguage compiler, responsible for converting raw text into a sequence of tokens. These tokens serve as the building blocks for further parsing and semantic analysis. The Lexer class plays a pivotal role in the initial stages of the compilation process, ensuring that the input source code is accurately parsed into meaningful units.
 
 ## Key Design Decisions
 
-### Use of Smart Pointers
+### Use of `std::unordered_map` for Keywords
 
-**Why:** To manage memory effectively and avoid manual memory management errors such as leaks and dangling pointers. The use of smart pointers (`std::shared_ptr`) ensures automatic deallocation when objects are no longer needed, enhancing the reliability and performance of the interpreter.
+**WHY**: Using an unordered map allows for constant time complexity (`O(1)`) lookups when checking if a word is a keyword. This is crucial for quickly identifying reserved words during the lexing phase, enhancing performance and reducing overhead.
 
-### Environment Management
+### Separate Handling of Template Literals
 
-**Why:** To maintain state and scope information during program execution. Each environment represents a variable scope, allowing for nested scopes and dynamic scoping. This design decision facilitates the implementation of control flow constructs like functions, loops, and conditionals without losing track of variable bindings.
+**WHY**: Template literals, which allow for string interpolation using expressions enclosed within `${}`, require special handling to ensure correct tokenization and evaluation. Separating their processing into a dedicated function (`readTemplateLiteral`) ensures clarity and modularity, making it easier to manage and extend the lexer's functionality in the future.
 
-### Trade-offs
+### Use of Pending Tokens for F-Strings
 
-#### Memory Overhead
+**WHY**: F-strings (formatted string literals) in QuantumLanguage support dynamic content insertion within strings. To handle this, the lexer uses a temporary storage mechanism (`pendingTokens_`) to accumulate tokens before they are finalized. This approach simplifies the integration of f-string expansion logic without cluttering the main lexing process.
 
-Using smart pointers introduces some overhead due to additional bookkeeping required for reference counting. However, this trade-off is considered acceptable given the benefits of automatic memory management and reduced risk of memory-related bugs.
+## Class and Function Documentation
 
-#### Performance Impact
+### Lexer Class
 
-Smart pointer operations may have slight performance implications compared to raw pointers. In critical sections of the interpreter where performance is paramount, further optimizations might be necessary to mitigate these effects.
+**Purpose**: The `Lexer` class is designed to take a source code string and convert it into a vector of `Token` objects. Each token represents a syntactic element of the source code, such as identifiers, numbers, operators, and keywords.
 
-## Class Documentation
+**Behavior**:
+- **Constructor (`explicit Lexer(const std::string &source)`)**: Initializes the lexer with the provided source code string.
+- **Function (`std::vector<Token> tokenize()`)**: Processes the entire source code and returns a vector of tokens.
 
-### Interpreter
+### Private Member Variables
 
-**Purpose:** Manages the execution of quantum programs by interpreting AST nodes and maintaining the global and local environments.
+- **src**: Stores the source code string being processed.
+- **pos**: Tracks the current position in the source code.
+- **line** and **col**: Maintain the current line and column numbers for error reporting and debugging purposes.
+- **keywords**: A static unordered map containing all recognized keywords and their corresponding token types.
+- **pendingTokens_**: Used temporarily to store tokens while expanding f-strings.
+- **defines_**: Stores macro definitions, mapping macro names to lists of replacement tokens.
 
-**Behaviour:**
-- **Constructor:** Initializes the interpreter with default settings.
-- **execute(ASTNode &node):** Executes the given AST node.
-- **evaluate(ASTNode &node):** Evaluates the given AST node and returns its value.
-- **execBlock(BlockStmt &s, std::shared_ptr<Environment> scope = nullptr):** Executes a block statement with an optional custom environment.
-- **globals:** A shared pointer to the global environment, which holds all top-level variables and functions.
+### Private Functions
 
-### Private Member Functions
+- **current() const**: Returns the character at the current position in the source code.
+- **peek(int offset = 1) const**: Returns the character at the specified offset ahead of the current position without advancing the position.
+- **advance()**: Advances the current position in the source code by one character and returns the character that was previously at the current position.
+- **skipWhitespace()**: Skips over any whitespace characters in the source code.
+- **skipComment()**: Skips over single-line comments starting with `//`.
+- **skipBlockComment()**: Skips over multi-line comments enclosed between `/*` and `*/`.
+- **readNumber()**: Reads a numeric literal from the source code and returns the corresponding `Token`.
+- **readString(char quote)**: Reads a string literal from the source code, handling both single (`'`) and double (`"`) quotes, and returns the corresponding `Token`.
+- **readTemplateLiteral(std::vector<Token> &out, int startLine, int startCol)**: Handles the expansion of template literals, accumulating tokens in the provided output vector.
+- **readIdentifierOrKeyword()**: Reads an identifier or keyword from the source code and returns the corresponding `Token`.
+- **readOperator()**: Reads an operator or punctuation mark from the source code and returns the corresponding `Token`.
 
-#### Statement Executors
+## Tradeoffs and Limitations
 
-- **void execVarDecl(VarDecl &s):** Executes a variable declaration statement.
-- **void execFunctionDecl(FunctionDecl &s):** Executes a function declaration statement.
-- **void execClassDecl(ClassDecl &s):** Executes a class declaration statement.
-- **void execIf(IfStmt &s):** Executes an if statement.
-- **void execWhile(WhileStmt &s):** Executes a while loop.
-- **void execFor(ForStmt &s):** Executes a for loop.
-- **void execReturn(ReturnStmt &s):** Handles return statements.
-- **void execPrint(PrintStmt &s):** Prints the result of an expression.
-- **void execInput(InputStmt &s):** Reads input from the user.
-- **void execImport(ImportStmt &s):** Imports modules.
-- **void execExprStmt(ExprStmt &s):** Executes an expression statement.
+- **Performance**: While the use of an unordered map for keywords provides fast lookup times, it may introduce additional memory overhead compared to other data structures.
+- **Complexity**: Handling template literals requires additional complexity in the lexer, potentially complicating the overall architecture of the compiler.
+- **Error Reporting**: The lexer maintains line and column information, which aids in accurate error reporting but adds some computational cost.
 
-#### Expression Evaluators
-
-- **QuantumValue evalBinary(BinaryExpr &e):** Evaluates binary expressions.
-- **QuantumValue evalUnary(UnaryExpr &e):** Evaluates unary expressions.
-- **QuantumValue evalAssign(AssignExpr &e):** Handles assignment expressions.
-- **QuantumValue evalCall(CallExpr &e):** Calls functions or methods.
-- **QuantumValue evalIndex(IndexExpr &e):** Accesses elements in arrays or dictionaries.
-- **QuantumValue evalMember(MemberExpr &e):** Accesses members of instances.
-- **QuantumValue evalArray(ArrayLiteral &e):** Creates array literals.
-- **QuantumValue evalDict(DictLiteral &e):** Creates dictionary literals.
-- **QuantumValue evalLambda(LambdaExpr &e):** Defines lambda functions.
-- **QuantumValue evalListComp(ListComp &e):** Handles list comprehensions.
-- **QuantumValue evalIdentifier(Identifier &e):** Retrieves the value of an identifier.
-
-### C++ Pointer Evaluators
-
-- **QuantumValue evalAddressOf(AddressOfExpr &e):** Computes the address of a variable.
-- **QuantumValue evalDeref(DerefExpr &e):** Dereferences a pointer.
-- **QuantumValue evalArrow(ArrowExpr &e):** Accesses a member through a pointer.
-- **QuantumValue evalNewExpr(NewExpr &e):** Allocates memory for a new instance of a class.
-
-### Method Dispatch
-
-- **QuantumValue callFunction(std::shared_ptr<QuantumFunction> fn, std::vector<QuantumValue> args):** Invokes a user-defined function.
-- **QuantumValue callNative(std::shared_ptr<QuantumNative> fn, std::vector<QuantumValue> args):** Invokes a native function.
-- **QuantumValue callInstanceMethod(std::shared_ptr<QuantumInstance> inst, std::shared_ptr<QuantumFunction> fn, std::vector<QuantumValue> args):** Invokes a method on an instance.
-- **QuantumValue callMethod(QuantumValue &obj, const std::string &method, std::vector<QuantumValue> args):** Dispatches a method call based on the object type.
-- **QuantumValue callArrayMethod(std::shared_ptr<Array> arr, const std::string &method, std::vector<QuantumValue> args):** Dispatches a method call specific to arrays.
-- **QuantumValue callStringMethod(const std::string &str, const std::string &method, std::vector<QuantumValue> args):** Dispatches a method call specific to strings.
-- **QuantumValue callDictMethod(std::
+This README.md provides a detailed overview of the `Lexer.h` file, explaining its purpose, key design decisions, and the behavior of its major components. It also highlights potential tradeoffs and limitations associated with the implementation.
