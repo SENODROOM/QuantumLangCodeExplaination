@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The `parseBodyOrStatement` function is designed to handle the parsing of either a statement or a body in the context of the Quantum Language compiler. It determines whether the next token indicates the start of a statement or a block and processes accordingly.
+The `parseBodyOrStatement` function is crucial for handling the parsing of either a single statement or a block in the Quantum Language compiler. This function determines the type of construct based on the next token and processes it appropriately, ensuring that the correct Abstract Syntax Tree (AST) node is returned.
 
 ## Parameters
 
@@ -10,21 +10,35 @@ The `parseBodyOrStatement` function is designed to handle the parsing of either 
 
 ## Return Value
 
-- Returns a unique pointer to an `ASTNode` object representing the parsed statement or block.
-  - If the next token is a semicolon (`;`), it returns an empty `BlockStmt`.
-  - If the next token is an opening brace (`{`) or indentation, it calls `parseBlock()` and returns its result.
-  - Otherwise, it parses a single statement using `parseStatement()` and wraps it in a `BlockStmt`.
+- Returns a unique pointer to an `ASTNode`, which can be either a `BlockStmt` or a `Statement`.
+
+## How It Works
+
+1. **Check for Empty Body**: The function first checks if the next token is a semicolon (`TokenType::SEMICOLON`). If so, it interprets this as an empty body, such as in constructs like `while(cond);` or `for(...);`. In this case:
+   - It records the current line number (`ln`) where the semicolon is located.
+   - It consumes the semicolon token using `consume()`.
+   - It returns a new `ASTNode` containing an empty `BlockStmt` and the recorded line number.
+
+2. **Check for Block Start**: If the next token is not a semicolon but is either an opening brace (`TokenType::LBRACE`) or an indentation marker (`TokenType::INDENT`), the function assumes that a block is starting. In this scenario:
+   - It calls `parseBlock()` to parse the entire block of statements.
+   - It returns the result of `parseBlock()` as an `ASTNode`.
+
+3. **Parse Single Statement**: For all other cases, where neither a semicolon nor an opening brace/indentation marker is encountered, the function assumes that a single statement is being parsed. In this case:
+   - It records the current line number (`ln`) where the statement begins.
+   - It initializes a `BlockStmt` object named `block`.
+   - It adds the result of `parseStatement()` to the `statements` vector within the `BlockStmt`.
+   - Finally, it returns a new `ASTNode` containing the populated `BlockStmt` and the recorded line number.
 
 ## Edge Cases
 
-1. **Empty Body**: The function handles empty bodies indicated by a semicolon (`;`). In such cases, it returns an empty `BlockStmt`, which represents a null statement.
-2. **Single Statement**: When there is no block or semicolon following a statement, the function parses the single statement and wraps it in a `BlockStmt`. This ensures that all statements are treated uniformly as blocks within the AST.
-3. **Nested Blocks**: The function correctly identifies nested blocks by checking for `{` or indentation after a statement. This allows for the proper construction of nested structures in the AST.
+- **Empty Body**: When encountering a semicolon immediately after a control structure (like `while` or `for`), the function correctly identifies it as an empty body and handles it accordingly.
+- **Single Statement**: Any other token sequence is treated as a single statement enclosed in a block. This ensures compatibility with various syntactic structures in the Quantum Language.
+- **Nested Blocks**: Although not explicitly handled in this snippet, the function's design allows for nested blocks to be parsed recursively by calling itself when encountering an opening brace or indentation.
 
 ## Interactions with Other Components
 
-- **Tokenizer**: The function uses the tokenizer to fetch the current token (`current()`) and check subsequent tokens (`check()`).
-- **Block Parser**: When encountering an opening brace (`{`) or indentation, the function delegates parsing to `parseBlock()`, which further breaks down the block into individual statements.
-- **Statement Parser**: For any other token, the function invokes `parseStatement()` to handle the parsing of individual statements.
+- **Tokenizer**: The function relies on the tokenizer to provide the next token for analysis.
+- **Error Handling**: While not shown in the snippet, the function should integrate with the error handling mechanisms of the compiler to manage unexpected tokens gracefully.
+- **Parsing Context**: The function operates within the broader context of the parser, utilizing shared state and functions like `current()`, `check()`, and `consume()` to navigate through the input stream and build the AST.
 
-This interaction ensures that the parser can handle various constructs in the Quantum Language, including simple statements, empty bodies, and complex nested blocks, effectively constructing the Abstract Syntax Tree (AST).
+This function plays a pivotal role in the Quantum Language compiler by accurately distinguishing between different types of code constructs and building the appropriate AST nodes. Its flexible design ensures robust parsing capabilities across various language features.
