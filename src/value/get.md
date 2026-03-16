@@ -1,48 +1,28 @@
 # `get` Function
 
 ## Overview
-The `get` function is a method used within the Quantum Language compiler to retrieve the value of a variable named `name`. This function is crucial for accessing variables in the current scope and recursively searching up the scope chain if the variable is not found locally.
+The `get` function is a method utilized within the Quantum Language compiler to fetch the value of a variable specified by its name (`name`). This function plays a pivotal role in accessing variables within the current lexical scope and traversing up the scope hierarchy if the variable isn't found locally.
 
-## Parameters
-- **`name`**: A string representing the name of the variable whose value needs to be retrieved.
+### Why It Works This Way
+1. **Local Variable Search**: The function first checks the `cells` map to see if there's a live value associated with the variable name. If `cells` contains an entry for `name`, it returns the dereferenced value pointed to by the cell.
+2. **Global Variable Search**: If the variable isn't found in `cells`, the function then searches the `vars` map, which stores global variables. If a match is found, it returns the corresponding value.
+3. **Parent Scope Traversal**: If neither `cells` nor `vars` contain the variable, the function checks if there is a parent scope (`parent`). If a parent exists, it calls the `get` function on the parent scope, allowing the search to continue up the scope chain.
+4. **Exception Handling**: If the variable is still not found after checking all possible locations, the function throws a `NameError` indicating that the variable is undefined.
 
-## Return Value
-- The function returns the value associated with the variable `name`.
-- If the variable is found in either the local `cells` or `vars` map, the corresponding value is returned.
-- If the variable is not found in the local maps but exists in the parent scope, the value from the parent scope is returned.
-- If the variable is not defined anywhere in the current or parent scopes, an exception of type `NameError` is thrown indicating that the variable is undefined.
+## Parameters/Return Value
+- **Parameters**:
+  - `name`: A string representing the name of the variable whose value needs to be retrieved.
+  
+- **Return Value**:
+  - Returns the value of the variable as stored in either the local `cells` or `vars` maps, or as returned by the recursive call to `parent->get(name)`.
 
 ## Edge Cases
-1. **Local Variable Not Found**:
-   - If the variable `name` is not present in both the `cells` and `vars` maps, the function will check the parent scope.
-   - If the variable is still not found in the parent scope, a `NameError` is thrown.
+1. **Variable Not Found**: If the variable is not present in any of the local or parent scopes, the function will throw a `NameError`.
+2. **Empty Parent Scope**: If the current scope does not have a parent scope (`parent == nullptr`), and the variable is not found in the local scope, the function will also throw a `NameError`.
 
-2. **Parent Scope Not Defined**:
-   - If there is no parent scope (`parent` is `nullptr`), and the variable is not found in the local scope, a `NameError` is thrown.
+## Interactions With Other Components
+- **Scope Management**: The `get` function interacts closely with the scope management system, utilizing both the local `cells` and `vars` maps to store and retrieve variable values.
+- **Recursive Calls**: When the variable is not found in the current scope, the function makes a recursive call to the `get` method of the parent scope, ensuring that the search continues up the scope chain until the variable is found or an exception is thrown.
+- **Error Handling**: The `get` function relies on error handling mechanisms provided by the Quantum Language compiler to manage cases where a variable is undefined.
 
-3. **Variable in Multiple Scopes**:
-   - If the variable exists in multiple scopes (both local and parent), the value from the local scope will be returned.
-   - This ensures that the most recent definition of the variable takes precedence.
-
-## Interactions with Other Components
-- **Scope Management**: The `get` function interacts with the scope management system of the Quantum Language compiler. It uses two maps (`cells` and `vars`) to store variables in the current scope.
-- **Recursive Search**: If the variable is not found in the local scope, the function calls itself on the parent scope (`parent->get(name)`). This recursive search mechanism allows the compiler to access variables defined in outer scopes.
-- **Exception Handling**: The function includes exception handling to manage cases where the variable is not defined. When a `NameError` is thrown, it indicates a problem with the variable's declaration or usage in the code.
-
-## Implementation Details
-Here is a detailed breakdown of how the `get` function operates:
-
-1. **Check Local Variables**:
-   - The function first attempts to find the variable `name` in the `cells` map.
-   - If found, it dereferences the pointer stored in `cells[name]` and returns the value pointed to.
-   - If not found in `cells`, it then checks the `vars` map for the variable `name`.
-
-2. **Return Value**:
-   - If the variable is found in either `cells` or `vars`, its value is returned directly.
-   - If the variable is found in the parent scope, the value from the parent scope is returned.
-
-3. **Throw Exception**:
-   - If the variable is not found in any of the above locations, including the parent scope, a `NameError` exception is thrown.
-   - The exception message includes the name of the undefined variable, providing clear feedback to the developer about the issue.
-
-This implementation ensures that the `get` function can effectively retrieve variable values from the current scope and propagate the search up the scope chain if necessary, while also managing cases where variables are not declared properly.
+This comprehensive approach ensures that the `get` function can effectively locate and return the value of a variable across different scopes, providing robust support for variable access within the compiler.
