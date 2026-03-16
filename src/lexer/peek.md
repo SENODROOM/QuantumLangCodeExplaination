@@ -1,23 +1,27 @@
 # peek() Function - Lookahead Character Access
 
 ## Overview
-The `peek()` function in the Quantum Language compiler allows for non-destructive lookahead into the source code string. It enables the lexer to inspect characters ahead of its current position without altering the lexer's state. This functionality is crucial for accurately identifying and parsing multi-character tokens, such as keywords or operators.
+The `peek()` function in the Quantum Language compiler is designed to provide a mechanism for non-destructive lookahead into the source code string. This means that the lexer can examine characters ahead of its current position without changing the lexer's internal state. This functionality is crucial for parsing and tokenizing the source code effectively.
 
-## Parameters
-- **pos**: The current position within the source code string.
-- **offset**: The number of characters to look ahead from the current position.
+## Parameters/Return Value
+- **Parameters**: 
+  - `offset` (size_t): The number of characters to look ahead from the current position.
+  
+- **Return Value**:
+  - Returns the character at the specified lookahead position if it exists; otherwise, returns `\0` (null character).
 
-## Return Value
-- Returns the character at the specified lookahead position (`pos + offset`).
-- If the lookahead position exceeds the bounds of the source code string, returns the null terminator (`'\0'`).
+## How It Works
+The `peek()` function calculates the position (`p`) where the lookahead should occur by adding the `offset` to the current position (`pos`). If the calculated position is within the bounds of the source code string (`src`), it returns the character at that position. Otherwise, it returns `\0`, indicating that there are no more characters to look ahead.
+
+This implementation ensures that the lexer remains in a consistent state after calling `peek()`, allowing subsequent calls to `get()` or other functions to continue from the same point as before.
 
 ## Edge Cases
-- When `offset` is zero, `peek()` simply returns the character at the current position (`src[pos]`), effectively making it a read operation without advancement.
-- If `pos + offset` equals or exceeds the size of the source code string (`src.size()`), `peek()` returns the null terminator (`'\0'`). This prevents out-of-bounds access and ensures that the lexer can safely handle end-of-file scenarios.
+1. **Offset Greater Than String Length**: When the `offset` exceeds the length of the source code string, `peek()` will return `\0`. This handles scenarios where the lexer attempts to access characters beyond the end of the input.
+2. **Current Position At End Of String**: If the current position (`pos`) is already at the end of the source code string, `peek()` will also return `\0`. This prevents out-of-bounds errors when trying to access characters past the last one.
 
-## Interactions with Other Components
-- **Lexer Class**: The `peek()` function is typically used internally within the Lexer class to implement token recognition logic. By examining characters ahead of the current position, the lexer can determine whether a sequence of characters forms a valid token.
-- **Tokenization Process**: During the tokenization process, the lexer uses `peek()` to check for potential multi-character tokens. For example, when encountering an identifier, it might use `peek()` to see if the next characters form a reserved keyword like "if" or "else".
-- **Error Handling**: In some cases, `peek()` might be used to detect unexpected characters or patterns, which could indicate syntax errors. Returning the null terminator helps in gracefully handling these situations without causing runtime exceptions.
+## Interactions With Other Components
+- **Lexer State Management**: By not modifying the lexer's state, `peek()` allows other parts of the compiler to rely on the lexer's position being unchanged after a call to `peek()`.
+- **Parsing Algorithms**: Functions like `match()` and `tokenize()` use `peek()` to determine the next sequence of characters and decide how to proceed with parsing.
+- **Error Handling**: In error reporting, `peek()` helps identify the context around an error, providing more accurate diagnostics.
 
-Overall, the `peek()` function serves as a fundamental utility for the lexer, enabling accurate and efficient tokenization of the source code while maintaining control over the lexer’s state.
+In summary, the `peek()` function is a vital tool in the Quantum Language compiler for managing lookahead operations efficiently and ensuring the lexer's state remains intact during parsing processes.
