@@ -1,44 +1,43 @@
 # `evalListComp`
 
-`evalListComp` is a method within the Quantum Language compiler's interpreter that evaluates list comprehensions. List comprehensions provide a concise way to create lists based on existing lists or other iterable objects. This method handles the evaluation of such comprehensions, including iterating over elements, processing each element through an expression, and optionally filtering elements based on a condition.
-
-## What It Does
-
-The primary function of `evalListComp` is to take a list comprehension expression (`e`) and compute its result. The result is a new array containing elements that have been processed according to the list comprehension's rules.
-
-## Why It Works This Way
-
-This implementation works by:
-1. Creating a shared pointer to an empty array (`result`) where the final output will be stored.
-2. Evaluating the iterable part of the list comprehension (`*e.iterable`). This could be an array, string, or dictionary.
-3. Determining whether the variables used in the list comprehension are tuple-like (i.e., expecting two values) or single-value.
-4. Defining a lambda function (`processItem`) that processes each item in the iterable:
-   - Creates a new environment (`scope`) that inherits from the current environment (`env`).
-   - Defines the variable(s) in the scope using the current item.
-   - Optionally filters the item based on a condition (`e.condition`).
-   - If the item passes the filter, evaluates the expression (`*e.expr`) within the scope and adds the result to the `result` array.
-5. Iterates over the iterable object and applies the `processItem` lambda to each item.
-6. Returns the computed array as a `QuantumValue`.
+`evalListComp` is a critical method within the Quantum Language compiler's interpreter responsible for evaluating list comprehensions. List comprehensions offer a succinct and readable way to construct lists by iterating over an iterable object and applying conditions and expressions. This method ensures that these comprehensions are evaluated correctly and efficiently.
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - `e`: A reference to a `ListComprehensionExpression` object representing the list comprehension to be evaluated.
+  - `e`: A reference to a `ListComprehensionExpression`, which contains all necessary information about the list comprehension, including the iterable, variables, condition, and expression to be evaluated.
 
 - **Return Value**:
-  - A `QuantumValue` object containing the resulting array from evaluating the list comprehension.
+  - Returns a `QuantumValue` representing the resulting array after evaluating the list comprehension.
+
+## How It Works
+
+The method begins by creating an empty shared pointer to an `Array` named `result`. It then evaluates the iterable part of the list comprehension using the `evaluate` function, storing the result in `iter`.
+
+Next, it checks whether the list comprehension involves multiple variables (`hasTuple`). If so, it determines how many variables there are and sets up the scope accordingly. For each item in the iterable, it creates a new environment (`scope`) based on the current environment (`env`). If the item is an array and contains at least two elements, it assigns the first element to the first variable and the second element to the second variable. Otherwise, it assigns the entire item to the single variable, and if there are more than one variable defined, it initializes the extra variable as an empty `QuantumValue`.
+
+If a filtering condition is specified (`e.condition`), the method evaluates this condition within the newly created scope for each item. If the condition fails, the item is skipped, and no further processing occurs for it.
+
+For each item that passes the condition, the method evaluates the main expression (`e.expr`) within its own scope. The result of this evaluation is then added to the `result` array.
+
+Finally, the method returns the `result` array wrapped in a `QuantumValue`.
 
 ## Edge Cases
 
-- **Empty Iterable**: If the iterable is empty (e.g., an empty array), the method returns an empty array without any computation.
-- **Single Variable**: If the list comprehension uses only one variable, the method defines that variable and processes each item accordingly.
-- **Tuple-Like Variables**: If the list comprehension uses two variables (tuple-like), the method expects each item to be an array or dictionary with at least two elements. If not, it assigns the entire item to the first variable and leaves the second variable undefined.
-- **Filter Condition**: If there is a filter condition (`e.condition`), items that do not meet the condition are skipped.
+- **Empty Iterable**: If the iterable part of the list comprehension is empty, the method will simply return an empty array without any additional processing.
+  
+- **Non-Iterable Types**: If the iterable part is not an array, string, or dictionary, the method will throw an error since it cannot iterate over non-iterable types.
 
-## Interactions With Other Components
+- **Single Variable vs Tuple Variables**: When dealing with tuple variables, the method must handle both scenarios where the item is an array and where it is not. In the latter case, it assumes the item itself represents the value for the single variable.
 
-- **Environment Management**: `evalListComp` creates a new environment (`scope`) for each iteration of the list comprehension. This allows local variables to be defined and used during the evaluation of individual items without affecting the outer environment.
-- **Evaluation Functions**: The method relies on other evaluation functions (`evaluate`) to handle the evaluation of expressions and conditions within the list comprehension. These functions are responsible for computing the values of quantum expressions.
-- **Data Structures**: `evalListComp` uses various data structures like arrays, strings, and dictionaries to represent the iterable and the result of the list comprehension. These structures are part of the `QuantumValue` class, which encapsulates different types of quantum data.
+- **Filter Condition Failure**: If the filtering condition fails for an item, the method skips processing for that item and moves on to the next one.
 
-Overall, `evalListComp` is a crucial component for handling list comprehensions in the Quantum Language compiler, ensuring that they are evaluated correctly and efficiently.
+## Interactions with Other Components
+
+- **Environment Management**: `evalListComp` interacts with the `Environment` class to manage the scope for each iteration of the list comprehension. This allows variables to be defined and accessed within the context of individual items.
+
+- **Evaluation Function**: The method uses the `evaluate` function to compute the values of the iterable, condition, and expression. This function is essential for interpreting the quantum language expressions correctly.
+
+- **Data Structures**: `evalListComp` utilizes various data structures like `Array`, `String`, and `Dictionary` to represent different types of iterables and their contents. These structures facilitate the iteration and manipulation of data during the evaluation process.
+
+By carefully managing environments, handling different types of iterables, and ensuring proper evaluation of conditions and expressions, `evalListComp` provides robust support for list comprehensions in the Quantum Language compiler.
