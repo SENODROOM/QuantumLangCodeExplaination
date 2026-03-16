@@ -1,28 +1,36 @@
 # `asNative()` Function Explanation
 
-The `asNative()` function is a member method of the `QuantumValue` class in the Quantum Language compiler's source code (`src/Value.cpp`). This function serves to retrieve a shared pointer to a `QuantumNative` object from the `QuantumValue` instance, but only if the `QuantumValue` represents a native function.
+The `asNative()` function is a member method of the `QuantumValue` class within the Quantum Language compiler's source code located at `src/Value.cpp`. This function is designed to extract and return a shared pointer to a `QuantumNative` object stored within a `QuantumValue` instance, provided that the `QuantumValue` represents a native function.
 
-## Purpose
-The primary purpose of the `asNative()` function is to provide access to the underlying `QuantumNative` object that is stored within a `QuantumValue`. However, before returning this object, it checks whether the `QuantumValue` indeed holds a native function. If the `QuantumValue` does not represent a native function, the function throws a `RuntimeError`.
+## What It Does
 
-## Parameters and Return Value
-- **Parameters**: None
-- **Return Value**: A `std::shared_ptr<QuantumNative>` representing the native function stored within the `QuantumValue`. If the `QuantumValue` does not contain a native function, a `RuntimeError` is thrown.
+- **Purpose**: The primary purpose of `asNative()` is to provide access to the underlying `QuantumNative` object encapsulated by a `QuantumValue`.
+- **Return Value**: If successful, it returns a `std::shared_ptr<QuantumNative>` pointing to the native function.
+- **Exception Handling**: If the `QuantumValue` does not represent a native function, it throws a `RuntimeError`.
 
-## How It Works
-1. **Type Check**: The function first calls the `isNative()` method on the `QuantumValue` instance to check if the value is a native function.
-2. **Exception Handling**: If `isNative()` returns `false`, indicating that the `QuantumValue` does not represent a native function, the function throws a `RuntimeError` with the message "Value is not a native function". This ensures that the caller of the function handles the situation appropriately, preventing further operations on non-native values.
-3. **Retrieval**: If the type check passes (i.e., the `QuantumValue` is confirmed to be a native function), the function uses `std::get<std::shared_ptr<QuantumNative>>(data)` to extract the `std::shared_ptr<QuantumNative>` object stored in the `data` member variable of the `QuantumValue`. The `data` member variable is expected to hold a `std::variant` that can store different types of quantum data, including `std::shared_ptr<QuantumNative>`.
+## Why It Works This Way
+
+- **Type Safety**: By checking if the `QuantumValue` is a native function using the `isNative()` method before attempting to retrieve the data, the function ensures type safety. This prevents runtime errors caused by incorrect data retrieval.
+- **Encapsulation**: The use of `std::shared_ptr` allows for safe management of the `QuantumNative` object's lifetime. It ensures that the object remains valid as long as there is at least one reference to it, preventing premature deallocation or dangling pointers.
+
+## Parameters/Return Value
+
+- **Parameters**:
+  - None
+- **Return Value**:
+  - `std::shared_ptr<QuantumNative>`: A shared pointer to the `QuantumNative` object if the `QuantumValue` is indeed a native function.
+- **Exceptions**:
+  - Throws `RuntimeError` if the `QuantumValue` does not represent a native function.
 
 ## Edge Cases
-- **Non-Native Values**: If the `QuantumValue` does not represent a native function, calling `asNative()` will result in an exception being thrown. This prevents incorrect assumptions about the contents of the `QuantumValue`.
-- **Empty Data Variant**: While not explicitly handled in the provided code snippet, it is assumed that the `data` member variable of the `QuantumValue` is properly initialized and contains a valid `std::shared_ptr<QuantumNative>` before calling `asNative()`. An empty or invalid variant would likely lead to undefined behavior when attempting to use `std::get`.
 
-## Interactions with Other Components
-The `asNative()` function interacts with several other components within the Quantum Language compiler:
-- **`QuantumValue` Class**: This function is a member method of the `QuantumValue` class, which is responsible for managing various types of quantum data.
-- **`isNative()` Method**: This method is used to determine whether the `QuantumValue` instance represents a native function. It is crucial for ensuring that the correct type of data is accessed.
-- **`QuantumNative` Class**: The function retrieves a shared pointer to an object of this class, which encapsulates the implementation details of a native quantum function.
-- **`std::variant` and `std::get`**: These standard library utilities are used to safely manage and access the different types of quantum data stored within the `QuantumValue`'s `data` member variable.
+- **Non-Native Function**: If the `QuantumValue` does not hold a `QuantumNative` object, calling `asNative()` will result in a `RuntimeError`. This is intended behavior to prevent misuse of the function.
+- **Empty Shared Pointer**: In case of an exception, the function does not return an empty shared pointer; instead, it throws an exception, ensuring that any subsequent operations on the returned pointer are safe.
 
-Overall, the `asNative()` function plays a vital role in ensuring type safety and proper handling of native quantum functions within the Quantum Language compiler. By performing a runtime check and using appropriate exception handling, it helps prevent errors and allows developers to work with native functions more confidently.
+## Interactions With Other Components
+
+- **Data Storage**: The `asNative()` function relies on the `data` member variable of the `QuantumValue` class, which should be a `std::variant` capable of holding different types of quantum values, including `std::shared_ptr<QuantumNative>`.
+- **Type Checking**: Before retrieving the data, the function checks whether the `QuantumValue` is of type `QuantumNative` using the `isNative()` method. This interaction ensures that the correct type of data is accessed.
+- **Error Handling**: The function interacts with error handling mechanisms provided by the Quantum Language compiler. When an invalid state is encountered (i.e., the `QuantumValue` is not a native function), it uses these mechanisms to report the error appropriately.
+
+In summary, the `asNative()` function is a crucial utility within the Quantum Language compiler, facilitating access to native functions while maintaining robustness through proper type checking and exception handling.
