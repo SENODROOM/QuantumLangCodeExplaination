@@ -1,60 +1,68 @@
-# QuantumLanguage Compiler - AST.h
+# QuantumLanguage Compiler - Compiler.h
 
 ## Overview
 
-The `include/AST.h` header file is an essential part of the QuantumLanguage compiler, focusing on defining and managing Abstract Syntax Trees (ASTs). This file serves as the backbone for representing the syntactic structure of the source code, enabling efficient parsing, semantic analysis, and code generation. The use of C++'s type system allows for a flexible and robust representation of various AST nodes, facilitating the handling of complex expressions, statements, and function calls.
+The `include/Compiler.h` header file is a critical component of the QuantumLanguage compiler, responsible for orchestrating the compilation process of the language's abstract syntax tree (AST). This file defines the primary `Compiler` class and several supporting structures that manage the compilation state, scopes, and upvalues. It ensures efficient handling of expressions, statements, and function calls, enabling the interpreter to execute quantum programs effectively.
 
 ## Role in Compiler Pipeline
 
-### Parsing Phase
-In the parsing phase, the `AST.h` file is instrumental in converting the input source code into a structured AST. Each token generated during lexical analysis corresponds to a specific AST node, which is then constructed using the structures defined in this file.
-
-### Semantic Analysis Phase
-During semantic analysis, the AST is traversed to validate the syntax and semantics of the code. The `AST.h` file facilitates this process by providing mechanisms to check variable types, function signatures, and other language-specific rules.
-
-### Code Generation Phase
-Finally, the AST is used to generate machine code or intermediate representations like LLVM IR. The `AST.h` file ensures that all necessary information is available at each stage of the compilation process, allowing for accurate and efficient code generation.
+The `Compiler.h` file plays a pivotal role in the QuantumLanguage compiler pipeline. It initializes the compilation process, manages the stack of compiler states, and handles the emission of bytecode instructions. The `compile` method serves as the entry point for compiling an entire program, starting with the root AST node and producing a top-level `Chunk` containing the compiled bytecode.
 
 ## Key Design Decisions and Why
 
-1. **Use of Variants**: The `std::variant` type is employed extensively to represent different kinds of AST nodes. This choice simplifies the management of heterogeneous data structures and enhances type safety without sacrificing flexibility.
+### Use of Smart Pointers
 
-2. **Smart Pointers**: All AST nodes are managed using `std::unique_ptr`, ensuring automatic memory management and preventing memory leaks. This approach aligns with modern C++ practices and promotes cleaner code.
+Smart pointers (`std::shared_ptr`, `std::unique_ptr`) are extensively used throughout the `Compiler.h` file to manage memory safely and efficiently. This approach minimizes manual memory management overhead and helps prevent memory leaks, ensuring robustness and scalability of the compiler.
 
-3. **Forward Declarations**: Forward declarations are utilized where possible to reduce compilation times and avoid circular dependencies. This design decision helps maintain a modular architecture and improves overall build efficiency.
+### Separate Compilation States
 
-4. **Extensibility**: The AST structures are designed with extensibility in mind, allowing for easy addition of new expression and statement types as the language evolves. This flexibility is crucial for maintaining a dynamic and evolving compiler.
+Each `CompilerState` instance represents a distinct scope in the source code, capturing details such as the current chunk of bytecode, local variables, upvalues, and scope depth. This separation allows for nested scoping and promotes readability and maintainability of the code.
+
+### Efficient Symbol Resolution
+
+The `resolveLocal` and `resolveUpvalue` methods provide efficient symbol resolution, reducing lookup times and improving performance. These methods utilize hash maps and vectors to store and quickly access information about local and upvalue variables, ensuring optimal symbol management.
 
 ## Major Classes/Functions Overview
 
-### Expression Types
+### Compiler Class
 
-- **NumberLiteral, StringLiteral, BoolLiteral, NilLiteral**: Represent literal values of numbers, strings, booleans, and nil respectively.
-- **Identifier**: Represents variable names.
-- **BinaryExpr, UnaryExpr, AssignExpr**: Handle binary operations, unary operations, and assignments, including compound assignment operators.
-- **CallExpr, IndexExpr, SliceExpr, MemberExpr**: Manage function calls, array indexing, slicing, and member access.
-- **ArrayLiteral, DictLiteral**: Represent arrays and dictionaries using their respective literal forms.
-- **LambdaExpr**: Defines anonymous functions with parameters, return types, and bodies.
-- **TernaryExpr**: Handles conditional expressions (`condition ? then : else`).
-- **SuperExpr**: Represents calls to parent class constructors or methods.
+- **Overview**: The main class responsible for driving the compilation process.
+- **Methods**:
+  - `compile(ASTNode &root)`: Compiles an entire program starting from the root AST node.
+  - `beginScope()`, `endScope(int line)`: Manage the beginning and end of scopes, respectively.
+  - `declareLocal(const std::string &name, int line)`: Declare a new local variable in the current scope.
+  - `compileNode(ASTNode &node)`, `compileBlock(BlockStmt &b)`, `compileExpr(ASTNode &node)`: Recursively compile different types of AST nodes.
+  - `compileVarDecl(VarDecl &s, int line)`, `compileFunctionDecl(FunctionDecl &s, int line)`, `compileClassDecl(ClassDecl &s, int line)`, `compileIf(IfStmt &s, int line)`: Specialized methods for compiling specific types of statements.
 
-### C++ Pointer Expression Types
+### UpvalueDesc Struct
 
-- **AddressOfExpr, DerefExpr, ArrowExpr**: Manage pointer arithmetic and member access through pointers.
+- **Overview**: Describes an upvalue, which is a reference to a local variable from an outer function.
+- **Members**:
+  - `isLocal`: Indicates whether the upvalue is captured from a local variable.
+  - `index`: Slot index for the upvalue.
 
-### Statement Types
+### CompilerState Struct
 
-- **VarDecl**: Declares variables, including support for constant declarations and type hints.
-- **FunctionDecl**: Defines functions, including parameter types, return types, and default arguments.
-- **ReturnStmt**: Represents return statements, optionally containing a return value.
-- **IfStmt**: Manages conditional statements, supporting multiple `elif` branches.
+- **Overview**: Captures the state of the compiler for each scope.
+- **Members**:
+  - `chunk`: Pointer to the current chunk of bytecode being generated.
+  - `locals`: Vector of local variables in the current scope.
+  - `upvalues`: Vector of upvalues in the current scope.
+  - `scopeDepth`: Current depth of the scope.
+  - `enclosing`: Pointer to the enclosing compiler state.
 
 ## Tradeoffs
 
-1. **Memory Overhead**: Using smart pointers adds some overhead compared to raw pointers, but it significantly reduces the risk of memory leaks and makes the code safer and more maintainable.
+### Memory Management
 
-2. **Type Safety vs. Flexibility**: While `std::variant` enhances type safety, it can introduce complexity in handling large and diverse sets of AST nodes. However, the benefits in terms of error prevention and code clarity outweigh this potential drawback.
+Using smart pointers introduces additional overhead compared to raw pointers but significantly reduces the risk of memory leaks and dangling pointers. The tradeoff is between increased runtime cost and improved safety and reliability.
 
-3. **Performance vs. Simplicity**: The use of forward declarations can improve compile time performance, but it might add cognitive load when reading and understanding the codebase. Balancing simplicity and performance is a continuous challenge in software development.
+### Complexity vs. Performance
 
-Overall, the `AST.h` file plays a pivotal role in the QuantumLanguage compiler's architecture, providing a solid foundation for representing and manipulating the syntactic structure of the source code. Its design decisions reflect a balance between safety, flexibility, and performance, making it a critical component of the compiler's ecosystem.
+The separation of compilation states and efficient symbol resolution enhance the clarity and maintainability of the code, but they may introduce some complexity. Balancing these aspects ensures that the compiler remains both readable and performant.
+
+### Flexibility vs. Simplicity
+
+The use of separate classes and functions for different parts of the compilation process offers high flexibility and modularity. However, it might increase the overall complexity of the system, requiring more careful management of dependencies and interactions.
+
+In conclusion, the `include/Compiler.h` header file is a vital part of the QuantumLanguage compiler, providing essential functionality for managing compilation states, scopes, and upvalues. Its design choices balance memory safety, performance, and flexibility, making it a robust foundation for the language's interpreter.
