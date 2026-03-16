@@ -1,41 +1,41 @@
-# `evalAssign()` Function Explanation
+# `evalAssign` Function Explanation
 
-The `evalAssign` function is a crucial method within the Quantum Language interpreter, responsible for evaluating and executing assignment expressions. This function handles both simple assignments and tuple unpacking operations, ensuring that variables or elements of tuples are correctly assigned new values based on the expression provided.
+The `evalAssign` function is a critical method within the Quantum Language interpreter, responsible for evaluating and executing assignment expressions. This function handles both simple assignments and tuple unpacking operations, ensuring that variables or elements in data structures can be updated correctly.
 
 ## What It Does
 
-The primary role of `evalAssign` is to interpret an assignment expression (`AssignExpr`) and update the environment (`env`) accordingly. The function takes into account different types of assignment operators such as `=`, `+=`, `-=` etc., and performs the appropriate operation to assign a new value to the target variable or tuple element.
-
-For tuple unpacking (`op == "unpack"`), the function evaluates the right-hand side of the assignment expression to extract its elements and assigns them to the corresponding identifiers on the left-hand side. If the right-hand side is not an array or tuple, it wraps the scalar value in a single-element array before proceeding with the unpacking.
-
-For regular assignments, the function evaluates the value to be assigned and applies the specified operator to the target variable. It supports post-increment and decrement operations (`"post+=", "post-="`), which return the original value before modification.
+The `evalAssign` function evaluates an assignment expression and updates the target variable or element with the new value. If the operation involves tuple unpacking, it distributes the values from the iterable to multiple target variables.
 
 ## Why It Works This Way
 
-The design of `evalAssign` ensures flexibility and robustness in handling various assignment scenarios. By distinguishing between simple assignments and tuple unpacking, the function can adapt its behavior to accommodate different data structures and requirements. The use of shared pointers for arrays allows efficient memory management and manipulation of collections of quantum values.
+1. **Tuple Unpacking**: The function first checks if the operation is a tuple unpacking (`"unpack"`). If so, it evaluates the right-hand side of the assignment, which should be an iterable (like an array or tuple), and assigns each element of the iterable to the corresponding target variable. This allows for parallel assignment, similar to Python's syntax.
 
-The separation of logic for post-increment/decrement and regular assignments helps maintain clarity and modularity in the codebase. It also simplifies error handling, as post-increment/decrement operations may fail due to undefined targets, while regular assignments handle such cases gracefully.
+2. **Post-Increment/Decrement**: For post-increment (`"post+="`) and post-decrement (`"post-="`) operations, the function first retrieves the current value of the target variable using `evaluate(*e.target)`. It then performs the actual assignment using `setLValue(*e.target, val, realOp)` where `realOp` is either `"+="` or `"-="`, depending on the original operation. Finally, it returns the old value before the modification.
+
+3. **General Assignment**: For all other types of assignments, the function directly evaluates the right-hand side and uses `setLValue(*e.target, val, e.op)` to update the target variable with the new value based on the specified operator (`e.op`).
 
 ## Parameters/Return Value
 
-### Parameters
-
-- `e`: A reference to an `AssignExpr` object representing the assignment expression to be evaluated.
-
-### Return Value
-
-- Returns a `QuantumValue` object representing the result of the evaluation. For tuple unpacking, this is typically the original iterable being unpacked. For regular assignments, it returns the value that was assigned to the target.
+- **Parameters**:
+  - `e`: A reference to an `AssignmentExpression` object representing the assignment expression to be evaluated.
+  
+- **Return Value**:
+  - Returns the value assigned to the target variable or element, which could be a scalar, array, or tuple.
 
 ## Edge Cases
 
-1. **Tuple Unpacking**: When the right-hand side is not an array or tuple but a scalar, the function correctly wraps the scalar in a single-element array to facilitate unpacking.
-2. **Post-Increment/Decrement**: If the target of a post-increment/decrement operation is undefined, the function catches the exception and returns an empty `QuantumValue`. This prevents runtime errors and maintains program stability.
-3. **Operator Overloading**: The function uses the `setLValue` method to apply the specified operator to the target variable. This method supports custom operator overloading, allowing users to define their own behaviors for certain operators.
+1. **Unpack Operation with Mismatched Sizes**: If the number of elements in the iterable does not match the number of target variables, the extra elements are ignored, and any missing targets are left unchanged.
+   
+2. **Target Variable Not Defined**: When performing a simple assignment, if the target variable is not already defined in the environment (`env`), it will be defined with the new value. However, if the target variable exists, its value will be updated.
+
+3. **Exception Handling in Post-Increment/Decrement**: In case of an exception while retrieving the current value of the target variable during post-increment/decrement, the function catches the exception silently and continues execution without modifying the target variable.
 
 ## Interactions With Other Components
 
-- **Environment Management**: `evalAssign` interacts closely with the environment (`env`), which stores variable bindings. It uses methods like `define`, `set`, and `has` to manage these bindings effectively.
-- **Expression Evaluation**: The function relies on the `evaluate` method to compute the values of the operands involved in the assignment. This method is part of the broader interpreter architecture and handles various expression types.
-- **Error Handling**: During the evaluation process, `evalAssign` includes basic error handling mechanisms. For example, when dealing with post-increment/decrement operations, it catches exceptions related to undefined targets and handles them gracefully.
+- **Environment (`env`)**: The function interacts with the environment to define or update variables. It checks if a variable exists using `env->has(name)` and defines or sets the variable using `env->define(name, item)` and `env->set(name, item)` respectively.
 
-Overall, the `evalAssign` function plays a vital role in the Quantum Language interpreter by providing a comprehensive solution for evaluating and executing assignment expressions. Its ability to handle different assignment scenarios and interact seamlessly with other components makes it a cornerstone of the interpreter's functionality.
+- **Evaluation (`evaluate`)**: The function calls `evaluate(*e.value)` to get the value of the right-hand side of the assignment. Similarly, it calls `evaluate(*e.target)` to retrieve the current value of the target variable during post-increment/decrement operations.
+
+- **Set L-Value (`setLValue`)**: The function uses `setLValue(*e.target, val, e.op)` to handle the actual assignment. This function takes care of updating the target variable according to the specified operator.
+
+Overall, the `evalAssign` function ensures robust handling of various assignment scenarios in the Quantum Language interpreter, making it versatile and reliable for different types of expressions.
