@@ -1,39 +1,39 @@
 # `parseOr` Function
 
 ## Purpose
-The `parseOr` function is responsible for parsing expressions that involve logical OR operations (`or`, `||`, `??`). It constructs an Abstract Syntax Tree (AST) node representing these expressions.
+The `parseOr` function is designed to parse expressions involving logical OR operations (`or`, `||`, `??`). It constructs an Abstract Syntax Tree (AST) node that represents these expressions, allowing for nested OR operations to be correctly parsed and structured.
 
 ## Parameters and Return Value
-- **Parameters**:
-  - None explicitly defined in the function signature; it uses global variables like `pos` and `current()` which are assumed to be part of the parser's state.
-  
-- **Return Value**:
-  - Returns a unique pointer to an `ASTNode` representing the parsed expression involving OR operations.
+- **Parameters**: None explicitly passed as arguments.
+- **Return Value**: A unique pointer to an ASTNode representing the parsed OR expression.
 
 ## How It Works
-1. **Initial Parsing**: The function starts by calling `parseAnd()`. This function is expected to parse expressions up to the first AND operation (`&&`) or the end of the expression.
+1. **Initial Parsing**: The function begins by calling `parseAnd()` to parse the left-hand side of the OR expression. This ensures that any AND expressions are properly parsed before encountering an OR operation.
+2. **Loop for Multiple ORs**: The function enters a loop where it repeatedly checks for subsequent OR operators (`or`, `||`, `??`). If such an operator is found, it consumes the token and continues parsing the right-hand side using another call to `parseAnd()`.
+3. **Building the AST**: For each OR operation encountered, the function creates a new `BinaryExpr` node in the AST. This node contains the type of the OR operator (`"or"` or `"||"`), the parsed left-hand side (`left`), and the newly parsed right-hand side (`right`). The line number (`ln`) is also stored in the AST node.
+4. **Handling Edge Cases**: 
+   - If no more OR operators are found after the initial OR operation, the loop breaks, and the function returns the constructed AST node.
+   - If there are multiple consecutive OR operators, they are all handled within the same loop iteration, ensuring correct nesting in the AST.
+5. **Interactions with Other Components**:
+   - The `parseAnd()` function is crucial as it handles the parsing of expressions that precede OR operations. Without this, the OR parser would not know how to handle its operands correctly.
+   - The `skipNewlines()` function is used to ensure that the parser skips over any unnecessary whitespace or newline characters between tokens, maintaining the integrity of the parsed expression structure.
+   - The `check()` function verifies whether the current token matches one of the expected OR operators (`TokenType::OR`, `TokenType::OR_OR`, `TokenType::NULL_COALESCE`). This helps in determining when to stop parsing OR expressions and move on to other parts of the syntax.
 
-2. **Loop for OR Operations**: 
-   - The function enters a loop where it repeatedly checks for OR operators (`or`, `||`, `??`).
-   - If any of these operators are found, it consumes the operator token using `consume()`.
-   - Depending on whether the consumed token is `TokenType::OR_OR` (double pipe `||`), it sets `opStr` to `"or"`. For single pipe `|` or null coalescing `??`, it uses the actual token value.
-   
-3. **Skip Newlines**: After consuming the OR operator, the function skips any newlines using `skipNewlines()` to ensure proper parsing of subsequent expressions.
+## Example Usage
+Here's a simplified example demonstrating how the `parseOr` function might be used in the context of parsing a quantum language expression:
 
-4. **Recursive Parsing**: The function then calls `parseAnd()` again to parse the expression following the OR operator. This recursive call ensures that nested OR operations are correctly handled.
+```cpp
+// Assuming we have a tokenizer and a parser set up
+Tokenizer tokenizer("qubit1 or qubit2 || qubit3 ?? qubit4");
+Parser parser(tokenizer);
 
-5. **Construct AST Node**: Once both operands (left and right) are parsed, the function creates a new `BinaryExpr` node with the OR operator and the two operands. This node is wrapped inside an `ASTNode` and returned.
+auto astRoot = parser.parse();
 
-6. **Edge Case Handling**: If no more OR operators are found (`!check(TokenType::OR)` and similar conditions), the loop breaks, and the function returns the initial parsed expression (`left`).
+// Output the AST to verify correctness
+astRoot->print();
+```
 
-## Interactions with Other Components
-- **Tokenizer**: The function relies on the tokenizer to provide tokens (`current()`) and check token types (`check()`). These functions are assumed to be part of the same parser module.
-- **AST Construction**: The function constructs an AST by creating `BinaryExpr` nodes. These nodes represent binary operations and are used by higher-level parts of the compiler to generate machine code or perform semantic analysis.
-- **Error Handling**: While not shown in the snippet, typical parsers would include error handling mechanisms to deal with unexpected tokens or malformed expressions.
+In this example, the `parseOr` function would parse the expression into an AST with nested `BinaryExpr` nodes, reflecting the logical structure of the original expression.
 
-## Edge Cases
-- **No OR Operators**: If there are no OR operators in the expression, the function simply returns the result of `parseAnd()`.
-- **Nested OR Operations**: The function handles nested OR operations through recursion, ensuring that each OR operation is evaluated before moving on to the next.
-- **Trailing OR Operators**: If there are trailing OR operators without corresponding operands, the function will handle them gracefully by breaking out of the loop when no more valid tokens are found.
-
-This implementation effectively parses expressions involving OR operations, constructing a structured AST that can be further processed by the compiler.
+## Conclusion
+The `parseOr` function plays a vital role in parsing quantum language expressions by handling logical OR operations. Its design allows for the correct construction of an AST, even when dealing with multiple consecutive OR operators. By interacting seamlessly with other components like `parseAnd()`, `skipNewlines()`, and `check()`, it ensures robust and accurate parsing of complex quantum expressions.
