@@ -1,21 +1,44 @@
 # current() Function - Current Character Access
 
 ## Overview
-The `current()` function is an essential method within the Quantum Language compiler's Lexer component. Its primary purpose is to provide immediate access to the character currently being processed in the source code. This function plays a crucial role in lexical analysis, facilitating the examination of characters during token recognition and parsing phases.
+The `current()` function is an essential method within the Quantum Language compiler's Lexer component. Its primary purpose is to provide immediate access to the character currently being processed in the source code. This function plays a crucial role in parsing and tokenizing the input source code efficiently.
 
-## Parameters/Return Value
-- **Parameters**: None
-- **Return Value**: The character at the lexer's current position in the source code (`src[pos]`). If the current position exceeds the size of the source code, the function returns the null character (`'\0'`).
+## Parameters
+- None
+
+## Return Value
+- Returns the character at the current position (`pos`) in the source code (`src`).
+- If the end of the source code has been reached (`pos >= src.size()`), it returns the null character (`'\0'`).
 
 ## Edge Cases
-1. **Empty Source Code**: When the source code is empty (`src.size() == 0`), calling `current()` will return `'\0'`, ensuring that there is no out-of-bounds access.
-2. **End of Source Code**: At the end of the source code, where `pos` equals or exceeds `src.size()`, `current()` returns `'\0'`. This prevents any further processing beyond the last valid character.
-3. **Position Reset**: If the lexer's position (`pos`) is reset to zero after reaching the end of the source code, `current()` will correctly return the first character of the source code again.
+- **End of Source Code**: When `pos` reaches or exceeds the size of the source code string (`src.size()`), the function returns `'\0'`. This ensures that the lexer can handle reaching the end of the input gracefully without causing errors.
+- **Empty Source Code**: If the source code string is empty (`src.empty()`), calling `current()` will return `'\0'`, as there are no characters to process.
 
-## Interactions with Other Components
-The `current()` function interacts closely with the Lexer's state machine and its methods for advancing through the source code. Here’s how:
-- **Lexer State Machine**: During each iteration of the state machine, the `current()` function is called to fetch the next character. This allows the state machine to transition between states based on the current character being analyzed.
-- **Advance Position**: After examining the current character, the Lexer advances its position using methods like `advance()`. These methods update the `pos` variable, which is then used by `current()` to fetch the subsequent character.
-- **Token Recognition**: As part of token recognition, `current()` helps in identifying the type of token being formed. For example, it can determine whether a sequence of characters forms a keyword, identifier, or literal.
+## How It Works
+The `current()` function accesses the character at the index specified by `pos` in the source code string `src`. The function checks if `pos` is less than the size of the source code string using the condition `pos < src.size()`. If true, it returns the character at that position. Otherwise, it returns the null character (`'\0'`). This design allows the lexer to safely access characters without going out of bounds, ensuring robustness in handling various input scenarios.
 
-In summary, the `current()` function is a vital utility in the Lexer component, providing quick and safe access to the current character in the source code. Its implementation ensures robust handling of various edge cases, maintaining the integrity and efficiency of the lexical analysis process.
+## Interactions With Other Components
+- **Lexer Class**: The `current()` function is typically used within the context of the Lexer class, which manages the lexical analysis of the source code. It helps in identifying the next token or character during the parsing process.
+- **Tokenization**: By providing access to the current character, the `current()` function facilitates the decision-making processes involved in tokenization. For example, it might be used to determine whether the current character is part of a keyword, identifier, or operator.
+
+## Example Usage
+Here’s how you might use the `current()` function within a Lexer implementation:
+
+```cpp
+class Lexer {
+private:
+    std::string src;
+    size_t pos;
+
+public:
+    Lexer(const std::string& source) : src(source), pos(0) {}
+
+    char current() const {
+        return pos < src.size() ? src[pos] : '\0';
+    }
+
+    // Additional methods for tokenization and parsing...
+};
+```
+
+In this example, the `Lexer` class uses the `current()` function to access the character at the current position during its operations. This ensures that the lexer can correctly parse the input source code according to the language's syntax rules.
