@@ -1,57 +1,52 @@
-# QuantumLanguage Compiler - Interpreter.h
+# QuantumLanguage Compiler - Lexer.h
 
 ## Overview
 
-The `include/Interpreter.h` header file is an essential part of the QuantumLanguage compiler, focusing on interpreting and executing abstract syntax trees (ASTs). It provides a robust framework for handling different types of AST nodes, including variable declarations, function calls, control structures, and more. The primary goal of this file is to translate the syntactic representation of code into executable operations, ensuring that the language's semantics are accurately interpreted.
+The `include/Lexer.h` header file is an essential part of the QuantumLanguage compiler, focusing on the lexical analysis phase. It is responsible for breaking down the source code into meaningful tokens that can be processed by subsequent phases of the compiler. The lexer plays a critical role in converting high-level programming concepts into low-level instructions that the compiler understands.
 
-## Role in Compiler Pipeline
+### Key Design Decisions and Why
 
-The `Interpreter.h` file plays a critical role in the compiler pipeline by serving as the bridge between the parsing phase and the execution phase. After the source code is parsed into an AST, the interpreter takes over to evaluate and execute the program according to its defined rules. This separation allows the compiler to focus on generating efficient intermediate representations without worrying about the execution details.
+- **Efficient Tokenization**: The lexer uses a combination of character reading and state transitions to efficiently parse the input source code. This approach minimizes overhead and ensures fast processing.
+  
+- **Support for F-Strings**: To enhance readability and support dynamic string formatting, the lexer includes mechanisms for handling f-strings. These are strings that allow embedded expressions, which are evaluated at runtime.
 
-## Key Design Decisions and Why
+- **C Preprocessor Compatibility**: The lexer supports C-style preprocessor directives (`#define`) by maintaining a map of macro names to their replacement token lists. This allows the compiler to preprocess the source code before further compilation steps.
 
-1. **Separation of Concerns**: The interpreter is designed with a clear separation between statement execution and expression evaluation. This modular approach simplifies the implementation and makes it easier to extend or modify specific parts of the interpreter.
-
-2. **Environment Management**: The use of environments (`std::shared_ptr<Environment>`) facilitates the management of variables and their scopes. Each environment represents a level of scope, allowing for nested environments and dynamic scoping mechanisms.
-
-3. **Built-in Method Dispatch**: To support object-oriented features like method calls, the interpreter includes specialized functions for calling built-in methods on different types of objects (arrays, strings, dictionaries). This ensures that the correct method is invoked based on the object's type and the method name provided.
-
-4. **Infinite Loop Protection**: The `stepCount_` mechanism guards against potential infinite loops, such as those caused by empty input programs. This feature helps maintain the stability and reliability of the interpreter.
+- **Error Handling**: While not explicitly shown in the provided code snippet, the lexer would typically include error handling mechanisms to manage syntax errors gracefully, providing useful feedback to the user.
 
 ## Major Classes/Functions Overview
 
-### `Interpreter` Class
+### Lexer Class
 
-- **Constructor**: Initializes the interpreter with global and local environments.
-- **execute(ASTNode &node)**: Executes the given AST node.
-- **evaluate(ASTNode &node)**: Evaluates the value of the given AST node.
-- **execBlock(BlockStmt &s, std::shared_ptr<Environment> scope = nullptr)**: Executes a block of statements within a specified scope.
-- **registerNatives()**: Registers native functions that can be called from the quantum language.
-- **Statement Executors**: Functions like `execVarDecl`, `execFunctionDecl`, etc., handle the execution of different types of AST nodes.
-- **Expression Evaluators**: Functions like `evalBinary`, `evalUnary`, etc., evaluate the value of different types of expressions.
+The `Lexer` class is central to the lexical analysis process. It takes a source code string as input and produces a vector of `Token` objects representing the parsed elements of the code.
 
-### `QuantumValue` Class
+#### Public Methods
 
-Represents the value of an expression in the quantum language. It encapsulates various data types and provides methods for arithmetic operations, comparisons, and conversions.
+- **Constructor (`explicit Lexer(const std::string &source)`)**: Initializes the lexer with the given source code.
+- **tokenize()**: Main method that processes the source code and returns a vector of tokens.
 
-### `callFunction`, `callNative`, `callInstanceMethod`
+#### Private Methods
 
-These functions handle the invocation of user-defined, native, and instance methods, respectively. They ensure that the correct method is called with the appropriate arguments and return values.
+- **current() const**: Returns the current character being analyzed.
+- **peek(int offset = 1) const**: Returns the character at the specified offset ahead without advancing the position.
+- **advance()**: Advances the lexer's position to the next character and returns it.
+- **skipWhitespace()**: Skips over any whitespace characters in the source code.
+- **skipComment()**: Skips over single-line comments starting with `//`.
+- **skipBlockComment()**: Skips over multi-line comments enclosed between `/*` and `*/`.
+- **readNumber()**: Parses numeric literals and returns them as tokens.
+- **readString(char quote)**: Parses string literals enclosed by the specified quote character and returns them as tokens.
+- **readTemplateLiteral(std::vector<Token> &out, int startLine, int startCol)**: Parses template literals (f-strings) and stores the resulting tokens in the output vector.
+- **readIdentifierOrKeyword()**: Parses identifiers or reserved keywords and returns them as tokens.
+- **readOperator()**: Parses operators and punctuation marks and returns them as tokens.
 
-### `callMethod`, `callArrayMethod`, `callStringMethod`, `callDictMethod`
+### Token Class
 
-Specialized methods for invoking built-in methods on arrays, strings, and dictionaries. These functions provide a consistent interface for method calls across different object types.
-
-### `setLValue`
-
-Handles setting the value of left-hand-side expressions, supporting both simple assignments and compound assignment operators.
+The `Token` class represents individual lexical elements found during the parsing process. Each token has properties such as its type, value, and location in the source code.
 
 ## Tradeoffs
 
-1. **Performance vs. Flexibility**: While the separation of concerns enhances flexibility, it may introduce some performance overhead due to additional function calls and checks.
+- **Complexity vs. Performance**: The lexer's design balances simplicity with performance. By using direct character manipulation and state transitions, the lexer achieves efficient parsing but may become more complex as new features like f-strings and preprocessor directives are added.
+  
+- **Flexibility vs. Simplicity**: Supporting advanced features like f-strings and C preprocessor directives increases the lexer's flexibility but also adds complexity and potential for bugs. Simplifying these features could reduce complexity but might limit the language's capabilities.
 
-2. **Memory Usage**: Managing multiple environments requires careful memory allocation and deallocation to avoid memory leaks and excessive memory usage.
-
-3. **Complexity**: The addition of built-in method dispatch increases the complexity of the interpreter, making it harder to understand and maintain.
-
-Overall, the `Interpreter.h` file is a vital component of the QuantumLanguage compiler, providing a comprehensive and flexible framework for interpreting and executing the language's constructs. Its design decisions balance performance, flexibility, and complexity, ensuring that the interpreter remains efficient and reliable while supporting advanced language features.
+- **Readability vs. Efficiency**: The use of C-style preprocessor directives and f-strings enhances the readability of the source code but requires additional parsing logic in the lexer. Balancing these factors ensures that the lexer remains both readable and efficient.
