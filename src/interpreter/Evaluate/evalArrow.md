@@ -1,56 +1,104 @@
 # `evalArrow`
 
-The `evalArrow` function is designed to handle the arrow (`->`) operator in the Quantum Language interpreter. This operator is used to access members of an object or dictionary through a pointer. The function evaluates the expression and returns the value of the specified member.
+The `evalArrow` function is responsible for evaluating expressions involving the arrow (`->`) operator in the Quantum Language interpreter. This operator is utilized to access members of objects or dictionaries using pointers. The function ensures that the operation is performed safely and correctly, throwing appropriate errors when necessary.
 
-## What It Does
+## Function Overview
 
-The `evalArrow` function performs the following steps:
-1. Evaluates the object expression using the `evaluate` function.
-2. Checks if the evaluated result is a pointer. If not, throws a `RuntimeError`.
-3. Dereferences the pointer and accesses the specified member.
-4. Returns the value of the member if found; otherwise, returns an empty `QuantumValue`.
+### Purpose
+- To handle the arrow (`->`) operator, which accesses members of objects or dictionaries through a pointer.
+- To evaluate the expression and return the value of the specified member.
 
-## Why It Works This Way
+### Parameters
+- `e`: An expression object containing the details of the arrow operation, including the pointer and the member name to be accessed.
 
-This implementation ensures that the arrow operator can only be used on pointers, which aligns with the typical behavior of the arrow operator in languages like C++. By throwing a `RuntimeError` when the object is not a pointer, the function prevents invalid memory access and maintains the integrity of the program.
+### Return Value
+- Returns a `QuantumValue` representing the value of the specified member.
+- If the member is not found, returns an empty `QuantumValue`.
 
-## Parameters/Return Value
+### Edge Cases
+1. **Non-pointer Dereference**: If the expression being evaluated does not result in a pointer, a `RuntimeError` is thrown indicating that the arrow operator requires a pointer.
+2. **Null Pointer Dereference**: If the pointer obtained from the expression evaluation is null, a `RuntimeError` is thrown to prevent dereferencing a null pointer.
+3. **Member Not Found**: If the specified member is not found in the instance or dictionary, a `TypeError` is thrown.
 
-- **Parameters**:
-  - `e`: An expression containing the object and member names to be accessed.
-  
-- **Return Value**:
-  - A `QuantumValue` representing the value of the specified member. If the member is not found, returns an empty `QuantumValue`.
+### Interactions with Other Components
+- **Evaluator**: The `evaluate` function is called to get the value of the expression before accessing the member. This interaction ensures that the expression is properly evaluated before attempting any operations.
+- **Type Checking**: The function performs type checking to ensure that the expression results in a valid pointer type. If the type check fails, a `RuntimeError` is thrown.
+- **Dictionary Access**: If the cell is a dictionary, the `find` method is used to locate the member. If the member is found, its corresponding value is returned; otherwise, an empty `QuantumValue` is returned.
+- **Instance Access**: If the cell is an instance, the `getField` method is invoked to retrieve the value of the specified member. If the field is not found, a `TypeError` is thrown.
 
-## Edge Cases
+## Detailed Explanation
 
-1. **Non-pointer Object**: If the object expression evaluates to a non-pointer value, the function will throw a `RuntimeError`.
-2. **Null Pointer**: If the pointer is null, the function will throw a `RuntimeError`.
-3. **Member Not Found**: If the specified member does not exist in the object or dictionary, the function will return an empty `QuantumValue`.
+### Step-by-step Execution
 
-## Interactions With Other Components
+1. **Evaluate the Expression**:
+   ```cpp
+   auto ptrVal = evaluate(*e.object);
+   ```
+   - The `evaluate` function processes the expression stored in `e.object` and returns its value as a `QuantumValue`.
+   
+2. **Check if the Result is a Pointer**:
+   ```cpp
+   if (!ptrVal.isPointer())
+       throw RuntimeError("Arrow operator requires a pointer (type: " + ptrVal.typeName() + ")");
+   ```
+   - The function checks if the evaluated value is a pointer using the `isPointer()` method.
+   - If it is not a pointer, a `RuntimeError` is thrown, providing information about the incorrect type.
 
-- **Evaluator**: The `evalArrow` function uses the `evaluate` function to resolve the object expression into its corresponding `QuantumValue`.
-- **Type Checking**: Before accessing the member, the function checks the type of the `QuantumValue`. If it's not a pointer or a dictionary, it throws a `RuntimeError`.
-- **Instance Access**: If the pointer points to an instance, the function attempts to retrieve the field using the `getField` method of the `Instance` class. If the field is not found, it catches any exceptions and throws a `TypeError`.
-- **Dictionary Access**: If the pointer points to a dictionary, the function searches for the key in the dictionary. If the key exists, it returns the corresponding value; otherwise, it returns an empty `QuantumValue`.
+3. **Dereference the Pointer**:
+   ```cpp
+   auto ptr = ptrVal.asPointer();
+   ```
+   - The `asPointer()` method converts the `QuantumValue` into a pointer.
+   
+4. **Check for Null Pointer**:
+   ```cpp
+   if (ptr->isNull())
+       throw RuntimeError("Null pointer dereference via ->");
+   ```
+   - The function checks if the pointer is null using the `isNull()` method.
+   - If the pointer is null, a `RuntimeError` is thrown to prevent undefined behavior.
 
-Here's a breakdown of how these interactions contribute to the overall functionality:
+5. **Access the Member**:
+   ```cpp
+   auto &cell = *ptr->cell;
+   ```
+   - The function dereferences the pointer to access the underlying `Cell` object.
 
-### Evaluator
+6. **Handle Instance Type**:
+   ```cpp
+   if (cell.isInstance())
+   {
+       auto inst = cell.asInstance();
+       try
+       {
+           return inst->getField(e.member);
+       }
+       catch (...)
+       {
+           throw TypeError("No member '" + e.member + "' on pointed-to instance");
+       }
+   }
+   ```
+   - If the `Cell` object is an instance, the `getField` method is called on the instance to retrieve the value of the specified member.
+   - If the field retrieval throws an exception, a `TypeError` is caught and rethrown, indicating that the member was not found.
 
-The `evaluate` function resolves the object expression into its corresponding `QuantumValue`. For example, if the object expression is `"myObject"`, the `evaluate` function would look up the variable named `myObject` and return its `QuantumValue`.
+7. **Handle Dictionary Type**:
+   ```cpp
+   if (cell.isDict())
+   {
+       auto dict = cell.asDict();
+       auto it = dict->find(e.member);
+       return it != dict->end() ? it->second : QuantumValue();
+   }
+   ```
+   - If the `Cell` object is a dictionary, the `find` method is used to search for the specified member.
+   - If the member is found, its corresponding value is returned; otherwise, an empty `QuantumValue` is returned.
 
-### Type Checking
+8. **Throw Error for Unsupported Types**:
+   ```cpp
+   throw RuntimeError("Cannot use -> on type " + cell.typeName());
+   ```
+   - If the `Cell` object is neither an instance nor a dictionary, a `RuntimeError` is thrown, indicating that the arrow operator cannot be used on the given type.
 
-Before accessing the member, the `evalArrow` function checks the type of the `QuantumValue`. If it's not a pointer or a dictionary, it throws a `RuntimeError`. This ensures that the arrow operator is used correctly and prevents invalid memory access.
-
-### Instance Access
-
-If the pointer points to an instance, the function attempts to retrieve the field using the `getField` method of the `Instance` class. If the field is not found, it catches any exceptions and throws a `TypeError`. This allows instances to have fields that can be accessed dynamically.
-
-### Dictionary Access
-
-If the pointer points to a dictionary, the function searches for the key in the dictionary. If the key exists, it returns the corresponding value; otherwise, it returns an empty `QuantumValue`. This provides a flexible way to access values in dictionaries without knowing their keys at compile time.
-
-Overall, the `evalArrow` function plays a crucial role in handling the arrow operator in the Quantum Language interpreter. It ensures that the operator is used correctly, prevents invalid memory access, and allows dynamic access to fields and values in instances and dictionaries.
+### Summary
+The `evalArrow` function provides a robust mechanism for handling the arrow (`->`) operator in the Quantum Language interpreter. It ensures that the operation is performed only on valid pointers and handles different types of cells (instances and dictionaries) appropriately. By performing thorough type checking and error handling, the function maintains the integrity and safety of the program during execution.
