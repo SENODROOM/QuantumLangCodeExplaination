@@ -2,44 +2,46 @@
 
 ## Overview
 
-The Token component is an essential part of the Quantum Language Compiler, responsible for representing and manipulating tokens in the source code. Tokens are the basic building blocks of the language, such as keywords, identifiers, literals, and operators. This component provides functionality to convert tokens into a readable string format, which aids in debugging and error reporting.
+The Token component is a fundamental module within the Quantum Language Compiler, tasked with interpreting and managing tokens from the source code. Tokens include elements like keywords, identifiers, literals, and operators, forming the core structure of the language. This component facilitates the conversion of tokens into a human-readable string format, aiding in debugging, logging, and user interaction.
 
-## Files
+### Key Features
 
-### Token.cpp
+- **Token Representation**: Converts tokens into their string representation.
+- **Token Manipulation**: Provides methods to manipulate and process tokens efficiently.
+- **Error Handling**: Includes mechanisms to handle errors related to token parsing and manipulation.
 
-- **Purpose**: Implements the `toString()` method for the `Token` structure.
-- **Functionality**:
-  - The `toString()` method constructs a string representation of the token, including its line number, column number, and value.
-  - It uses `std::ostringstream` to efficiently build the string.
+## File Structure
 
-### Token.h
+This directory contains the following documented function/file:
 
-- **Purpose**: Declares the `Token` structure and its associated methods.
-- **Contents**:
-  - Defines the `Token` structure with members for line number (`line`), column number (`col`), and token value (`value`).
-  - Declares the `toString()` method that returns a string representation of the token.
+- `toString`: A function that converts a token into its string representation.
 
 ## Overall Flow
 
-1. **Token Creation**: Tokens are created during the lexical analysis phase of the compiler. Each token represents a significant element found in the source code.
-2. **String Conversion**: When a token needs to be converted into a human-readable form, the `toString()` method is called on the `Token` object.
-3. **Output**: The `toString()` method constructs a string that includes the token's line number, column number, and value, formatted as `[line:col value]`.
+1. **Input Parsing**: The Token component receives input strings, which represent parts of the source code.
+2. **Tokenization**: It processes these input strings to identify and categorize them into different types of tokens (e.g., keywords, identifiers).
+3. **String Conversion**: For each identified token, the `toString` function is called to generate a human-readable string.
+4. **Output**: These string representations can be used for various purposes, including debugging, logging, or displaying the parsed source code to users.
 
 ## Usage Example
 
 ```cpp
-#include "Token.h"
+#include "token.h"
 
 int main() {
-    Token t(5, 10, "example");
-    std::cout << t.toString() << std::endl; // Output: [5:10 example]
+    // Create a token object
+    Token myToken("example", TokenType::IDENTIFIER);
+
+    // Convert the token to a string
+    std::string tokenString = myToken.toString();
+
+    // Output the string representation of the token
+    std::cout << "Token String: " << tokenString << std::endl;
+
     return 0;
 }
 ```
 
-In this example, a `Token` object is created with a line number of 5, a column number of 10, and a value of `"example"`. The `toString()` method is then called to generate a string representation of the token, which is printed to the console.
+In this example, a `Token` object is created with the identifier "example" and type `TokenType::IDENTIFIER`. The `toString` function is then invoked to convert the token into a string, which is subsequently printed to the console.
 
-## Conclusion
-
-The Token component is crucial for the Quantum Language Compiler as it facilitates the conversion of tokens into a readable format. This enhances the debugging process and improves the overall user experience by providing clear and informative error messages.
+For more detailed information on specific functions and classes, refer to the individual documentation files within this directory.
