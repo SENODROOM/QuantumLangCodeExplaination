@@ -1,66 +1,57 @@
-# QuantumLanguage Compiler - Error.h
+# QuantumLanguage Compiler - Interpreter.h
 
 ## Overview
 
-The `include/Error.h` header file is an essential part of the QuantumLanguage compiler, focusing on error handling mechanisms. It defines several custom exception classes that extend the standard `std::runtime_error`, each tailored to specific error conditions encountered during compilation or execution. Additionally, it includes a namespace for terminal color codes, which can be used to format error messages for better visibility.
-
-This file plays a critical role in ensuring robustness and user-friendly error reporting throughout the QuantumLanguage ecosystem. By providing clear, categorized exceptions, it helps developers quickly identify and address issues in their code.
+The `include/Interpreter.h` header file is an essential part of the QuantumLanguage compiler, focusing on interpreting and executing abstract syntax trees (ASTs). It provides a robust framework for handling different types of AST nodes, including variable declarations, function calls, control structures, and more. The primary goal of this file is to translate the syntactic representation of code into executable operations, ensuring that the language's semantics are accurately interpreted.
 
 ## Role in Compiler Pipeline
 
-The `Error.h` file is integral to the compiler's error management stage. During parsing, semantic analysis, and execution phases, these exception classes are thrown when errors occur. The compiler then catches these exceptions and reports them to the user, often with additional context such as the line number where the error was detected.
+The `Interpreter.h` file plays a critical role in the compiler pipeline by serving as the bridge between the parsing phase and the execution phase. After the source code is parsed into an AST, the interpreter takes over to evaluate and execute the program according to its defined rules. This separation allows the compiler to focus on generating efficient intermediate representations without worrying about the execution details.
 
 ## Key Design Decisions and Why
 
-1. **Custom Exception Classes**: Extending `std::runtime_error` allows for more granular control over error types. Each class (`RuntimeError`, `TypeError`, etc.) clearly identifies a specific category of error, making debugging easier.
+1. **Separation of Concerns**: The interpreter is designed with a clear separation between statement execution and expression evaluation. This modular approach simplifies the implementation and makes it easier to extend or modify specific parts of the interpreter.
 
-2. **Line Number Information**: Including the line number in the exception constructor provides valuable context to users. They can immediately locate the problematic section of their code, speeding up the resolution process.
+2. **Environment Management**: The use of environments (`std::shared_ptr<Environment>`) facilitates the management of variables and their scopes. Each environment represents a level of scope, allowing for nested environments and dynamic scoping mechanisms.
 
-3. **Color Coding**: The `Colors` namespace offers a simple way to format error messages with different colors. This visual distinction can help users quickly differentiate between different types of errors, enhancing readability.
+3. **Built-in Method Dispatch**: To support object-oriented features like method calls, the interpreter includes specialized functions for calling built-in methods on different types of objects (arrays, strings, dictionaries). This ensures that the correct method is invoked based on the object's type and the method name provided.
+
+4. **Infinite Loop Protection**: The `stepCount_` mechanism guards against potential infinite loops, such as those caused by empty input programs. This feature helps maintain the stability and reliability of the interpreter.
 
 ## Major Classes/Functions Overview
 
-### QuantumError Class
+### `Interpreter` Class
 
-- **Purpose**: Base class for all custom quantum language errors.
-- **Attributes**:
-  - `int line`: Line number where the error occurred.
-  - `std::string kind`: Type of error (e.g., "RuntimeError").
-- **Constructor**: Takes a message, an optional line number, and an error kind.
+- **Constructor**: Initializes the interpreter with global and local environments.
+- **execute(ASTNode &node)**: Executes the given AST node.
+- **evaluate(ASTNode &node)**: Evaluates the value of the given AST node.
+- **execBlock(BlockStmt &s, std::shared_ptr<Environment> scope = nullptr)**: Executes a block of statements within a specified scope.
+- **registerNatives()**: Registers native functions that can be called from the quantum language.
+- **Statement Executors**: Functions like `execVarDecl`, `execFunctionDecl`, etc., handle the execution of different types of AST nodes.
+- **Expression Evaluators**: Functions like `evalBinary`, `evalUnary`, etc., evaluate the value of different types of expressions.
 
-### RuntimeError Class
+### `QuantumValue` Class
 
-- **Purpose**: Thrown for runtime errors, typically occurring during program execution.
-- **Constructor**: Inherits from `QuantumError` with the kind set to "RuntimeError".
+Represents the value of an expression in the quantum language. It encapsulates various data types and provides methods for arithmetic operations, comparisons, and conversions.
 
-### TypeError Class
+### `callFunction`, `callNative`, `callInstanceMethod`
 
-- **Purpose**: Thrown for type-related errors, such as incorrect variable assignments or function argument mismatches.
-- **Constructor**: Inherits from `QuantumError` with the kind set to "TypeError".
+These functions handle the invocation of user-defined, native, and instance methods, respectively. They ensure that the correct method is called with the appropriate arguments and return values.
 
-### NameError Class
+### `callMethod`, `callArrayMethod`, `callStringMethod`, `callDictMethod`
 
-- **Purpose**: Thrown for errors related to undefined names or variables.
-- **Constructor**: Inherits from `QuantumError` with the kind set to "NameError".
+Specialized methods for invoking built-in methods on arrays, strings, and dictionaries. These functions provide a consistent interface for method calls across different object types.
 
-### IndexError Class
+### `setLValue`
 
-- **Purpose**: Thrown for index-related errors, such as accessing out-of-bounds elements in arrays.
-- **Constructor**: Inherits from `QuantumError` with the kind set to "IndexError".
-
-### Colors Namespace
-
-- **Purpose**: Provides ANSI escape codes for formatting text in terminal output.
-- **Contents**:
-  - Various color constants (`RED`, `YELLOW`, `WHITE`, etc.).
-  - A constant for resetting text color (`RESET`).
+Handles setting the value of left-hand-side expressions, supporting both simple assignments and compound assignment operators.
 
 ## Tradeoffs
 
-- **Performance**: Using custom exceptions adds overhead compared to using raw strings or other simpler error handling methods. However, this tradeoff ensures more informative and manageable error reporting.
-  
-- **Complexity**: Adding multiple exception classes increases the complexity of the error handling system. While this might seem daunting, it ultimately leads to clearer and more maintainable code.
+1. **Performance vs. Flexibility**: While the separation of concerns enhances flexibility, it may introduce some performance overhead due to additional function calls and checks.
 
-- **Readability**: Color coding error messages enhances readability but may not be supported in all environments. Balancing aesthetics with practicality is crucial for maintaining usability across different platforms.
+2. **Memory Usage**: Managing multiple environments requires careful memory allocation and deallocation to avoid memory leaks and excessive memory usage.
 
-Overall, the `Error.h` file is designed to provide comprehensive and user-friendly error handling capabilities, balancing performance, complexity, and readability. Its role in the compiler pipeline is vital for diagnosing and resolving issues effectively.
+3. **Complexity**: The addition of built-in method dispatch increases the complexity of the interpreter, making it harder to understand and maintain.
+
+Overall, the `Interpreter.h` file is a vital component of the QuantumLanguage compiler, providing a comprehensive and flexible framework for interpreting and executing the language's constructs. Its design decisions balance performance, flexibility, and complexity, ensuring that the interpreter remains efficient and reliable while supporting advanced language features.
