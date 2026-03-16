@@ -1,38 +1,48 @@
 # `parsePower` Function
 
 ## Purpose
-The `parsePower` function is designed to parse expressions involving the power operator (`**`). It recursively processes the expression on its left and then consumes the power token before parsing the expression on its right. This ensures that the power operation is right-associative, meaning that expressions like `a ** b ** c` will be evaluated as `a ** (b ** c)`.
+The `parsePower` function is designed to parse expressions involving the power operator (`**`). It recursively processes the expression on its left and then consumes the power token before parsing the expression on its right. This ensures that the power operation is evaluated right-associatively, meaning that expressions like `a ** b ** c` will be interpreted as `a ** (b ** c)` rather than `(a ** b) ** c`.
 
 ## Parameters
-This function takes no explicit parameters. It relies on global state managed by the parser, such as `current()` which returns the current token being processed, and `consume()` which advances the token stream to the next token.
+- None
 
 ## Return Value
-The function returns a unique pointer to an `ASTNode`, representing the parsed binary expression node. If there is no power operator in the current context, it simply returns the result of parsing the unary expression.
+- Returns a unique pointer to an `ASTNode` representing the parsed power expression. If there is no power operator in the current expression, it returns the result of `parseUnary()`.
 
 ## Edge Cases
-1. **No Power Operator**: If the current token is not a power operator (`TokenType::POWER`), the function returns the result of parsing the unary expression directly.
-2. **Nested Powers**: The function handles nested power operations correctly due to its recursive nature. For example, `a ** b ** c` results in an AST structure where `c` is applied first, followed by `b`, and finally `a`.
+1. **No Power Operator**: If the current token is not a power operator (`TokenType::POWER`), the function simply returns the result of `parseUnary()`. This handles cases where the expression does not involve any power operations.
+2. **Nested Power Operations**: The function supports nested power operations, such as `a ** b ** c`, which are correctly parsed as `a ** (b ** c)` due to its right-associative nature.
+3. **Invalid Tokens**: If the current token after consuming the power operator is invalid or unexpected, the function may throw an exception or handle it appropriately based on the error handling mechanism defined in the compiler.
 
 ## Interactions with Other Components
-- **`parseUnary`**: This function is called initially within `parsePower`. It parses expressions that can start with a unary operator or a primary expression.
-- **`check`**: This utility function checks if the current token matches the specified type (`TokenType::POWER`).
-- **`consume`**: This function advances the token stream to the next token after consuming the current one.
-- **`ASTNode`**: Represents nodes in the abstract syntax tree (AST). In this case, it's used to create a new binary expression node with the operator `"**"`.
-- **`BinaryExpr`**: A subclass of `ASTNode` specifically designed to represent binary arithmetic operations. It holds the operator string and pointers to the left and right operands.
+- **Parsing Unary Expressions**: The function calls `parseUnary()` to get the left-hand side of the power expression. `parseUnary()` is responsible for parsing expressions that can appear before the unary operators (`+`, `-`, `!`, `~`) and literals.
+- **Token Consumption**: After identifying the power operator, the function consumes it using the `consume()` method. This moves the parser's current token forward to the next token in the input stream.
+- **Recursive Parsing**: The function recursively calls itself to parse the right-hand side of the power expression. This allows it to handle complex expressions involving multiple levels of power operations.
+- **Error Handling**: The function interacts with the overall error handling mechanism of the compiler. If an error occurs during the parsing process, such as encountering an unexpected token, the function may report an error or terminate the compilation process gracefully.
 
-## Detailed Explanation
-Here’s a step-by-step breakdown of how `parsePower` operates:
+## Implementation Details
+Here is the implementation of the `parsePower` function:
 
-1. **Parse Unary Expression**: The function starts by calling `parseUnary()`, which attempts to parse the initial part of the expression. This could be a number, variable, parentheses, etc., depending on the current token.
+```cpp
+{
+    auto left = parseUnary();  // Parse the left-hand side of the power expression
+    if (check(TokenType::POWER))  // Check if the current token is a power operator
+    {
+        int ln = current().line;  // Get the line number of the current token
+        consume();  // Consume the power operator token
+        auto right = parsePower();  // Recursively parse the right-hand side of the power expression
+        return std::make_unique<ASTNode>(BinaryExpr{"**", std::move(left), std::move(right)}, ln);  // Create an ASTNode for the power expression
+    }
+    return left;  // Return the parsed left-hand side if no power operator is found
+}
+```
 
-2. **Check for Power Token**: After obtaining the left operand, the function checks if the next token is a power operator (`TokenType::POWER`) using the `check` function.
+### Explanation of Key Steps
+1. **Parse Left-Hand Side**: The function starts by calling `parseUnary()` to parse the left-hand side of the power expression. This step ensures that any valid unary expression can be processed.
+2. **Check for Power Operator**: It then checks if the current token is a power operator (`TokenType::POWER`) using the `check()` method. If the check passes, it means there is a power operation to be parsed.
+3. **Consume Power Operator**: If a power operator is found, the function consumes it using the `consume()` method. This updates the parser's state to move to the next token.
+4. **Recursively Parse Right-Hand Side**: The function recursively calls itself (`parsePower()`) to parse the right-hand side of the power expression. This recursion continues until no more power operators are found.
+5. **Create ASTNode**: Once both sides of the power expression have been parsed, the function creates an `ASTNode` representing the binary expression with the operator `"**"`. The `std::move()` is used to transfer ownership of the parsed left and right nodes into the new `ASTNode`.
+6. **Return Result**: Finally, the function returns the newly created `ASTNode`. If no power operator was found initially, it simply returns the result of `parseUnary()`.
 
-3. **Consume Power Token**: If a power token is found, the function consumes it using `consume()`. This moves the token stream forward so that subsequent parsing can proceed without encountering the power token again.
-
-4. **Recursive Parse Right Operand**: The function then calls itself recursively to parse the right operand of the power expression. Since power operations are right-associative, this call effectively handles any nested powers in the expression.
-
-5. **Create Binary Expression Node**: Once both operands are parsed, the function creates a new `ASTNode` containing a `BinaryExpr` object. This node represents the power operation between the left and right operands. The line number of the power token is passed to ensure accurate error reporting or debugging information.
-
-6. **Return Result**: Finally, the function returns the newly created `ASTNode`.
-
-This design allows `parsePower` to handle complex expressions involving multiple levels of power operations efficiently and correctly.
+This implementation ensures that the power operator is handled correctly in the context of larger expressions, maintaining the correct order of operations through recursive parsing.
