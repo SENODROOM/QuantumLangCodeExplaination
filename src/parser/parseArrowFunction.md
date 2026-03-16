@@ -2,44 +2,77 @@
 
 ## Purpose
 
-The `parseArrowFunction` function is responsible for parsing arrow functions in the Quantum Language compiler. Arrow functions are a shorthand syntax used to define anonymous functions that capture variables from their surrounding scope.
+The `parseArrowFunction` function is designed to parse arrow functions within the Quantum Language compiler. Arrow functions provide a concise syntax for defining anonymous functions that inherit their parent's scope and automatically return expressions without requiring an explicit `return` statement.
 
 ## Functionality
 
-1. **Consume Fat Arrow or Regular Arrow**: The function first checks if the next token is either a fat arrow (`=>`) or a regular arrow (`->`). If neither is found, it throws a `ParseError` indicating that an expected arrow operator was not encountered.
+### Parsing Syntax
 
-2. **Skip Newlines**: After consuming the arrow operator, the function skips any newline characters using `skipNewlines()` to ensure proper parsing of the function's body.
+The function begins by consuming either the `=>` (FAT_ARROW) or `->` (ARROW) token, which indicates the start of an arrow function. If neither token is found, a `ParseError` is thrown, signaling that the expected syntax was not encountered.
 
-3. **Determine Body Type**:
-   - **Block Body**: If the next token is either an opening brace (`{`) or an indentation (indicating a multi-line block), the function calls `parseBlock()` to parse the entire block as the body of the lambda expression.
-   - **Expression Body**: If the next token is neither an opening brace nor an indentation, it means the body is a single expression. In this case, the function parses the expression using `parseExpr()`, wraps it in an explicit `ReturnStmt` to create an implicit return block, and then constructs a `LambdaExpr` with the parsed parameters and the new block.
+```cpp
+if (!match(TokenType::FAT_ARROW) && !match(TokenType::ARROW))
+    throw ParseError("Expected '=>' or '->'", current().line, current().col);
+```
 
-4. **Construct LambdaExpr**: Regardless of whether the body is a block or an expression, the function constructs a `LambdaExpr`. This struct contains two main fields:
-   - `params`: A vector of parameter nodes representing the parameters of the lambda function.
-   - `body`: An AST node representing the body of the lambda function.
+### Skipping Newlines
 
-5. **Create and Return ASTNode**: Finally, the function creates an `ASTNode` containing the constructed `LambdaExpr` and returns it. This `ASTNode` represents the complete parsed arrow function in the abstract syntax tree (AST).
+After identifying the arrow function syntax, any newlines are skipped to ensure that the parser continues processing on the correct line.
 
-## Parameters and Return Value
+```cpp
+skipNewlines();
+```
 
-- **Parameters**:
-  - None explicitly listed in the function signature. However, it relies on the `params` variable, which should have been initialized before calling `parseArrowFunction`.
+### Parsing Function Body
 
-- **Return Value**:
-  - Returns a `std::unique_ptr<ASTNode>` pointing to an `ASTNode` representing the parsed arrow function. This node includes both the parameters and the body of the lambda function.
+The next step involves determining whether the function body consists of a block (`{}`) or a single expression. This decision is made using the `check` function to verify the presence of `{`, `INDENT`, or both.
 
-## Edge Cases
+#### Block Body
 
-- **Missing Arrow Operator**: If the input does not contain an arrow operator (`=>` or `->`), the function will throw a `ParseError`.
-- **Empty Body**: If the body of the arrow function is empty (either due to missing braces or indentation), the function may still parse successfully depending on the implementation details of `parseBlock()` and `parseExpr()`.
-- **Single Statement vs. Multi-Line Block**: The function correctly handles both single-expression bodies and multi-line block bodies, ensuring that the appropriate AST structure is created.
+If a block body is detected (either through an opening brace `{` or indentation), the function proceeds to parse the block using the `parseBlock()` method. The parsed parameters and block are then encapsulated into a `LambdaExpr` object, which represents the arrow function.
 
-## Interactions with Other Components
+```cpp
+if (check(TokenType::LBRACE) || check(TokenType::INDENT))
+{
+    auto body = parseBlock();
+    LambdaExpr le;
+    le.params = std::move(params);
+    le.body = std::move(body);
+    return std::make_unique<ASTNode>(std::move(le), ln);
+}
+```
 
-- **Parsing Context**: This function operates within a larger parsing context where `params` has already been populated by another part of the parser (likely `parseParams()`).
-- **Token Matching**: It uses `match()` and `check()` methods to identify and consume tokens, interacting closely with the lexer component.
-- **Block Parsing**: When encountering a block body, it calls `parseBlock()`, which likely involves parsing multiple statements enclosed in curly braces `{}`.
-- **Expression Parsing**: For expression bodies, it calls `parseExpr()`, which would handle the parsing of individual expressions.
-- **Return Statements**: When wrapping an expression in an implicit return block, it creates `ReturnStmt` objects, demonstrating interaction with the statement handling component of the compiler.
+#### Single Expression Body
 
-This function plays a crucial role in translating the syntactic sugar provided by arrow functions into a structured form in the AST, facilitating further compilation steps such as semantic analysis and code generation.
+If a single expression body is detected, the function parses the expression using the `parseExpr()` method. To maintain the automatic return behavior of arrow functions, the parsed expression is wrapped inside a `ReturnStmt` object, which is then placed within a `BlockStmt`. Finally, the `BlockStmt` and its associated parameters are encapsulated into a `LambdaExpr`.
+
+```cpp
+auto expr = parseExpr();
+int eln = expr->line;
+auto retStmt = std::make_unique<ASTNode>(ReturnStmt{std::move(expr)}, eln);
+BlockStmt block;
+block.statements.push_back(std::move(retStmt));
+auto body = std::make_unique<ASTNode>(std::move(block), ln);
+LambdaExpr le;
+le.params = std::move(params);
+le.body = std::move(body);
+return std::make_unique<ASTNode>(std::move(le), ln);
+```
+
+### Parameters and Return Value
+
+- **Parameters**: The function expects parameters to have been previously parsed and stored in the `params` variable. These parameters are moved into the `LambdaExpr`.
+- **Return Value**: The function returns a unique pointer to an `ASTNode` containing the parsed `LambdaExpr`. The `LambdaExpr` includes both the parameters and the function body.
+
+### Edge Cases
+
+- **Missing Syntax**: If the function encounters a token other than `=>` or `->`, it throws a `ParseError` indicating that the expected syntax was missing.
+- **Empty Body**: While the existing code does not explicitly handle empty bodies, the parser should ideally be able to recognize and handle such cases gracefully.
+
+### Interactions with Other Components
+
+- **Lexical Analysis**: The function relies on the lexical analyzer (`current()`) to identify tokens and determine the position in the source code where errors occur.
+- **Parsing Blocks**: When encountering a block body, the function interacts with the `parseBlock()` method, which is responsible for parsing the statements within the block.
+- **Parsing Expressions**: For single-expression bodies, the function uses the `parseExpr()` method to parse the expression itself.
+
+By understanding these aspects, developers can better appreciate how `parseArrowFunction` contributes to the overall parsing process of the Quantum Language compiler, ensuring that arrow functions are correctly identified and handled according to their syntax and semantics.
