@@ -4,43 +4,44 @@
 The `parseMulDiv` function is designed to parse expressions involving multiplication (`*`), division (`/`), modulus (`%`), and floor division (`//`). It builds an Abstract Syntax Tree (AST) node representing these operations based on the input tokens provided by the parser.
 
 ## Parameters
-- None explicitly defined in the function signature, but it relies on global state maintained by the parser:
-  - `current()`: Returns the current token being processed.
-  - `consume()`: Advances the parser to the next token and returns the previous one.
-  - `check(TokenType type)`: Checks if the current token matches the specified token type without consuming it.
+- None explicitly mentioned in the code snippet.
 
 ## Return Value
-- The function returns a unique pointer to an `ASTNode`, which represents the parsed expression tree up to the point where no more multiplication or division operators are found.
+- Returns a unique pointer to an ASTNode object that represents the parsed expression. The ASTNode contains either a BinaryExpr or another type of expression depending on the context.
 
 ## How It Works
-1. **Initialization**:
-   - The function starts by calling `parsePower()` to parse the left-hand side of the expression. This initial call sets the variable `left` to the result of parsing a power expression (which includes exponentiation).
+1. **Initial Parsing**: The function starts by calling `parsePower()`, which is presumably responsible for parsing expressions involving exponentiation. This initial call sets up the left-hand side of the binary operation.
 
-2. **Loop Through Operators**:
-   - The function enters a loop that continues as long as the current token is one of the following types: `TokenType::STAR` (multiplication), `TokenType::SLASH` (division), `TokenType::PERCENT` (modulus), or `TokenType::FLOOR_DIV` (floor division).
-   
-3. **Consume Operator Token**:
-   - Inside the loop, the function consumes the current operator token using `consume()` and stores its value in the variable `op`.
+2. **Loop for Multiplicative Operations**: The function enters a loop that continues as long as the next token is one of the following types:
+   - TokenType::STAR (`*`) for multiplication.
+   - TokenType::SLASH (`/`) for division.
+   - TokenType::PERCENT (`%`) for modulus.
+   - TokenType::FLOOR_DIV (`//`) for floor division.
 
-4. **Parse Right Hand Side**:
-   - The function then calls `parsePower()` again to parse the right-hand side of the expression after the operator.
+3. **Consuming Operator Token**: Inside the loop, the function consumes the current token using `consume()` and retrieves its value. This value is used as the operator in the binary expression.
 
-5. **Construct AST Node**:
-   - A new `ASTNode` is constructed with a `BinaryExpr` object containing the operator `op`, the previously parsed left-hand side expression (`std::move(left)`), and the newly parsed right-hand side expression (`std::move(right)`). The line number of the current token (`ln`) is also passed to the `ASTNode` constructor to maintain context.
+4. **Recursive Parsing**: After consuming the operator token, the function calls `parsePower()` again to parse the right-hand side of the binary operation. This recursive call ensures that nested expressions can be correctly handled.
 
-6. **Update Left Variable**:
-   - The `left` variable is updated to hold the newly constructed `ASTNode`. This allows the loop to continue with the newly formed left-hand side of the expression, effectively chaining multiple multiplicative/divisive operations together.
+5. **Building AST Node**: Once both operands are parsed, the function creates a new ASTNode containing a BinaryExpr. The constructor of BinaryExpr takes three arguments:
+   - The operator string.
+   - A move-constructed unique pointer to the left-hand side ASTNode.
+   - A move-constructed unique pointer to the right-hand side ASTNode.
+   - The line number where the operator was found, obtained using `current().line`.
 
-7. **Return Final AST Node**:
-   - Once the loop exits (i.e., when there are no more multiplication or division operators), the final parsed expression tree is returned.
+6. **Updating Left Node**: The newly created ASTNode becomes the new left-hand side for the next iteration of the loop, allowing for the construction of complex expressions involving multiple multiplicative operations.
+
+7. **Loop Termination**: The loop terminates when there are no more tokens of the specified types, meaning all multiplicative operations have been processed.
+
+8. **Return Statement**: Finally, the function returns the left-hand side ASTNode, which now represents the entire parsed expression including all multiplicative operations.
 
 ## Edge Cases
-- **Empty Expression**: If the initial call to `parsePower()` results in an empty expression (e.g., due to unexpected end-of-file or syntax errors), the function will simply return this empty expression.
-- **No Multiplicative/Division Operators**: If the input contains no multiplication or division operators, the function will return the result of the initial `parsePower()` call, which could be a single term or another binary operation.
+- **Empty Expression**: If the input stream is empty or does not contain any valid tokens, the function will eventually exit the loop without creating any AST nodes, returning the result of `parsePower()`.
+- **Invalid Tokens**: If the next token is not one of the expected types (`*`, `/`, `%`, `//`), the loop condition will fail, and the function will return the current left-hand side ASTNode.
+- **Nested Expressions**: The function handles nested expressions through recursion, ensuring that the correct precedence of operations is maintained.
 
-## Interactions With Other Components
-- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing.
+## Interactions with Other Components
+- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing. The tokenizer must correctly identify and categorize tokens such as operators and operands.
 - **Error Handling**: While not shown in the snippet, the function likely interacts with error handling mechanisms to report syntax errors if unexpected tokens are encountered during parsing.
-- **Expression Parsing**: The function uses `parsePower()` to handle the base case of the recursive descent parsing algorithm, which parses terms like numbers, variables, and parenthesized sub-expressions.
+- **Precedence Handling**: The use of a loop allows the function to handle multiple consecutive multiplicative operations, respecting their order according to the rules of arithmetic precedence.
 
-This function is crucial for handling arithmetic operations in the Quantum Language compiler, ensuring that they are correctly parsed and represented in the AST for further processing and code generation.
+This function is crucial for constructing the AST for expressions involving multiplication and related operations, enabling further analysis and evaluation of the quantum language code.
