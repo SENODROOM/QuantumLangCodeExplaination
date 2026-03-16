@@ -1,41 +1,37 @@
 # `parseInputStmt`
 
-The `parseInputStmt` function in the Quantum Language compiler is designed to handle different types of input statements. These include C-style input using `scanf`, and custom input functions `input` with optional prompts. The function parses these statements and constructs an abstract syntax tree (AST) node representing the input operation.
+The `parseInputStmt` function in the Quantum Language compiler is responsible for parsing various forms of input statements encountered in the source code. These include both C-style input using `scanf` and custom input functions `input` with optional prompts. The function processes these statements and constructs an abstract syntax tree (AST) node representing the parsed input statement.
 
 ## What It Does
 
-The primary purpose of `parseInputStmt` is to parse input statements and convert them into AST nodes that can be further processed by the compiler. This involves recognizing various forms of input syntax and extracting necessary information such as the format string, prompt, and target variable.
+The primary role of `parseInputStmt` is to correctly interpret and convert input statements into their corresponding AST nodes. This allows the compiler to understand how variables should be populated with user input during execution.
 
 ## Why It Works This Way
 
-1. **Flexibility**: By handling both C-style and custom input functions, the function provides flexibility in how input operations are defined within the Quantum Language.
-2. **Error Handling**: The function includes error handling mechanisms to ensure that the input statement is correctly formatted. If any expected token is missing, it throws an exception with a descriptive message.
-3. **Abstract Syntax Tree Construction**: The parsed input statement is converted into an AST node (`InputStmt`) which encapsulates the target variable and the prompt (if present). This allows for easier manipulation and code generation during subsequent compilation phases.
+The function's design ensures flexibility and robustness in handling different types of input statements. By checking the token type and consuming tokens accordingly, it can differentiate between C-style `scanf` and custom `input` functions, including those with prompts. This approach allows the function to adapt to various syntactic structures without requiring significant changes.
 
 ## Parameters/Return Value
 
-### Parameters
-
-- None explicitly listed in the provided code snippet. However, it relies on global state managed by the parser, such as the current token and its type.
-
-### Return Value
-
-- Returns a unique pointer to an `ASTNode` object representing the parsed input statement.
-- If the input statement is invalid, it throws an exception.
+- **Parameters**: None explicitly declared within the function signature; however, it relies on global state managed by the parser, such as the current token (`current()`) and methods like `consume()` and `expect()`.
+  
+- **Return Value**: Returns a unique pointer to an `ASTNode` containing an `InputStmt`. The `InputStmt` includes the target variable and an optional prompt.
 
 ## Edge Cases
 
-1. **C-style Input**: Handles `scanf("%d", &var)` where `%d` is a format specifier and `&var` is the address-of operator pointing to a target variable.
-2. **Custom Input with Prompt**: Handles `input("prompt", var)` where `"prompt"` is a string literal and `var` is the target variable.
-3. **Custom Input Without Prompt**: Handles `input(var)` where `var` is the target variable without a prompt.
-4. **Optional Address-of Operator**: Supports both `input(&var)` and `input(var)` syntaxes, treating them equally.
-5. **Whitespace and Semicolons**: Ignores trailing whitespace and semicolons at the end of the input statement.
+1. **C-style Input**: The function handles C-style input using `scanf` where the first argument is a format string followed by a comma and the address-of operator (`&`). If the address-of operator is omitted, it assumes standard `scanf` usage.
+   
+2. **Custom Input Function**: For custom `input` functions, the function can accept either a single identifier (no prompt) or a pair consisting of a string literal (prompt) and an identifier (target variable). If the prompt is missing, it defaults to an empty string.
+
+3. **Whitespace Handling**: The function consumes any newline characters (`NEWLINE`) or semicolons (`SEMICOLON`) that may follow the input statement, ensuring proper parsing even when statements are separated by whitespace.
+
+4. **Error Handling**: In cases where expected tokens are not found, the function throws errors indicating the nature of the issue (e.g., "Expected variable name after ','").
 
 ## Interactions With Other Components
 
-- **Token Stream Management**: Relies on the global token stream managed by the parser to fetch and consume tokens.
-- **Error Reporting**: Utilizes error reporting mechanisms to provide feedback if the input statement is malformed.
-- **AST Node Creation**: Creates instances of `ASTNode` objects to represent different parts of the input statement, such as `StringLiteral` for the prompt and `InputStmt` for the entire input operation.
-- **Compilation Context**: May interact with other components of the compiler to generate appropriate machine code or intermediate representation based on the parsed AST.
+- **Token Stream Management**: The function interacts with the token stream provided by the parser. It uses methods like `current()`, `consume()`, and `expect()` to navigate through the tokens and validate their correctness.
+  
+- **Abstract Syntax Tree Construction**: After parsing the input statement, the function constructs an `ASTNode` representing the parsed statement. This node is then used by subsequent stages of the compilation process to generate executable code.
 
-This comprehensive approach ensures that the `parseInputStmt` function can effectively handle various input statement formats and construct accurate AST nodes for further processing.
+- **Error Reporting**: If the input statement is malformed, the function reports appropriate error messages, facilitating debugging and correction of the source code.
+
+Overall, `parseInputStmt` plays a crucial role in accurately interpreting input statements in the Quantum Language, ensuring that the resulting AST reflects the intended behavior of the program.
