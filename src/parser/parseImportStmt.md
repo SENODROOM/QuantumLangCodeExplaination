@@ -2,53 +2,57 @@
 
 ## Purpose
 
-The `parseImportStmt` function is designed to parse import statements in the Quantum Language source code. It handles both direct import statements (`import A, B`) and import statements with a specified base module (`from module.sub import A, B`). The parsed information is encapsulated into an `ImportStmt` object, which is then converted into an `ASTNode` and returned.
+The `parseImportStmt` function is responsible for parsing import statements in the Quantum Language source code. This function can handle two types of import statements:
+1. Direct import statements (`import A, B`)
+2. Import statements with a specified base module (`from module.sub import A, B`)
+
+It extracts the module names and items to be imported, along with any aliases provided, and constructs an `ImportStmt` object representing the parsed import statement.
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - None explicitly mentioned in the function signature, but it relies on global state such as `current()` and `expect()`.
+  - None explicitly listed in the function signature, but it uses member variables like `current()`, `expect()`, `match()`, and `consume()` which are part of the parser's state and utilities.
   
 - **Return Value**:
   - Returns a unique pointer to an `ASTNode` containing the parsed `ImportStmt`.
+  - The `ASTNode` represents the abstract syntax tree node for the import statement, and its line number is set based on the current token position.
 
-## How It Works
+## How it Works
 
-1. **Initialization**:
-   - The function starts by retrieving the current line number using `current().line`.
-   - An `ImportStmt` object named `stmt` is initialized to store the parsed import statement details.
+### Parsing Direct Import Statements
 
-2. **Parsing Based on Statement Type**:
-   - If the current token indicates a `from` statement (`isFrom` is true):
-     - It expects an `IDENTIFIER` token representing the module name (e.g., `module.sub`).
-     - It then expects an `IMPORT` token to confirm the start of the import list.
-     - Inside a loop that continues until a comma or end of input is encountered:
-       - For each item to be imported, it expects an `IDENTIFIER` token representing the item's name.
-       - Optionally, it checks if the next token is `AS`, indicating an alias should be assigned to the imported item. If so, it expects another `IDENTIFIER` token for the alias.
-       - Each parsed item is added to the `imports` vector within the `ImportStmt` object.
-   
-   - If the current token indicates a direct import statement (`isFrom` is false):
-     - It initializes the `module` field of the `ImportStmt` object to an empty string, signifying that no base module is specified.
-     - Similar to the `from` statement case, it enters a loop to parse each item to be imported:
-       - It expects an `IDENTIFIER` token representing the item's name.
-       - Optionally, it checks for an `AS` token to assign an alias to the imported item.
-       - Each parsed item is added to the `imports` vector.
+When the parser encounters a direct import statement (`import A, B`), it initializes an empty string for the `module` field of the `ImportStmt`. Then, it enters a loop that continues until it reaches the end of the list of items to import.
 
-3. **Handling Newlines and Semicolons**:
-   - After parsing the import statement, the function consumes any trailing newlines (`NEWLINE`) or semicolons (`SEMICOLON`) to ensure proper handling of the syntax.
+Inside the loop:
+- It expects an identifier (representing the item to import) using the `expect()` function.
+- If the next token is `TokenType::AS`, indicating an alias should follow, it reads another identifier to assign as the alias.
+- Each `ImportStmt::Item` is added to the `imports` vector of the `ImportStmt`.
 
-4. **Creating ASTNode**:
-   - Finally, the function returns a unique pointer to an `ASTNode` constructed with the parsed `ImportStmt` and the original line number.
+After parsing all items, the parser consumes any trailing newline or semicolon tokens using the `while` loop at the end of the function.
+
+### Parsing Import Statements with a Specified Base Module
+
+For import statements with a specified base module (`from module.sub import A, B`), the parser first expects an `IDENTIFIER` token to represent the base module name. It then checks for the `TokenType::IMPORT` keyword to ensure the correct syntax.
+
+The process of parsing items to import follows the same steps as for direct import statements:
+- Expect an identifier for the item to import.
+- Optionally expect an `AS` keyword followed by another identifier to provide an alias.
+
+Each `ImportStmt::Item` is added to the `imports` vector of the `ImportStmt`.
+
+Again, the parser consumes any trailing newline or semicolon tokens using the `while` loop at the end of the function.
 
 ## Edge Cases
 
-- **Empty Module Name**: If the `from` statement does not specify a module name, the `module` field will remain an empty string.
-- **Missing Alias**: If an `AS` keyword is used without providing an alias, the `alias` field for that item will also remain an empty string.
-- **Syntax Errors**: The function includes error checking to ensure that the expected tokens (`IDENTIFIER`, `IMPORT`, `AS`) are present at appropriate places. If these tokens are missing, it throws an exception with a descriptive message.
+- **Empty List**: If there are no items to import after `from` or `import`, the `imports` vector will remain empty.
+- **Alias Without Item Name**: The function will throw an error if it encounters an `AS` keyword without a preceding item name.
+- **Trailing Commas**: Trailing commas after the last item in the import list are allowed and ignored by the parser.
+- **Whitespace Handling**: The parser consumes any leading or trailing whitespace around identifiers and keywords.
 
 ## Interactions with Other Components
 
-- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing. Functions like `current()`, `expect()`, and `match()` interact with the tokenizer to retrieve and validate tokens.
-- **AST Construction**: Once the `ImportStmt` is fully parsed, the function constructs an `ASTNode` using the parsed data. This node can then be further processed by other parts of the compiler to generate intermediate representation or compile the code.
+- **Tokenizer**: The `current()`, `expect()`, and `match()` functions rely on the tokenizer to provide the next token for parsing.
+- **Error Reporting**: If the parser encounters unexpected tokens or incorrect syntax, it will call `expect()` with appropriate error messages, which may be handled by higher-level components to report errors to the user.
+- **Abstract Syntax Tree Construction**: The parsed `ImportStmt` is used to create an `ASTNode`, which is then returned to the caller. This AST node can be further processed by other parts of the compiler to generate intermediate representation or compile the code.
 
-By following this structured approach, `parseImportStmt` ensures that import statements are correctly parsed and represented in the Abstract Syntax Tree (AST), facilitating subsequent stages of compilation.
+Overall, the `parseImportStmt` function plays a crucial role in accurately interpreting import declarations within the Quantum Language source code, ensuring that the subsequent compilation stages have the necessary information about the modules and items being imported.
