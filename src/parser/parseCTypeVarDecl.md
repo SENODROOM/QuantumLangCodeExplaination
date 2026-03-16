@@ -1,47 +1,41 @@
-# parseCTypeVarDecl
+## parseCTypeVarDecl
 
-The `parseCTypeVarDecl` function in the Quantum Language compiler is designed to parse variable declarations of C-like types. This includes handling various modifiers such as pointers (`*`) and const qualifiers (`const`). The function aims to extract the type information and the variable name from the input tokens.
+### Overview
 
-## What It Does
+The `parseCTypeVarDecl` function in the Quantum Language compiler is designed to parse variable declarations of C-like types. It handles various modifiers such as pointers (`*`) and const qualifiers (`const`). The primary goal is to extract the type information and the variable name from the input tokens.
 
-- **Extracts Type Information**: The function identifies whether the declared variable is a pointer and handles any const qualifiers that may precede the type or the pointer.
-- **Handles Function Pointers**: It also recognizes and parses function pointers, which can include additional syntax for member functions.
-- **Accepts Variable Names**: Finally, it consumes the token representing the variable name, ensuring that it matches expected types like identifiers or keywords used as variable names.
+### Parameters/Return Value
 
-## Why It Works This Way
+- **Parameters**: None explicitly listed in the provided code snippet, but it operates on global state within the parser class, including `current()` and `tokens`.
+- **Return Type**: The function returns a `std::pair<TypeInfo, Token>`, where `TypeInfo` contains details about the parsed type, and `Token` represents the variable name.
 
-### Pointer Handling
+### How It Works
 
-- **Loop Through Modifiers**: The function uses a loop to consume all adjacent pointer stars (`*`) and const qualifiers (`const`). This ensures that complex declarations like `int** const p` are correctly parsed.
-- **Track Pointer Status**: By setting the `isPointer` flag within the loop, the function keeps track of whether the variable being declared is a pointer.
+1. **Initialization**:
+   - The function starts by retrieving the current line number using `current().line`.
 
-### Function Pointers
+2. **Handling Pointers and Const Qualifiers**:
+   - It initializes a boolean flag `isPointer` to `false`. The function then enters a loop that consumes any `TokenType::STAR` (pointer) and `TokenType::CONST` (const qualifier) tokens found between the type and the variable name. If a `TokenType::STAR` is encountered, `isPointer` is set to `true`.
 
-- **Check for Parentheses**: If an opening parenthesis (`(`) is encountered, the function assumes it might be part of a function pointer declaration.
-- **Nested Loop for Modifiers**: Similar to the main loop, another nested loop is used to handle any additional pointer stars or const qualifiers inside the parentheses.
-- **Discard Class Name**: For member function pointers, the class name before the scope resolution operator (`::*`) is consumed but discarded. Only the variable name is retained.
+3. **Checking for Function Pointer Syntax**:
+   - The function checks if there is an opening parenthesis `(`, which might indicate a function pointer syntax. If found, it sets `hasParen` to `true` and consumes the token. It then enters another loop to handle any additional pointer or const qualifier tokens inside the parentheses.
 
-### Variable Name Parsing
+4. **Handling Member Pointers**:
+   - The function checks if the next two tokens form a member pointer syntax (`:::`). If so, it consumes the class name, followed by two colons. The class name is ignored, and the function continues to consume any remaining pointer or const qualifier tokens.
 
-- **Identifier Check**: The function first checks if the next token is an identifier. If so, it consumes it as the variable name.
-- **Keyword Check**: If not an identifier, it checks if the token is either `INPUT` or `PRINT`, which are special keywords in the Quantum Language. These are also consumed as valid variable names.
-- **Expectation Handling**: If neither an identifier nor a keyword is found, the function throws an error indicating that a valid variable name was expected after the type.
+5. **Accepting Variable Names**:
+   - Finally, the function accepts either an `IDENTIFIER` token representing the variable name or specific keyword tokens (`INPUT` or `PRINT`) used as variable or parameter names. If neither is found, it throws an error indicating that a variable name was expected after the type.
 
-## Parameters/Return Value
+### Edge Cases
 
-- **Parameters**: None explicitly mentioned in the code snippet provided.
-- **Return Value**: The function returns a `Token` object representing the variable name that was successfully parsed.
+- **Empty Declaration**: If the input tokens do not contain a valid variable declaration, the function will throw an error.
+- **Invalid Modifiers**: If the input contains invalid modifiers (e.g., multiple consecutive `const` qualifiers without a preceding type), the function will throw an error.
+- **Member Pointers Without Class Name**: If the member pointer syntax is used without a preceding class name, the function will ignore the class name but still consume any subsequent pointer or const qualifier tokens.
 
-## Edge Cases
+### Interactions with Other Components
 
-- **Empty Declaration**: If there are no tokens left to parse or the tokens do not form a valid variable declaration, the function will throw an error.
-- **Invalid Keywords**: Using invalid keywords like `INPUT` or `PRINT` where they are not expected will result in an error.
-- **Complex Types**: Declarations involving complex types or multiple levels of indirection (like `int***`) are handled gracefully without errors.
+- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing.
+- **Error Handling**: Errors during parsing are handled through the `expect` method, which ensures that the correct token type is consumed at each step.
+- **Symbol Table**: While not directly shown in the provided code snippet, the parsed type and variable name would typically be added to a symbol table for further use in semantic analysis and code generation phases.
 
-## Interactions With Other Components
-
-- **Tokenizer**: The function relies on the tokenizer to provide a stream of tokens. Each token represents a part of the source code.
-- **Error Handling**: Errors during parsing are managed through calls to `expect`, which throws exceptions when a token of the expected type is not found.
-- **Scope Resolution**: For member function pointers, the class name before the scope resolution operator is ignored, demonstrating how the function interacts with other parts of the compiler that manage scope and symbol tables.
-
-This function is crucial for accurately interpreting the type and name of variables in C-like declarations, ensuring that subsequent stages of compilation can proceed with correct type information.
+This function is crucial for accurately interpreting variable declarations in the Quantum Language, ensuring that types and modifiers are correctly parsed and can be utilized in subsequent stages of compilation.
