@@ -1,75 +1,68 @@
 # Value Component of the Quantum Language Compiler
 
-The Value component is a crucial part of the Quantum Language (QL) compiler, designed to handle and manage various types of values within the quantum programming environment. This component provides essential functionalities for converting, accessing, and manipulating these values efficiently.
+The Value component is a fundamental module in the Quantum Language (QL) compiler, responsible for handling and managing different types of values within the quantum programming environment. This component ensures efficient conversion, access, and manipulation of these values, making it an integral part of the compiler's architecture.
 
 ## Overview
 
-The Value component includes several key functions and classes that facilitate the handling of different data types in QL. These functions enable developers to check if a value is truthy, convert it to a string representation, determine its type name, define new values, retrieve existing values, set values, check for the existence of keys, access cells, get fields, set fields, identify native values, and convert them back to their native form.
+The Value component encompasses a set of core functionalities that enable seamless management of quantum values. It facilitates operations such as checking the truthiness of a value, converting it to a string representation, retrieving its type name, defining new values, accessing and modifying cell and field data, determining if a value is native, and converting native values back into QL values.
 
-## Files and Functions
+### Key Features
 
-### `value.h`
+- **Value Conversion**: Provides methods to convert values between different formats, ensuring compatibility across various parts of the quantum program.
+- **Access and Manipulation**: Offers mechanisms to get and set values, check their existence, and manipulate complex structures like cells and fields.
+- **Type Handling**: Includes functionality to determine and retrieve the type names of quantum values, aiding in type safety checks and conversions.
+- **Native Support**: Facilitates interaction with native code, allowing quantum programs to leverage existing libraries and systems seamlessly.
 
-- **`isTruthy(const Value& v)`**: Checks if the given value is considered "truthy" in the context of QL.
-- **`toString(const Value& v)`**: Converts the given value to its string representation.
-- **`typeName(const Value& v)`**: Returns the type name of the given value as a string.
+### Directory Structure
 
-### `value.cpp`
-
-- **`define(const std::string& name, const Value& v)`**: Defines a new value with the specified name.
-- **`defineRef(const std::string& name, Value* v)`**: Defines a reference to an existing value with the specified name.
-- **`get(const std::string& name)`**: Retrieves the value associated with the specified name.
-- **`set(const std::string& name, const Value& v)`**: Sets or updates the value associated with the specified name.
-- **`has(const std::string& name)`**: Checks if a value with the specified name exists.
-- **`getCell(const std::string& name)`**: Accesses the cell associated with the specified name.
-- **`getField(const std::string& name)`**: Retrieves the field associated with the specified name.
-- **`setField(const std::string& name, const Value& v)`**: Sets or updates the field associated with the specified name.
-- **`isNative(const Value& v)`**: Determines if the given value is a native value.
-- **`asNative(Value& v)`**: Converts the given value to its native form.
-
-## Overall Flow
-
-1. **Value Creation**: Values can be created using constructors provided by the Value class or through functions like `define` and `defineRef`.
-2. **Type Handling**: The `typeName` function allows developers to query the type of a value, which is useful for debugging and ensuring type safety.
-3. **Accessing Values**: Developers can use `get`, `has`, `getCell`, `getField`, and `setField` to interact with values stored in the Value component.
-4. **Truthiness Check**: The `isTruthy` function helps in evaluating the truthiness of a value, which is essential for conditional logic in quantum programs.
-5. **String Conversion**: The `toString` function converts values to strings, making them easier to display and debug.
-6. **Native Value Management**: The `isNative` and `asNative` functions allow developers to work with native values directly, providing flexibility and performance benefits.
-
-## Usage Example
-
-```cpp
-#include "value.h"
-
-int main() {
-    // Define a new integer value
-    define("myInt", 42);
-
-    // Get the value
-    Value myValue = get("myInt");
-
-    // Check if the value is truthy
-    bool isMyValueTruthy = isTruthy(myValue);
-
-    // Convert the value to a string
-    std::string strValue = toString(myValue);
-
-    // Set a new value
-    set("myNewValue", "Hello, Quantum!");
-
-    // Retrieve the new value
-    Value myNewValue = get("myNewValue");
-
-    // Check if the new value is a native value
-    bool isMyNewValueNative = isNative(myNewValue);
-
-    // Convert the new value to its native form
-    std::string nativeStrValue = asNative(myNewValue);
-
-    return 0;
-}
+```
+value/
+├── include/
+│   ├── ql_value.h
+│   └── ...
+├── src/
+│   ├── ql_value.cpp
+│   └── ...
+└── tests/
+    ├── test_ql_value.cpp
+    └── ...
 ```
 
-This example demonstrates basic usage of the Value component, including defining, getting, setting, checking truthiness, converting to strings, and managing native values.
+#### `include/ql_value.h`
 
-By leveraging the Value component, developers can effectively handle and manipulate various types of values within the Quantum Language compiler, ensuring robust and efficient quantum program execution.
+This header file defines the public interface for the Value component, including function prototypes and class declarations. It serves as the primary entry point for developers working with quantum values.
+
+#### `src/ql_value.cpp`
+
+This source file implements the core functionalities of the Value component. It contains detailed implementations of the functions defined in `ql_value.h`, providing robust support for value management.
+
+#### `tests/test_ql_value.cpp`
+
+This file includes unit tests for the Value component, ensuring its reliability and correctness. Developers can run these tests to validate the implementation and catch any potential issues early in the development process.
+
+## Usage
+
+To utilize the Value component in your quantum language projects, follow these steps:
+
+1. **Include the Header File**:
+   ```cpp
+   #include "ql_value.h"
+   ```
+
+2. **Create and Manage Values**:
+   Use the provided functions to create, access, and modify quantum values. For example:
+   ```cpp
+   // Define a new quantum value
+   QlValuePtr value = define("example", 42);
+
+   // Convert the value to a string
+   std::string str = toString(value);
+
+   // Check if the value is truthy
+   bool isTrue = isTruthy(value);
+   ```
+
+3. **Test Your Implementation**:
+   Run the unit tests included in the `tests` directory to ensure your implementation works correctly. You can execute these tests using your preferred testing framework or build system.
+
+By integrating the Value component into your quantum language projects, you gain access to powerful tools for managing and manipulating quantum values efficiently, ultimately enhancing the performance and reliability of your quantum applications.
