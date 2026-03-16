@@ -1,47 +1,39 @@
 # parseCoutStmt
 
-The `parseCoutStmt` function in the Quantum Language compiler is responsible for parsing statements that involve output operations using the `cout` object. This function specifically handles the syntax of `cout` statements where multiple expressions can be concatenated and separated by `<<` operators, followed optionally by an `endl` to trigger a newline.
-
-## What It Does
-
-The primary task of `parseCoutStmt` is to construct an Abstract Syntax Tree (AST) node representing a print statement. The AST node contains a list of arguments to be printed and a boolean flag indicating whether a newline should be inserted after printing.
-
-## Why It Works This Way
-
-The function avoids calling `parseExpr()` directly due to the potential for `parseShift()` within it to greedily consume the `<<` operator as a bitwise shift operator instead of recognizing it as the stream insertion operator used in `cout`. By calling `parseAddSub()` instead, which operates at a lower precedence than `parseShift()`, the function ensures that each `<<` remains available as the intended stream insertion separator.
-
-Additionally, the function checks for the presence of `"endl"` as a special case. When encountered, it sets the `newline` flag to `true` without adding any expression to the argument list. This allows the parser to correctly handle `endl` as a directive to insert a newline character rather than a regular expression.
+The `parseCoutStmt` function in the Quantum Language compiler is designed to parse statements involving output operations using the `cout` object. It specifically handles the syntax of `cout` statements where multiple expressions can be concatenated and separated by the `<<` operator. The function ensures that each `<<` remains available as a stream insertion separator rather than being consumed as a bitwise shift operator.
 
 ## Parameters/Return Value
 
-- **Parameters**: None explicitly defined in the provided code snippet.
-  
-- **Return Value**:
-  - Returns a unique pointer to an `ASTNode` containing a `PrintStmt`.
-  - The `PrintStmt` has two members:
-    - A vector of `ASTNodePtr` representing the arguments to be printed.
-    - A boolean flag indicating whether a newline should be inserted after printing.
+- **Parameters**: None
+- **Return Value**: Returns a unique pointer to an `ASTNode` representing the parsed `cout` statement.
+
+## How It Works
+
+The function starts by recording the current line number (`ln`) for error reporting purposes. It then initializes an empty vector `args` to store the parsed expressions and a boolean flag `newline` to indicate whether a newline should be inserted after the output.
+
+### Parsing Loop
+
+The function enters a loop that continues until it encounters a token that is not `TokenType::LSHIFT`, which represents the `<<` operator. Within the loop:
+
+1. **Skip Newlines**: Calls `skipNewlines()` to handle any leading newlines or spaces.
+2. **Check for `<<` Operator**: Checks if the current token is `TokenType::LSHIFT`. If not, breaks out of the loop.
+3. **Consume `<<` Token**: Consumes the `<<` token to move past it in the input stream.
+4. **Handle `endl`**: If the next token is an identifier and its value is `"endl"`, sets the `newline` flag to `true` and consumes the token. This indicates that a newline should be inserted after the output.
+5. **Parse Expressions**: If the next token is not `"endl"`, calls `parseAddSub()` to parse the next expression at the add/sub precedence level. This ensures that `<<` operators are treated correctly as stream insertion separators.
+6. **Store Expressions**: If the parsed expression is a string literal ending with `\n`, sets the `newline` flag to `true`. Otherwise, adds the expression to the `args` vector.
+
+### Post-Parsing Handling
+
+After exiting the loop, the function checks for trailing newlines or semicolons and consumes them to ensure proper parsing. Finally, it returns a unique pointer to an `ASTNode` containing a `PrintStmt` object, which encapsulates the parsed arguments and the newline flag.
 
 ## Edge Cases
 
-1. **No Expressions**: If there are no expressions following `cout`, the function will return an empty `args` vector and `newline` set to `false`.
+- **Empty `cout` Statement**: If the input stream contains only a `cout` followed by a semicolon, the function will return an empty `PrintStmt`.
+- **String Literals Ending with `\n`**: String literals that end with `\n` are treated as special cases, indicating that a newline should be inserted after the output.
+- **No Output Arguments**: If there are no valid output arguments (e.g., only `endl` without preceding expressions), the function will still return a `PrintStmt` with the `newline` flag set to `true`.
 
-2. **Single Expression**: If only one expression follows `cout`, it will be added to the `args` vector, and `newline` will remain `false` unless `"endl"` is encountered.
+## Interactions with Other Components
 
-3. **Multiple Expressions**: Multiple expressions can be chained together using `<<`. Each expression is parsed separately and added to the `args` vector.
-
-4. **String Literal Ending with `\n`**: If a string literal ends with `\n`, it is treated as a newline directive and not included in the `args` vector. The `newline` flag is set to `true`.
-
-5. **Bare `\n` String Literal**: A bare string literal consisting solely of `\n` is treated as an `endl` directive, setting the `newline` flag to `true` without including it in the `args` vector.
-
-6. **Trailing Newline or Semicolon**: Any trailing newlines or semicolons after the print statement are consumed to ensure proper parsing.
-
-## Interactions With Other Components
-
-- **Tokenizer**: The function relies on the tokenizer to provide tokens such as `TokenType::LSHIFT`, `TokenType::IDENTIFIER`, and others. The tokenizer's state is managed through calls like `current()` and `consume()`.
-
-- **Precedence Parsing**: By calling `parseAddSub()` instead of `parseExpr()`, the function leverages the precedence parsing mechanism to handle different types of expressions correctly. This interaction is crucial for maintaining the correct order of operations in complex `cout` statements.
-
-- **Error Handling**: While not shown in the snippet, the function likely includes error handling mechanisms to manage unexpected token sequences or invalid expressions.
-
-Overall, `parseCoutStmt` plays a vital role in accurately parsing and constructing AST nodes for `cout` statements, ensuring that the semantics of these statements are preserved during compilation.
+- **Lexical Analyzer**: The function relies on the lexical analyzer to provide tokens such as `TokenType::LSHIFT`, `TokenType::IDENTIFIER`, and string literals.
+- **Precedence Parser**: The use of `parseAddSub()` demonstrates the interaction with the precedence parser, ensuring that lower-precedence operators like `+` and `-` are correctly handled before higher-precedence operators like `<<`.
+- **Error Reporting**: By keeping track of the current line number (`ln`), the function facilitates accurate error reporting if issues arise during parsing.
