@@ -1,91 +1,31 @@
 # `parseParamList`
 
 ## Purpose
-The `parseParamList` function is designed to parse a parameter list from a source code file, specifically within the context of a quantum language compiler. This function aims to extract individual parameter declarations from a list enclosed in parentheses `( )`. Each parameter declaration includes its type and possibly a name.
+The `parseParamList` function is designed to parse a parameter list from a source code file, specifically within the context of a quantum language compiler. This function aims to extract individual parameter declarations from a list enclosed in parentheses `( )`.
 
-## Parameters/Return Value
-- **Parameters**: None explicitly listed in the provided snippet, but it relies on global state such as `pos`, `current()`, and `tokens`.
-- **Return Value**: A `std::vector<std::string>` containing the names of the parsed parameters. If there are no parameters or an error occurs, the vector will be empty.
+## Parameters
+- **None**: The function does not take any explicit parameters. It operates on the global state of the parser, which includes the current position (`pos`) and the list of tokens (`tokens`).
+
+## Return Value
+- **std::vector<std::string>**: The function returns a vector containing strings representing the parsed parameter names. If an error occurs during parsing, the function may throw an exception or return an empty vector.
 
 ## How It Works
-### Step-by-Step Breakdown
-1. **Expecting Parentheses**:
-   ```cpp
-   expect(TokenType::LPAREN, "Expected '('");
-   ```
-   - The function starts by expecting a left parenthesis `(` to denote the beginning of the parameter list. If not found, it throws an error message "Expected '".
+The function starts by expecting a left parenthesis `(` using the `expect` method. It then enters a loop that continues until it encounters a right parenthesis `)` or reaches the end of the input. Inside the loop, it handles different types of parameter declarations:
 
-2. **Parsing Parameters**:
-   ```cpp
-   std::vector<std::string> params;
-   while (!check(TokenType::RPAREN) && !atEnd())
-   ```
-   - It initializes an empty vector `params` to store the names of the parsed parameters.
-   - The loop continues until it encounters a right parenthesis `)` or reaches the end of the input stream (`atEnd()`).
+1. **Const Modifier**: If the next token is `const`, it consumes the token to skip the `const` modifier.
+   
+2. **C-Type Keywords**: If the next token is a C-type keyword (like `int`, `float`, etc.), it consumes the keyword and continues consuming additional keywords if they form a multi-word type (e.g., `long long`).
 
-3. **Handling 'const' Modifier**:
-   ```cpp
-   if (check(TokenType::CONST))
-       consume(); // eat const
-   ```
-   - Inside the loop, it checks if the current token is a `CONST` keyword. If so, it consumes the token, effectively skipping it.
-
-4. **Identifying C-Type Keywords**:
-   ```cpp
-   if (isCTypeKeyword(current().type))
-   {
-       consume();
-       while (isCTypeKeyword(current().type))
-           consume(); // multi-word types
-   }
-   ```
-   - The function then checks if the current token represents a C-type keyword (like `int`, `char`, etc.). If it does, it consumes these tokens, handling multi-word types like `long long`.
-
-5. **Detecting Identifier Types**:
-   ```cpp
-   if (check(TokenType::IDENTIFIER))
-   {
-       size_t la = pos + 1;
-       if (la < tokens.size() && tokens[la].type == TokenType::LT)
-       {
-           int tdepth = 0;
-           while (la < tokens.size())
-           {
-               if (tokens[la].type == TokenType::LT)
-                   tdepth++;
-               else if (tokens[la].type == TokenType::GT)
-               {
-                   tdepth--;
-                   la++;
-                   break;
-               }
-               else if (tokens[la].type == TokenType::RSHIFT)
-               {
-                   tdepth -= 2;
-                   la++;
-                   break;
-               }
-               la++;
-           }
-       }
-       while (la < tokens.size() &&
-              (tokens[la].type == TokenType::BIT_AND ||
-               tokens[la].type == TokenType::STAR ||
-               tokens[la].type == TokenType::CONST))
-           la++;
-   ```
-   - When encountering an identifier, the function looks ahead to determine if it belongs to a type name that might include qualifiers like `*` (pointer), `&` (reference), or additional `const` modifiers.
-   - It handles template arguments `<...>` by adjusting a depth counter `tdepth` and advancing the lookahead pointer `la` accordingly.
-   - Finally, it skips any remaining qualifiers after the identifier to ensure only the parameter name is captured.
+3. **Identifier Type**: If the next token is an identifier, it checks for any type qualifiers (`*`, `&`, `const`) that might follow. These qualifiers are consumed to identify the actual type name. The function uses a lookahead mechanism to handle complex types like pointers to arrays (`unique_ptr<int[]>`), references to classes (`shared_ptr<Foo>`), and nested types (`Room &r`). The lookahead skips over `<...>` sequences to correctly identify the type name.
 
 ## Edge Cases
-- **Empty Parameter List**: If the parameter list is empty (i.e., immediately followed by a right parenthesis `)`), the function will return an empty vector without consuming any tokens.
-- **Syntax Errors**: If the input contains unexpected tokens or malformed syntax (e.g., missing closing parentheses), the function may throw errors or produce incorrect results.
-- **Complex Types**: The function can handle complex types including pointers, references, and `const` qualifiers, making it robust for various parameter declarations.
+- **Empty Parameter List**: If the parameter list is empty (i.e., contains only parentheses without any content), the function will return an empty vector.
+- **Missing Right Parenthesis**: If the function encounters the end of the input before finding a matching right parenthesis `)`, it will likely throw an exception indicating a syntax error.
+- **Invalid Token Sequence**: If the sequence of tokens does not conform to expected patterns (e.g., missing type or identifier after a type keyword), the function will handle these errors gracefully, possibly skipping invalid tokens or returning an empty vector.
 
-## Interactions with Other Components
-- **Tokenizer**: The function uses the tokenizer to access the sequence of tokens (`tokens`) and their positions (`pos`). The tokenizer must correctly identify keywords, identifiers, and punctuation marks.
-- **Error Handling**: The function interacts with error handling mechanisms to report issues when expected tokens are missing or when the syntax is invalid.
-- **Scope Management**: While not shown in the snippet, the parsed parameter names would likely be used to manage variable scopes during further compilation stages.
+## Interactions With Other Components
+- **Tokenizer**: The function relies on the tokenizer to provide a stream of tokens from the source code. It assumes that the tokenizer has already processed the source code into a sequence of tokens.
+- **Error Handling**: The function uses methods like `expect` to check for expected token types and throws exceptions when errors are detected. This interaction with error handling ensures that the compiler can report meaningful errors to the user.
+- **Syntax Analysis**: The function is part of a larger syntax analysis process where it helps to build a representation of the parameter list in the abstract syntax tree (AST). This AST is used for further compilation steps.
 
-This function is crucial for parsing the structure of quantum operations and functions, where precise parameter definitions are essential for correct compilation and execution.
+This detailed explanation covers the purpose, implementation, edge cases, and interactions of the `parseParamList` function within the context of a quantum language compiler.
