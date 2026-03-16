@@ -1,49 +1,39 @@
 # `execInput` Function Explanation
 
-The `execInput` function is responsible for processing input statements in the Quantum Language compiler's interpreter. This function takes an `InputStmt` object as its parameter and executes the corresponding input operation based on the statement's properties.
+The `execInput` function processes input statements in the Quantum Language compiler's interpreter. It takes an `InputStmt` object as its parameter and executes the corresponding input operation based on the statement's properties.
 
-## What It Does
+## What it Does
 
-The primary task of `execInput` is to handle user input according to the specifications provided in the `InputStmt`. This includes displaying a prompt message to the user, reading their input, and converting it into the appropriate data type.
+The primary role of the `execInput` function is to handle user inputs within the quantum program being executed. It evaluates the prompt string provided in the `InputStmt`, extracts any format specifier (e.g., `%d`, `%f`), and then prompts the user for input according to the specified format. The extracted input is then assigned to the variable defined in the `InputStmt`.
 
-## Why It Works This Way
+## Why it Works This Way
 
-The function works in a structured manner to ensure that prompts are displayed correctly and user inputs are handled efficiently. By evaluating the prompt string exactly once and then stripping out any format specifiers, the function maintains performance and clarity in handling different types of input requests.
+This implementation ensures that the prompt string is evaluated exactly once before extracting the format specifier. By iterating through the prompt string, it identifies valid format specifiers and skips over any formatting flags or width specifications. This approach allows for flexibility in the prompt string, enabling users to include both human-readable text and format specifiers without interfering with each other.
 
-### Detailed Steps
-
-1. **Evaluate Prompt String**:
-   - The function first checks if the `InputStmt` contains a prompt (`s.prompt`). If it does, the prompt string is evaluated using the `evaluate` method.
-   - The result of the evaluation is converted to a `std::string`, which represents the prompt message to be displayed to the user.
-
-2. **Extract Format Specifier**:
-   - After obtaining the prompt string, the function searches for any format specifiers within the string. These specifiers typically start with `%` and may include various formatting options like `-`, `+`, ` `, `0`, `#`, and digits.
-   - Once a valid format specifier is found, it is extracted and stored in the `spec` variable. If no format specifier is present, `spec` remains set to `0`.
-
-3. **Strip Format Specifiers**:
-   - To display only the human-readable part of the prompt, the function iterates through the prompt string and constructs a new string (`display`) that excludes any format specifier sequences.
-   - This ensures that when the prompt is printed, only the intended text is shown, without any formatting instructions.
-
-4. **Display Prompt**:
-   - Finally, the function prints the stripped-down prompt message to the standard output using `std::cout`.
+Additionally, the function strips all format specifier sequences from the prompt when displaying it to the user. This separation ensures that only the human-readable part of the prompt is shown, making the interface cleaner and more intuitive.
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - `InputStmt &s`: A reference to the `InputStmt` object containing the details of the input statement to be executed.
+  - `InputStmt s`: An object representing the input statement to be processed. It contains details such as the prompt string and the target variable for storing the input.
 
 - **Return Value**:
-  - The function does not return any value explicitly. However, it indirectly affects the program state by updating variables or performing actions based on the user's input.
+  - None. The function directly modifies the state of the quantum program by assigning the input value to the specified variable.
 
 ## Edge Cases
 
-- **Empty Prompt**: If the `InputStmt` does not contain a prompt, the function simply displays an empty string and proceeds with the next steps.
-- **Invalid Format Specifier**: If the prompt string contains an invalid format specifier sequence, the function will still strip out the entire sequence and display only the remaining text.
+- **Empty Prompt String**: If the prompt string is empty, the function will not prompt the user for input and will simply assign an empty value to the target variable.
+  
+- **Invalid Format Specifier**: If the prompt string contains an invalid format specifier (e.g., `%g` instead of `%d` or `%f`), the function will ignore the specifier and prompt the user using the original prompt string.
 
-## Interactions With Other Components
+- **Multiple Valid Specifiers**: If the prompt string contains multiple valid format specifiers (e.g., `%d %f`), the function will use only the first one encountered.
 
-- **Evaluator**: The `evaluate` method is called to process the prompt string, which could involve evaluating expressions or retrieving values from the current execution context.
-- **Output Stream**: The function uses `std::cout` to display the prompt message, interacting with the output stream component of the interpreter.
-- **User Input Handling**: Depending on the format specifier, the function might need to interact with additional components to handle specific types of user input, such as parsing integers, floating-point numbers, or strings.
+## Interactions with Other Components
 
-By following this structured approach, the `execInput` function ensures that input operations are performed accurately and efficiently, enhancing the overall functionality and usability of the Quantum Language compiler's interpreter.
+- **Evaluation Engine**: The `evaluate` function is used to process the prompt string, ensuring that any expressions within the prompt are correctly evaluated before extraction.
+
+- **Variable Manager**: After obtaining the user input, the function assigns the value to the target variable managed by the variable manager component of the interpreter.
+
+- **Output Component**: The stripped-down prompt string is printed to the output component, allowing the user to see the request for input clearly.
+
+Overall, the `execInput` function plays a crucial role in facilitating user interaction within the Quantum Language compiler's interpreter, ensuring that inputs are handled efficiently and accurately.
