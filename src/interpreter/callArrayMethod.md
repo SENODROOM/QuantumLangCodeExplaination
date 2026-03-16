@@ -2,66 +2,35 @@
 
 ## Description
 
-The `callArrayMethod` function is designed to handle various operations on an array object within the Quantum Language compiler's interpreter. This function processes different methods such as `push`, `pop`, `shift`, `unshift`, `length`, `copy`, and `fill`.
+The `callArrayMethod` function in the Quantum Language compiler's interpreter handles various operations on an array object. It supports methods like `push`, `pop`, `shift`, `unshift`, `length`, `copy`, and `fill`. Each method performs specific actions on the array, enhancing its functionality according to common programming practices.
 
 ## Parameters
 
-- `arr`: A shared pointer to the `Array` object on which the method is being called.
-- `m`: A string representing the method name to be executed.
-- `args`: A vector containing the arguments passed to the method.
+- `arr`: A pointer to the `Array` object on which the method will be executed.
+- `m`: A string representing the name of the method to be called.
+- `args`: A vector of `QuantumValue` objects containing arguments passed to the method.
 
 ## Return Value
 
-- Returns a `QuantumValue` object, which can represent any type of value in the Quantum Language, including arrays, numbers, or undefined values.
+The function returns a `QuantumValue` object. The type and content of the returned value depend on the method being called:
+- For `push`, `append`, `unshift`, and `reverse`, it returns an empty `QuantumValue`.
+- For `pop`, `shift`, and `fill`, it returns the removed or modified element(s).
+- For `length`, it returns the size of the array as a `QuantumValue`.
 
 ## Edge Cases
 
-1. **Empty Array**: Methods like `pop`, `shift`, and `fill` with specified ranges that exceed the array size will handle these cases gracefully without throwing errors.
-2. **Negative Indices**: For methods that accept indices (like `pop` and `fill`), negative indices are interpreted as relative to the end of the array.
-3. **Invalid Arguments**: If non-numeric arguments are provided where numeric ones are expected (e.g., `pop` with a non-number argument), an error will be thrown.
+- **Empty Array**: Methods like `pop`, `shift`, and `fill` handle empty arrays gracefully by throwing exceptions or returning default values.
+- **Invalid Index**: When calling `pop` with an invalid index (either negative or greater than the array size), an exception is thrown indicating that the index is out of range.
+- **Negative Indices**: Negative indices in `pop` and `shift` are treated as relative positions from the end of the array, allowing for flexible indexing.
 
 ## Interactions with Other Components
 
-- **Array Class**: The `callArrayMethod` function interacts directly with the `Array` class, which manages the internal storage and operations of array objects.
-- **Error Handling**: It uses custom error classes (`IndexError`) to manage exceptions related to invalid array operations, ensuring robustness in error handling.
-- **Memory Management**: By using shared pointers, it ensures proper memory management of array objects, preventing premature deallocation.
+The `callArrayMethod` function interacts closely with the `Array` class, which manages the underlying data structure for arrays. It also utilizes the `QuantumValue` class to handle different types of data that can be stored in arrays, including numbers, strings, and other objects.
 
-## Implementation Details
+Here’s how these components interact:
 
-Here’s a breakdown of how each method is implemented:
+- **Array Class**: The `Array` class provides the necessary methods (`push_back`, `pop_back`, `erase`, etc.) to manipulate the array elements directly. `callArrayMethod` uses these methods to perform operations like adding elements (`push`), removing elements (`pop` and `shift`), and modifying elements (`fill`).
 
-### `push` / `append`
-- Adds elements from `args` to the end of the array `arr`.
-- Returns an empty `QuantumValue`.
+- **QuantumValue Class**: This class acts as a container for various types of quantum data. When passing arguments to `callArrayMethod`, each argument is wrapped in a `QuantumValue`. Inside the function, `QuantumValue` methods like `isNumber()` and `asNumber()` are used to check and convert the data types appropriately before performing operations on the array.
 
-### `pop`
-- Removes and returns the last element of the array if no arguments are provided.
-- If an argument `i` is provided, removes and returns the element at index `i`. Handles negative indices by converting them to positive based on the array size.
-- Throws an `IndexError` if the array is empty or if the index is out of range.
-
-### `shift`
-- Removes and returns the first element of the array.
-- Throws an `IndexError` if the array is empty.
-
-### `unshift`
-- Inserts elements from `args` at the beginning of the array `arr`.
-- Returns an empty `QuantumValue`.
-
-### `length`
-- Returns the current length of the array as a `QuantumValue`.
-
-### `copy`
-- Creates a deep copy of the array `arr` and returns it wrapped in a `QuantumValue`.
-
-### `fill`
-- Fills a portion of the array with a given value.
-- Optionally accepts start and end indices to specify the range of the fill operation.
-- Handles negative indices and adjusts them accordingly.
-- Clamps the start and end indices to ensure they do not exceed the array bounds.
-- Returns the modified array wrapped in a `QuantumValue`.
-
-### `reverse`
-- Reverses the order of elements in the array `arr`.
-- Currently incomplete, likely intended to use `std::reverse` but requires further implementation to complete.
-
-This function provides comprehensive support for common array operations, making it a crucial component of the interpreter's functionality for handling data structures effectively.
+In summary, `callArrayMethod` is a versatile function that enhances array manipulation capabilities within the Quantum Language compiler's interpreter. By leveraging the functionalities provided by the `Array` and `QuantumValue` classes, it ensures robust handling of different array operations while maintaining flexibility and error management.
