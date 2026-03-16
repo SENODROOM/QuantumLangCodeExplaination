@@ -1,42 +1,43 @@
 # `execBlock` Function Explanation
 
-The `execBlock` function is a crucial component of the Quantum Language interpreter, responsible for executing a block of statements within a given environment. This function ensures that each statement in the block is executed sequentially, maintaining the order and dependencies between them.
-
-## What It Does
-
-The primary purpose of `execBlock` is to iterate through a list of statements (`BlockStmt`) and execute each one within a specified environment (`std::shared_ptr<Environment>`). The function also handles exceptions gracefully, particularly at the top level where it suppresses `NameError`s to allow the program to continue running even if some variables are not defined.
-
-## Why It Works This Way
-
-1. **Environment Management**: By setting the current environment to the provided `scope`, the function allows for the execution of statements in a different context than the global scope. This is essential for handling local variables and nested blocks correctly.
-   
-2. **Fault Tolerance**: At the top level (`isTopLevel`), `execBlock` catches `NameError` exceptions and prints an error message to `stderr`. This design choice ensures that the interpreter can handle incomplete or erroneous programs without crashing, making it more robust and user-friendly.
-
-3. **Sequential Execution**: The function iterates over each statement in the block using a range-based for loop, ensuring that they are executed in the order they appear. This sequential approach is critical for maintaining the correct flow of control and state in the program.
-
-4. **Exception Handling**: The use of a nested try-catch block within the main loop provides a finer-grained control over exception handling. It allows individual statements to fail without interrupting the entire execution of the block.
+The `execBlock` function is a vital part of the Quantum Language interpreter, designed to execute a series of statements within a specified environment. This function guarantees that each statement in the block is executed in sequence, preserving the order in which they appear.
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - `BlockStmt &s`: A reference to the block of statements to be executed.
-  - `std::shared_ptr<Environment> scope`: An optional shared pointer to the environment in which the statements should be executed. If not provided, a new environment based on the previous one is created.
+  - `s`: A reference to a `StatementBlock` object containing the list of statements to be executed.
+  - `env`: A shared pointer to an `Environment` object representing the current execution context. If `scope` is provided, it overrides `env`.
+  - `scope`: An optional shared pointer to an `Environment` object that specifies the scope within which the block should be executed. If not provided, a new scope based on the current environment (`env`) is created.
 
-- **Return Value**:
-  - None. The function executes the statements in place and returns nothing.
+- **Return Value**: None. The function executes the statements and modifies the environment accordingly.
+
+## How It Works
+
+1. **Environment Setup**:
+   - The function begins by saving the previous environment (`prev`) and then sets up a new environment (`env`). If a `scope` is provided, it uses that as the new environment; otherwise, it creates a new scope based on the current environment (`env`).
+
+2. **Fault Tolerance for Top-Level Execution**:
+   - The function checks if it is at the top level of execution (i.e., if `scope` is equal to `globals`). If true, it enters a fault-tolerant mode where it catches any `NameError` exceptions that occur during the execution of individual statements. In this mode, if a `NameError` is caught, it prints an error message to standard error (stderr) but continues executing the remaining statements.
+
+3. **Sequential Execution of Statements**:
+   - For each statement in the `StatementBlock`, the function calls the `execute` method. If the block is being executed at the top level, it wraps the call to `execute` in another try-catch block to handle potential `NameError` exceptions gracefully. If the block is not at the top level, it simply calls `execute`.
+
+4. **Exception Handling**:
+   - If any exception occurs during the execution of the statements, the function catches it using a general catch block (`catch (...)`). After handling the exception, it restores the previous environment (`env`) and rethrows the exception to propagate it further up the call stack.
+
+5. **Final Environment Cleanup**:
+   - Regardless of whether an exception occurred or not, the function restores the previous environment (`env`) after completing the execution of all statements.
 
 ## Edge Cases
 
-- **Empty Block**: If the block contains no statements, the function simply exits without performing any operations.
-- **Nested Blocks**: When dealing with nested blocks, `execBlock` ensures that the inner block's environment is properly managed and restored after its execution.
-- **Top-Level Execution**: During top-level execution, `execBlock` suppresses `NameError`s to prevent the entire program from failing due to undefined variables.
+- **Empty Statement Block**: If the `StatementBlock` is empty, the function will do nothing and immediately return without modifying the environment.
+- **Scope Override**: Providing a `scope` parameter allows for overriding the default environment setup, enabling more flexible execution contexts.
+- **Top-Level Fault Tolerance**: The fault-tolerant mode at the top level helps prevent errors in one statement from terminating the entire execution process, making the interpreter more robust for scripts with incomplete variable definitions.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Environment Class**: `execBlock` interacts closely with the `Environment` class to manage variable scopes and lookups. It sets the current environment to the provided `scope` or creates a new one based on the previous environment.
-  
-- **execute Method**: Within the loop, `execBlock` calls the `execute` method on each statement. This method is part of the `Statement` base class and is overridden in derived classes to handle specific types of statements (e.g., assignments, function calls).
+- **Environment Management**: `execBlock` interacts closely with the `Environment` class, creating new scopes and managing variables within those scopes.
+- **Execution Engine**: It utilizes the `execute` method, presumably defined elsewhere in the codebase, to carry out the actual execution of individual statements.
+- **Error Handling**: The function leverages exception handling mechanisms to manage errors gracefully, ensuring that the interpreter can continue running even if some statements fail.
 
-- **Exception Handling Mechanisms**: `execBlock` uses custom exception handling mechanisms such as `NameError` to provide more informative error messages during execution. These exceptions are caught and handled appropriately to ensure the interpreter remains functional.
-
-By understanding how `execBlock` manages environments, handles exceptions, and executes statements sequentially, developers can better appreciate its role in the overall functionality of the Quantum Language interpreter.
+Overall, the `execBlock` function plays a critical role in the Quantum Language interpreter by providing a structured and fault-tolerant approach to executing blocks of statements within a given environment.
