@@ -2,53 +2,78 @@
 
 ## Overview
 
-`src/main.cpp` is the central component of the Quantum Language compiler, responsible for orchestrating the entire compilation process. This includes managing interactions with the lexer, parser, compiler, virtual machine (VM), disassembler, type checker, and error handler. It also handles command-line arguments and directs the execution flow based on user inputs.
+`src/main.cpp` serves as the central component of the Quantum Language compiler, orchestrating the entire compilation process. This includes managing interactions with the lexer, parser, compiler, virtual machine (VM), disassembler, type checker, and error handler. It also handles command-line arguments and directs the execution flow based on the build mode specified.
 
-### Role in Compiler Pipeline
+### Key Design Decisions and Trade-offs
 
-The `main.cpp` acts as the glue that ties together various parts of the compiler pipeline:
+The design of `main.cpp` involves several critical decisions:
 
-- **Lexer**: Converts source code into tokens.
-- **Parser**: Constructs an abstract syntax tree (AST) from tokens.
-- **Compiler**: Translates AST into intermediate representation (IR).
-- **Virtual Machine (VM)**: Executes IR.
-- **Disassembler**: Converts IR back into human-readable assembly code.
-- **Type Checker**: Ensures type safety during parsing and compilation.
-- **Error Handler**: Manages and reports errors encountered during the compilation process.
+- **Modular Architecture**: The compiler is divided into distinct modules (`Lexer`, `Parser`, `Compiler`, `VM`, `Disassembler`, `TypeChecker`, `Error`). Each module has its specific responsibilities, ensuring a clean separation of concerns and easier maintenance.
 
-### Key Design Decisions and Why
+- **Build Modes**: Depending on the build mode defined (`QUANTUM_MODE_COMPILER`, `QRUN_MODE`, or none), the executable behaves differently:
+  - **QUANTUM_MODE_COMPILER**: Compiles `.sa` files to `.exe` and then runs them.
+  - **QRUN_MODE**: Always interprets the code, never bundles it.
+  - **Neither Mode**: Produces a standalone bundled executable like `hello.exe`.
 
-1. **Unified Entry Point**:
-   - Replaces both `main.cpp` (v1 tree-walk) and `main_vm.cpp` (early VM draft).
-   - Maintains the binary name "quantum," ensuring compatibility with existing scripts, batch files, and CI jobs.
+  This decision allows flexibility in how the compiler operates without requiring significant changes to the core logic.
 
-2. **Preservation of Existing Flags**:
-   - Keeps all v1 flags intact, allowing users to continue using familiar commands without modifications.
-   - Adds new VM-specific flags (`--debug`, `--dis`) for advanced debugging and bytecode inspection.
+- **Windows Bundling**: For Windows builds, the executable can include embedded bytecode. This feature simplifies deployment but adds complexity during runtime due to the need to extract and execute the embedded code.
 
-3. **Command-Line Argument Handling**:
-   - Parses command-line arguments to determine the desired operation (run script, REPL, check, test, etc.).
-   - Directs the appropriate flow based on the arguments provided.
-
-4. **Global Test Mode Flag**:
-   - Introduces a global flag `g_testMode` to prevent blocking calls to `input()` during batch testing.
-   - Enhances usability in automated testing environments.
-
-5. **Banner and Achievement Panel**:
-   - Displays a banner at startup, providing visual identification of the compiler.
-   - Offers an achievement panel to highlight completed milestones, such as the implementation of a complete C++17 compiler and a bytecode VM engine.
+- **Command-Line Arguments**: `main.cpp` processes command-line arguments to determine the input file, output file, and other options. This ensures that users can customize the behavior of the compiler easily.
 
 ### Major Classes/Functions Overview
 
-- **printBanner()**: Outputs the startup banner with the compiler's logo and version information.
-- **printAura()**: Provides a visual achievement panel highlighting key milestones.
-- **g_testMode**: A boolean flag used to control behavior during batch testing.
-- **main()**: The primary function handling command-line arguments and directing the compilation process.
+#### Classes
 
-### Tradeoffs
+- **Lexer**: Responsible for breaking down source code into tokens.
+- **Parser**: Converts tokens into an abstract syntax tree (AST).
+- **Compiler**: Translates the AST into bytecode.
+- **VM**: Executes the bytecode.
+- **Disassembler**: Converts bytecode back into human-readable form.
+- **TypeChecker**: Ensures type safety during compilation.
+- **Error**: Handles errors and provides user-friendly messages.
 
-- **Flexibility vs. Simplicity**: By preserving existing flags and adding new ones, the compiler maintains flexibility but may become more complex over time.
-- **Performance vs. Debugging**: Adding debug options (`--debug`, `--dis`) can slow down the compilation process but provides valuable insights for developers.
-- **User Experience vs. Automation**: The introduction of a global test mode flag improves user experience during interactive sessions while enhancing automation capabilities in batch testing.
+#### Functions
 
-This README.md provides a comprehensive overview of the `src/main.cpp` file, detailing its role in the compiler pipeline, key design decisions, major functions, and potential tradeoffs.
+- **getExecutablePath()**: Retrieves the path of the currently executing executable.
+- **loadEmbeddedBytecode(const std::string &exePath)**: Loads and deserializes embedded bytecode from the executable.
+- **printBanner()**: Displays the banner text for the Quantum Language compiler.
+
+### Role in Compiler Pipeline
+
+The primary role of `src/main.cpp` is to coordinate the various stages of the compilation process:
+
+1. **Lexical Analysis**: Uses the `Lexer` class to tokenize the input source code.
+2. **Syntactic Analysis**: Utilizes the `Parser` class to parse the tokens into an AST.
+3. **Semantic Analysis**: The `TypeChecker` class performs semantic checks on the AST to ensure type safety.
+4. **Code Generation**: The `Compiler` class translates the AST into bytecode.
+5. **Execution**:
+   - If in `QUANTUM_MODE_COMPILER`, the bytecode is serialized and written to an output file, which is then executed by the VM.
+   - If in `QRUN_MODE`, the bytecode is directly interpreted by the VM.
+   - In any other mode, the VM executes the standalone bundled bytecode.
+
+### Usage Example
+
+To compile and run a Quantum Language script named `example.sa`, you would typically use the following command:
+
+```sh
+./quantum example.sa
+```
+
+This command triggers the lexical analysis, syntactic analysis, semantic analysis, code generation, and execution phases managed by `src/main.cpp`.
+
+For always interpreting a script:
+
+```sh
+./qrun example.sa
+```
+
+And for generating a standalone executable:
+
+```sh
+./quantum_stub example.sa
+```
+
+These commands allow users to control the behavior of the compiler according to their needs.
+
+By understanding these components and their roles, developers can effectively extend and modify the Quantum Language compiler to meet new requirements or improve existing functionalities.

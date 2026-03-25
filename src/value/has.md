@@ -6,26 +6,28 @@ The `has` function is a member method of the `Value` class in the Quantum Langua
 
 ## What It Does
 
-The `has` function determines if a variable with a given name (`name`) is defined in the current scope or any ancestor scope. If the variable is found in the current scope, the function returns `true`; otherwise, it recursively calls itself on the parent scope until either the variable is found or all ancestor scopes have been checked. If the variable is not found at any level, the function returns `false`.
+The `has` function determines if a variable with a given name (`name`) is defined in the current scope or in any of its enclosing parent scopes. If the variable is found in either the current scope or any parent scope, the function returns `true`; otherwise, it returns `false`.
 
-### Parameters and Return Value
+### Why It Works This Way
+
+This design allows the `Value` class to manage variables across multiple nested scopes efficiently. By checking both the current scope and parent scopes, the function ensures that all accessible variables are considered, which is crucial for correctly resolving variable references during compilation.
+
+## Parameters/Return Value
 
 - **Parameters**:
-  - `name`: A string representing the name of the variable to check for existence.
+  - `const std::string& name`: The name of the variable to check for existence.
 
 - **Return Value**:
-  - Returns a boolean value indicating whether the variable `name` exists in the current scope or any of its parent scopes.
-
-## Why It Works This Way
-
-The function works by utilizing a hash map (`vars`) that stores variables defined in the current scope. When called, it first checks if the variable `name` is present in this map. If it is, the function immediately returns `true`, confirming the variable's existence. If the variable is not found in the current scope, the function then checks if there is a parent scope. If a parent scope exists, the function makes a recursive call to the `has` method of the parent scope, passing along the variable name `name`. This process continues up the scope hierarchy until either the variable is found or all ancestor scopes have been checked. The use of recursion allows the function to traverse through nested scopes efficiently, ensuring that all possible locations where the variable could be defined are considered.
+  - `bool`: Returns `true` if the variable exists in the current scope or any parent scope; otherwise, returns `false`.
 
 ## Edge Cases
 
-- **Empty Scope**: If the current scope does not contain any variables and there is no parent scope, the function will correctly return `false`.
-- **Duplicate Variable Names**: If multiple variables with the same name exist across different scopes, the function will only return `true` for the most recently declared variable, as the search starts from the current scope and moves upwards.
-- **Variable Name Not Found**: If the variable `name` is not defined anywhere in the scope hierarchy, the function will eventually reach a null parent scope and return `false`.
+1. **Empty Scope**: If the current scope is empty and there are no parent scopes, the function will always return `false`.
+2. **Variable Not Found**: If the variable is not present in the current scope or any of its parent scopes, the function will return `false`.
+3. **Scope Nesting**: The function effectively handles nested scopes by recursively calling itself on the parent scope until the variable is found or all parent scopes have been checked.
 
 ## Interactions With Other Components
 
-The `has` function interacts primarily with the `Scope` class, which manages the variable declarations and scope relationships. The `Value` class contains an instance of the `Scope` class (`parent`), allowing the `has` function to access and traverse the scope hierarchy. Additionally, the function relies on the `std::unordered_map` data structure to store and quickly look up variable names within the current scope.
+The `has` function interacts primarily with the `Scope` class, which manages the variables in each scope. When called, the function first checks if the variable exists in the current scope using the `vars` map. If not found, it then delegates the search to the parent scope, creating a chain of calls up through the scope hierarchy. This interaction ensures that the entire scope tree is searched when determining variable existence.
+
+In summary, the `has` function is an essential part of the Quantum Language compiler's scope management system, providing a straightforward yet powerful mechanism for checking variable existence across multiple nested scopes.

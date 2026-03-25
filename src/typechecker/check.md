@@ -2,39 +2,35 @@
 
 ## Overview
 
-The `check` function serves as a central component in the Quantum Language compiler's type checking phase. Its primary role is to validate the syntax and semantics of the source code against the language's defined rules and constraints. The function processes an abstract syntax tree (AST) and recursively checks each node within the tree to ensure they conform to the Quantum Language specifications.
+The `check` function serves as a central component in the Quantum Language compiler's type checking phase. Its primary role is to validate the syntax and semantics of the source code against the language's defined rules and constraints. The function processes an abstract syntax tree (AST) node and recursively checks its children nodes to ensure they adhere to the language's type system.
 
 ### Why It Works This Way
 
-The implementation of the `check` function follows a recursive approach to traverse the AST. This method ensures comprehensive validation since every node in the AST can potentially contain further nodes. By checking blocks first (`if (node && node->is<BlockStmt>())`) and then individual nodes (`else { checkNode(node, globalEnv); }`), the function efficiently handles both structured and standalone elements of the code.
+The current implementation of the `check` function handles two types of AST nodes: `BlockStmt` and other node types. For `BlockStmt`, it recursively calls itself on each statement within the block. This approach ensures that all statements within a block are checked individually, maintaining the integrity of the block structure.
 
-- **Recursive Traversal**: Blocks are checked before their constituent statements, allowing the function to establish context and dependencies between them.
-- **Separate Node Checking**: Individual nodes are validated independently after blocks, ensuring that all elements are correctly interpreted without relying on external state or block-level information.
+For other node types, it directly calls the `checkNode` function, passing the node and the global environment (`globalEnv`). This allows for specialized type checking based on the node's type, leveraging the existing type checking logic for different constructs.
 
-This dual-checking strategy minimizes potential errors and ensures that the entire codebase is thoroughly analyzed for compliance with the Quantum Language standards.
+This design allows the `check` function to be flexible and handle various types of AST nodes while ensuring thorough type validation throughout the entire program.
 
 ## Parameters
 
-- `node`: A pointer to the current node in the abstract syntax tree that needs to be checked.
-- `globalEnv`: A reference to the global environment containing necessary data such as predefined types, functions, and variables.
+- **`node`:** A pointer to an AST node representing the current node being processed.
+- **`globalEnv`:** A reference to the global environment object, which contains information about the program's scope and variables.
 
 ## Return Value
 
-The `check` function returns void. Upon successful completion, it indicates that the node has been validated according to the Quantum Language rules. If any violations are detected during the validation process, appropriate error messages are generated, and the compilation may be halted or continue with warnings depending on the severity of the issue.
+The `check` function does not return any value explicitly. Instead, it performs type checking operations and may throw exceptions or generate error messages if type violations are detected.
 
 ## Edge Cases
 
-- **Empty Nodes**: If the `node` parameter is null or points to an empty node, the function will simply return without performing any checks.
-- **Unsupported Types**: If the `node` contains unsupported types or operations not defined in the Quantum Language, the function will raise an error indicating the invalidity of the code.
-- **Circular Dependencies**: In complex code structures involving circular dependencies between blocks or nodes, the function will detect these issues and report them accordingly.
+1. **Null Node:** If the input `node` is null, the function should gracefully handle this case without performing any checks.
+2. **Empty Block:** If a `BlockStmt` contains no statements, the function should still perform necessary checks to ensure the block is valid.
+3. **Nested Blocks:** The function should correctly handle nested blocks, ensuring that each statement within every block is checked.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-The `check` function interacts closely with several other components of the Quantum Language compiler:
+- **`TypeChecker` Class:** The `check` function is part of the `TypeChecker` class, which manages the overall type checking process.
+- **`checkNode` Function:** The `check` function interacts with the `checkNode` function, which provides specialized type checking for different AST node types.
+- **Global Environment:** The `check` function uses the `globalEnv` parameter to access information about the program's scope and variables, allowing for context-aware type checking.
 
-1. **Type System**: Utilizes the type system to validate variable declarations, function arguments, and return types against the specified quantum data types.
-2. **Symbol Table**: Consults the symbol table to resolve identifiers and verify their existence and scope within the current context.
-3. **Error Reporting**: Generates error reports using the provided error reporting mechanism, which helps developers identify and fix issues in their code.
-4. **Scope Analysis**: Performs scope analysis to ensure that variables and functions are declared and used within their valid scopes, preventing out-of-scope references.
-
-By leveraging these components, the `check` function provides a robust framework for validating the Quantum Language code, ensuring its correctness and adherence to the language's design principles.
+By interacting with these components, the `check` function ensures comprehensive type validation across the entire AST, contributing to the reliability and correctness of the compiled quantum programs.

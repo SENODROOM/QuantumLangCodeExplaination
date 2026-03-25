@@ -4,42 +4,31 @@ The `toString()` function in the Quantum Language compiler is designed to conver
 
 ## What It Does
 
-The `toString()` function takes a quantum value of any supported type and returns its string representation. The supported types include:
-- `QuantumNil`
-- `bool`
-- `double`
-- `std::string`
-- `std::shared_ptr<Array>`
-- `std::shared_ptr<Dict>`
-- `std::shared_ptr<QuantumFunction>`
-- `std::shared_ptr<QuantumNative>`
-- `std::shared_ptr<QuantumInstance>`
-
-For each type, the function provides a custom implementation to generate an appropriate string format.
+The `toString()` function takes a quantum value of any type and returns its string representation. The conversion logic is implemented using a visitor pattern with `std::visit`, which allows handling different types of quantum values without explicit type checks or casting.
 
 ## Why It Works This Way
 
-The function uses `std::visit` along with template metaprogramming to handle different types dynamically. This approach ensures that the correct conversion logic is applied based on the actual type of the quantum value. By leveraging `if constexpr`, the function can perform compile-time checks and optimizations, making it both flexible and efficient.
-
-### Edge Cases
-
-1. **Integer Representation**: For `double` values, the function distinguishes between integers and floating-point numbers. If the value is an integer (i.e., `std::floor(v) == v`) and falls within a certain range (`std::abs(v) < 1e15`), it converts the value to a `long long` and then to a string. Otherwise, it formats the value to 10 decimal places.
-2. **String Escaping**: When converting `std::string` values, the function ensures that any special characters are properly escaped, especially when strings are part of larger structures like arrays or dictionaries.
-3. **Nested Structures**: For `std::shared_ptr<Array>` and `std::shared_ptr<Dict>`, the function recursively calls `toString()` on each element or key-value pair, ensuring that nested structures are correctly represented as strings.
-4. **Custom String Methods**: For `std::shared_ptr<QuantumInstance>`, the function attempts to call a custom `__str__` method if one is defined. This allows instances to provide their own string representation, enhancing flexibility and usability.
+Using `std::visit` with a lambda function provides a flexible and type-safe approach to handle multiple data types. Each type has its own case within the lambda, ensuring that the correct string representation is generated for each type. This method avoids the need for multiple overloaded functions or type-specific code paths, making the implementation cleaner and easier to maintain.
 
 ## Parameters/Return Value
 
-- **Parameters**:
-  - None. The function operates on a quantum value passed implicitly via `std::visit`.
+- **Parameters**: None
+- **Return Value**: A `std::string` representing the string form of the quantum value.
 
-- **Return Value**:
-  - A `std::string` representing the quantum value in a human-readable format.
+## Edge Cases
+
+1. **QuantumNil**: Returns `"nil"` when encountering a `QuantumNil` value.
+2. **bool**: Converts `true` to `"true"` and `false` to `"false"`.
+3. **double**: Handles both integer and floating-point numbers. For integers, it converts them directly to strings. For floating-point numbers, it formats them to 10 decimal places unless they are extremely large (greater than or equal to \(1 \times 10^{15}\)), in which case it truncates them to avoid overflow issues.
+4. **std::string**: Simply returns the string value itself.
+5. **std::shared_ptr<Array>**: Recursively converts each element in the array to a string, separating elements with commas and enclosing the array in square brackets. If an element is a string, it adds quotes around it.
+6. **std::shared_ptr<Dict>**: Iterates through the dictionary's key-value pairs, converting each key and value to a string. Pairs are separated by commas and enclosed in curly braces. Keys and string values are quoted.
+7. **std::shared_ptr<Closure>** and **std::shared_ptr<QuantumNative>**: Return a string indicating the type (`<fn:` for closures and `<native:` for native functions), followed by the name of the closure or function.
+8. **std::shared_ptr<QuantumInstance>**: Calls the `__str__` method if defined on the class of the instance. If not defined, it falls back to a default string representation.
 
 ## Interactions With Other Components
 
-- **Logging and Debugging**: The `toString()` function is extensively used in logging and debugging mechanisms throughout the compiler. By providing clear string representations of quantum values, developers can easily trace and understand the state of the compiler during execution.
-- **User Interface**: In user interfaces, such as command-line tools or graphical editors, the `toString()` function facilitates the display of quantum data in a readable form. This enhances the user experience by allowing them to interact with the compiler's internal state more intuitively.
-- **Serialization**: The string representation generated by `toString()` can be used for serialization purposes, enabling quantum values to be stored or transmitted in a text-based format.
+- **Debugging and Logging**: The `toString()` function is used extensively throughout the compiler for generating debug logs and error messages. This ensures that developers can easily understand the state of the program and diagnose issues.
+- **User Interface**: When displaying results or errors to users, the `toString()` function is called to convert quantum values into human-readable text. This improves the usability of the compiler's user interface.
 
-Overall, the `toString()` function is a vital utility in the Quantum Language compiler, ensuring that all quantum data types can be effectively converted to strings for various applications, including debugging, logging, and user interface interactions.
+Overall, the `toString()` function is a vital utility in the Quantum Language compiler, providing a consistent and informative way to represent quantum values as strings across different parts of the system.

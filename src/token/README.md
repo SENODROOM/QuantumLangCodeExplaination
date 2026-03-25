@@ -2,46 +2,87 @@
 
 ## Overview
 
-The Token component is a fundamental module within the Quantum Language Compiler, tasked with interpreting and managing tokens from the source code. Tokens include elements like keywords, identifiers, literals, and operators, forming the core structure of the language. This component facilitates the conversion of tokens into a human-readable string format, aiding in debugging, logging, and user interaction.
+The Token component is a crucial module in the Quantum Language Compiler responsible for parsing and managing tokens extracted from the source code. Tokens represent the basic building blocks of the language, including keywords, identifiers, literals, and operators. This component ensures that the source code is accurately converted into a structured format, enabling further processing by other components of the compiler.
 
 ### Key Features
 
-- **Token Representation**: Converts tokens into their string representation.
-- **Token Manipulation**: Provides methods to manipulate and process tokens efficiently.
-- **Error Handling**: Includes mechanisms to handle errors related to token parsing and manipulation.
+- **Tokenization**: Converts raw text from the source code into individual tokens.
+- **Token Representation**: Provides a consistent representation of tokens as strings.
+- **Error Handling**: Detects and reports syntax errors during tokenization.
 
-## File Structure
+## Files and Functions
 
-This directory contains the following documented function/file:
+### `token.h`
 
-- `toString`: A function that converts a token into its string representation.
+This header file defines the `Token` class, which represents a single token in the source code. It includes methods for creating tokens, accessing their type and value, and converting them to a readable string.
 
-## Overall Flow
+#### Class Definition
 
-1. **Input Parsing**: The Token component receives input strings, which represent parts of the source code.
-2. **Tokenization**: It processes these input strings to identify and categorize them into different types of tokens (e.g., keywords, identifiers).
-3. **String Conversion**: For each identified token, the `toString` function is called to generate a human-readable string.
-4. **Output**: These string representations can be used for various purposes, including debugging, logging, or displaying the parsed source code to users.
+```cpp
+class Token {
+public:
+    enum Type { KEYWORD, IDENTIFIER, LITERAL, OPERATOR };
 
-## Usage Example
+    Token(Type type, std::string value);
+    Type getType() const;
+    std::string getValue() const;
+    std::string toString() const;
+
+private:
+    Type type_;
+    std::string value_;
+};
+```
+
+#### Methods
+
+- `Token(Type type, std::string value)`: Constructor to initialize the token's type and value.
+- `Type getType() const`: Returns the type of the token.
+- `std::string getValue() const`: Returns the value of the token.
+- `std::string toString() const`: Converts the token to a human-readable string.
+
+### `tokenizer.cpp`
+
+This source file implements the logic for tokenizing the source code. It reads through the input text and identifies tokens based on predefined rules.
+
+#### Function Definitions
 
 ```cpp
 #include "token.h"
+#include <vector>
+#include <string>
 
-int main() {
-    // Create a token object
-    Token myToken("example", TokenType::IDENTIFIER);
-
-    // Convert the token to a string
-    std::string tokenString = myToken.toString();
-
-    // Output the string representation of the token
-    std::cout << "Token String: " << tokenString << std::endl;
-
-    return 0;
+std::vector<Token> tokenize(const std::string& sourceCode) {
+    // Implementation details
 }
 ```
 
-In this example, a `Token` object is created with the identifier "example" and type `TokenType::IDENTIFIER`. The `toString` function is then invoked to convert the token into a string, which is subsequently printed to the console.
+#### Helper Functions
 
-For more detailed information on specific functions and classes, refer to the individual documentation files within this directory.
+- `isKeyword(const std::string& str)`: Checks if a given string is a keyword.
+- `isIdentifier(const std::string& str)`: Checks if a given string is an identifier.
+- `isLiteral(const std::string& str)`: Checks if a given string is a literal.
+- `isOperator(char ch)`: Checks if a given character is an operator.
+
+### `tokenizer.h`
+
+This header file declares the `tokenize` function, which takes a string representing the source code and returns a vector of `Token` objects.
+
+#### Function Declaration
+
+```cpp
+#include <vector>
+#include <string>
+
+std::vector<Token> tokenize(const std::string& sourceCode);
+```
+
+## Overall Flow
+
+1. **Source Code Input**: The `tokenize` function receives a string containing the source code.
+2. **Character Analysis**: It iterates through each character of the source code.
+3. **Token Identification**: Based on character patterns and predefined rules, it identifies and categorizes characters into tokens.
+4. **Token Creation**: For each identified token, a `Token` object is created with its appropriate type and value.
+5. **Output Vector**: The function collects all created `Token` objects into a vector and returns it.
+
+This modular approach allows for easy maintenance and expansion of the tokenization process, ensuring that the Quantum Language Compiler can handle various types of tokens efficiently.

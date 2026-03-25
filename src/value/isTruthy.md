@@ -1,53 +1,48 @@
 # `isTruthy` Function Explanation
 
-The `isTruthy` function in the Quantum Language compiler evaluates whether a given quantum value is considered "truthy". A truthy value is one that can be interpreted as `true` in a boolean context, whereas a falsy value is interpreted as `false`. This function is essential for handling conditional logic and control flow within the compiler's runtime environment.
+The `isTruthy` function in the Quantum Language compiler evaluates whether a given quantum value is considered "truthy". A truthy value is one that can be interpreted as `true` in a boolean context, whereas a falsy value is interpreted as `false`.
 
 ## What It Does
 
-The `isTruthy` function takes a quantum value of any type and returns a boolean indicating whether the value is truthy. The evaluation is based on the underlying data type of the quantum value:
-
-- **QuantumNil**: Always returns `false`.
-- **bool**: Returns the value directly.
-- **double**: Returns `true` if the value is not zero (`0.0`), otherwise returns `false`.
-- **std::string**: Returns `true` if the string is non-empty and not just a null character (`'\0'`). An empty string or a string containing only a null character is considered falsy.
-- **std::shared_ptr<Array>**: Returns `true` if the array pointed to by the shared pointer is not empty. If the array is empty or the pointer itself is null, it returns `false`.
-- **std::shared_ptr<QuantumPointer>**: Returns `true` if the quantum pointer is not null and its target value is not null. If either the pointer itself or its target is null, it returns `false`.
-
-For all other types, the function returns `true`, treating them as truthy.
+The `isTruthy` function takes a quantum value of any type and returns a boolean indicating whether the value is truthy or not. The function uses `std::visit` to handle different types of quantum values and applies specific rules to determine their truthiness based on their underlying data types.
 
 ## Why It Works This Way
 
-This implementation ensures that different data types are evaluated according to their natural boolean interpretations:
+The implementation of `isTruthy` follows specific rules for each type of quantum value:
 
-- **QuantumNil** is always falsy because it represents the absence of a value.
-- **bool** values are straightforward; they are already boolean.
-- **double** values are treated as falsy if they are exactly zero, which is the standard definition of a falsy number in many programming languages.
-- **std::string** is checked for emptiness and null characters to ensure that strings representing an empty value or a single null character are interpreted as falsy.
-- **std::shared_ptr<Array>** checks if the array is empty to determine truthiness.
-- **std::shared_ptr<QuantumPointer>** checks both the pointer itself and its target value to ensure that they are valid and not null.
+- **QuantumNil**: Always returns `false`, as `nil` represents an empty or null state.
+- **bool**: Directly returns the boolean value itself.
+- **double**: Returns `true` if the double value is not equal to zero (`0.0`).
+- **std::string**: Returns `true` if the string is not empty and does not consist solely of a null character (`'\0'`).
+- **std::shared_ptr<Array>**: Returns `true` if the shared pointer points to an array that is not empty.
+- **std::shared_ptr<QuantumPointer>**: Returns `true` if the shared pointer is not null and the pointed-to value is not null (i.e., the `QuantumPointer` is valid).
 
-For all other types, returning `true` allows them to be used in logical contexts without additional conversion.
+For all other types, the function returns `true` by default, assuming they are truthy unless explicitly handled otherwise.
 
 ## Parameters/Return Value
 
-- **Parameters**: 
-  - `data`: A variant type (`std::variant`) that holds a quantum value of any supported type.
-  
-- **Return Value**: 
-  - A boolean value (`true` or `false`) indicating whether the quantum value is truthy.
+### Parameters
+
+- `data`: A variant of quantum values (`QuantumNil`, `bool`, `double`, `std::string`, `std::shared_ptr<Array>`, `std::shared_ptr<QuantumPointer>`).
+
+### Return Value
+
+- `bool`: Indicates whether the provided quantum value is truthy.
 
 ## Edge Cases
 
-- **Empty String**: An empty string (`""`) or a string containing only a null character (`'\0'`) is considered falsy.
-- **Zero Double**: A double value of `0.0` is considered falsy.
-- **Null Pointer**: Both the pointer itself and its target must be valid for the quantum pointer to be considered truthy.
+- An empty string (`""`) is considered falsy.
+- A string consisting solely of a null character (`'\0'`) is also considered falsy.
+- An empty array (`std::shared_ptr<Array>()`) is considered falsy.
+- A `nullptr` for `std::shared_ptr<QuantumPointer>` is considered falsy.
+- A `QuantumPointer` pointing to a null value is considered falsy.
 
 ## Interactions With Other Components
 
-The `isTruthy` function interacts with various components of the Quantum Language compiler, including but not limited to:
+The `isTruthy` function interacts with various components within the Quantum Language compiler:
 
-- **Runtime Environment**: Evaluates quantum values during runtime to support conditional statements and logical operations.
-- **Type System**: Uses the type system to determine how to evaluate each quantum value correctly.
-- **Error Handling**: May be invoked in error handling scenarios where the truthiness of a value needs to be determined for diagnostic purposes.
+- **Variant Handling**: Uses `std::visit` to handle different types of quantum values encapsulated in a variant.
+- **Array Operations**: Checks if an array is empty when evaluating a `std::shared_ptr<Array>`.
+- **Pointer Validation**: Validates whether a `QuantumPointer` is null and whether the pointed-to value is null before considering it truthy.
 
-In summary, the `isTruthy` function provides a robust mechanism for evaluating quantum values in a boolean context, ensuring consistent behavior across different data types and supporting the overall functionality of the Quantum Language compiler.
+This function ensures that quantum values are evaluated correctly in boolean contexts, which is essential for control flow operations such as conditional statements and loops.

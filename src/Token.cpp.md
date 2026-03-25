@@ -2,47 +2,39 @@
 
 ## Overview
 
-The `Token.cpp` file is a critical part of the Quantum Language compiler, responsible for handling individual lexical tokens extracted from the input source code. Tokens represent the smallest meaningful units in the language, forming the basis for building the syntax tree used in further stages like semantic analysis and code generation.
+The `Token.cpp` file plays a pivotal role in the Quantum Language compiler by managing individual lexical tokens derived from the input source code. These tokens serve as the fundamental building blocks for constructing the syntax tree, which is essential for subsequent phases such as semantic analysis and code generation.
 
 ## Role in Compiler Pipeline
 
-### Lexer Stage
-In the lexer stage, the `Token.cpp` file plays a pivotal role in converting raw text into a sequence of tokens. This process involves recognizing patterns in the source code that correspond to language constructs such as keywords, identifiers, literals, and operators. Each token contains information about its type, value, and position within the source code.
+In the context of the Quantum Language compiler's pipeline, `Token.cpp` operates during the Lexical Analysis phase. This phase involves breaking down the source code into discrete elements called tokens. Each token represents a specific syntactic unit in the language, such as keywords, identifiers, literals, operators, or punctuation marks.
 
-### Syntax Tree Construction
-Once the tokens are generated, they are utilized to build the syntax tree. The syntax tree visually represents the structure of the source code, making it easier for the compiler to understand and process. The `Token.cpp` file ensures that each token is correctly classified and positioned within the tree, facilitating efficient parsing and compilation.
+### Key Design Decisions and Why
 
-## Key Design Decisions and Why
+1. **Token Class Definition**: The `Token` class encapsulates all necessary information about a lexical token, including its type, value, line number, and column position. This design ensures that each token is self-contained and easy to manage throughout the compilation process.
 
-1. **Token Class Definition**: A custom `Token` class is defined in `Token.h`, encapsulating essential attributes such as `type`, `value`, `line`, and `col`. This design allows for clear representation and manipulation of tokens throughout the compiler's lifecycle.
+2. **String Representation Method**: The `toString()` method provides a human-readable string representation of a token. This method formats the token details (line number, column number, and value) into a single string, making it easier to debug and log token-related issues during development.
 
-2. **Position Tracking**: Each token includes line and column numbers to track its origin within the source code. This feature is crucial for error reporting, enabling developers to pinpoint issues accurately.
+3. **Efficient Storage and Retrieval**: By storing tokens with their respective line and column numbers, the compiler can maintain accurate error reporting and location tracking. This feature enhances the debugging experience by providing precise information about where errors occur within the source code.
 
-3. **String Representation Method**: The `toString()` method provides a human-readable string representation of each token, which aids in debugging and understanding the token stream during development.
-
-4. **Efficient Tokenization**: Utilizing regular expressions and state machines efficiently parses the source code, ensuring accurate and timely tokenization without unnecessary overhead.
+4. **Flexibility in Token Types**: The `Token` class supports various types of tokens, allowing the compiler to handle different grammatical structures effectively. This flexibility ensures that the compiler can accurately parse complex quantum programs written in the Quantum Language.
 
 ## Major Classes/Functions Overview
 
-### Token Class
-- **Attributes**: 
-  - `type`: Identifies the kind of token (e.g., keyword, identifier).
-  - `value`: The actual content of the token.
-  - `line`: Line number where the token starts.
-  - `col`: Column number where the token starts.
-- **Methods**:
-  - `toString()`: Returns a string representation of the token for easy debugging.
-
-### Tokenizer Function
-- **Purpose**: Converts the source code into a sequence of tokens.
-- **Process**: Uses regular expressions and state transitions to identify and classify tokens based on their patterns in the source code.
+- **Token Class**:
+  - **Attributes**: 
+    - `type`: Represents the type of the token (e.g., keyword, identifier).
+    - `value`: Contains the actual text of the token.
+    - `line`: Indicates the line number where the token appears in the source code.
+    - `col`: Specifies the column position within the line where the token starts.
+  - **Methods**:
+    - `toString()`: Returns a formatted string representing the token, useful for logging and debugging.
 
 ## Tradeoffs
 
-1. **Complexity vs. Accuracy**: While more complex tokenizers can handle edge cases and irregularities in the source code, simpler ones may sacrifice accuracy in certain scenarios. The current implementation balances complexity with practicality to ensure reliable tokenization across most common use cases.
+1. **Memory Usage vs. Performance**: Storing detailed information about each token (line number, column position) increases memory usage but improves performance by enabling more accurate error reporting and faster parsing.
 
-2. **Performance vs. Flexibility**: Optimized performance might limit the flexibility of the tokenizer, whereas a highly flexible design could compromise performance. The current approach aims to provide both reasonable performance and sufficient flexibility for typical quantum programming tasks.
+2. **Complexity vs. Simplicity**: Supporting multiple token types adds complexity to the implementation but enhances the compiler's ability to handle diverse quantum programming constructs.
 
-3. **Memory Usage**: Storing large amounts of token data requires careful memory management. The current implementation uses efficient data structures to minimize memory usage while maintaining high performance.
+3. **Readability vs. Efficiency**: Providing clear and concise `toString()` output improves readability during debugging but may slightly impact efficiency due to additional formatting operations.
 
-By leveraging these features and design decisions, the `Token.cpp` file effectively supports the lexical analysis phase of the Quantum Language compiler, setting the stage for successful syntax tree construction and subsequent compilation steps.
+By carefully balancing these tradeoffs, the `Token.cpp` file contributes significantly to the robustness and functionality of the Quantum Language compiler, ensuring efficient and accurate lexical analysis of the input source code.
