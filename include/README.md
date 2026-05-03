@@ -1,49 +1,49 @@
-# QuantumLanguage Compiler - Serializer.h
+# QuantumLanguage Compiler - Token.h
 
 ## Overview
 
-The `include/Serializer.h` header file is an essential part of the QuantumLanguage compiler, focusing on serialization and deserialization functionalities. It provides mechanisms to convert `Chunk` objects into byte streams and vice versa, ensuring that compiled code can be stored persistently or transmitted over networks without loss of information.
+The `include/Token.h` header file is an essential part of the QuantumLanguage compiler, focusing on defining tokens used during the lexical analysis phase. Tokens represent the smallest units of meaningful elements in the source code, such as keywords, identifiers, literals, and operators. This file plays a crucial role in converting raw text into a structured format that can be processed further by the compiler's parser and other components.
 
 ## Role in Compiler Pipeline
 
-The serializer plays a crucial role in the QuantumLanguage compiler's pipeline, particularly during the compilation-to-bytecode phase. After the code has been compiled into intermediate chunks (`Chunk`), these need to be serialized into a format that can be easily stored or transmitted. Conversely, when loading or receiving bytecode, it must be deserialized back into usable `Chunk` objects. This ensures efficient storage and retrieval of quantum programs while maintaining their integrity.
+In the QuantumLanguage compiler pipeline, the `Token.h` file serves as the foundation for the lexical analysis stage. The lexer reads the input source code character by character, identifies patterns that match token types defined in the `TokenType` enum, and generates corresponding tokens. These tokens are then passed to the parser for syntactic analysis and semantic processing.
 
-### Key Design Decisions and Why
+## Key Design Decisions and Why
 
-1. **Separation of Concerns**: The serializer is designed as a standalone class to handle all serialization and deserialization tasks. This separation allows for easier maintenance and testing of individual components without affecting the rest of the compiler.
+1. **Enum Class for Token Types**: Using `enum class` ensures that each token type is strongly typed and scoped within its own namespace, preventing potential naming conflicts with other enums or variables.
 
-2. **Efficiency**: By using templates for raw data types, the serializer achieves high efficiency in both reading and writing operations. This minimizes overhead and maximizes performance, especially important for large-scale quantum computations.
+2. **String Value Storage**: Storing token values as strings allows for flexibility in handling different types of data, such as numbers, strings, and boolean literals. It also simplifies the implementation of token comparison and manipulation.
 
-3. **Flexibility**: The serializer supports various data types including `QuantumValue`, `std::string`, and custom types through template functions. This flexibility makes it adaptable to different needs within the compiler, such as handling different kinds of program data.
+3. **Line and Column Information**: Including line and column numbers in each token provides valuable context for error reporting and debugging. This information helps pinpoint where errors occurred in the source code.
 
-4. **Error Handling**: While not explicitly shown in the provided code snippet, serializers typically include robust error handling mechanisms to manage issues like incomplete data or incorrect formats. This ensures reliability and prevents crashes during the serialization/deserialization process.
+4. **Token Structure**: The `Token` struct encapsulates all necessary details about a token, making it easy to pass around and use throughout the compiler. Its constructor initializes the token with its type, value, and position information.
+
+5. **ToString Method**: Implementing a `toString` method enables easy conversion of tokens to string representations, which can be useful for debugging and logging purposes.
 
 ## Major Classes/Functions Overview
 
-### Class: Serializer
+### `TokenType` Enum Class
 
-- **Purpose**: Manages the serialization and deserialization of `Chunk` objects.
-- **Static Functions**:
-  - `serialize(std::shared_ptr<Chunk> chunk)`: Converts a `Chunk` object into a byte stream.
-  - `deserialize(const std::vector<uint8_t>& data)`: Reconstructs a `Chunk` object from a byte stream.
+- **Purpose**: Defines various token types used in the QuantumLanguage compiler.
+- **Key Features**:
+  - Strongly typed enumeration with scope protection.
+  - Includes categories like literals, identifiers, keywords, operators, delimiters, and special tokens.
+  - Provides a clear and organized way to identify different elements in the source code.
 
-### Private Helper Functions
+### `Token` Struct
 
-- **writeChunk(std::vector<uint8_t>& out, std::shared_ptr<Chunk> chunk)**: Writes a `Chunk` object to the output byte stream.
-- **readChunk(const std::vector<uint8_t>& data, size_t& offset)**: Reads a `Chunk` object from the input byte stream starting at the specified offset.
-- **writeValue(std::vector<uint8_t>& out, const QuantumValue& val)**: Writes a `QuantumValue` to the output byte stream.
-- **readValue(const std::vector<uint8_t>& data, size_t& offset)**: Reads a `QuantumValue` from the input byte stream starting at the specified offset.
-- **writeString(std::vector<uint8_t>& out, const std::string& s)**: Writes a string to the output byte stream.
-- **readString(const std::vector<uint8_t>& data, size_t& offset)**: Reads a string from the input byte stream starting at the specified offset.
-- **template <typename T> writeRaw(std::vector<uint8_t>& out, const T& t)**: Writes any raw data type to the output byte stream.
-- **template <typename T> T readRaw(const std::vector<uint8_t>& data, size_t& offset)**: Reads any raw data type from the input byte stream starting at the specified offset.
+- **Purpose**: Represents a single token generated by the lexer.
+- **Key Features**:
+  - Contains the type, value, line number, and column number of the token.
+  - Constructor for initializing a token with these attributes.
+  - `toString` method for converting a token to a human-readable string.
 
 ## Tradeoffs
 
-1. **Complexity vs. Efficiency**: While providing flexibility and ease of use, the inclusion of multiple overloaded functions and templates adds complexity to the implementation. However, this complexity is mitigated by the high efficiency achieved through raw data type handling.
+1. **Memory Usage**: Storing token values as strings might lead to increased memory usage, especially for large source files or complex expressions. However, this tradeoff is often outweighed by the benefits of flexibility and ease of use.
 
-2. **Memory Usage**: Serialization involves converting data structures into a flat byte stream, which may increase memory usage temporarily. However, modern systems with sufficient RAM can handle this efficiently, and the benefits of persistent storage and transmission outweigh the potential drawbacks.
+2. **Performance**: String operations can be slower compared to primitive data types. While performance optimization is important, the impact of string-based token storage on overall performance is generally minimal due to the relatively small size of individual tokens.
 
-3. **Performance Overhead**: Although the serializer is optimized for performance, there may still be some overhead associated with conversion between data structures and byte streams. This overhead is generally acceptable given the importance of reliable and efficient serialization in the compiler pipeline.
+3. **Complexity**: Adding more token types increases the complexity of both the lexer and the rest of the compiler. However, this complexity is manageable through careful design and modularization.
 
-In conclusion, the `Serializer.h` header file is a vital component of the QuantumLanguage compiler, providing essential functionality for converting `Chunk` objects into byte streams and vice versa. Its design decisions prioritize efficiency, flexibility, and robustness, making it well-suited for the demands of quantum computing applications.
+By understanding the role of `Token.h` in the QuantumLanguage compiler and its key design decisions, developers can better appreciate how the compiler processes source code and how to work effectively with tokens in their implementations.
