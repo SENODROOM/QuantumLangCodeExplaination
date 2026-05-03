@@ -1,59 +1,49 @@
 # `parseBodyOrStatement` Function
 
 ## Overview
-The `parseBodyOrStatement` function is part of the Quantum Language compiler's parser module and is responsible for parsing either a statement body or a single statement. This function is crucial for handling control flow structures like `while` and `for` loops, which can either have an empty body followed by a semicolon or a block of statements enclosed in curly braces `{}` or indented.
+The `parseBodyOrStatement` function is an essential component of the Quantum Language compiler's parser module. Its primary role is to determine whether the next token in the source code represents the beginning of a statement body or a standalone statement. The function returns an ASTNode containing either a BlockStmt or a Statement depending on the parsed input.
+
+### Why It Works This Way
+This design allows for flexible parsing of control flow structures such as `while` and `for`. By checking for semicolons (`TokenType::SEMICOLON`) and curly braces (`TokenType::LBRACE`), the function can distinguish between an empty body followed by a semicolon and a block of statements enclosed within curly braces. Additionally, the function handles indentation using `TokenType::INDENT`, which is common in some programming languages for defining blocks.
 
 ## Parameters/Return Value
 - **Parameters**: None
 - **Return Type**: `std::unique_ptr<ASTNode>`
-  - Returns an ASTNode representing either a block of statements (`BlockStmt`) or a single statement.
+  - Returns an ASTNode that encapsulates either a BlockStmt or a Statement.
 
-## Detailed Explanation
-### Logic Breakdown
-1. **Empty Body Check**:
+## Edge Cases
+1. **Empty Body Followed by Semicolon**:
    ```cpp
-   if (check(TokenType::SEMICOLON))
+   while (condition);
    ```
-   If the next token is a semicolon (`;`), it indicates that the loop has an empty body. In such cases:
-   - The line number (`ln`) is retrieved from the current token.
-   - The semicolon is consumed using `consume()`.
-   - An empty `BlockStmt` is created.
-   - An ASTNode containing the empty `BlockStmt` and the line number is returned.
+   In this case, the function will consume the semicolon and return an ASTNode with an empty BlockStmt.
 
-2. **Block Body Check**:
+2. **Single Statement**:
    ```cpp
-   else if (check(TokenType::LBRACE) || check(TokenType::INDENT))
-       return parseBlock();
+   while (condition)
+       statement;
    ```
-   If the next token is either a left brace `{}` or an indentation, it means the loop has a block body. In such cases:
-   - The function calls `parseBlock()` to handle the parsing of the block of statements.
-   - The result of `parseBlock()` is returned as an ASTNode.
+   Here, the function will parse the statement and wrap it inside a BlockStmt before returning it.
 
-3. **Single Statement Body**:
+3. **Block of Statements**:
    ```cpp
-   else
-   {
-       int ln = current().line;
-       BlockStmt block;
-       block.statements.push_back(parseStatement());
-       return std::make_unique<ASTNode>(std::move(block), ln);
+   while (condition) {
+       statement1;
+       statement2;
    }
    ```
-   If neither a semicolon nor a block body indicator is found, it implies that the loop has only one statement. In such cases:
-   - The line number (`ln`) is retrieved from the current token.
-   - A new `BlockStmt` is created.
-   - The function calls `parseStatement()` to parse the single statement and adds it to the `statements` vector of the `BlockStmt`.
-   - An ASTNode containing the `BlockStmt` and the line number is returned.
+   For this scenario, the function will call `parseBlock()` to handle the entire block of statements.
 
-### Edge Cases
-- **Empty Body**: When encountering a `while` or `for` loop followed immediately by a semicolon, the function correctly identifies and handles the empty body case.
-- **Block Body**: When encountering a `while` or `for` loop with a block of statements enclosed in curly braces `{}` or indented, the function correctly parses the block body.
-- **Single Statement**: When encountering a `while` or `for` loop with a single statement following it, the function correctly parses the single statement within a block context.
+4. **Indentation**:
+   ```cpp
+   while (condition)
+       statement;  // Assuming 'statement' uses indentation
+   ```
+   If the language supports indentation for block delimiters, the function will recognize the indented line as part of the same block.
 
-### Interactions with Other Components
-- **Tokenizer**: The function uses the tokenizer to retrieve the current token and check its type.
-- **Error Handling**: While not explicitly shown in the code snippet, the function likely interacts with error handling mechanisms to report syntax errors if unexpected tokens are encountered.
-- **Control Flow Parsing**: This function is integral to parsing control flow constructs. It ensures that the correct structure is parsed based on the presence of a semicolon or a block body indicator.
-- **ASTNode Creation**: The function creates instances of `ASTNode` to represent the parsed control flow structure, which are then used by higher-level components of the compiler for further processing.
+## Interactions With Other Components
+- **Tokenizer**: The function relies on the tokenizer to provide the next token for analysis.
+- **Error Handling**: If unexpected tokens are encountered during parsing, appropriate error messages are generated to aid in debugging.
+- **Control Flow Parsing**: `parseBodyOrStatement` interacts closely with functions responsible for parsing different types of control flow statements, ensuring proper nesting and execution order.
 
-In summary, the `parseBodyOrStatement` function is essential for accurately parsing control flow structures in the Quantum Language compiler. Its design allows it to handle various scenarios, including empty bodies, block bodies, and single statements, ensuring robust parsing capabilities.
+By handling both statement bodies and individual statements, `parseBodyOrStatement` facilitates the accurate parsing of complex control flow constructs in the Quantum Language, making it a vital function for maintaining the integrity and correctness of the compiled code.

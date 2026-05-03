@@ -1,96 +1,106 @@
 # ParserStatements Component of Quantum Language Compiler
 
-The `ParserStatements` component is a crucial part of the Quantum Language compiler that handles the parsing and interpretation of various statement types in the quantum programming language. This includes control structures like loops and conditionals, as well as expressions and variable declarations.
+The `ParserStatements` component is a vital part of the Quantum Language compiler responsible for parsing and interpreting various statement types within the quantum programming language. This component covers control structures such as loops and conditionals, expressions, variable declarations, and more.
 
 ## Overview
 
-The component consists of several functions and classes designed to parse different types of statements. Each function is responsible for interpreting a specific type of statement and converting it into an intermediate representation (IR) that can be further processed by the compiler's backend.
+The `ParserStatements` component processes different types of statements encountered during the compilation of a quantum program. It ensures that each statement is correctly parsed according to the syntax rules of the quantum language. The component interacts with other parts of the compiler, including the lexer and semantic analyzer, to build an abstract syntax tree (AST) that represents the structure of the quantum code.
 
-## Functions
+### Key Components
 
-- **parseBodyOrStatement**: Parses either a block of code or a single statement.
-- **parseVarDecl**: Parses variable declaration statements.
-- **parseIfStmt**: Parses if-else conditional statements.
-- **parseWhileStmt**: Parses while loop statements.
-- **parseReturnStmt**: Parses return statements from functions.
-- **parsePrintStmt**: Parses print statements to output values.
-- **parseInputStmt**: Parses input statements to receive user data.
-- **parseCoutStmt**: Parses cout statements for console output.
-- **parseCinStmt**: Parses cin statements for console input.
+- **parseBodyOrStatement**: Parses either a block of statements or a single statement.
+- **parseVarDecl**: Parses variable declarations.
+- **parseIfStmt**: Parses conditional statements (`if`, `else`).
+- **parseWhileStmt**: Parses loop statements (`while`).
+- **parseReturnStmt**: Parses return statements.
+- **parsePrintStmt**: Parses print statements.
+- **parseInputStmt**: Parses input statements.
+- **parseCoutStmt**: Parses output statements using `std::cout`.
+- **parseCinStmt**: Parses input statements using `std::cin`.
 - **parseImportStmt**: Parses import statements to include external libraries.
 - **parseExprStmt**: Parses expression statements.
-- **parseExpr**: Parses individual expressions within statements.
+- **parseExpr**: Parses individual expressions.
 
-## File Structure
+### File Structure
 
-Each function is implemented in its own source file, ensuring modularity and maintainability. The header files contain the function prototypes and any necessary forward declarations.
+The component is organized into several files, each handling specific types of statements:
 
-```
-parserstatements/
-├── bodyorstatement.cpp
-├── bodyorstatement.h
-├── vardecl.cpp
-├── vardecl.h
-├── ifstmt.cpp
-├── ifstmt.h
-├── whilestmt.cpp
-├── whilestmt.h
-├── returnstmt.cpp
-├── returnstmt.h
-├── printstmt.cpp
-├── printstmt.h
-├── inputstmt.cpp
-├── inputstmt.h
-├── coutstmt.cpp
-├── coutstmt.h
-├── cinstmt.cpp
-├── cinstmt.h
-├── importstmt.cpp
-├── importstmt.h
-├── exprstmt.cpp
-├── exprstmt.h
-└── expr.cpp
-    └── expr.h
-```
+- `body_or_statement.cpp`: Contains the implementation for parsing blocks of statements or single statements.
+- `variable_declaration.cpp`: Handles the parsing of variable declarations.
+- `conditional_statement.cpp`: Implements parsing for conditional statements (`if`, `else`).
+- `loop_statement.cpp`: Manages parsing of loop statements (`while`).
+- `return_statement.cpp`: Processes return statements.
+- `print_statement.cpp`: Parses print statements.
+- `input_statement.cpp`: Handles input statements.
+- `output_statement.cpp`: Manages output statements using `std::cout` and `std::cin`.
+- `import_statement.cpp`: Processes import statements to include external libraries.
+- `expression_statement.cpp`: Parses expression statements.
+- `expression.cpp`: Manages the parsing of individual expressions.
 
-## Overall Flow
+Each file contains detailed documentation on its functionality, parameters, and return values. This ensures that developers can understand and use the component effectively.
 
-1. **Lexical Analysis**: The input source code is first tokenized using the lexer.
-2. **Syntax Parsing**: The tokens are then parsed by the syntax analyzer, which calls the appropriate functions in the `ParserStatements` component based on the grammar rules.
-3. **Intermediate Representation Generation**: Each function processes the input and generates an IR node representing the parsed statement.
-4. **Error Handling**: If a parsing error occurs, the functions report it back to the syntax analyzer, which may trigger recovery mechanisms or halt compilation.
+## Usage
 
-## Usage Example
+To use the `ParserStatements` component, follow these steps:
 
-Here's a simple example demonstrating how you might use some of these functions:
+1. **Include the Header Files**:
+   ```cpp
+   #include "parserstatements/body_or_statement.h"
+   #include "parserstatements/variable_declaration.h"
+   // Include other necessary header files
+   ```
+
+2. **Initialize the Parser**:
+   ```cpp
+   Parser parser;
+   ```
+
+3. **Parse Statements**:
+   ```cpp
+   StatementPtr stmt = parser.parseBodyOrStatement();
+   // Use the parsed statement
+   ```
+
+4. **Handle Errors**:
+   The parser throws exceptions when it encounters errors. Catch these exceptions to handle them appropriately.
+   ```cpp
+   try {
+       StatementPtr stmt = parser.parseBodyOrStatement();
+   } catch (const std::exception& e) {
+       std::cerr << "Error parsing statement: " << e.what() << std::endl;
+   }
+   ```
+
+## Example
+
+Here's a simple example demonstrating how to use the `ParserStatements` component:
 
 ```cpp
-#include "parserstatements/bodyorstatement.h"
-#include "parserstatements/vardecl.h"
+#include <iostream>
+#include "parserstatements/body_or_statement.h"
 
 int main() {
-    // Initialize the lexer and syntax analyzer
-    Lexer lexer("input.q");
-    SyntaxAnalyzer analyzer(&lexer);
-
-    // Parse a variable declaration statement
-    VarDeclNode* varDecl = parseVarDecl(analyzer);
-    if (varDecl != nullptr) {
-        // Process the variable declaration node
-        std::cout << "Variable declared: " << varDecl->getName() << std::endl;
-    }
-
-    // Parse a block of code or a single statement
-    BodyOrStatementNode* bodyOrStmt = parseBodyOrStatement(analyzer);
-    if (bodyOrStmt != nullptr) {
-        // Process the body or statement node
-        std::cout << "Parsed body or statement." << std::endl;
+    try {
+        Parser parser;
+        StatementPtr stmt = parser.parseBodyOrStatement();
+        // Process the parsed statement
+        std::cout << "Parsed statement successfully." << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error parsing statement: " << e.what() << std::endl;
     }
 
     return 0;
 }
 ```
 
-In this example, we initialize the lexer and syntax analyzer, then call `parseVarDecl` and `parseBodyOrStatement` to process variable declarations and blocks of code or single statements respectively.
+## Contributing
 
-For more detailed information on each function, refer to the respective header files (`*.h`).
+Contributions to the `ParserStatements` component are welcome! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request.
+
+## License
+
+This component is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+Feel free to update the existing README with the above content.

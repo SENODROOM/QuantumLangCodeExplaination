@@ -1,41 +1,57 @@
 # ParserExpressions
 
-The `ParserExpressions` component is a crucial part of the Quantum Language compiler, responsible for parsing and interpreting expressions within quantum programs. This component includes a suite of functions that handle various types of operators and expressions, ensuring that the syntax and semantics of quantum code are correctly understood and executed.
+The `ParserExpressions` component is an essential module of the Quantum Language compiler, designed to parse and interpret expressions found within quantum programs. This component encompasses a range of functions tailored to handle different types of operators and expressions, thereby ensuring accurate syntax and semantic understanding of quantum code execution.
 
 ## Overview
 
-The component consists of several functions designed to parse different categories of expressions:
+The `ParserExpressions` component plays a pivotal role in the compilation process by breaking down complex quantum expressions into manageable parts. It utilizes a series of recursive descent parsers to identify and categorize operators such as arithmetic, bitwise, logical, and comparison operations. Each function within this component performs specific tasks, from parsing simple assignments to handling more intricate mathematical and logical constructs.
 
-- **parseAssignment**: Parses assignment expressions (e.g., `a = b + c`).
-- **parseOr**: Parses logical OR expressions (e.g., `a or b`).
-- **parseAnd**: Parses logical AND expressions (e.g., `a and b`).
-- **parseBitwise**: Parses bitwise operations (e.g., `a & b`, `a | b`, `a ^ b`).
-- **parseEquality**: Parses equality comparisons (e.g., `a == b`, `a != b`).
-- **parseComparison**: Parses relational comparisons (e.g., `a > b`, `a < b`, `a >= b`, `a <= b`).
-- **parseShift**: Parses shift operations (e.g., `a << b`, `a >> b`).
-- **parseAddSub**: Parses addition and subtraction operations (e.g., `a + b`, `a - b`).
-- **parseMulDiv**: Parses multiplication and division operations (e.g., `a * b`, `a / b`).
-- **parsePower**: Parses power operations (e.g., `a ** b`).
-- **parseUnary**: Parses unary operations (e.g., `-a`, `+b`, `not a`).
+### File Structure
 
-Each function is designed to take an input stream representing the expression and return a parsed representation of that expression. The parsed expressions can then be further processed or evaluated as needed by the compiler.
+- **parseAssignment**: Handles assignment operations (`=`).
+- **parseOr**: Parses logical OR operations (`||`).
+- **parseAnd**: Parses logical AND operations (`&&`).
+- **parseBitwise**: Manages bitwise operations (`&`, `|`, `^`, `~`, `<<`, `>>`).
+- **parseEquality**: Interprets equality checks (`==`, `!=`).
+- **parseComparison**: Processes comparison operations (`<`, `>`, `<=`, `>=`).
+- **parseShift**: Deals with shift operations (`<<`, `>>`).
+- **parseAddSub**: Manages addition and subtraction operations (`+`, `-`).
+- **parseMulDiv**: Handles multiplication and division operations (`*`, `/`, `%`).
+- **parsePower**: Parses power operations (`**`).
 
-## File Structure
+Each file corresponds to a specific type of expression or operator, providing clear separation and modularity in the codebase. The overall flow of the `ParserExpressions` component begins with the initial call to one of the main entry points, which then delegates to the appropriate sub-parser based on the detected operator or expression type.
 
-The files in this directory are organized as follows:
+## Usage
 
-- `parserexpressions.cpp`: Contains the implementation of all the parsing functions.
-- `parserexpressions.h`: Declares the public interface of the parsing functions, making them accessible to other parts of the compiler.
-- `expressiontree.cpp`: Implements the data structures used to represent parsed expressions.
-- `expressiontree.h`: Defines the classes and interfaces for the expression tree data structures.
+To use the `ParserExpressions` component, developers need to include the necessary header files and link against the corresponding library. Below is a basic example demonstrating how to invoke the component:
 
-## Overall Flow
+```cpp
+#include "parserexpressions.h"
 
-1. **Input Stream**: An input stream containing the quantum program's expressions is provided to the parser.
-2. **Tokenization**: The input stream is tokenized into individual tokens (e.g., keywords, identifiers, operators).
-3. **Parsing Functions**: Each token is passed to the appropriate parsing function based on its type.
-4. **Expression Tree Construction**: The parsing functions construct an expression tree using the classes defined in `expressiontree.cpp`.
-5. **Semantic Analysis**: The expression tree is analyzed semantically to ensure that it adheres to the rules and constraints of the Quantum Language.
-6. **Code Generation**: If the semantic analysis passes, the expression tree is converted into executable code or intermediate representations suitable for further compilation steps.
+int main() {
+    // Initialize the parser
+    Parser parser;
 
-By breaking down the parsing process into discrete functions, the `ParserExpressions` component ensures modularity, readability, and maintainability of the compiler's codebase. Each function handles a specific category of expression, making it easier to extend and modify the parser as new features and language constructs are added.
+    // Parse an expression
+    Expression result = parser.parse("a + b * c");
+
+    // Output the parsed result
+    std::cout << "Parsed Expression: " << result.toString() << std::endl;
+
+    return 0;
+}
+```
+
+In this example, the `Parser` class is used to initialize the parser, and the `parse` method is called with a string representing a quantum expression. The resulting `Expression` object can be further manipulated or evaluated as required.
+
+## Contributing
+
+Contributions to the `ParserExpressions` component are welcome! If you encounter any issues or have suggestions for improvements, please feel free to open an issue or submit a pull request. When submitting changes, ensure that your code adheres to the existing coding standards and includes comprehensive unit tests to validate functionality.
+
+## License
+
+The `ParserExpressions` component is released under the MIT License. For more details, see the [LICENSE](LICENSE) file in the repository.
+
+---
+
+By leveraging the `ParserExpressions` component, developers can effectively parse and interpret quantum expressions, enabling the creation of robust and efficient quantum programs.

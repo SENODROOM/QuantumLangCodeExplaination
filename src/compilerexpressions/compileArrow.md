@@ -1,40 +1,28 @@
 # `compileArrow` Function
 
 ## Purpose
-The `compileArrow` function is designed to handle arrow expressions in the Quantum Language compiler. Arrow expressions typically refer to accessing members of an object using the arrow operator (`->`). This function compiles such expressions into intermediate representation (IR) instructions that can be executed by the quantum runtime.
+The `compileArrow` function is responsible for compiling arrow expressions in the Quantum Language compiler. Arrow expressions allow access to members of an object using the arrow operator (`->`). This function ensures that the member access operation is correctly translated into intermediate representation (IR) instructions.
 
-## Parameters/Return Value
-- **Parameters**: 
+## Parameters and Return Value
+- **Parameters**:
   - `e`: A reference to an `ArrowExpression` object representing the arrow expression to be compiled.
-- **Return Value**: None. The function directly modifies the IR code being generated.
+  
+- **Return Value**: None. The function operates directly on the IR code being generated.
 
 ## How It Works
-1. **Compile Object Expression**:
-   ```cpp
-   compileExpr(*e.object);
-   ```
-   This line calls the `compileExpr` function on the object part of the arrow expression (`e.object`). The purpose here is to generate the IR code necessary to evaluate the object expression and obtain its address or pointer.
+1. **Compile Object Expression**: The function first calls `compileExpr(*e.object)` to compile the expression on the left-hand side of the arrow operator. This expression should evaluate to a pointer or reference to an object.
 
-2. **Emit Dereference Operation**:
-   ```cpp
-   emit(Op::DEREF, 0, line);
-   ```
-   After evaluating the object expression, the IR code needs to dereference the pointer obtained. This is done using the `emit` function with the `Op::DEREF` operation. The `0` argument likely indicates the number of bytes to dereference (e.g., 4 bytes for a typical pointer on a 32-bit system). The `line` parameter specifies the source code line where the operation occurs, which is useful for debugging purposes.
+2. **Emit Dereference Operation**: After compiling the object expression, the function emits an `Op::DEREF` instruction. This instruction dereferences the pointer obtained from the object expression, effectively converting it into a reference to the actual object.
 
-3. **Emit Get Member Operation**:
-   ```cpp
-   emit(Op::GET_MEMBER, addStr(e.member), line);
-   ```
-   Finally, the function emits an instruction to access the member specified in the arrow expression (`e.member`). This is done using the `emit` function with the `Op::GET_MEMBER` operation. The `addStr(e.member)` call adds the member name as a string constant to the IR code. Similar to the previous step, the `line` parameter provides context about the source code location.
+3. **Emit Member Access Operation**: Finally, the function emits an `Op::GET_MEMBER` instruction. This instruction takes two operands: the name of the member to be accessed and the line number where the expression appears. The `addStr(e.member)` function is used to convert the member name into a string constant that can be referenced in the IR.
 
 ## Edge Cases
-- **Null Pointer Dereference**: If the object expression evaluates to a null pointer, attempting to dereference it will result in undefined behavior. The compiler should ensure that null checks are performed before dereferencing.
-- **Non-existent Member Access**: If the member accessed via the arrow operator does not exist in the object's type, the program may crash or produce incorrect results. The compiler should validate that the member exists at compile time.
-- **Type Mismatch**: Ensure that the type of the object and the member being accessed match the expected types. Type mismatches could lead to runtime errors or unexpected behavior.
+- **Null Pointer Dereference**: If the object expression evaluates to a null pointer, attempting to dereference it will result in undefined behavior. The `compileExpr` function should ensure that the object is not null before calling `emit(Op::DEREF)`.
+- **Invalid Member Name**: If the member name specified in the arrow expression does not exist within the object's type, the `Op::GET_MEMBER` instruction will fail at runtime. The `addStr(e.member)` function should validate the member name against the object's type definition.
 
 ## Interactions with Other Components
-- **IR Emission**: The `emit` function interacts with the IR generation component to insert new operations into the IR code stream. This function is crucial for translating high-level language constructs into low-level IR instructions.
-- **Symbol Table**: The `addStr` function might interact with a symbol table component to manage string constants efficiently. This ensures that each unique string is only stored once, reducing memory usage.
-- **Error Handling**: Both `compileExpr` and `emit` functions might interact with error handling mechanisms to report issues like null pointer dereferences or invalid member accesses during compilation.
+- **Compilation Context**: The `compileArrow` function interacts with the compilation context to obtain the current line number (`line`) and manage the IR code generation process.
+- **Type System**: The function relies on the Quantum Language's type system to determine the correct type of the object and the member being accessed. This information is used to generate appropriate IR instructions.
+- **Error Handling**: The function may interact with error handling mechanisms to report issues related to null pointers or invalid member names during compilation.
 
-This function effectively handles the translation of arrow expressions into IR operations, ensuring that the quantum runtime can correctly access and manipulate object members.
+By following these steps, the `compileArrow` function ensures that arrow expressions are correctly compiled into IR instructions, facilitating efficient execution of the Quantum Language programs.

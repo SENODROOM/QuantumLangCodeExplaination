@@ -1,49 +1,54 @@
 # `parseParamList` Function
 
-The `parseParamList` function is designed to parse parameter lists in the context of quantum language compilation. This function is crucial for handling the syntax of function declarations and definitions where parameters are specified.
+The `parseParamList` function is essential for parsing parameter lists within the context of quantum language compilation. This function plays a critical role in interpreting the syntax of function declarations and definitions, ensuring that the parameters are correctly identified and processed.
 
 ## What It Does
 
-The primary role of `parseParamList` is to read and interpret a sequence of tokens that represent a list of function parameters. It processes each token to determine whether it is part of a parameter declaration and constructs an internal representation of these parameters.
+The `parseParamList` function processes a sequence of tokens representing a parameter list. Its main objective is to extract individual parameter names and their corresponding types, storing them in a vector. The function also handles various modifiers such as `const`, pointer (`*`), and reference (`&`) qualifiers.
+
+### Example Usage
+
+Here’s an example of how the `parseParamList` function might be used:
+
+```cpp
+std::vector<std::string> parsedParams = parseParamList(tokens);
+// parsedParams now contains ["x", "y", "z"]
+```
 
 ## Why It Works This Way
 
-This implementation follows a structured approach to handle different styles of parameter declarations found in both C and C++ languages:
+The function operates under the assumption that the input tokens represent a valid parameter list enclosed within parentheses. It uses a series of checks and consumption operations to accurately identify and process each parameter.
 
-1. **Handling `const` Modifier**: The function first checks if the current token is a `const` keyword. If so, it consumes the token, indicating that the following parameter should be treated as constant.
-
-2. **Detecting C-Style Type Keywords**: For C-style declarations like `int x`, the function identifies type keywords such as `int`, `char`, etc., and consumes them. It also handles multi-word types by continuing to consume tokens until a non-type keyword is encountered.
-
-3. **Identifying Parameter Names**: The function detects identifiers that follow type specifications, which are assumed to be parameter names. It then skips any additional qualifiers (`*`, `&`, `const`) that might precede the actual parameter name, ensuring that only the correct name is captured.
-
-4. **Skipping Template Arguments**: In cases where template arguments are present (e.g., `unique_ptr<int[]>`, `shared_ptr<Foo>`), the function correctly navigates through the tokens to skip over these arguments without misinterpreting them as part of the parameter name.
+- **Expecting Parentheses**: The function starts by expecting an opening parenthesis (`(`). If not found, it throws an error indicating that a parenthesis was expected.
+  
+- **Handling Modifiers**: It first checks for the `const` keyword, which can appear before the type of a parameter. If found, it consumes the `const` token.
+  
+- **Identifying C-Type Keywords**: The function then identifies C-type keywords like `int`, `char`, etc., which precede the parameter name. These keywords can span multiple tokens, so the function continues to consume tokens until it encounters a non-C-type keyword.
+  
+- **Processing Identifier Types**: For parameters that use C++-style type identifiers (like `string`, `Entity*`, `Room&`), the function detects these by looking for an identifier followed by either `&`, `*`, or another identifier. It then skips any template arguments `<...>` that may follow the type identifier.
 
 ## Parameters/Return Value
 
 ### Parameters
-- None explicitly listed in the provided code snippet, but implicitly uses global variables or state within the parser context.
+
+- `tokens`: A vector of tokens representing the parameter list to be parsed.
 
 ### Return Value
-- Returns a `std::vector<std::string>` containing the names of the parsed parameters.
+
+- Returns a vector of strings, where each string represents a parameter name extracted from the input tokens.
 
 ## Edge Cases
 
-1. **Empty Parameter List**: If the input consists solely of parentheses `()` without any parameters, the function will return an empty vector.
-   
-2. **Misplaced `const` Keyword**: If a `const` keyword appears after the parameter name instead of before the type, the function will incorrectly treat the parameter as constant. However, since it consumes the `const` keyword, it won't affect subsequent parsing.
+- **Empty Parameter List**: If the input token list is empty or only contains a closing parenthesis without any parameters, the function should handle this gracefully and return an empty vector.
+  
+- **Misplaced Template Arguments**: The function must correctly skip over template arguments `<...>` that may appear within the parameter list, even if they are not directly related to the current parameter being processed.
 
-3. **Multi-Word Types**: The function can handle multi-word types like `unsigned long long`.
-
-4. **Template Arguments**: The function correctly skips over template arguments, preventing them from being mistaken for parameter names.
-
-5. **Trailing Commas**: If there are trailing commas in the parameter list (e.g., `void func(int a,)`), the function will stop processing at the first closing parenthesis and ignore the extra comma(s).
+- **Nested Pointers and References**: The function should correctly handle nested pointers and references, such as `int**` or `Room*&`.
 
 ## Interactions With Other Components
 
-- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens representing the source code.
-  
-- **Error Handling**: The function includes error handling to ensure that the expected opening parenthesis `(` is present at the beginning of the parameter list. If not, it throws an exception with the message "Expected '('".
+The `parseParamList` function interacts closely with other components of the Quantum Language compiler, particularly those responsible for tokenization and semantic analysis. It relies on the tokenizer to provide a stream of tokens that represent the source code. During the parsing process, it consumes tokens and updates its state accordingly.
 
-- **State Management**: The function accesses and modifies the parser's state, including the current position (`pos`) and the list of tokens (`tokens`). These modifications are essential for navigating through the token stream and constructing the parameter list.
+After successfully parsing the parameter list, the function passes the extracted parameter information to subsequent stages of the compiler, such as semantic analysis, where the types and modifiers are validated against the language's rules. Additionally, the parsed parameter list is used during code generation to produce the appropriate machine code or intermediate representation for the function declaration.
 
-Overall, the `parseParamList` function is a robust component of the Quantum Language compiler, designed to accurately parse complex parameter lists found in various programming contexts.
+In summary, the `parseParamList` function is a fundamental part of the Quantum Language compiler, tasked with accurately parsing parameter lists and extracting necessary information for further processing. Its design ensures robustness and flexibility, capable of handling complex scenarios involving various modifiers and nested types.

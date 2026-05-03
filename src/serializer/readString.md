@@ -2,65 +2,42 @@
 
 ## Overview
 
-The `readString` function is part of the Quantum Language compiler's serialization module, located in the `src/Serializer.cpp` file. This function is responsible for reading a string from a serialized data buffer and updating the offset accordingly.
+The `readString` function is an essential component of the Quantum Language compiler's serialization module, found in the `src/Serializer.cpp` file. Its primary role is to extract a string from a pre-serialized data buffer, ensuring that the data integrity is maintained and the offset is correctly updated.
 
-## What It Does
+## Detailed Explanation
 
-The primary purpose of `readString` is to extract a string from a byte array (`data`) starting at a specified offset (`offset`). The function reads the length of the string first as a 32-bit unsigned integer, then extracts the actual characters based on that length.
+### Purpose
 
-## Why It Works This Way
+The purpose of the `readString` function is to deserialize a string from a given data buffer. This process involves reading the length of the string first, followed by the actual characters of the string up to that length. The function ensures that the data being read is within the bounds of the buffer to prevent any out-of-bounds errors.
 
-This implementation ensures that the string is correctly reconstructed from its serialized form without any corruption or out-of-bounds access. By reading the length first, the function can accurately determine how many bytes to allocate for the string, thus preventing potential issues related to buffer overflow.
+### Parameters
 
-## Parameters/Return Value
+1. **const std::vector<uint8_t>& data**: A constant reference to the vector containing the serialized data. This parameter represents the source buffer from which the string will be read.
+   
+2. **size_t& offset**: A reference to the current offset in the data buffer. This parameter keeps track of where the next piece of data should be read from. After the string is read, the offset is incremented by the length of the string.
 
-- **Parameters**:
-  - `const std::vector<uint8_t>& data`: A constant reference to the byte array containing the serialized data.
-  - `size_t& offset`: A reference to the current offset within the byte array. This parameter is updated to reflect the new position after reading the string.
+### Return Value
 
-- **Return Value**:
-  - Returns a `std::string` object representing the extracted string.
+The function returns a `std::string` object representing the deserialized string.
 
-## Edge Cases
+### How It Works
 
-1. **Empty String**: If the length of the string is zero, an empty string will be returned.
-2. **Offset Out of Bounds**: If the calculated end offset exceeds the size of the data vector, a `std::runtime_error` is thrown to prevent buffer overflow.
-3. **Non-ASCII Characters**: The function handles non-ASCII characters correctly by interpreting the bytes as a sequence of characters.
+1. **Reading Length**: The function starts by reading a 4-byte unsigned integer (`uint32_t`) from the data buffer at the specified offset. This integer indicates the length of the string that follows.
 
-## Interactions With Other Components
+2. **Checking Buffer Bounds**: Before proceeding to read the string characters, the function checks if the calculated end position (`offset + len`) exceeds the size of the data buffer. If it does, the function throws a `std::runtime_error` exception to indicate an unexpected string length during deserialization.
 
-- **`readRaw<T>` Function**: This function is used internally by `readString` to read a raw 32-bit unsigned integer from the data buffer. It is assumed to handle type-specific reading and error checking.
-- **Error Handling**: When the calculated end offset exceeds the data buffer size, `readString` throws a `std::runtime_error`. This error handling mechanism is crucial for maintaining data integrity during deserialization processes.
+3. **Creating String Object**: If the length is valid, the function creates a `std::string` object using the constructor that takes a pointer to the character data and its length. The character data is obtained by casting the buffer data starting at the current offset to a `const char*`.
 
-## Example Usage
+4. **Updating Offset**: Finally, the function increments the offset by the length of the string to ensure that subsequent reads start from the correct position.
 
-Here’s an example of how you might use the `readString` function:
+### Edge Cases
 
-```cpp
-#include <iostream>
-#include <vector>
-#include "Serializer.h"
+- **Empty String**: If the length of the string is zero, the function simply returns an empty `std::string`.
+  
+- **Buffer Overflow**: If the length of the string plus the current offset exceeds the size of the buffer, the function throws an error. This prevents reading beyond the allocated memory, which could lead to undefined behavior or security vulnerabilities.
 
-int main() {
-    // Sample serialized data
-    std::vector<uint8_t> data = {0x00, 0x00, 0x00, 0x05, 'H', 'e', 'l', 'l', 'o'};
+### Interactions With Other Components
 
-    // Initialize offset
-    size_t offset = 0;
+The `readString` function interacts closely with the `readRaw` function, which is used to read raw binary data from the buffer. The `readString` function uses `readRaw` to fetch the 4-byte length before proceeding to read the string characters. Additionally, the function relies on the `offset` variable to manage the position within the buffer, ensuring that all reads are synchronized and do not interfere with each other.
 
-    try {
-        // Read the string from the serialized data
-        std::string str = readString(data, offset);
-
-        // Output the read string
-        std::cout << "Read string: " << str << std::endl;
-    } catch (const std::exception& e) {
-        // Handle exceptions
-        std::cerr << "Error: " << e.what() << std::endl;
-    }
-
-    return 0;
-}
-```
-
-In this example, the `readString` function reads a string from a sample serialized data buffer and outputs it. The `offset` variable is updated automatically by the function to point to the next available byte after the string has been read.
+In summary, the `readString` function is a crucial utility for deserializing strings from a data buffer in the Quantum Language compiler. It ensures data integrity through boundary checking and leverages helper functions like `readRaw` to perform low-level operations efficiently.

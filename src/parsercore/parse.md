@@ -1,26 +1,34 @@
 # `parse` Function
 
 ## Overview
-The `parse` function is a crucial component of the Quantum Language compiler's parser module. It is responsible for converting a sequence of tokens into an Abstract Syntax Tree (AST) representing the structure of the quantum program.
+The `parse` function is a key element of the Quantum Language compiler's parser module. Its role is to convert a series of lexical tokens into an Abstract Syntax Tree (AST), which encapsulates the syntactic structure of the quantum program.
 
 ## What It Does
-The primary task of the `parse` function is to construct an AST by parsing statements from the input source code. The function starts by creating a new `ASTNode` object representing a block statement and then enters a loop that continues until the end of the input is reached. Within each iteration of the loop, the function parses a single statement and adds it to the list of statements in the block node.
+The `parse` function processes the input sequence of tokens and constructs an AST that represents the quantum program. The process involves creating a new `ASTNode` object of type `BlockStmt`, which serves as the root node of the AST. This root node contains a list of statements (`statements`) that will be populated during the parsing process.
 
-## Why It Works This Way
-This design choice allows the `parse` function to handle multiple statements within a single block efficiently. By using a unique pointer to manage the memory of the block node and iterating through the input until the end, the function can dynamically build up the AST as it processes each statement. This approach ensures that the entire program is parsed without prematurely stopping at the first encountered error or unexpected token.
+### Step-by-Step Parsing Process:
+1. **Initialization**: A unique pointer to an `ASTNode` of type `BlockStmt` is created. This node acts as the container for all parsed statements in the quantum program.
+2. **Collect Statements**: The function enters a loop that continues until the end of the token stream is reached (`!atEnd()`). Within each iteration of the loop:
+   - A statement is parsed using the `parseStatement()` method.
+   - The parsed statement is added to the `statements` list within the `BlockStmt`.
+3. **Skip Newlines**: After each statement is parsed, the `skipNewlines()` method is called to ensure that any newline characters or whitespace following the statement are skipped over, preparing the parser for the next statement.
+
+### Return Value
+The function returns a unique pointer to the `ASTNode` representing the entire quantum program. This AST can then be used by subsequent stages of the compilation process, such as semantic analysis and code generation.
 
 ## Parameters/Return Value
-- **Parameters**: None
-- **Return Value**: A `std::unique_ptr<ASTNode>` representing the root of the parsed AST.
+- **Parameters**:
+  - None explicitly listed in the provided code snippet, but implied through the use of `skipNewlines()` and `parseStatement()`.
+- **Return Value**:
+  - `std::unique_ptr<ASTNode>`: A unique pointer to the root `ASTNode` of the constructed AST.
 
 ## Edge Cases
-1. **Empty Input**: If the input source code is empty, the `parse` function will return an empty unique pointer, indicating that no statements were found.
-2. **Multiple Blocks**: The current implementation assumes that all statements belong to a single block. Handling multiple blocks would require additional logic to manage nested structures.
-3. **Error Handling**: While not explicitly shown in the provided code snippet, the `parse` function should include robust error handling mechanisms to gracefully manage syntax errors and provide meaningful feedback to the user.
+- **Empty Input**: If the input token stream is empty, the function will create an empty `BlockStmt` and return it.
+- **Syntax Errors**: If a syntax error occurs during the parsing of a statement, the function may throw an exception or handle the error gracefully based on the implementation details.
 
 ## Interactions With Other Components
-- **Tokenizer**: The `parse` function relies on the tokenizer to convert the raw text into a sequence of tokens. These tokens are used as the input for the parsing process.
-- **Lexical Analysis**: Before calling the `parse` function, the lexer performs lexical analysis to tokenize the input source code. The `skipNewlines` function is called after parsing each statement to ensure that any trailing whitespace or newline characters are skipped.
-- **Syntax Checking**: Once the AST is constructed, it is passed to the syntax checker for further validation. The syntax checker ensures that the AST adheres to the rules of the Quantum Language grammar.
+- **Tokenizer**: The `parse` function relies on a tokenizer to provide the sequence of lexical tokens. Tokens are consumed one by one as the parsing progresses.
+- **Error Handling**: The function interacts with error handling mechanisms to manage and report syntax errors encountered during parsing.
+- **Semantic Analysis**: Once the AST is constructed, it is passed to the semantic analyzer for further processing, where types, scopes, and other semantic rules are checked.
 
-In summary, the `parse` function is essential for building the AST of the Quantum Language program. Its dynamic nature allows it to handle complex programs with multiple statements and provides a solid foundation for subsequent stages of compilation, including syntax checking and semantic analysis.
+In summary, the `parse` function is essential for transforming the raw sequence of tokens produced by the tokenizer into a structured AST, facilitating further stages of the compilation process. Its design ensures efficient handling of multiple statements and whitespace, making it robust against various inputs and potential errors.

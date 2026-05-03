@@ -2,42 +2,49 @@
 
 ## Overview
 
-The `compileIdentifier` function is a crucial component of the Quantum Language (QL) compiler, responsible for handling the compilation of identifier expressions in the source code. This function is defined within the `src/compiler/CompilerStatements.cpp` file and plays a significant role in translating high-level quantum programming constructs into low-level machine instructions or intermediate representations that can be executed by the quantum hardware.
+The `compileIdentifier` function is a vital part of the Quantum Language (QL) compiler, tasked with compiling identifier expressions found in the source code. This function is located within the `src/compiler/CompilerStatements.cpp` file.
 
-## What It Does
+### Purpose
 
-The primary task of the `compileIdentifier` function is to load the value associated with an identifier into the current execution context. An identifier in QL typically refers to a variable, register, or constant used in the quantum program. The function takes the name of the identifier as input and emits the appropriate machine instruction or intermediate representation to load its value.
+The primary purpose of `compileIdentifier` is to translate an identifier expression into machine-readable code that can be executed on a quantum computer. An identifier expression typically refers to a variable or a function name used in the program.
 
-## Why It Works This Way
+### Parameters
 
-The function operates by calling another method named `emitLoad`, passing the identifier's name and the current line number as arguments. This design choice allows for separation of concerns, where the responsibility of emitting specific machine instructions is delegated to the `emitLoad` method. By doing so, the `compileIdentifier` function remains focused on identifying and processing identifiers, without being concerned about the details of how each identifier type should be loaded into the execution environment.
+- **e**: A reference to an `Expression` object representing the identifier expression to be compiled. The `Expression` class contains information about the type of expression and its associated data.
+- **line**: An integer representing the line number in the source code where the identifier expression appears. This parameter is used for error reporting purposes.
 
-This approach enhances maintainability and scalability of the compiler, as changes to the loading mechanism for different types of identifiers can be made in the `emitLoad` method without affecting the main logic of the `compileIdentifier` function.
+### Return Value
 
-## Parameters/Return Value
+This function does not return any value explicitly. Instead, it performs side effects by emitting machine code instructions using the `emitLoad` function.
 
-- **Parameters**:
-  - `e`: A reference to an `Expression` object representing the identifier expression to be compiled. This object contains information such as the identifier's name and possibly its type.
-  - `line`: An integer representing the current line number in the source code. This parameter is passed to the `emitLoad` method to ensure that any emitted machine instructions are correctly attributed to the corresponding line of code.
+### Edge Cases
 
-- **Return Value**: None. The function performs an action (emitting a machine instruction) but does not return a value.
+1. **Undefined Identifier**: If the identifier referenced in the expression is not defined anywhere in the program, the `emitLoad` function will throw an exception indicating an undefined symbol. This ensures that the compiler catches and reports errors related to undeclared variables or functions.
+2. **Scope Issues**: Identifiers can exist in different scopes throughout the program. The `compileIdentifier` function must correctly resolve which scope the identifier belongs to based on the current context. This involves maintaining a stack of scopes during compilation.
 
-## Edge Cases
+### Interactions with Other Components
 
-1. **Undefined Identifier**: If the identifier referenced in the `Expression` object has not been previously declared or initialized, the `emitLoad` method may need to handle this case appropriately, potentially generating an error message or raising an exception.
+- **Symbol Table**: The `compileIdentifier` function interacts with the symbol table to retrieve information about the identifier being compiled. The symbol table stores details such as the type, scope, and location of each identifier declared in the program.
+- **Emit Functions**: It uses various `emit...` functions to generate machine code instructions. For example, `emitLoad` is responsible for loading the value of the identifier onto the stack. These functions are part of the backend of the compiler, which translates high-level language constructs into low-level machine code.
 
-2. **Scope Issues**: In complex programs with multiple scopes, the `emitLoad` method must consider the scope in which the identifier is being accessed. For example, if an identifier is shadowed by another with the same name in a nested scope, the correct version of the identifier must be loaded.
+### Implementation Details
 
-3. **Type Mismatch**: Although the function itself does not perform type checking, it relies on the `emitLoad` method to handle potential type mismatches when loading the identifier's value. For instance, if the expected type differs from the actual type of the identifier, the `emitLoad` method may need to generate type conversion instructions.
+Here's a breakdown of how the `compileIdentifier` function works:
 
-## Interactions With Other Components
+1. **Retrieve Symbol Information**: The function first looks up the identifier in the symbol table to get details about its type, scope, and whether it has been declared.
+2. **Check Scope**: It verifies if the identifier is accessible in the current scope. If not, it throws an error.
+3. **Emit Load Instruction**: Based on the retrieved information, the function emits a `load` instruction using the `emitLoad` function. This instruction fetches the value of the identifier from memory and pushes it onto the stack.
 
-- **Parser**: The `compileIdentifier` function is likely invoked during the parsing phase of the compiler, where the source code is analyzed and broken down into syntax trees. The parser provides the `Expression` objects containing the identifiers to be compiled.
+### Example Usage
 
-- **Semantic Analyzer**: Before the `compileIdentifier` function is called, the semantic analyzer checks the validity of the identifier references. This includes verifying that the identifiers are declared and accessible at the point of use.
+```cpp
+// Assuming 'expr' is an Expression object representing an identifier 'myVar'
+int lineNumber = 42;
+compileIdentifier(expr, lineNumber);
+```
 
-- **Code Generator**: After the `compileIdentifier` function emits the necessary machine instructions, these instructions are passed to the code generator. The code generator then translates these intermediate representations into final executable code or machine-specific instructions.
+In this example, `compileIdentifier` would look up the symbol `myVar`, check if it is accessible at line 42, and then emit a `load` instruction to push the value of `myVar` onto the stack.
 
-- **Error Handler**: Throughout the process, the `compileIdentifier` function interacts with the error handler to report any issues encountered during the compilation of identifier expressions. This ensures that errors are identified and communicated effectively to the developer.
+### Conclusion
 
-In summary, the `compileIdentifier` function is a vital part of the QL compiler, responsible for loading the values of identifiers into the execution context. Its design leverages delegation to the `emitLoad` method, promoting modularity and ease of maintenance. The function handles various edge cases related to identifier scope and type, and interacts closely with other compiler components to ensure accurate and efficient compilation.
+The `compileIdentifier` function is essential for the correct compilation of identifier expressions in the Quantum Language compiler. By interacting with the symbol table and using appropriate `emit...` functions, it ensures that the generated machine code accurately reflects the intended behavior of the identifier in the source code. Handling edge cases like undefined identifiers and scope issues adds robustness to the compiler, making it more reliable and easier to debug.

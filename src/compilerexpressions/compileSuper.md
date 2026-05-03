@@ -2,47 +2,41 @@
 
 ## Purpose
 
-The `compileSuper` function is designed to handle the compilation of super class references in the Quantum Language compiler. It specifically deals with two scenarios:
-1. A standalone `super()` reference.
-2. Access to a method on the super class (`super.method`).
+The `compileSuper` function is responsible for compiling references to the superclass within the Quantum Language compiler. This function primarily addresses two use cases:
 
-For direct method calls on the super class (`super.method()`), the `compileCall` function takes care of handling them.
+1. **Standalone `super()` Reference**: When the code uses `super()` without calling any method, this function ensures that the current object's superclass instance is loaded onto the stack.
+   
+2. **Access to Superclass Method (`super.method`)**: When accessing methods from the superclass, this function loads the superclass instance and then retrieves the specified method.
 
-## Parameters and Return Value
+This function is crucial because it facilitates inheritance and method overriding in the Quantum Language, allowing objects to interact with their parent classes.
 
-- **Parameters**:
-  - None explicitly defined within the function signature; however, it relies on external data structures such as `e` which contains information about the expression being compiled, including the method name.
+## Parameters
 
-- **Return Value**:
-  - The function does not return any explicit value but performs side effects through the `emit` function calls.
+- `e`: An expression object containing details about the `super` reference. This typically includes the method name being accessed (if applicable).
+- `line`: The current line number in the source code, used for emitting debug information.
 
-## How It Works
+## Return Value
 
-1. **Loading "self"**: 
-   ```cpp
-   emitLoad("self", line);
-   ```
-   This line loads the current object (`self`) onto the stack. In many object-oriented programming languages, `self` refers to the instance of the class that is currently executing.
-
-2. **Accessing Super Class Method**:
-   ```cpp
-   if (!e.method.empty())
-       emit(Op::GET_SUPER, addStr(e.method), line);
-   ```
-   If the method name is not empty (`!e.method.empty()`), this condition indicates that the code is trying to access a method on the super class. The `emit` function is then called with the operation `Op::GET_SUPER`, followed by the method name converted to a string using `addStr`. This operation fetches the method from the super class and pushes it onto the stack.
+None. The function operates by modifying the instruction stream through calls to `emit`.
 
 ## Edge Cases
 
-- **Empty Method Name**: If `e.method` is an empty string, the function simply loads the `self` object without attempting to access any method from the super class. This scenario might occur when only `super()` is used without specifying a method.
-  
-- **Method Not Found**: If the specified method does not exist in the super class, the behavior depends on how the `emit` function handles such errors. Typically, this would result in a runtime error indicating that the method is undefined.
+1. **No Method Specified**: If `e.method` is empty, the function only compiles the loading of the superclass instance. This scenario corresponds to a standalone `super()` reference.
+   
+2. **Method Specified**: If `e.method` is not empty, the function emits an operation to retrieve the method from the superclass instance. This scenario corresponds to accessing a method on the superclass (`super.method`).
+
+3. **Invalid Superclass**: If the current object does not have a superclass (i.e., it is the root class), attempting to compile `super()` should result in an error. However, the provided code snippet does not explicitly handle this case; it assumes that the superclass exists.
+
+4. **Dynamic Typing**: Since Quantum Language supports dynamic typing, the actual type of the superclass might not be known at compile time. The function relies on runtime mechanisms to resolve the correct superclass.
 
 ## Interactions with Other Components
 
-- **Emit Function**: The `emit` function is crucial here as it generates machine code instructions based on the operations provided. It interacts with various parts of the compiler, including the symbol table, instruction set, and the output file.
+- **Emit Function**: The `compileSuper` function interacts with the `emit` function to generate instructions for the virtual machine. This includes loading the superclass instance and retrieving methods.
+  
+- **Instruction Stream**: The function modifies the instruction stream by adding operations such as `Op::LOAD` to load the superclass instance and `Op::GET_SUPER` to fetch the specified method.
 
-- **Expression Structure (`e`)**: The function assumes the existence of an external structure `e` that holds details about the expression being compiled. This structure likely includes information about whether the expression involves accessing a method on the super class.
+- **Expression Object**: The function takes an expression object `e` which contains information about the `super` reference. This object is likely populated during parsing and passed down to the compilation phase.
 
-- **Line Number Information**: The `line` parameter is passed to both `emitLoad` and `emit` functions. This helps in maintaining accurate source code mappings during debugging, ensuring that errors can be traced back to their respective lines in the original source code.
+- **Debug Information**: By using the `line` parameter, the function can emit debug information associated with the current line of code, aiding in debugging and profiling.
 
-In summary, the `compileSuper` function is essential for compiling references to methods on the super class in the Quantum Language compiler. By loading the current object and fetching the required method, it facilitates the correct execution of these expressions in the generated code.
+In summary, the `compileSuper` function plays a vital role in handling superclass references in the Quantum Language compiler, ensuring proper inheritance and method resolution. Its implementation leverages existing functions like `emit` to construct the necessary instructions for the virtual machine, making it an integral part of the language's runtime environment.

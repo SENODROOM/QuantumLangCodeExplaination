@@ -2,64 +2,30 @@
 
 ## Overview
 
-The `readString` function is designed to lexically analyze and extract string literals from the source code being processed by the Quantum Language compiler's lexer. It reads characters sequentially until it encounters the closing quote, handling escape sequences along the way. The function returns a `Token` object representing the string literal.
+The `readString` function is responsible for lexically analyzing and extracting string literals from the source code being processed by the Quantum Language compiler's lexer. This function ensures that string literals are correctly identified and handled, including support for escape sequences within strings.
 
-## Parameters/Return Value
+### Why It Works This Way
+
+The function operates by advancing through the source code character by character until it encounters the closing quote of the string. During this process, it checks for escape sequences prefixed by a backslash (`\`). Each recognized escape sequence is replaced by its corresponding character in the resulting string token. If an unrecognized escape sequence is encountered, it is added to the string as-is. This approach allows the function to accurately parse both simple and complex string literals.
+
+### Parameters/Return Value
 
 - **Parameters**:
-  - None explicitly defined in the provided snippet; however, it relies on global variables or member functions of the class it belongs to (`line`, `col`, `src`, `pos`, `current()`).
-
+  - None
+  
 - **Return Value**:
-  - A `Token` object of type `STRING`. This token contains the extracted string literal, its starting line number, and starting column number.
+  - Returns a `Token` object representing the extracted string literal. The token includes the type (`TokenType::STRING`), the value of the string, and the starting line and column positions where the string was found in the source code.
 
-## How it Works
+### Edge Cases
 
-1. **Initialization**: 
-   - The function records the current line and column numbers where the string starts using `startLine` and `startCol`.
-   - It then advances the position pointer `pos` past the opening quote character.
+1. **Empty String**: If the string literal is empty (i.e., two consecutive quotes without any content between them), the function will still correctly identify and handle it.
+2. **Unrecognized Escape Sequence**: If an escape sequence is not recognized (e.g., `\x`, `\z`), it is treated as a regular character within the string.
+3. **Unterminated String Literal**: If the string literal is not properly terminated (i.e., it ends before encountering the closing quote), the function throws a `QuantumError` with the message "LexError: Unterminated string literal" along with the starting line position.
 
-2. **Reading Characters**:
-   - The function enters a loop that continues as long as the current position is within bounds (`pos < src.size()`) and the next character is not the closing quote (`current() != quote`).
-   - Inside the loop, it checks if the current character is an escape sequence (`'\\'`). If so, it processes the escape sequence accordingly:
-     - `\n`: Adds a newline character to the string.
-     - `\t`: Adds a tab character to the string.
-     - `\r`: Adds a carriage return character to the string.
-     - `\\`: Adds a backslash character to the string.
-     - `\'`: Adds a single quote character to the string.
-     - `\"`: Adds a double quote character to the string.
-     - `\0`: Adds a null character to the string.
-     - Any other character following a backslash is added verbatim to the string.
-   - If the current character is not an escape sequence, it simply appends the character to the string and advances the position pointer.
+### Interactions With Other Components
 
-3. **Handling Edge Cases**:
-   - If the loop exits because the end of the source code has been reached (`pos >= src.size()`), the function throws a `QuantumError` indicating an unterminated string literal.
-   - If the loop completes successfully, the function advances the position pointer past the closing quote and returns a `Token` object containing the string literal, its starting line and column numbers.
+- **Lexer Class**: The `readString` function is part of the Lexer class, which is responsible for breaking down the source code into individual tokens. It interacts with the Lexer's state variables such as `line`, `col`, and `pos` to keep track of the current position in the source code.
+- **Tokenizer**: When a string literal is successfully read, the `readString` function creates a `Token` object and passes it up to the higher-level tokenizer for further processing.
+- **Error Handling**: If an error occurs during the reading of a string literal (such as an unterminated string), the function throws a `QuantumError`. This error is then caught and handled by the appropriate error management component of the compiler.
 
-4. **Interactions with Other Components**:
-   - The function interacts with the `LexerReaders.cpp` file, which likely contains other lexical analysis functions.
-   - It uses global variables such as `line`, `col`, `src`, and `pos` to keep track of the current state of the source code being analyzed.
-   - The `current()` function is assumed to be a member function of the class that calls `readString`, returning the current character at `pos`.
-
-## Example Usage
-
-Here’s how you might use the `readString` function in a context:
-
-```cpp
-// Assuming 'lexer' is an instance of the Lexer class
-int startLine = lexer.line;
-int startCol = lexer.col;
-std::string sourceCode = "..."; // Source code containing a string literal
-lexer.src = sourceCode;
-lexer.pos = ...; // Position pointing to the first character of the string literal
-
-try {
-    Token token = lexer.readString();
-    // Process the token
-} catch (const QuantumError& e) {
-    // Handle error
-}
-```
-
-In this example, `lexer.readString()` would attempt to extract a string literal from the `sourceCode` starting at the specified `pos`. If successful, it would return a `Token` object. If an error occurs (e.g., the string is not properly terminated), it would throw a `QuantumError`.
-
-This function is crucial for correctly parsing and interpreting string literals in the source code, ensuring that they are handled appropriately during further stages of compilation.
+Overall, the `readString` function plays a crucial role in the lexical analysis phase of the Quantum Language compiler, ensuring that string literals are correctly parsed and represented in the token stream.

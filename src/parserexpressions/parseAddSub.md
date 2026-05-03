@@ -2,43 +2,35 @@
 
 ## Function Overview
 
-The `parseAddSub` function is part of the Quantum Language compiler's parser and is responsible for parsing expressions involving addition (`+`) and subtraction (`-`). This function operates recursively to handle nested expressions and builds an Abstract Syntax Tree (AST) representing the parsed expression.
+The `parseAddSub` function is a crucial component of the Quantum Language compiler's parser, specifically designed to handle arithmetic expressions that involve both addition (`+`) and subtraction (`-`). This function plays a pivotal role in breaking down complex expressions into simpler binary operations, allowing for accurate syntax analysis and semantic interpretation during compilation.
 
-## Parameters and Return Value
+### Parameters/Return Value
 
-### Parameters
+- **Parameters**: None explicitly listed in the provided code snippet, but implicitly takes tokens from the tokenizer.
+- **Return Value**: A unique pointer to an `ASTNode` representing the parsed expression tree. The returned node encapsulates either a multiplication/division operation or a binary expression combining addition/subtraction with previously parsed nodes.
 
-- None explicitly listed in the provided code snippet; however, it relies on global state managed by the parser, such as the current token and the ability to consume tokens.
+### How It Works
 
-### Return Value
+1. **Initialization**: The function begins by calling `parseMulDiv()`, which is assumed to be another method within the same class or namespace, responsible for parsing expressions involving multiplication (`*`), division (`/`), and unary operators. This initial call sets up the left-hand side of the binary expression.
 
-- `std::unique_ptr<ASTNode>`: The function returns a unique pointer to an AST node that represents the parsed expression. If there are no valid tokens or errors occur during parsing, it may return a null pointer.
+2. **Loop for Addition/Subtraction**: The function then enters a loop that continues as long as the next token is either an addition (`TokenType::PLUS`) or a subtraction (`TokenType::MINUS`). Inside the loop:
+   - **Line Number Retrieval**: The line number of the current token is stored in `ln`.
+   - **Operator Consumption**: The operator token (`+` or `-`) is consumed using `consume()`, and its value is retrieved.
+   - **Right Hand Side Parsing**: Another call to `parseMulDiv()` is made to parse the expression on the right-hand side of the current operator.
+   - **Building AST Node**: A new `ASTNode` is constructed, wrapping a `BinaryExpr` object that holds the operator, the left-hand side node, and the right-hand side node. This new node becomes the new left-hand side for the next iteration of the loop.
 
-## How It Works
+3. **Termination**: Once the loop terminates (i.e., there are no more addition or subtraction operators), the function returns the final `ASTNode` built during the loop.
 
-1. **Initial Parsing**: The function starts by calling `parseMulDiv()`, which is presumably another method within the same class or namespace. This initial call parses the left-hand side of the expression, handling multiplication, division, and unary operators.
+### Edge Cases
 
-2. **Loop for Addition/Subtraction**: After obtaining the initial left-hand side (`left`), the function enters a loop that continues as long as the next token is either a plus (`TokenType::PLUS`) or minus (`TokenType::MINUS`) operator.
+- **Empty Expression**: If `parseMulDiv()` returns a null pointer or an empty node at any point, the loop will terminate immediately, returning the initial left-hand side node.
+- **Mixed Operators**: The function handles mixed sequences of addition and subtraction correctly, building a nested structure of binary expressions based on the order of operators encountered.
+- **Whitespace and Comments**: While not directly shown in the code, the parser should ideally skip over whitespace and comments between tokens to ensure robustness.
 
-3. **Token Consumption and AST Construction**:
-   - Inside the loop, the function records the current line number (`ln`) using `current().line`.
-   - It then consumes the current token using `consume()` and extracts its value (`op`), which should be either `"+"` or `"`-"`.
-   - Another call to `parseMulDiv()` is made to parse the right-hand side (`right`) of the current operation.
-   - A new `ASTNode` is created using `std::make_unique`, encapsulating a `BinaryExpr` object. This object holds the operator (`op`), the left-hand side (`std::move(left)`), and the right-hand side (`std::move(right)`).
-   - The new `ASTNode` becomes the new left-hand side for the next iteration of the loop, effectively chaining operations together.
+### Interactions with Other Components
 
-4. **Exit Loop**: Once the loop exits (i.e., there are no more addition or subtraction operators), the function returns the final `ASTNode`.
+- **Tokenizer**: The `parseAddSub` function relies on the tokenizer to provide the sequence of tokens for parsing. Tokens such as numbers, identifiers, and operators are consumed and processed sequentially.
+- **Error Handling**: Although not explicitly shown here, the parser likely includes error handling mechanisms to manage unexpected token types or malformed expressions gracefully.
+- **Abstract Syntax Tree (AST)**: The function constructs an AST, where each node represents an operation or operand. This AST is used for further processing, including semantic analysis and code generation.
 
-## Edge Cases
-
-- **Empty Input**: If the input stream is empty or contains no valid tokens, the function will likely return a null pointer or throw an exception, depending on how the parser handles errors.
-- **Syntax Errors**: If the input contains unexpected tokens or incorrect syntax (e.g., missing operands after an operator), the function may fail to construct a valid AST or throw an error.
-- **Nested Expressions**: The function correctly handles nested expressions by recursively calling itself when encountering multiplication/division operators. This ensures that operations are evaluated according to their precedence.
-
-## Interactions with Other Components
-
-- **Tokenizer**: The `parseAddSub` function relies on the tokenizer to provide the sequence of tokens for parsing. It uses methods like `current()` and `consume()` to interact with the tokenizer's state.
-- **Error Handling**: While not explicitly shown in the snippet, the parser likely has mechanisms to handle errors gracefully, possibly throwing exceptions or returning null pointers when syntax errors are detected.
-- **Precedence Handling**: By calling `parseMulDiv()` inside the loop, the function implicitly respects the precedence of multiplication and division over addition and subtraction. This allows for correct evaluation of complex expressions without additional logic for operator precedence.
-
-This recursive approach to parsing arithmetic expressions is a common pattern in compilers, ensuring that the structure of the expression is accurately represented in the AST and that operations are evaluated correctly based on their precedence.
+In summary, the `parseAddSub` function is essential for parsing arithmetic expressions involving addition and subtraction in the Quantum Language compiler. By leveraging recursive calls to `parseMulDiv()`, it efficiently handles nested expressions and builds a structured AST representation, enabling subsequent stages of compilation to proceed accurately and effectively.

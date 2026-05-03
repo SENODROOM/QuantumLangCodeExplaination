@@ -4,39 +4,40 @@ The `readIdentifierOrKeyword` function is designed to identify and process ident
 
 ## What It Does
 
-The function reads characters from the input source until it encounters a character that is not alphanumeric or an underscore (`_`). At this point, it checks if the identifier starts with a raw string prefix (`r"..."` or `r'...'`) or a formatted string prefix (`f"..."` or `f'...'`). If either prefix is found, it processes the string accordingly.
-
-For raw strings:
-- The function skips the opening quote.
-- It continues reading characters until it finds the matching closing quote.
-- Once the closing quote is found, it advances past it and returns a token of type `STRING` containing the raw content.
-
-For formatted strings:
-- Similar to raw strings, the function skips the opening quote.
-- However, it also looks for expressions within curly braces `{}` and replaces them with `${}` before returning a token of type `TEMPLATE`.
+The function reads characters from the input source code starting at the current position (`pos`) until it encounters a character that is not alphanumeric or an underscore. If the identifier starts with "r" or "R", followed by a double or single quote, it treats the enclosed string as a raw string, which means it will not interpret any escape sequences within the string. Similarly, if the identifier starts with "f" or "F", followed by a double or single quote, it treats the enclosed string as an f-string, which allows for embedded expressions that are evaluated during runtime and prefixed with `${}`.
 
 ## Why It Works This Way
 
-This design allows the lexer to handle different types of string literals efficiently. By distinguishing between raw and formatted strings, the lexer ensures that escape sequences are handled correctly for raw strings and that expressions are properly identified and treated as part of the string for formatted strings. This separation helps maintain clarity and correctness in the tokenization process.
+This approach ensures that the lexer correctly identifies and categorizes different types of tokens:
+- **Identifiers**: Words that do not match any predefined keyword but are valid for variable names, function names, etc.
+- **Keywords**: Reserved words that have special meanings in the language, such as `let`, `if`, `else`, etc.
+- **Raw Strings**: Literal strings without escape sequences, useful for paths, URLs, and other data that should not be interpreted.
+- **F-Strings**: Template literals that allow for dynamic content insertion, enhancing readability and maintainability.
+
+By handling these cases separately, the lexer can accurately parse the source code and generate the appropriate tokens for each part.
 
 ## Parameters/Return Value
 
 ### Parameters
-- None explicitly mentioned in the provided snippet, but it likely operates on global variables or parameters passed implicitly through the class context.
+- None
 
 ### Return Value
-- Returns a `Token` object representing the identifier or keyword. For strings, it returns a `STRING` or `TEMPLATE` token depending on whether the string is raw or formatted.
+- Returns a `Token` object representing the identifier or keyword.
+  - If the token is an identifier, its type is `TokenType::IDENTIFIER`.
+  - If the token is a keyword, its type is `TokenType::KEYWORD`.
+  - If the token is a raw string, its type is `TokenType::STRING`.
+  - If the token is an f-string, its type is also `TokenType::STRING`.
 
 ## Edge Cases
 
-1. **Empty Identifier**: If the input consists only of non-alphanumeric characters or underscores, the function should return an empty identifier.
-2. **Invalid Raw String Prefix**: If the input starts with `r"` or `r'`, but there is no corresponding closing quote, the function should handle this gracefully, possibly reporting an error.
-3. **Nested Expressions**: Formatted strings may contain nested expressions within curly braces. The function must correctly handle these nesting levels without prematurely closing the string.
+- **Empty Identifier**: If the input starts with a non-alphanumeric character, the function returns an empty identifier token.
+- **Invalid F-String Syntax**: If the f-string syntax is incorrect (e.g., missing closing brace), the function may enter an infinite loop or produce unexpected results.
+- **Unicode Characters**: The function assumes that all characters are ASCII, so it does not handle Unicode characters specifically.
 
 ## Interactions With Other Components
 
-- **Lexer Class**: This function is typically part of a larger `Lexer` class responsible for converting the source code into tokens.
-- **Parser**: Tokens returned by `readIdentifierOrKeyword` are used by the parser to construct the abstract syntax tree (AST).
-- **Error Handling**: Depending on the implementation, this function might interact with an error handling mechanism to report issues such as missing quotes or invalid prefixes.
+- **Lexer Class**: This function is a member of the `Lexer` class, which manages the overall lexing process.
+- **Parser Class**: The generated tokens are used by the parser to construct the abstract syntax tree (AST) of the program.
+- **Error Handling**: If the function encounters an invalid token or syntax error, it should throw an exception or set an error flag that can be handled by the parser or higher-level components.
 
-In summary, the `readIdentifierOrKeyword` function is essential for accurately parsing identifiers and special string literals in the Quantum Language. Its ability to differentiate between raw and formatted strings enhances the robustness and flexibility of the lexer, facilitating correct tokenization and subsequent parsing.
+Overall, the `readIdentifierOrKeyword` function is essential for parsing the Quantum Language's syntax and ensuring that the subsequent stages of compilation can work with well-formed tokens.

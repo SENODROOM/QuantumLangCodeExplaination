@@ -2,51 +2,54 @@
 
 ## Overview
 
-The `runtimeError` function is part of the Quantum Language compiler's virtual machine (VM) core (`src/vm/VmCore.cpp`). This function is responsible for throwing a `RuntimeError` exception when an error occurs during the execution of quantum programs.
+The `runtimeError` function is integral to the Quantum Language compiler's virtual machine (VM) core located in `src/vm/VmCore.cpp`. Its primary role is to handle and throw a `RuntimeError` exception whenever an error occurs during the execution of quantum programs. This ensures that any issues encountered during program execution are properly flagged and handled, allowing for debugging and recovery mechanisms to be implemented effectively.
 
 ## Purpose
 
-The primary purpose of the `runtimeError` function is to handle runtime errors gracefully and provide meaningful error messages to the user. By throwing a `RuntimeError`, the function allows the VM to stop executing the current program and propagate the error up the call stack, enabling higher-level components to catch and handle the exception appropriately.
+The purpose of the `runtimeError` function is to provide a standardized method for reporting errors that occur at runtime within the VM. By encapsulating error handling logic within this function, the compiler can maintain consistency across different parts of the codebase and simplify the process of identifying and resolving errors.
 
 ## Parameters
 
-- **msg**: A string representing the error message that will be associated with the `RuntimeError`. This message should clearly describe the nature of the error encountered during execution.
-- **line**: An integer indicating the line number in the source code where the error occurred. This information helps users pinpoint the exact location of the issue within their quantum program.
+- **msg**: A string representing the error message to be displayed. This parameter provides context about the nature of the error that occurred.
+- **line**: An integer indicating the line number in the source code where the error was detected. This helps developers locate the exact point of failure more quickly.
 
 ## Return Value
 
-The `runtimeError` function does not return any value explicitly. Instead, it throws a `RuntimeError` exception, which can be caught and handled by surrounding code or the main execution loop of the compiler.
+This function does not return a value; instead, it throws a `RuntimeError` exception. The exception contains both the error message and the line number information, which are crucial for diagnosing and fixing issues.
 
 ## Edge Cases
 
-1. **Empty Error Message**: If the `msg` parameter is an empty string, the function will still throw a `RuntimeError` without any additional context. However, this may lead to less informative error messages for the user.
-2. **Negative Line Number**: Passing a negative value for the `line` parameter is generally considered invalid and could indicate a bug elsewhere in the code. The function does not validate this input, so using negative line numbers might result in unexpected behavior.
-3. **Long Error Messages**: While there is no inherent limit on the length of the `msg` parameter, extremely long error messages could potentially impact performance or readability. It is recommended to keep error messages concise and focused on providing essential information.
+1. **Empty Message**: If the `msg` parameter is an empty string, the function should still throw a `RuntimeError`, but the error message might need to be updated to indicate that a default or placeholder message has been used.
+2. **Negative Line Number**: If the `line` parameter is negative, the function should throw an exception or log a warning, as negative line numbers do not make sense in the context of source code.
 
 ## Interactions with Other Components
 
-- **Exception Handling**: The `runtimeError` function interacts with the exception handling mechanism of the C++ language. When called, it throws a `RuntimeError` exception, which can be caught and handled by surrounding code or the main execution loop of the compiler.
-- **Logging**: In a typical scenario, the `RuntimeError` thrown by `runtimeError` would be caught by a logging component, which records the error message along with the line number for later analysis or display to the user.
-- **User Interface**: For interactive applications, the `RuntimeError` might also be caught by a user interface component, which displays the error message to the user in a more user-friendly manner, possibly highlighting the problematic line in the source code.
+The `runtimeError` function interacts closely with the rest of the VM core and the compiler infrastructure. It is typically called by various functions within the VM when they encounter an unexpected condition or error during execution. For example, if a quantum gate operation fails due to invalid input, the corresponding function might call `runtimeError` to report the error along with the relevant line number.
 
-## Example Usage
-
-Here is an example of how the `runtimeError` function might be used within the VM core:
+Here is how the function might be invoked within the VM:
 
 ```cpp
-void executeQuantumProgram(const std::string& program) {
-    try {
-        // Simulate program execution
-        if (program.empty()) {
-            runtimeError("Program cannot be empty", 0);
-        }
-        // More program execution logic here...
-    } catch (const RuntimeError& e) {
-        // Handle runtime error
-        std::cerr << "Runtime error at line " << e.line() << ": " << e.what() << std::endl;
-        // Log the error or take appropriate action
+void executeQuantumGate(Qubit* qubit, GateType type) {
+    // Validate input parameters
+    if (!qubit || !isValidGateType(type)) {
+        runtimeError("Invalid input parameters for quantum gate", __LINE__);
+    }
+    
+    // Execute the quantum gate
+    switch (type) {
+        case HADAMARD:
+            applyHadamard(qubit);
+            break;
+        case PauliX:
+            applyPauliX(qubit);
+            break;
+        // ... other cases ...
+        default:
+            runtimeError("Unsupported quantum gate type", __LINE__);
     }
 }
 ```
 
-In this example, if the `program` string is empty, the `runtimeError` function is called with an appropriate error message and line number. The exception is then caught by the `catch` block, where it is logged or displayed to the user.
+In this example, `executeQuantumGate` checks if the provided `qubit` pointer is valid and if the `type` is one of the supported gate types. If either check fails, it calls `runtimeError` to throw an exception with an appropriate error message and the current line number.
+
+By centralizing error handling through the `runtimeError` function, the compiler can ensure that all runtime errors are consistently reported and managed, leading to more robust and reliable quantum program execution.

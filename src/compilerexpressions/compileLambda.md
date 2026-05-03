@@ -2,44 +2,45 @@
 
 ## Overview
 
-The `compileLambda` function is responsible for compiling a lambda expression in the Quantum Language compiler. A lambda expression is an anonymous function that can be defined and used within another function or block of code. This function generates bytecode for the lambda function and handles its creation as a closure if necessary.
+The `compileLambda` function is responsible for compiling a lambda expression in the Quantum Language compiler. A lambda expression is an anonymous function that can be defined and used within another function or block of code. This function generates bytecode to represent the lambda expression and its environment, ensuring that the lambda can access variables from the enclosing scope as necessary.
 
-## Parameters
+### Why It Works This Way
 
-- **e**: The lambda expression to be compiled. It contains information about the parameters, default arguments, and body of the lambda.
-- **line**: The source code line number where the lambda expression is located. This is used for error reporting and debugging purposes.
+1. **Parameter Handling**: The function first initializes a vector `noRef` to keep track of whether each parameter should be passed by reference. Since lambda expressions typically capture their arguments by value, all parameters are initially marked as not needing references (`false`).
 
-## Return Value
+2. **Function Compilation**: The lambda expression is compiled into a separate chunk of bytecode using the `compileFunction` method. This chunk represents the body of the lambda function itself, including any local variables and control flow statements.
 
-This function does not explicitly return a value. Instead, it emits bytecode instructions that define and create the lambda function.
+3. **Closure Creation**: After compiling the lambda's body, a `Closure` object is created. This object encapsulates the compiled function and any upvalues (variables from the enclosing scope that the lambda needs to access). Upvalues are captured and stored in the closure so that they can be accessed later when the lambda is executed.
 
-## How It Works
+4. **Bytecode Emission**: Finally, the function emits two bytecode instructions:
+   - `Op::LOAD_CONST`: This instruction loads the constant representing the closure onto the stack. The closure is added to the constant pool using the `addConst` method.
+   - `Op::MAKE_CLOSURE` or `Op::MAKE_FUNCTION`: Depending on whether the closure has any upvalues, this instruction either creates a closure or a standalone function. If there are upvalues, it uses `Op::MAKE_CLOSURE`, otherwise, it uses `Op::MAKE_FUNCTION`.
 
-1. **Initialization**:
-   - A vector `noRef` of boolean values is initialized with `false`, indicating that none of the parameters are reference types.
+### Parameters/Return Value
 
-2. **Compiling the Lambda Function**:
-   - The `compileFunction` method is called with the name "lambda", the list of parameters, the `noRef` vector, the default arguments, the body of the lambda, and the current line number. This method compiles the lambda's body into bytecode instructions.
-   - The result of `compileFunction` is stored in `fnChunk`, which represents the bytecode chunk for the lambda function.
+- **Parameters**:
+  - `e.params`: A list of parameters for the lambda function.
+  - `e.defaultArgs`: Default argument values for the lambda function.
+  - `e.body.get()`: The body of the lambda function, which is a pointer to an expression or statement.
+  - `line`: The source code line number where the lambda is defined, used for debugging purposes.
 
-3. **Creating the Closure**:
-   - A shared pointer to a `Closure` object is created using `std::make_shared`. The `Closure` object encapsulates the bytecode chunk (`fnChunk`) and any upvalues (variables from the enclosing scope) that the lambda may need.
-   - If the lambda has any upvalues, `closureTpl` will hold a `Closure` object; otherwise, it will hold a `Function` object.
+- **Return Value**:
+  - No explicit return value. However, the function modifies the bytecode stream directly through calls to `emit`.
 
-4. **Emitting Bytecode Instructions**:
-   - The `emit` method is called to load a constant onto the stack. The constant is a `QuantumValue` containing the `closureTpl` or `Function` object.
-   - Depending on whether the lambda has upvalues (`fnChunk->upvalueCount > 0`), the `emit` method is called again to either create a closure (`Op::MAKE_CLOSURE`) or a regular function (`Op::MAKE_FUNCTION`). The second argument to `emit` is typically zero but could vary based on additional metadata or flags related to the function.
+### Edge Cases
 
-## Edge Cases
+- **No Upvalues**: If the lambda does not capture any variables from the enclosing scope, it will be compiled as a simple function without upvalues. In this case, only `Op::MAKE_FUNCTION` will be emitted.
+  
+- **Upvalues**: If the lambda captures variables from the enclosing scope, these variables become upvalues. The closure template is created to store these upvalues, and `Op::MAKE_CLOSURE` is emitted instead of `Op::MAKE_FUNCTION`.
 
-- **No Upvalues**: If the lambda does not capture any variables from the enclosing scope, it will be compiled as a regular function.
-- **Upvalues**: If the lambda captures variables from the enclosing scope, it will be compiled as a closure. The `Closure` object will manage these captured variables.
-- **Default Arguments**: Default arguments are handled during the compilation of the lambda's body. They ensure that the lambda can be invoked with fewer arguments than specified.
+- **Default Arguments**: Default arguments are handled during the compilation of the lambda's body. They ensure that the lambda can be called with fewer arguments than specified.
 
-## Interactions with Other Components
+### Interactions With Other Components
 
-- **Bytecode Emission**: The `emit` method interacts with the bytecode emitter component of the compiler, which is responsible for generating machine-readable instructions.
-- **Function Compilation**: The `compileFunction` method interacts with the function compilation component, which processes the lambda's body and generates the corresponding bytecode.
-- **Scope Management**: The handling of upvalues involves interaction with the scope management component, ensuring that captured variables are correctly managed and accessible within the lambda.
+- **Constant Pool**: The `addConst` method interacts with the constant pool to store the closure object. This allows the closure to be referenced by multiple parts of the bytecode without duplicating the data.
 
-In summary, the `compileLambda` function plays a crucial role in the Quantum Language compiler by compiling lambda expressions into bytecode and managing their closures if necessary. This process ensures that lambda functions can be executed efficiently and maintain access to their lexical environment.
+- **Bytecode Stream**: The `emit` method adds instructions to the bytecode stream. These instructions include loading constants and creating closures/functions, which are essential for executing the lambda expression correctly.
+
+- **Scope Management**: During the compilation of the lambda's body, the scope manager ensures that any variables captured by the lambda are properly resolved and managed. This includes handling variable lifetimes and visibility within the lambda.
+
+By carefully managing the compilation of lambda expressions, `compileLambda` ensures that the resulting bytecode accurately reflects the behavior of the lambda, allowing it to access variables from the enclosing scope and execute correctly.

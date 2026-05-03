@@ -1,85 +1,41 @@
 # `callBuiltinMethod`
 
-The `callBuiltinMethod` function is a crucial component of the Quantum Language compiler's virtual machine (VM) core. This function handles the invocation of built-in methods on various data types such as numbers, arrays, strings, dictionaries, and instances.
+The `callBuiltinMethod` function is an essential part of the Quantum Language compiler's virtual machine (VM) core, responsible for handling the invocation of built-in methods on different data types including numbers, arrays, strings, dictionaries, and instances.
 
 ## What it Does
 
-The primary purpose of `callBuiltinMethod` is to execute predefined built-in methods associated with different data types. These methods include:
+The `callBuiltinMethod` function checks the type of the object (`obj`) and then determines which built-in method should be invoked based on the provided `method` name and arguments (`args`). It supports various operations like formatting numbers, converting objects to strings, creating translation tables, and invoking asynchronous methods related to email management.
 
-- **Numbers**: Methods like `toFixed` and `toString`.
-- **Arrays**: Array-specific methods.
-- **Strings**: String-specific methods.
-- **Dictionaries**: Dictionary-specific methods.
-- **Instances**: Methods defined within classes or instances.
+For example:
+- If the object is a number and the method is `"toFixed"`, it converts the number to a string with a fixed number of decimal places specified by the first argument or defaults to zero if no argument is provided.
+- If the object is a native instance and the method is `"maketrans"`, it creates a dictionary that can be used to translate characters from one set to another.
+- For array, string, and dictionary types, it calls specialized helper functions (`callArrayMethod`, `callStringMethod`, `callDictMethod`) to handle the method invocation.
 
-When a built-in method is invoked, the function checks the type of the object (`obj`) and then calls the appropriate method based on its type. If the method is not found, it throws a `TypeError`.
+## Why it Works this Way
 
-## Why it Works This Way
-
-### Type Checking and Dispatching
-
-The function uses a series of `if` statements to check the type of the object (`obj`). Depending on the type, it dispatches the method call to the corresponding handler function (`callArrayMethod`, `callStringMethod`, etc.). This approach ensures that each data type has its own set of methods and behaviors, maintaining encapsulation and modularity.
-
-### Handling Built-In Methods
-
-For numbers, the function supports two built-in methods:
-- `toFixed`: Converts the number to a string with a specified number of decimal places. The default number of decimal places is 0 if none are provided.
-- `toString`: Converts the number to a string representation.
-
-These methods utilize the C++ standard library functions (`std::ostringstream`, `std::fixed`, `std::setprecision`) to perform the conversions.
-
-### Method Resolution Order (MRO)
-
-For instances, the function follows the Method Resolution Order (MRO) to find the method in the class hierarchy. It starts by checking the methods of the instance's class and then moves up to its base classes until it finds the method or reaches the root class. This ensures that inheritance is respected and that the most derived method is executed first.
-
-### Field Access
-
-If the method is not found in the class hierarchy, the function attempts to access a field with the same name using `inst->getField(method)`. This allows for dynamic attribute access similar to Python.
+This design allows for a modular approach where each data type has its own handler for built-in methods. By separating the logic into different functions, it enhances readability and maintainability. Additionally, it provides a clear structure for adding new data types or methods without altering existing code.
 
 ## Parameters/Return Value
 
 ### Parameters
-
-- `obj`: The object on which the method will be invoked.
-- `method`: A string representing the name of the method to invoke.
-- `args`: A vector of `QuantumValue` objects representing the arguments passed to the method.
-- `line`: An integer representing the current line number in the source code, used for error reporting.
+- `obj`: The object on which the built-in method is being called.
+- `method`: A string representing the name of the built-in method to invoke.
+- `args`: A vector of `QuantumValue` objects containing the arguments passed to the method.
 
 ### Return Value
-
-The function returns a `QuantumValue` object, which represents the result of the method invocation. If an exception occurs during the method execution, it rethrows the exception.
+- Returns a `QuantumValue` object representing the result of the method invocation.
 
 ## Edge Cases
 
-### Negative Decimal Places
-
-For the `toFixed` method, if a negative number of decimal places is provided, the function sets the number of decimal places to 0. This ensures that the output is always a non-negative number of decimal places.
-
-### Non-existent Methods
-
-If a method is not found in the object's class hierarchy or as a field, the function throws a `TypeError`. This provides clear feedback about the missing method and helps in debugging issues related to incorrect method names or invocations.
-
-### Empty Arguments
-
-For the `toFixed` method, if no arguments are provided, the function defaults to 0 decimal places. This handles cases where the user might forget to specify the number of decimal places.
+- **Negative Precision**: When calling the `"toFixed"` method on a number with a negative precision, the function ensures that the precision is at least zero.
+- **Empty Arguments**: If no arguments are provided when calling the `"toFixed"` method, it defaults to zero decimal places.
+- **Non-existent Method**: If the method does not exist for the given object type, the function returns the original object unchanged.
+- **Null or Invalid Native Instance**: If the native instance does not have a valid function pointer (`native->fn`), the function returns an empty `QuantumValue`.
 
 ## Interactions with Other Components
 
-### Stack Management
+- **Object Type Checking**: The function interacts with the VM's type system to determine the type of the object (`isNumber`, `isNative`, etc.). This allows it to route the method invocation to the appropriate handler.
+- **Helper Functions**: For complex data types like arrays, strings, and dictionaries, it uses helper functions (`callArrayMethod`, `callStringMethod`, `callDictMethod`) to perform the actual method invocation. These helper functions are designed to handle specific behaviors of each data type.
+- **Email Management Methods**: For native instances representing email management, it invokes corresponding methods directly. This ensures that email-related operations are handled efficiently within the VM.
 
-The function interacts with the VM's stack through several operations:
-- `push(obj)`: Pushes the object onto the stack before invoking the method.
-- `push(a)`: Pushes each argument onto the stack.
-- `pop()`: Pops the result of the method invocation from the stack after execution.
-
-This stack management ensures that the method execution context is correctly maintained and that the results are properly returned to the caller.
-
-### Frame Execution
-
-After calling the closure associated with the method, the function executes the frame using `runFrame(savedDepth)`. This step is essential for handling the execution flow and managing local variables within the method.
-
-### Error Reporting
-
-The function uses the `line` parameter to report errors in a human-readable format. This helps in pinpointing the exact location in the source code where the error occurred, making debugging more efficient.
-
-In summary, the `callBuiltinMethod` function is designed to handle the invocation of built-in methods on various data types within the Quantum Language compiler's VM core. Its modular design, type-specific handlers, and robust error reporting mechanisms ensure that the VM can effectively manage method calls and provide clear feedback in case of errors.
+Overall, the `callBuiltinMethod` function plays a critical role in enabling built-in functionality across various data types, enhancing the expressiveness and usability of the Quantum Language compiler's VM.

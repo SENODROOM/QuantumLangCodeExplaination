@@ -6,11 +6,11 @@ The `has` function is a member method of the `Value` class in the Quantum Langua
 
 ## What It Does
 
-The `has` function determines if a variable with a given name (`name`) is defined in the current scope or in any of its enclosing parent scopes. If the variable is found in either the current scope or any parent scope, the function returns `true`; otherwise, it returns `false`.
+The `has` function determines if a variable with a specified name (`name`) is present in the current scope or any of its ancestor scopes. If the variable is found in either the current scope or any parent scope, the function returns `true`; otherwise, it returns `false`.
 
 ### Why It Works This Way
 
-This design allows the `Value` class to manage variables across multiple nested scopes efficiently. By checking both the current scope and parent scopes, the function ensures that all accessible variables are considered, which is crucial for correctly resolving variable references during compilation.
+This implementation ensures that variable lookup respects the scope hierarchy, which is crucial for correctly resolving variables in nested structures. By checking both the current scope and its parents, the function provides a comprehensive search mechanism that adheres to the rules of variable scoping in the Quantum Language.
 
 ## Parameters/Return Value
 
@@ -22,12 +22,15 @@ This design allows the `Value` class to manage variables across multiple nested 
 
 ## Edge Cases
 
-1. **Empty Scope**: If the current scope is empty and there are no parent scopes, the function will always return `false`.
-2. **Variable Not Found**: If the variable is not present in the current scope or any of its parent scopes, the function will return `false`.
-3. **Scope Nesting**: The function effectively handles nested scopes by recursively calling itself on the parent scope until the variable is found or all parent scopes have been checked.
+1. **Empty Scope**: If the current scope (`this->vars`) is empty and there is no parent scope (`!this->parent`), the function will correctly return `false`.
+2. **Variable Not Found**: If the variable is not found in the current scope but also not found in any parent scope, the function will return `false`.
+3. **Parent Scope Null**: If the current scope does not have a parent scope (`!this->parent`), the function will stop searching at the current scope level and return `false`.
 
 ## Interactions With Other Components
 
-The `has` function interacts primarily with the `Scope` class, which manages the variables in each scope. When called, the function first checks if the variable exists in the current scope using the `vars` map. If not found, it then delegates the search to the parent scope, creating a chain of calls up through the scope hierarchy. This interaction ensures that the entire scope tree is searched when determining variable existence.
+The `has` function interacts with the following components:
 
-In summary, the `has` function is an essential part of the Quantum Language compiler's scope management system, providing a straightforward yet powerful mechanism for checking variable existence across multiple nested scopes.
+- **Scope Management**: The function relies on the `Value` class maintaining a reference to its parent scope (`this->parent`). This allows it to traverse up the scope chain when necessary.
+- **Variable Storage**: The function uses the `std::unordered_map<std::string, Value*> vars` member variable to store and look up variables by their names. This data structure enables efficient variable access based on their names.
+
+In summary, the `has` function is essential for managing variable scope in the Quantum Language compiler. By recursively checking the current scope and its parent scopes, it ensures that variables are resolved correctly according to the language's scoping rules.

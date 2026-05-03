@@ -2,51 +2,63 @@
 
 ## Overview
 
-The `src/compiler/CompilerStatements.cpp` file is a critical component of the Quantum Language compiler responsible for compiling various types of statements such as variable declarations, function declarations, and class declarations. This file plays a pivotal role in transforming high-level quantum language code into executable bytecode that can be run on the Quantum Virtual Machine (QVM).
+The `src/compiler/CompilerStatements.cpp` file is a crucial component of the Quantum Language compiler responsible for compiling various types of statements including variable declarations, function declarations, and class declarations. This file transforms high-level quantum language code into executable bytecode by handling different statement structures and emitting corresponding operations to the virtual machine (VM).
+
+## Role in Compiler Pipeline
+
+This file operates during the compilation phase of the Quantum Language compiler. It takes parsed AST nodes representing statements and converts them into VM instructions that can be executed at runtime. The primary functions include:
+- Compiling variable declarations.
+- Compiling function declarations.
+- Compiling class declarations.
+
+These operations are essential for setting up the execution environment, defining entities, and establishing relationships between them.
 
 ## Key Design Decisions and Why
 
-### Scope Management
+### Scoping and Variable Declarations
 
-- **Global vs Local Variables**: The compiler distinguishes between global and local variables based on the scope depth. For global variables, it uses `Op::DEFINE_GLOBAL`, while for local variables, it uses `Op::DEFINE_LOCAL`. This decision ensures proper encapsulation and prevents naming conflicts within nested scopes.
+The compiler handles both global and local variable declarations. For global variables, it uses `Op::DEFINE_GLOBAL`, while for local variables, it uses `Op::DEFINE_LOCAL`. If the variable is declared with the `const` keyword, it emits `Op::DEFINE_CONST`.
 
-### Closure Creation
+**Why:** This approach ensures that variables are properly scoped and initialized before use, preventing potential runtime errors related to undefined or uninitialized variables.
 
-- **Function Declarations**: When compiling function declarations, the compiler creates closures using `Op::MAKE_CLOSURE` or `Op::MAKE_FUNCTION`. This allows functions to capture and use variables from their enclosing environments, which is essential for functional programming features like higher-order functions and closures.
+### Function Declarations
 
-### Method Binding
+When compiling function declarations, the compiler generates bytecode using `Op::MAKE_FUNCTION` or `Op::MAKE_CLOSURE` depending on whether the function has upvalues. After creating the function chunk, it binds the function to its name either globally or locally based on the scope depth.
 
-- **Class Declarations**: In class declarations, each method is compiled separately, and then bound to the class using `Op::BIND_METHOD`. This approach ensures that methods are correctly associated with their respective classes and instances, facilitating object-oriented programming.
+**Why:** Functions need to be defined and callable within their respective scopes. Using closures allows functions to capture variables from outer scopes, which is a fundamental feature of many programming languages.
+
+### Class Declarations
+
+Class declarations are handled by creating a new class object using `Op::MAKE_CLASS`. If the class inherits from another class, it emits an `Op::INHERIT` instruction. Additionally, it binds methods to the class using `Op::BIND_METHOD`.
+
+**Why:** Classes provide a way to organize data and functionality together. Inheritance enables code reuse and polymorphism, making complex programs more manageable and efficient.
 
 ## Major Classes/Functions Overview
 
-### `Compiler`
+### `Compiler::compileVarDecl(VarDecl &s, int line)`
 
-- **Role**: The primary class responsible for compiling quantum language code into bytecode.
-- **Key Functions**:
-  - `compileVarDecl`: Compiles variable declarations, handling both initialized and uninitialized variables.
-  - `compileFunctionDecl`: Compiles function declarations, creating closures and binding them to the appropriate scope.
-  - `compileClassDecl`: Compiles class declarations, including inheritance and method binding.
+Compiles a variable declaration node (`VarDecl`). Handles initialization expressions and determines whether the variable should be defined globally or locally.
 
-### `Closure`
+### `Compiler::compileFunctionDecl(FunctionDecl &s, int line)`
 
-- **Role**: Represents a function along with its environment (closure).
-- **Key Features**:
-  - Captures variables from the enclosing scope.
-  - Allows functions to maintain state across multiple invocations.
+Compiles a function declaration node (`FunctionDecl`). Generates bytecode for the function, creates a closure if necessary, and binds the function to its name.
 
-### `Op`
+### `Compiler::compileClassDecl(ClassDecl &s, int line)`
 
-- **Role**: Enumerates the different bytecode operations supported by the QVM.
-- **Key Operations**:
-  - `OP_DEFINE_CONST`: Defines a constant in the global or local scope.
-  - `OP_MAKE_CLOSURE`: Creates a closure for a function.
-  - `OP_BIND_METHOD`: Binds a method to a class.
+Compiles a class declaration node (`ClassDecl`). Creates a new class object, handles inheritance, and binds methods to the class.
 
 ## Tradeoffs
 
-- **Memory Usage**: Creating closures can lead to increased memory usage due to captured variables. However, this is necessary for maintaining state and supporting advanced programming paradigms.
-- **Performance**: While closures provide flexibility, they may introduce performance overhead compared to simple functions. Optimizations and careful management of upvalues are crucial to mitigate these effects.
-- **Complexity**: Handling different types of declarations (variables, functions, classes) adds complexity to the compiler. Ensuring correct scoping, capturing, and binding requires meticulous implementation and testing.
+### Memory Usage vs. Execution Speed
 
-This README provides an overview of the `src/compiler/CompilerStatements.cpp` file's role in the Quantum Language compiler, key design decisions, major components, and potential tradeoffs. It serves as a guide for developers working on extending or modifying the compiler's functionality.
+Using closures for functions increases memory usage due to the additional storage required for captured variables. However, it improves execution speed by allowing direct access to these variables without needing to look them up in the global scope.
+
+### Code Readability vs. Performance
+
+While binding methods directly to classes enhances performance by reducing lookup times, it may slightly compromise code readability. Conversely, global method bindings offer better readability but could lead to slower execution due to increased lookup times.
+
+### Flexibility vs. Complexity
+
+Inheriting from other classes provides flexibility and reusability but adds complexity to the compiler's implementation. Handling nested classes also increases complexity but offers powerful features like method overriding and encapsulation.
+
+Overall, the design decisions in `src/compiler/CompilerStatements.cpp` aim to balance performance, readability, and flexibility, providing a robust foundation for the Quantum Language compiler.

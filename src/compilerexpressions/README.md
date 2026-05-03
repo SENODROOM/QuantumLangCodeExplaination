@@ -1,35 +1,36 @@
 # CompilerExpressions
 
-The `compilerexpressions` component is an integral part of the Quantum Language compiler, designed to handle and compile various expression types encountered in quantum programming. This includes binary operations, unary operations, assignments, function calls, indexing, slicing, member access, array creation, dictionary construction, tuple formation, lambda expressions, ternary operators, list comprehensions, super class references, object instantiation, memory address retrieval, dereferencing, and arrow functions.
+The `compilerexpressions` component is a crucial module within the Quantum Language compiler, responsible for compiling different types of expressions used in quantum programming. These expressions include binary operations, unary operations, assignments, function calls, indexing, slicing, member access, array creation, dictionary construction, tuple formation, lambda expressions, ternary operators, list comprehensions, super calls, new object instantiation, address-of operations, dereferencing, and arrow functions.
 
 ## Directory Structure
 
-- **compileBinary.cpp**: Handles the compilation of binary expressions (e.g., addition, multiplication).
-- **compileUnary.cpp**: Manages the compilation of unary expressions (e.g., negation, increment).
-- **compileAssign.cpp**: Processes assignment statements.
-- **compileCall.cpp**: Compiles function call expressions.
-- **compileIndex.cpp**: Handles indexing into arrays or lists.
-- **compileSlice.cpp**: Compiles slice expressions for accessing subranges.
-- **compileMember.cpp**: Manages member access within objects.
-- **compileArray.cpp**: Creates and compiles array literals.
-- **compileDict.cpp**: Constructs and compiles dictionary literals.
-- **compileTuple.cpp**: Forms and compiles tuple literals.
-- **compileLambda.cpp**: Compiles lambda functions.
-- **compileTernary.cpp**: Processes ternary conditional expressions.
-- **compileListComp.cpp**: Handles list comprehensions.
-- **compileSuper.cpp**: References to superclass members.
-- **compileNew.cpp**: Instantiates new objects using constructors.
-- **compileAddressOf.cpp**: Retrieves the memory address of variables.
-- **compileDeref.cpp**: Dereferences pointers to access their values.
-- **compileArrow.cpp**: Compiles arrow functions for functional programming.
+This directory contains several documented functions and files that handle specific types of expressions:
+
+- **compileBinary**: Compiles binary operations like addition, multiplication, etc.
+- **compileUnary**: Compiles unary operations such as negation or increment/decrement.
+- **compileAssign**: Handles assignment statements.
+- **compileCall**: Processes function call expressions.
+- **compileIndex**: Compiles indexing operations on arrays or lists.
+- **compileSlice**: Manages slicing operations for accessing sub-parts of arrays or lists.
+- **compileMember**: Compiles member access operations for objects.
+- **compileArray**: Creates array literals.
+- **compileDict**: Constructs dictionary literals.
+- **compileTuple**: Forms tuple literals.
+- **compileLambda**: Compiles lambda expressions.
+- **compileTernary**: Handles conditional expressions using the ternary operator.
+- **compileListComp**: Processes list comprehension expressions.
+- **compileSuper**: Manages super calls in class hierarchies.
+- **compileNew**: Instantiates new objects using the 'new' keyword.
+- **compileAddressOf**: Compiles address-of operations.
+- **compileDeref**: Dereferences pointers or references.
+- **compileArrow**: Handles arrow function syntax.
 
 ## Overall Flow
 
-1. **Expression Parsing**: The parser identifies the type of expression (binary, unary, etc.) based on the syntax tree nodes.
-2. **Function Dispatch**: Depending on the type of expression, control is passed to one of the specialized compilation functions (`compileBinary`, `compileUnary`, etc.).
-3. **Compilation Logic**: Each function applies its specific logic to translate the expression into machine code or intermediate representation suitable for further processing.
-4. **Result Integration**: The compiled result is integrated back into the broader context of the program being compiled.
+1. **Expression Parsing**: The Quantum Language parser identifies the type of expression being compiled.
+2. **Dispatching**: Based on the expression type, control is dispatched to the appropriate function in the `compilerexpressions` component.
+3. **Compilation**: Each function processes the expression according to its rules and compiles it into the target quantum instruction set.
+4. **Optimization**: After compilation, the expressions may undergo optimization to enhance performance or reduce resource usage.
+5. **Code Generation**: Finally, the optimized expressions are translated into executable code suitable for the quantum hardware or simulator.
 
-Each file in the `compilerexpressions` component is responsible for handling a specific type of expression, ensuring that the Quantum Language's rich set of features can be accurately translated into executable code.
-
-For detailed implementation and usage instructions, refer to the individual `.cpp` files and the accompanying header files where necessary.
+By breaking down the compilation process into individual components, the `compilerexpressions` module ensures modularity, maintainability, and scalability. Each function focuses on handling a specific type of expression, making the overall system easier to understand and extend.

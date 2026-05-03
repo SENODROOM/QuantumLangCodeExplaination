@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The `compileBlock` function is responsible for compiling a block of statements in the quantum language. It ensures that all functions declared within the block are properly defined and initialized before any other statements are compiled.
+The `compileBlock` function is responsible for compiling a block of statements in the quantum language. It ensures that all functions declared within the block are properly defined and initialized before any other statements are compiled. This function plays a crucial role in maintaining the correct order of operations during compilation, which is essential for the execution of the generated code.
 
 ## Parameters
 
@@ -10,74 +10,74 @@ The `compileBlock` function is responsible for compiling a block of statements i
 
 ## Return Value
 
-This function does not return any value explicitly. However, it performs several operations that contribute to the compilation process:
-- Emits bytecode instructions.
-- Updates the local symbol table.
-
-## How It Works
-
-### Step-by-Step Breakdown
-
-1. **Check Scope Depth**:
-   ```cpp
-   if (current_->scopeDepth > 0)
-   ```
-   This condition checks if the current scope depth is greater than zero. If true, it means we are inside a nested scope, and we need to ensure that functions declared within this scope are handled correctly.
-
-2. **Iterate Over Statements**:
-   ```cpp
-   for (auto &stmt : b.statements)
-   ```
-   The function iterates over each statement in the provided block `b`.
-
-3. **Filter Function Declarations**:
-   ```cpp
-   if (!stmt->is<FunctionDecl>()) continue;
-   ```
-   For each statement, it checks if the statement is a function declaration (`FunctionDecl`). If not, it skips to the next statement.
-
-4. **Resolve Local Variable**:
-   ```cpp
-   auto &fn = stmt->as<FunctionDecl>();
-   if (resolveLocal(current_, fn.name) != -1) continue;
-   ```
-   If the statement is a function declaration, it attempts to resolve whether a local variable with the same name already exists using the `resolveLocal` function. If such a variable is found, it continues to the next statement, as there's no need to redefine it.
-
-5. **Emit Load Nil Instruction**:
-   ```cpp
-   emit(Op::LOAD_NIL, 0, stmt->line);
-   ```
-   If no local variable with the same name exists, it emits an `Op::LOAD_NIL` instruction at line number `stmt->line`. This instruction loads the nil value onto the stack, which will later be used to initialize the function.
-
-6. **Declare Local Variable**:
-   ```cpp
-   declareLocal(fn.name, stmt->line);
-   ```
-   It then declares a new local variable in the current scope with the function's name using the `declareLocal` function.
-
-7. **Emit Define Local Instruction**:
-   ```cpp
-   emit(Op::DEFINE_LOCAL, static_cast<int>(current_->locals.size()) - 1, stmt->line);
-   ```
-   After declaring the local variable, it emits an `Op::DEFINE_LOCAL` instruction. This instruction defines the local variable at the index `static_cast<int>(current_->locals.size()) - 1`, which corresponds to the most recently added local variable.
-
-8. **Compile Remaining Statements**:
-   ```cpp
-   for (auto &stmt : b.statements)
-       compileNode(*stmt);
-   ```
-   Finally, the function compiles all remaining statements in the block `b` using the `compileNode` function.
+This function does not return a value explicitly. Instead, it compiles each statement in the provided block, modifying the internal state of the compiler accordingly.
 
 ## Edge Cases
 
-- **Empty Block**: If the block `b` is empty or contains only non-function declarations, the function will simply iterate over the statements without performing any actions.
-- **Nested Functions**: If the block contains nested functions, the function will handle them individually, ensuring that each function is properly defined and initialized within its respective scope.
-- **Function Redefinition**: If a function is redefined within the same block, the function will skip the redefinition and continue to the next statement.
+1. **Empty Block**: If the block `b` contains no statements, the function will simply exit without performing any operations.
+2. **Nested Blocks**: The function checks if the current scope depth (`current_->scopeDepth`) is greater than zero. If so, it processes the statements within the block. This allows the function to handle nested blocks correctly, ensuring that inner block functions are defined before outer block functions.
+3. **Function Declarations**: The function iterates over each statement in the block and checks if it is a `FunctionDecl`. If a statement is not a function declaration, it is skipped. This behavior ensures that only function declarations are processed for definition and initialization.
+4. **Duplicate Function Names**: If a function name is encountered more than once within the same block, the function will skip redeclaring and defining it again. This prevents errors related to duplicate function definitions.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Symbol Table Management**: The `compileBlock` function interacts with the local symbol table managed by the `current_` context. It uses `resolveLocal` to check for existing variables and `declareLocal` to add new variables.
-- **Bytecode Emission**: The function also interacts with the bytecode emission mechanism. It uses the `emit` function to generate bytecode instructions for loading nil values and defining local variables.
-- **Scope Handling**: The function manages the scope depth using the `current_->scopeDepth` member variable. It ensures that functions are defined within their correct scopes.
+- **Scope Management**: The function interacts with the scope management system through `current_->scopeDepth`, `resolveLocal`, `declareLocal`, and `emit`.
+- **Statement Compilation**: The function calls `compileNode` on each statement within the block, allowing other components to handle the actual compilation of individual statements.
+- **Error Handling**: While not explicitly shown in the provided code snippet, the function may interact with error handling mechanisms to report issues such as undefined functions or syntax errors.
 
-Overall, the `compileBlock` function plays a crucial role in preparing the environment for function definitions within a block, ensuring that they are properly initialized and available for use during subsequent compilations.
+## Detailed Explanation
+
+### Scope Depth Check
+
+The function starts by checking if the current scope depth (`current_->scopeDepth`) is greater than zero. This condition is crucial because it indicates whether the block is part of an enclosing scope. If the block is nested, the function will process its contents to ensure proper function definition and initialization.
+
+```cpp
+if (current_->scopeDepth > 0)
+{
+    // Process statements within the block
+}
+```
+
+### Function Declaration Processing
+
+If the block is part of an enclosing scope, the function proceeds to iterate over each statement in the block. For each statement, it checks if the statement is a `FunctionDecl`. If it is not, the function skips to the next statement.
+
+```cpp
+for (auto &stmt : b.statements)
+{
+    if (!stmt->is<FunctionDecl>())
+        continue;
+    // Process function declarations
+}
+```
+
+### Duplicate Function Name Handling
+
+Within the loop, the function checks if the local symbol table already contains a function with the same name using `resolveLocal`. If the function name is found in the local symbol table, indicating that it has been previously declared, the function continues to the next statement. Otherwise, it emits a `LOAD_NIL` operation to initialize the function variable and declares the local symbol.
+
+```cpp
+auto &fn = stmt->as<FunctionDecl>();
+if (resolveLocal(current_, fn.name) != -1)
+    continue;
+emit(Op::LOAD_NIL, 0, stmt->line);
+declareLocal(fn.name, stmt->line);
+```
+
+### Define Local Operation
+
+After declaring the local symbol, the function emits a `DEFINE_LOCAL` operation to define the function in the local symbol table. The index used for the `DEFINE_LOCAL` operation is calculated based on the size of the `current_->locals` vector.
+
+```cpp
+emit(Op::DEFINE_LOCAL, static_cast<int>(current_->locals.size()) - 1, stmt->line);
+```
+
+### Statement Compilation
+
+Once all function declarations have been processed, the function iterates over the remaining statements in the block and calls `compileNode` on each one. This allows other components of the compiler to handle the compilation of individual statements.
+
+```cpp
+for (auto &stmt : b.statements)
+    compileNode(*stmt);
+```
+
+By following this approach, the `compileBlock` function ensures that all function declarations within a block are properly defined and initialized before any other statements are executed. This helps maintain the correct order of operations during compilation and prevents runtime errors related to undefined functions.

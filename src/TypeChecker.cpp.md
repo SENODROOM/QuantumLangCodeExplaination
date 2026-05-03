@@ -2,54 +2,61 @@
 
 ## Overview
 
-`TypeChecker.cpp` is a critical component of the Quantum Language compiler, tasked with performing static type checking on the Abstract Syntax Tree (AST). This process ensures that all expressions and statements are consistent with their declared types, thus preventing runtime errors caused by type mismatches.
+`TypeChecker.cpp` serves as a crucial part of the Quantum Language compiler, responsible for static type checking on the Abstract Syntax Tree (AST). This ensures that all expressions and statements adhere to their declared types, thereby mitigating runtime errors due to type mismatches.
 
 ## Role in the Compiler Pipeline
 
-The `TypeChecker` plays a pivotal role in the compilation process, following the parsing stage. After the AST is constructed, it undergoes static analysis to verify type correctness. The checker traverses each node in the AST, applying type rules and constraints. If any inconsistencies are found, warnings or errors are generated, guiding developers towards correcting their code before execution.
+The `TypeChecker` plays a pivotal role in the compiler's pipeline. It operates after the parser has constructed the AST but before code generation begins. The primary responsibilities include:
+- **Basic Types**: Checking literals such as numbers, strings, and booleans.
+- **Identifiers**: Resolving variable and function identifiers to their respective types within the current scope.
+- **Variable Declarations**: Ensuring that variables are declared with the correct type, either explicitly or implicitly based on initialization.
+- **Function Declarations**: Verifying that functions have correctly typed parameters and return values.
+- **Block Statements**: Recursively checking each statement within a block for consistency.
 
-## Key Design Decisions and Trade-offs
+## Key Design Decisions and Why
 
-### Why Static Type Checking?
+1. **Scope Management**:
+   - **Nested Environments**: Each block creates a new environment (`TypeEnv`) that inherits from its parent, allowing for local variable declarations and type resolution.
+   - **Why**: This approach ensures that type information is accessible at compile time and respects the scoping rules of the language.
 
-- **Preventing Runtime Errors**: By identifying type mismatches at compile time, potential runtime errors are avoided, enhancing program reliability.
-- **Code Readability and Maintenance**: Explicit type declarations make the code more understandable and easier to maintain.
-- **Efficiency**: Early detection of type issues reduces debugging time and improves overall development efficiency.
+2. **Built-in Functions**:
+   - **Predefined Types**: Built-in functions like `print`, `input`, `len`, `sha256`, and `aes128` are predefined with specific return types.
+   - **Why**: This simplifies type inference and error handling, ensuring that calls to these functions are always valid.
 
-### Design Choices
+3. **Type Inference**:
+   - **Implicit Typing**: Variables can be inferred to have a type based on their initializers. If an explicit type hint is provided, it overrides the inferred type.
+   - **Why**: Implicit typing reduces verbosity and improves readability, while explicit hints provide additional safety and clarity.
 
-1. **Built-in Types**: The `TypeChecker` initializes a global environment with predefined types such as `print`, `input`, `len`, `sha256`, and `aes128`. This simplifies handling these common functions without requiring explicit type definitions.
-   
-2. **Scope Management**: Each function and block statement has its own scope, managed through nested environments (`TypeEnv`). This allows for local variable type resolution and prevents name clashes between different scopes.
-
-3. **Type Inference**: For variables without explicit type hints, the checker infers the type based on the initializer expression. This enhances flexibility while maintaining strong typing.
-
-4. **Type Hints**: Developers can provide type hints for variables and function parameters using the `typeHint` field. These hints are used during the type checking process to enforce consistency.
-
-### Trade-offs
-
-- **Flexibility vs. Strictness**: Allowing type inference provides some level of flexibility, but it may lead to unexpected behavior if not handled carefully. Enforcing strict type matching offers better predictability but restricts code flexibility.
-  
-- **Complexity**: Managing nested environments and handling various type operations adds complexity to the implementation. However, this complexity is necessary for robust type checking.
+4. **Expression Evaluation**:
+   - **Recursive Checking**: Binary expressions are checked recursively to ensure both operands are compatible with the operation being performed.
+   - **Why**: This allows for complex expression evaluations to be validated without manual intervention, ensuring correctness and consistency.
 
 ## Major Classes/Functions Overview
 
-### Class: `TypeChecker`
+### `TypeChecker`
 
 - **Constructor**: Initializes the global environment with predefined types.
-- **Method: `check(const std::vector<ASTNodePtr>& nodes)`**
-  - Iterates over a vector of AST nodes and checks each one.
-- **Method: `check(const ASTNodePtr& node)`**
-  - Checks an individual AST node, handling blocks recursively.
-- **Method: `checkNode(const ASTNodePtr& node, std::shared_ptr<TypeEnv> env)`**
-  - Performs the actual type checking for a given node within a specific environment.
-  - Handles number literals, string literals, boolean literals, identifiers, variable declarations, function declarations, and binary expressions.
+- **Methods**:
+  - `check(const std::vector<ASTNodePtr>& nodes)`: Checks all nodes in a vector.
+  - `check(const ASTNodePtr& node)`: Handles individual nodes, including blocks.
+  - `checkNode(const ASTNodePtr& node, std::shared_ptr<TypeEnv> env)`: Performs the actual type checking for a given node and environment.
 
-### Class: `TypeEnv`
+### `TypeEnv`
 
-- Represents the type environment, which tracks variable names and their associated types.
-- Provides methods to define new variables, resolve existing ones, and manage nested scopes.
+- **Purpose**: Manages type information for variables and functions within a scope.
+- **Methods**:
+  - `define(const std::string& name, const std::string& type)`: Adds a new variable or function to the environment.
+  - `resolve(const std::string& name)`: Retrieves the type associated with a variable or function.
 
-## Conclusion
+### `ASTNodePtr`
 
-The `TypeChecker.cpp` module is essential for ensuring the type safety of the Quantum Language programs. Through careful design and implementation, it balances flexibility with strictness, providing valuable feedback during the development phase. The use of nested environments and type inference mechanisms makes it a powerful tool in the compiler's arsenal, ultimately contributing to the creation of reliable and efficient quantum applications.
+- **Purpose**: Represents a pointer to an abstract syntax tree node.
+- **Usage**: Used throughout the type checker to traverse and validate the AST.
+
+## Trade-offs
+
+- **Complexity vs. Simplicity**: While nested environments add complexity to the implementation, they significantly simplify the type checking logic by respecting scoping rules automatically.
+- **Readability vs. Flexibility**: Implicit type inference enhances readability but may limit flexibility in certain scenarios where explicit type hints are necessary.
+- **Performance vs. Accuracy**: Recursive checking ensures accuracy but may introduce performance overhead compared to iterative approaches.
+
+Overall, `TypeChecker.cpp` is a well-designed component that balances simplicity, readability, and robustness, playing a vital role in ensuring the type safety of the Quantum Language programs.

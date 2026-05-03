@@ -1,44 +1,52 @@
 # `compilePrint` Function
 
 ## Purpose
-The `compilePrint` function is responsible for compiling print statements in the quantum language into equivalent operations that can be executed by the target quantum computing hardware or simulator. This function ensures that all arguments of the print statement are properly compiled and then emits the necessary instructions to perform the printing operation.
+The `compilePrint` function is responsible for compiling print statements in the quantum language into equivalent operations that can be executed by the target quantum computing hardware or simulator. This function ensures that all arguments of the print statement are properly evaluated and formatted before being outputted.
 
-## Parameters/Return Value
-- **Parameters**:
-  - `s`: A structure containing the details of the print statement, including its arguments (`args`), separator (`sep`), and end character (`end`).
-  - `line`: An integer representing the line number where the print statement occurs in the source code.
+## Parameters
+- `s`: A reference to a `Statement` object representing the print statement to be compiled. The `Statement` object contains information about the arguments to be printed, such as expressions and separators.
 
-- **Return Value**: None. The function directly modifies the output stream by emitting quantum operations.
+## Return Value
+This function does not return any value; it performs actions directly on the compilation process.
 
 ## How It Works
-1. **Compile Arguments**:
+1. **Evaluating Arguments**: The function iterates over each argument in the print statement (`s.args`). For each argument, it calls the `compileExpr` function to evaluate the expression and generate the corresponding machine code instructions.
+   
    ```cpp
    for (auto &arg : s.args)
        compileExpr(*arg);
    ```
-   This loop iterates over each argument in the print statement. For each argument, it calls the `compileExpr` function to compile the expression into quantum operations. The compiled expressions are stored in the intermediate representation (IR) of the program.
 
-2. **Load Separator and End Characters**:
+2. **Loading Separators and End Characters**: After evaluating all arguments, the function loads the separator string (`s.sep`) and the end character string (`s.end`) into the compilation context using the `emit` function. These strings are added to the compilation context using the `addStr` function, which manages string storage and retrieval efficiently.
+
    ```cpp
    emit(Op::LOAD_CONST, addStr(s.sep), line);
    emit(Op::LOAD_CONST, addStr(s.end), line);
    ```
-   After compiling all arguments, the function loads the string constants for the separator (`sep`) and the end character (`end`). These strings are added to an internal string table using `addStr`, which returns a unique identifier for each string. The `emit` function is used to generate IR instructions to load these constants onto the stack.
 
-3. **Emit Print Operation**:
+3. **Generating Print Operation**: Finally, the function generates a print operation using the `emit` function. The `Op::PRINT` operation is emitted with an integer parameter indicating the number of arguments to be printed. This allows the target quantum computing hardware or simulator to correctly format and display the output.
+
    ```cpp
    emit(Op::PRINT, static_cast<int32_t>(s.args.size()), line);
    ```
-   Finally, the function emits the `PRINT` operation. This instruction tells the quantum computer to print the values on the stack. The first operand is the count of arguments, which is determined by the size of the `args` vector. The second operand is the line number where the print statement occurred, which helps in debugging and error reporting.
 
 ## Edge Cases
-- **Empty Print Statement**: If there are no arguments in the print statement, the function will still compile and emit the separator and end characters as empty strings.
-- **Multiple Arguments**: The function handles multiple arguments correctly by iterating through each one and compiling them individually before emitting the `PRINT` operation.
-- **String Literals**: String literals passed as arguments are handled appropriately by the `compileExpr` function, ensuring they are converted to quantum operations.
+- **Empty Print Statement**: If the print statement has no arguments (`s.args.empty()`), the function will still load the separator and end characters. However, since there are no arguments to print, the actual print operation will not occur.
+  
+  ```cpp
+  // Example of handling an empty print statement
+  if (s.args.empty()) {
+      emit(Op::LOAD_CONST, addStr(""), line); // Load an empty string as separator
+      emit(Op::LOAD_CONST, addStr(""), line); // Load an empty string as end character
+      emit(Op::PRINT, 0, line); // Emit a print operation with zero arguments
+  }
+  ```
+
+- **Complex Expressions**: If the arguments contain complex expressions, the `compileExpr` function will handle them appropriately, ensuring that they are evaluated and converted into the correct form for printing.
 
 ## Interactions with Other Components
-- **`compileExpr` Function**: This function is called within the loop to compile each argument of the print statement. It interacts with the `ExpressionEvaluator` component to evaluate the expressions and convert them into quantum operations.
-- **`emit` Function**: This function generates intermediate representation (IR) instructions based on the quantum operations specified. It interacts with the `IRBuilder` component to construct the IR.
-- **String Table Management**: The `addStr` function manages a table of unique string identifiers. It interacts with the `StringTable` component to ensure efficient storage and retrieval of string constants.
+- **Compilation Context**: The `compilePrint` function interacts with the compilation context to manage constants and string storage. The `addStr` function adds strings to the context, and the `emit` function uses these constants to generate machine code instructions.
+  
+- **Expression Compiler**: The `compileExpr` function is called within `compilePrint` to evaluate each expression in the print statement. This interaction ensures that all arguments are properly processed before being passed to the print operation.
 
-In summary, the `compilePrint` function plays a crucial role in translating high-level print statements into low-level quantum operations, facilitating the execution of quantum programs. Its design ensures flexibility and efficiency, handling various edge cases and interacting seamlessly with other components of the compiler.
+- **Machine Code Emission**: The `emit` function is used to generate machine code instructions for the print operation. This interaction allows the `compilePrint` function to integrate seamlessly with the rest of the compilation process, producing executable code that can be run on the target quantum computing hardware or simulator.

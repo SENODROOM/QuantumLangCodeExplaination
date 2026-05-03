@@ -2,78 +2,75 @@
 
 ## Overview
 
-`src/main.cpp` serves as the central component of the Quantum Language compiler, orchestrating the entire compilation process. This includes managing interactions with the lexer, parser, compiler, virtual machine (VM), disassembler, type checker, and error handler. It also handles command-line arguments and directs the execution flow based on the build mode specified.
+`src/main.cpp` is the central component of the Quantum Language compiler, responsible for orchestrating the entire compilation process. This includes managing interactions with the lexer, parser, compiler, virtual machine (VM), disassembler, type checker, and error handler. It also handles command-line arguments and directs the execution flow based on the mode specified during compilation (compiler, interpreter, or standalone bundled executable).
 
-### Key Design Decisions and Trade-offs
+## Key Design Decisions and Why
 
-The design of `main.cpp` involves several critical decisions:
+1. **Modular Architecture**: The code is divided into several modules (`Lexer`, `Parser`, `Compiler`, `VM`, `Disassembler`, `TypeChecker`, `Error`) to ensure that each part can be developed, tested, and maintained independently. This modularity enhances scalability and maintainability.
 
-- **Modular Architecture**: The compiler is divided into distinct modules (`Lexer`, `Parser`, `Compiler`, `VM`, `Disassembler`, `TypeChecker`, `Error`). Each module has its specific responsibilities, ensuring a clean separation of concerns and easier maintenance.
+2. **Command-Line Argument Handling**: The program parses command-line arguments to determine the mode of operation (compile, interpret, or run a bundled executable). This flexibility allows users to choose how they want to execute their Quantum programs.
 
-- **Build Modes**: Depending on the build mode defined (`QUANTUM_MODE_COMPILER`, `QRUN_MODE`, or none), the executable behaves differently:
-  - **QUANTUM_MODE_COMPILER**: Compiles `.sa` files to `.exe` and then runs them.
-  - **QRUN_MODE**: Always interprets the code, never bundles it.
-  - **Neither Mode**: Produces a standalone bundled executable like `hello.exe`.
+3. **Embedded Bytecode Support**: For the standalone bundled executable mode, the program supports embedding bytecode directly into the executable file. This feature simplifies deployment and eliminates the need for separate bytecode files.
 
-  This decision allows flexibility in how the compiler operates without requiring significant changes to the core logic.
+4. **Windows-Specific Features**: The code includes Windows-specific features such as using the Win32 API for bundling and launching executables. This ensures compatibility with Windows environments.
 
-- **Windows Bundling**: For Windows builds, the executable can include embedded bytecode. This feature simplifies deployment but adds complexity during runtime due to the need to extract and execute the embedded code.
+5. **Error Handling**: Robust error handling mechanisms are implemented throughout the program to manage and report errors effectively. This helps in debugging and improving user experience.
 
-- **Command-Line Arguments**: `main.cpp` processes command-line arguments to determine the input file, output file, and other options. This ensures that users can customize the behavior of the compiler easily.
+## Major Classes/Functions Overview
 
-### Major Classes/Functions Overview
+### `main.cpp`
 
-#### Classes
+- **Purpose**: Contains the main function which serves as the entry point of the Quantum Language compiler.
+  
+- **Key Functions**:
+  - `getExecutablePath()`: Retrieves the path of the currently executing executable.
+  - `loadEmbeddedBytecode(const std::string &exePath)`: Loads embedded bytecode from the executable file.
+  - `printBanner()`: Prints a banner to the console when the program starts.
 
-- **Lexer**: Responsible for breaking down source code into tokens.
-- **Parser**: Converts tokens into an abstract syntax tree (AST).
-- **Compiler**: Translates the AST into bytecode.
-- **VM**: Executes the bytecode.
-- **Disassembler**: Converts bytecode back into human-readable form.
-- **TypeChecker**: Ensures type safety during compilation.
-- **Error**: Handles errors and provides user-friendly messages.
+### `Lexer.h`
 
-#### Functions
+- **Purpose**: Responsible for breaking down source code into tokens.
 
-- **getExecutablePath()**: Retrieves the path of the currently executing executable.
-- **loadEmbeddedBytecode(const std::string &exePath)**: Loads and deserializes embedded bytecode from the executable.
-- **printBanner()**: Displays the banner text for the Quantum Language compiler.
+### `Parser.h`
 
-### Role in Compiler Pipeline
+- **Purpose**: Parses tokens into an abstract syntax tree (AST).
 
-The primary role of `src/main.cpp` is to coordinate the various stages of the compilation process:
+### `Compiler.h`
 
-1. **Lexical Analysis**: Uses the `Lexer` class to tokenize the input source code.
-2. **Syntactic Analysis**: Utilizes the `Parser` class to parse the tokens into an AST.
-3. **Semantic Analysis**: The `TypeChecker` class performs semantic checks on the AST to ensure type safety.
-4. **Code Generation**: The `Compiler` class translates the AST into bytecode.
-5. **Execution**:
-   - If in `QUANTUM_MODE_COMPILER`, the bytecode is serialized and written to an output file, which is then executed by the VM.
-   - If in `QRUN_MODE`, the bytecode is directly interpreted by the VM.
-   - In any other mode, the VM executes the standalone bundled bytecode.
+- **Purpose**: Converts the AST into bytecode.
 
-### Usage Example
+### `VM.h`
 
-To compile and run a Quantum Language script named `example.sa`, you would typically use the following command:
+- **Purpose**: Executes the bytecode.
 
-```sh
-./quantum example.sa
-```
+### `Disassembler.h`
 
-This command triggers the lexical analysis, syntactic analysis, semantic analysis, code generation, and execution phases managed by `src/main.cpp`.
+- **Purpose**: Disassembles bytecode back into human-readable instructions.
 
-For always interpreting a script:
+### `TypeChecker.h`
 
-```sh
-./qrun example.sa
-```
+- **Purpose**: Ensures that the types used in the program are correct and consistent.
 
-And for generating a standalone executable:
+### `Error.h`
 
-```sh
-./quantum_stub example.sa
-```
+- **Purpose**: Handles and reports errors encountered during the compilation process.
 
-These commands allow users to control the behavior of the compiler according to their needs.
+### `Value.h`
 
-By understanding these components and their roles, developers can effectively extend and modify the Quantum Language compiler to meet new requirements or improve existing functionalities.
+- **Purpose**: Represents values in the Quantum language, including integers, floats, strings, and more.
+
+### `Serializer.h`
+
+- **Purpose**: Serializes and deserializes bytecode for storage and retrieval.
+
+## Tradeoffs
+
+1. **Complexity vs. Simplicity**: While the modular architecture enhances maintainability, it adds complexity to the overall system. However, this complexity is manageable through proper documentation and testing.
+
+2. **Performance vs. Memory Usage**: Embedding bytecode directly into the executable file reduces memory usage but may increase the size of the executable. Balancing these factors is crucial for performance optimization.
+
+3. **Cross-Platform Compatibility**: The inclusion of Windows-specific features limits cross-platform compatibility. However, since Quantum Language targets primarily Windows environments, this tradeoff is acceptable.
+
+4. **Development Time vs. Feature Set**: Adding advanced features like embedded bytecode support increases development time. However, these features provide significant benefits to users, justifying the extra effort.
+
+By carefully considering these tradeoffs, the Quantum Language compiler aims to provide a powerful and efficient tool for developing quantum applications while maintaining a balance between complexity and usability.

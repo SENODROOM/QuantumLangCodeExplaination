@@ -2,103 +2,54 @@
 
 ## Overview
 
-The `compileFunction` function is a crucial method in the Quantum Language compiler's `CompilerFunctions.cpp` file. It handles the compilation of a function definition into bytecode instructions. This process involves setting up the function state, declaring local variables, and compiling the function body.
+The `compileFunction` function is a key component within the Quantum Language compiler, specifically located in the `CompilerFunctions.cpp` file. Its primary role is to convert a function definition into a sequence of bytecode instructions that can be executed by the quantum virtual machine (QVM). The function ensures proper setup and management of the function's scope, parameter declarations, and body execution.
 
-## Parameters/Return Value
+### Why It Works This Way
+
+This implementation of `compileFunction` follows a structured approach to handle the compilation of functions:
+
+1. **Initialization**: A new `CompilerState` object (`fnState`) is created for the function, which includes setting the function name and linking it to the current state (`prev`). This helps maintain the context during the compilation process.
+
+2. **Scope Management**: The function begins by entering a new scope using `beginScope()`. This isolates the local variables and parameters of the function from the global scope or outer scopes.
+
+3. **Parameter Declaration**: Each parameter specified in the function definition is declared as a local variable using the `declareLocal` function. If a parameter is marked as a reference (indicated by square brackets `[ ]`), the function further processes these parameters to create nested local variables representing elements of the array or reference type.
+
+4. **Body Compilation**: Depending on whether the function body is a block statement (`BlockStmt`) or an expression, the function compiles the body accordingly:
+   - For `BlockStmt`, it calls `compileBlock` to handle multiple statements within the block.
+   - For single expressions, it compiles the expression using `compileExpr` and then emits a `RETURN` instruction to ensure the function returns the computed value.
+
+5. **Return Handling**: Regardless of the body type, the function always emits a `RETURN_NIL` instruction at the end to handle cases where the function might not explicitly return a value. This ensures consistent behavior across all functions.
+
+6. **Scope End**: After compiling the function body, the function ends the scope using `endScope(line)`, effectively cleaning up any resources associated with the local variables.
+
+7. **Result Compilation**: Finally, the function compiles the function's chunk (sequence of bytecode instructions) and sets the `upvalueCount` based on the number of upvalues required by the function.
+
+### Parameters/Return Value
 
 - **Parameters**:
-  - `name`: A string representing the name of the function to be compiled.
+  - `name`: A string representing the name of the function being compiled.
   - `params`: A vector of strings representing the parameters of the function.
-  - `paramIsRef`: A vector of booleans indicating whether each parameter is passed by reference.
-  - `body`: A pointer to a statement that represents the body of the function.
+  - `paramIsRef`: An optional vector indicating whether each parameter is a reference type.
+  - `body`: A pointer to a `Node` representing the body of the function.
+  - `line`: An integer representing the source code line number for error reporting.
 
 - **Return Value**:
-  - Returns a pointer to a `Chunk` object, which contains the compiled bytecode for the function.
-
-## Detailed Explanation
-
-### Step-by-Step Compilation Process
-
-1. **Initialize Function State**:
-   ```cpp
-   CompilerState fnState(name, current_);
-   fnState.isFunction = true;
-   ```
-   - A new `CompilerState` object named `fnState` is created, initialized with the function's name and the current scope (`current_`). The `isFunction` flag is set to indicate that this state corresponds to a function.
-
-2. **Save Current Scope**:
-   ```cpp
-   CompilerState *prev = current_;
-   current_ = &fnState;
-   ```
-   - The current scope (`current_`) is saved in a temporary variable `prev`. Then, `current_` is updated to point to the new function state (`fnState`).
-
-3. **Begin New Scope**:
-   ```cpp
-   beginScope();
-   ```
-   - The `beginScope()` function is called to start a new scope for the function. This ensures that any local variables declared within the function do not interfere with those in the outer scope.
-
-4. **Declare Local Variables**:
-   ```cpp
-   for (auto &p : params)
-       declareLocal(p, line);
-   ```
-   - Each parameter in the `params` vector is declared as a local variable using the `declareLocal()` function. The `line` parameter indicates the source code line number where the declaration occurs.
-
-5. **Set Function Chunk Properties**:
-   ```cpp
-   fnState.chunk->params = params;
-   fnState.chunk->paramIsRef = paramIsRef.empty()
-                                   ? std::vector<bool>(params.size(), false)
-                                   : paramIsRef;
-   ```
-   - The `chunk` property of the `fnState` object is set to store the list of parameters (`params`). If `paramIsRef` is empty, it defaults to a vector of `false` values, indicating that all parameters are passed by value. Otherwise, it uses the provided `paramIsRef` vector.
-
-6. **Compile Function Body**:
-   ```cpp
-   if (body)
-   {
-       if (body->is<BlockStmt>())
-           compileBlock(body->as<BlockStmt>());
-       else
-       {
-           compileExpr(*body);
-           emit(Op::RETURN, 0, line);
-       }
-   }
-   ```
-   - If the function has a non-empty body, the method proceeds to compile it.
-     - If the body is a block statement (`BlockStmt`), it calls `compileBlock()` to handle the compilation of the block.
-     - If the body is an expression (`Expr`), it compiles the expression using `compileExpr()`. After compiling the expression, it emits a `RETURN` opcode to ensure the function returns the result of the expression.
-
-7. **Emit Return Nil Opcode**:
-   ```cpp
-   emit(Op::RETURN_NIL, 0, line);
-   ```
-   - Regardless of whether the body was a block or an expression, the method always emits a `RETURN_NIL` opcode at the end. This ensures that the function will return `nil` if no explicit return value is specified.
-
-8. **End Scope**:
-   ```cpp
-   endScope(line);
-   ```
-   - The `endScope()` function is called to close the scope of the function, ensuring that all local variables are properly cleaned up.
-
-9. **Restore Previous Scope**:
-   ```cpp
-   current_ = prev;
-   ```
-   - Finally, `current_` is restored to its previous value (`prev`), effectively ending the function's state and returning control to the outer scope.
+  - Returns a pointer to a `Chunk` object containing the compiled bytecode instructions for the function.
 
 ### Edge Cases
 
-- **Empty Function Body**: If the function body is empty, the method still emits a `RETURN_NIL` opcode to ensure the function returns `nil`.
-- **Parameter Names Containing Square Brackets**: The method specifically checks for parameter names containing square brackets (`[` and `]`). If such a parameter is found, it treats the content inside the brackets as a nested variable name and declares it accordingly. For example, `[a,b,c]` would be treated as three separate local variables `a`, `b`, and `c`.
+- **Empty Function Body**: If the function body is empty, the function will still emit a `RETURN_NIL` instruction to ensure proper termination.
+  
+- **Single Expression Body**: When a function has a single expression as its body, the compiler automatically adds a `RETURN` instruction to ensure the expression's result is returned.
 
-### Interactions with Other Components
+- **Reference Parameters**: The function correctly handles parameters that are references (e.g., `[array]`), creating nested local variables to represent individual elements of the reference type.
 
-- **`CompilerState` Class**: The `compileFunction` method interacts with the `CompilerState` class to manage the state of the function during compilation. It sets the `isFunction` flag and updates the `chunk` properties.
-- **`emit` Function**: The method uses the `emit` function to generate bytecode instructions. It emits opcodes like `LOAD_LOCAL`, `LOAD_CONST`, `GET_INDEX`, and `DEFINE_LOCAL` to handle local variable operations and indexing.
-- **`beginScope` and `endScope` Functions**: These functions manage the scope stack, allowing the method to correctly handle nested scopes and local variable declarations.
+### Interactions With Other Components
 
-In summary, the `compileFunction` method is responsible for compiling a function definition into bytecode, managing the function's scope and parameters, and ensuring proper return behavior. Its interaction with
+- **CompilerState**: The function uses the `CompilerState` class to manage the state of the compiler, including the current scope, local variables, and function-specific data.
+
+- **Bytecode Instructions**: The function interacts with various bytecode operations such as `Op::LOAD_LOCAL`, `Op::LOAD_CONST`, `Op::GET_INDEX`, and `Op::RETURN` to generate the appropriate instructions for the function.
+
+- **Error Reporting**: Although not shown in the provided snippet, the function likely integrates with the compiler's error reporting system to provide meaningful feedback about issues encountered during compilation.
+
+By following this structured approach, the `compileFunction` method ensures that function definitions are accurately converted into executable bytecode, maintaining the integrity and functionality of the quantum program.

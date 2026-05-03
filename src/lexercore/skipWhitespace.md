@@ -2,34 +2,43 @@
 
 ## Purpose
 
-The `skipWhitespace` function is designed to consume and skip any whitespace characters in the source code being processed by the Quantum Language compiler's lexer. This includes spaces (' '), tabs ('\t'), and carriage returns ('\r').
+The `skipWhitespace` function is designed to consume and skip any whitespace characters in the source code being processed by the Quantum Language compiler's lexer. This includes spaces (' '), tabs ('\t'), and carriage returns ('\r'). The primary purpose of this function is to ensure that the lexer can correctly identify tokens without being misled by unnecessary whitespace.
 
 ## Functionality
 
-The function operates within a loop that continues as long as the current position (`pos`) is less than the size of the source code string (`src.size()`), and the character at the current position (`current()`) is one of the whitespace characters specified (space, tab, or carriage return).
+The function operates by iterating through the source code starting from the current position (`pos`). It checks each character at the current position using the `current()` method. If the character is a space, tab, or carriage return, the `advance()` method is called to move the position forward one character. This process continues until a non-whitespace character is encountered or the end of the source code is reached (`pos >= src.size()`).
 
-- **Loop Condition**: The loop runs until either all characters have been processed (`pos >= src.size()`) or a non-whitespace character is encountered.
-- **Character Check**: Inside the loop, the function checks if the current character is a space, tab, or carriage return using the `current()` method.
-- **Advance Position**: If the current character is a whitespace, the `advance()` method is called to move the position forward by one character.
-
-## Parameters
-
+### Parameters
 - None
 
-## Return Value
-
+### Return Value
 - None
 
-## Edge Cases
+### Edge Cases
+1. **Empty Source Code**: If the source code is empty (`src.size() == 0`), the function will immediately exit as there are no characters to process.
+2. **End of Source Code**: If the end of the source code is reached before encountering a non-whitespace character, the function will stop processing.
+3. **Non-Whitespace Characters**: If the current character is not a space, tab, or carriage return, the function will terminate early, leaving the lexer ready to process the next token.
 
-1. **Empty Source Code**: If the source code string is empty (`src.size() == 0`), the function will not enter the loop and will immediately terminate without performing any operations.
-2. **No Whitespace**: If there are no whitespace characters in the source code starting from the current position, the function will exit after checking the first character.
-3. **End of String**: If the end of the string is reached during the loop, the function will stop processing further characters.
+### Interactions with Other Components
+The `skipWhitespace` function interacts closely with the lexer's state machine. It is typically invoked at the beginning of the tokenization process for each new character read from the source code. By skipping over whitespace characters, it ensures that the subsequent tokenization logic focuses only on meaningful characters, thereby simplifying the parsing process.
 
-## Interactions with Other Components
+Additionally, the `skipWhitespace` function may be used in conjunction with other utility functions within the lexer, such as `matchToken`, to handle more complex scenarios where whitespace might affect the interpretation of tokens. For example, comments in some languages start with a sequence of whitespace followed by special characters like `//` or `/*`.
 
-- **Lexer Core**: This function is part of the LexerCore class, which is responsible for breaking down the source code into tokens. By skipping whitespace, it ensures that only meaningful characters are considered when tokenizing the input.
-- **Tokenization Process**: As whitespace characters are skipped, the lexer can focus on identifying actual tokens such as keywords, identifiers, operators, and literals more accurately.
-- **Position Tracking**: The `pos` variable, which tracks the current position in the source code, is incremented by the `advance()` method each time a whitespace character is skipped. This allows the lexer to continue processing subsequent characters correctly.
+Here is a simplified version of how `skipWhitespace` might be integrated into the lexer's main loop:
 
-In summary, the `skipWhitespace` function plays a crucial role in preparing the source code for tokenization by removing unnecessary whitespace characters, thereby simplifying the parsing process and ensuring accurate token identification.
+```cpp
+while (pos < src.size()) {
+    skipWhitespace(); // Skip any leading whitespace
+    char ch = current(); // Get the next character
+    if (ch == '\0') break; // End of input
+    Token* token = matchToken(ch); // Attempt to match a token
+    if (!token) {
+        error("Unexpected character");
+        break;
+    }
+    // Process the matched token
+    pos += token->length();
+}
+```
+
+In this example, after advancing past any initial whitespace, the lexer attempts to match the next token. If a token cannot be matched, an error is reported, and the loop terminates. This interaction highlights the importance of `skipWhitespace` in maintaining the lexer's ability to accurately parse the source code.

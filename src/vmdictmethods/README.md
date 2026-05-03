@@ -1,65 +1,67 @@
 # vmdictmethods
 
-The `vmdictmethods` component is an integral part of the Quantum Language (QL) compiler, designed to handle dictionary methods efficiently. This component ensures that operations on dictionaries within the QL framework are both optimized and easy to manage.
+The `vmdictmethods` component is a crucial module of the Quantum Language (QL) compiler, specifically tailored to manage and optimize operations on dictionary objects. This component facilitates efficient handling of dictionary methods, ensuring seamless integration into the broader QL framework.
 
 ## Overview
 
-Dictionaries in the QL language serve as a fundamental data structure for storing key-value pairs. The `vmdictmethods` component provides a set of specialized methods tailored for dictionary operations, enhancing performance and usability.
+In the QL language, dictionaries are essential for managing key-value pairs, which are commonly used in various applications such as caching, mapping, and configuration settings. The `vmdictmethods` component provides a robust set of functionalities to manipulate these dictionaries effectively. It includes methods for insertion, deletion, lookup, and iteration over dictionary entries.
 
-## Files and Functions
+### Key Features
 
-### callDictMethod
+- **Efficient Dictionary Operations**: Optimized methods for common dictionary operations to enhance performance.
+- **Easy Management**: Simplified interfaces for developers to interact with dictionary objects without dealing with low-level details.
+- **Integration Support**: Seamless integration with other components of the QL compiler, ensuring a cohesive system architecture.
 
-- **Purpose**: This function facilitates the invocation of various dictionary methods, such as `get`, `set`, `remove`, and `containsKey`.
-- **Usage**: It accepts parameters like the dictionary object, method name, and arguments specific to the method being called.
-- **Return Value**: Depending on the method, it returns values like the value associated with a key or a boolean indicating whether a key exists.
+## File Structure
 
-## Directory Structure
+The `vmdictmethods` component consists of several files, each responsible for specific aspects of dictionary management:
 
-```
-vmdictmethods/
-├── include/
-│   └── vm/dict_methods.h
-├── src/
-│   ├── dict_methods.cpp
-│   └── dict_methods_test.cpp
-└── README.md
-```
+- `callDictMethod.cpp`: Implements the logic for calling dictionary methods based on the provided method name and arguments.
+- `dictOperations.h`: Contains declarations for all dictionary operation functions, providing a clear interface for external use.
+- `dictionaryManager.cpp`: Manages the creation and destruction of dictionary objects, ensuring proper resource allocation and deallocation.
+- `methodHandler.h`: Defines the handler classes for different dictionary methods, encapsulating their specific behaviors.
 
-- **include/vm/dict_methods.h**: Contains declarations for all public functions related to dictionary methods.
-- **src/dict_methods.cpp**: Implements the logic for handling dictionary method calls.
-- **src/dict_methods_test.cpp**: Includes unit tests to validate the functionality of the implemented methods.
+## Overall Flow
 
-## How It Works
+1. **Dictionary Creation**: The `dictionaryManager.cpp` file handles the creation of new dictionary objects.
+2. **Method Invocation**: When a dictionary method needs to be invoked, the `callDictMethod.cpp` file determines the appropriate method handler based on the method name.
+3. **Execution**: The selected method handler executes the method, passing along the necessary arguments.
+4. **Result Handling**: After execution, the result is returned to the caller, ensuring that the operation was successful or providing error information if it failed.
+5. **Resource Cleanup**: The `dictionaryManager.cpp` file manages the cleanup of resources associated with dictionary objects when they are no longer needed.
 
-1. **Function Declaration**: In `dict_methods.h`, we declare the `callDictMethod` function, specifying its parameters and return type.
-2. **Implementation Details**: The actual implementation of `callDictMethod` is found in `dict_methods.cpp`. Here, we parse the method name and arguments, then execute the corresponding dictionary operation.
-3. **Testing**: To ensure reliability, `dict_methods_test.cpp` runs several test cases against `callDictMethod`, covering different scenarios and edge cases.
+By following this structured approach, the `vmdictmethods` component ensures that dictionary operations are handled efficiently and consistently across the QL compiler.
 
 ## Usage Example
 
 ```cpp
-#include "vm/dict_methods.h"
+#include "dictOperations.h"
+#include "dictionaryManager.h"
 
 int main() {
-    // Create a dictionary object
-    Dictionary myDict;
+    // Create a new dictionary object
+    Dictionary* myDict = createDictionary();
 
-    // Call the 'set' method
-    callDictMethod(myDict, "set", {"key1", "value1"});
+    // Insert a key-value pair
+    insertKey(myDict, "key1", "value1");
 
-    // Call the 'get' method
-    std::string value = callDictMethod(myDict, "get", {"key1"});
+    // Lookup a value by key
+    const char* value = lookupValue(myDict, "key1");
+    if (value != nullptr) {
+        std::cout << "Found value: " << value << std::endl;
+    } else {
+        std::cout << "Key not found." << std::endl;
+    }
 
-    // Output the retrieved value
-    std::cout << "Value: " << value << std::endl;
+    // Delete a key-value pair
+    deleteKey(myDict, "key1");
+
+    // Clean up the dictionary object
+    destroyDictionary(myDict);
 
     return 0;
 }
 ```
 
-In this example, we demonstrate how to use the `callDictMethod` function to interact with a dictionary object. We first set a key-value pair using the `set` method, then retrieve the value using the `get` method, and finally print the result.
+This example demonstrates the basic usage of the `vmdictmethods` component, including creating a dictionary, inserting and looking up values, deleting keys, and finally cleaning up the dictionary object.
 
-## Conclusion
-
-The `vmdictmethods` component is crucial for managing dictionary operations in the Quantum Language compiler. By providing a robust interface and efficient implementations, it simplifies complex tasks while ensuring optimal performance. The included unit tests further reinforce its reliability and correctness across various use cases.
+For more detailed information on individual functions and their usage, please refer to the respective header files (`dictOperations.h`, `methodHandler.h`).

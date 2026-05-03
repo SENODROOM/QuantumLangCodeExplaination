@@ -1,44 +1,49 @@
 # `compileNode` Function
 
 ## Purpose
-The `compileNode` function is a crucial component of the Quantum Language compiler, responsible for processing and compiling individual nodes in the abstract syntax tree (AST). Each node represents a different construct in the source code, such as statements or expressions.
-
-## How It Works
-The function uses `std::visit` to dispatch the compilation process based on the type of the AST node being processed. This approach allows for a clean and efficient implementation that handles various types of nodes without explicit type checks.
-
-### Dispatch Mechanism
-- **Type Checking**: The function employs template metaprogramming through `if constexpr` to check the type of the current node (`n`). This ensures that only the appropriate compilation logic is executed for each node type.
-- **Compilation Logic**: Depending on the node type, the function calls the corresponding specialized compilation method:
-  - `BlockStmt`: Compiles a block statement.
-  - `VarDecl`: Compiles a variable declaration.
-  - `FunctionDecl`: Compiles a function declaration.
-  - `ClassDecl`: Compiles a class declaration.
-  - `IfStmt`: Compiles an if statement.
-  - `WhileStmt`: Compiles a while loop.
-  - `ForStmt`: Compiles a for loop.
-  - `ReturnStmt`: Compiles a return statement.
-  - `PrintStmt`: Compiles a print statement.
-  - `InputStmt`: Compiles an input statement.
-  - `TryStmt`: Compiles a try-catch block.
-  - `RaiseStmt`: Compiles a raise statement.
-  - `BreakStmt`: Emits a break operation.
-  - `ContinueStmt`: Emits a continue operation.
-  - `ImportStmt`: Handles import statements natively (no action taken here).
-  - `ExprStmt`: Compiles an expression statement and pops the result off the stack.
+The `compileNode` function is a critical component of the Quantum Language compiler, responsible for processing and compiling individual nodes in the abstract syntax tree (AST). Each node represents a different construct in the source code, such as statements or expressions. The function ensures that each type of node is handled appropriately during the compilation process.
 
 ## Parameters
-- **node**: A reference to the AST node to be compiled. This can be any of the supported node types defined in the AST.
+- `node`: A reference to the current AST node being processed. This parameter can be any of the following types:
+  - `BlockStmt`
+  - `VarDecl`
+  - `FunctionDecl`
+  - `ClassDecl`
+  - `IfStmt`
+  - `WhileStmt`
+  - `ForStmt`
+  - `ReturnStmt`
+  - `PrintStmt`
+  - `InputStmt`
+  - `TryStmt`
+  - `RaiseStmt`
+  - `BreakStmt`
+  - `ContinueStmt`
+  - `ImportStmt`
+  - `ExprStmt`
 
 ## Return Value
-The function does not explicitly return a value; instead, it performs operations directly on the intermediate representation (IR) of the program.
+This function does not return a value; instead, it performs actions directly on the compiled output.
 
 ## Edge Cases
-- **Unknown Node Types**: If the node type is not recognized, the function will fall back to the default case, which compiles the node as an expression and pops the result from the stack. This ensures that even unexpected node types do not cause the compilation process to fail.
-- **Empty Nodes**: Some nodes might be empty or null. The function should gracefully handle these cases to avoid runtime errors.
+- **Empty Nodes**: If an empty node is encountered, the function will simply ignore it without performing any operations.
+- **Unsupported Nodes**: If a node type is not explicitly supported within the `compileNode` function, the function will default to treating it as an expression and pop its result off the stack.
 
 ## Interactions with Other Components
-- **Intermediate Representation (IR)**: The function interacts with the IR generation module to produce instructions that represent the semantics of the source code.
-- **Error Handling**: The function may interact with error handling mechanisms to report issues during compilation.
-- **Symbol Table**: During the compilation of variable declarations and function/class definitions, the function may update the symbol table to keep track of variables and their scopes.
+- **Abstract Syntax Tree (AST)**: The `compileNode` function operates on nodes extracted from the AST. It processes these nodes according to their type and compiles them into corresponding quantum instructions.
+- **Compilation Context**: During the compilation process, the function may interact with a compilation context object to manage state information such as variable scopes, control flow, and error handling.
+- **Error Handling**: The function includes checks for unsupported node types and handles them gracefully by popping results from the stack. However, more complex error handling mechanisms, such as reporting errors through the compilation context, might also be invoked based on the node type and its attributes.
 
-This comprehensive approach ensures that the `compileNode` function can effectively handle a wide range of constructs in the Quantum Language, making it a fundamental part of the compiler's functionality.
+## Implementation Details
+The implementation of `compileNode` uses a visitor pattern to handle different types of AST nodes. The `std::visit` function template is employed to dispatch the appropriate handler for each node type. Here's a breakdown of how each node type is processed:
+
+- **Block Statements (`BlockStmt`)**: These are groups of statements executed sequentially. The `compileBlock` function is called to handle the compilation of all statements within the block.
+- **Variable Declarations (`VarDecl`)**: Variables are declared with their names and initial values. The `compileVarDecl` function takes care of generating the necessary quantum instructions for declaring and initializing variables.
+- **Function Declarations (`FunctionDecl`)**: Functions define reusable blocks of code. The `compileFunctionDecl` function handles the compilation of function definitions, including generating quantum instructions for the function body and managing function scope.
+- **Class Declarations (`ClassDecl`)**: Classes encapsulate data and functions. The `compileClassDecl` function processes class declarations, ensuring that quantum instructions are generated for class members and methods.
+- **Conditional Statements (`IfStmt`, `WhileStmt`, `ForStmt`)**: These nodes represent conditional logic. The respective `compileIf`, `compileWhile`, and `compileFor` functions generate quantum instructions that implement the control flow based on the conditions specified in the source code.
+- **Control Flow Statements (`ReturnStmt`, `PrintStmt`, `InputStmt`, `TryStmt`, `RaiseStmt`, `BreakStmt`, `ContinueStmt`)**: These nodes handle various forms of control flow. The `compileReturn` function generates instructions for returning from a function, while `compilePrint` and `compileInput` handle printing and input operations, respectively. The `emitBreak` and `emitContinue` functions generate quantum instructions for breaking out of loops or continuing to the next iteration, respectively. The `compileTry` and `compileRaise` functions manage exception handling.
+- **Import Statements (`ImportStmt`)**: Native handlers typically manage import statements, so the `compileNode` function currently ignores these nodes.
+- **Expression Statements (`ExprStmt`)**: Expression statements consist of standalone expressions. The `compileExpr` function is used to compile the expression, followed by an `Op::POP` instruction to discard the result, assuming it is not needed further in the execution context.
+
+Overall, the `compileNode` function plays a pivotal role in translating high-level constructs from the source code into low-level quantum instructions, facilitating the complete compilation of the program.

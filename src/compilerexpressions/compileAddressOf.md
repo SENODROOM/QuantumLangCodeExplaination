@@ -2,40 +2,45 @@
 
 ## Purpose
 
-The `compileAddressOf` function is responsible for compiling an address-of operation in the Quantum Language compiler. This operation retrieves the memory address of a variable or expression and returns it as a new expression.
+The `compileAddressOf` function is crucial in the Quantum Language compiler for handling address-of operations. This operation fetches the memory address of a variable or expression, encapsulating it into a new expression that can be used elsewhere in the code.
 
 ## Function Signature
 
 ```cpp
-void compileAddressOf(Expression* e)
+void compileAddressOf(Expr* e)
 ```
 
-## Parameters
+### Parameters
 
-- `Expression* e`: A pointer to the expression representing the operand whose address needs to be retrieved.
+- `e`: A pointer to the `Expr` object representing the address-of operation. The function expects this parameter to contain details about the operand whose address needs to be retrieved.
 
-## Return Value
+### Return Value
 
-This function does not return any value explicitly. It performs the compilation process internally.
+This function does not return any value explicitly (`void`). Instead, it modifies the existing expression tree by adding a new node that represents the address-of operation.
 
 ## How It Works
 
-1. **Compile Operand**: The function first calls `compileExpr(*e.operand)` to compile the operand expression. This step ensures that the operand is properly compiled into machine code before proceeding with the address-of operation.
+1. **Operand Compilation**: The function first calls `compileExpr(*e.operand)` to compile the operand of the address-of operation. This step ensures that the operand itself is compiled and its corresponding machine code is generated.
 
-2. **Emit Address-of Operation**: After compiling the operand, the function emits an instruction using the `emit` function. The emitted instruction has the opcode `Op::ADDRESS_OF`, which indicates that an address-of operation is being performed. The second parameter (0) is likely used to specify additional details about the operation, such as whether the address should be aligned or not. The third parameter (`line`) represents the source code line number where the address-of operation occurs, aiding in debugging and error reporting.
+2. **Emitting Address-of Operation**: After compiling the operand, the function emits an instruction using `emit(Op::ADDRESS_OF, 0, line)`. Here:
+   - `Op::ADDRESS_OF` specifies the type of operation being emitted, which is the address-of operation.
+   - `0` is likely a placeholder for additional flags or data related to the operation, though its exact purpose might vary based on the implementation details.
+   - `line` refers to the current source code line number where the address-of operation occurs. Emitting this information helps in debugging and error reporting.
+
+3. **Expression Tree Modification**: By calling `compileExpr`, the function effectively adds a new node to the expression tree at the location of the address-of operation. This new node represents the memory address of the previously compiled operand.
 
 ## Edge Cases
 
-- **Null Pointer Operand**: If the operand passed to `compileAddressOf` is a null pointer, the behavior of calling `compileExpr(*e.operand)` would depend on how the `compileExpr` function handles null pointers. Typically, it might throw an exception or handle it gracefully.
+- **Null Operand**: If the operand passed to `compileAddressOf` is `nullptr`, the function should handle this gracefully without causing a crash. It might need to log an error or skip compilation for such cases.
+  
+- **Unsupported Types**: The function should ensure that only types supported for address-of operations are processed. For example, it might not support certain primitive types directly but could work with pointers to those types.
 
-- **Invalid Expression Type**: If the operand's type is not supported by the address-of operation, the `compileExpr` function would need to handle this case appropriately, possibly throwing an exception or generating an error message.
+## Interactions With Other Components
 
-## Interactions with Other Components
+- **Expression Compiler**: `compileAddressOf` interacts closely with the `compileExpr` function, which is responsible for compiling individual expressions. This interaction allows `compileAddressOf` to leverage the existing infrastructure for expression compilation.
 
-- **Compilation Context**: The `compileAddressOf` function operates within the context of a larger compilation process. It relies on the current state of the compilation context, including the symbol table and the output stream where instructions are written.
+- **Instruction Emitter**: The function uses `emit` to generate machine code instructions. This component is essential for translating high-level language constructs into low-level machine instructions that the quantum processor can execute.
 
-- **Error Handling**: During the compilation of the operand, errors may occur if the operand is invalid or cannot be compiled. These errors are typically handled by the `compileExpr` function, which might call higher-level error handling mechanisms provided by the compiler framework.
+- **Error Reporting**: By including the source code line number in the `emit` call, `compileAddressOf` aids in more accurate error reporting. This interaction with the error reporting system ensures that issues related to address-of operations can be traced back to their source in the code.
 
-- **Instruction Set**: The `emit` function uses an instruction set defined elsewhere in the compiler. The `Op::ADDRESS_OF` opcode must correspond to a valid instruction in this set, allowing the generated machine code to correctly perform the address-of operation.
-
-In summary, the `compileAddressOf` function plays a crucial role in retrieving the memory address of expressions during the compilation process of the Quantum Language. By ensuring that the operand is properly compiled and emitting the appropriate instruction, it contributes to the generation of correct machine code that can execute the address-of operation efficiently.
+In summary, `compileAddressOf` is a vital function in the Quantum Language compiler that handles the retrieval of memory addresses for variables or expressions. Its implementation leverages existing components like `compileExpr` and `emit` to ensure robust and efficient compilation processes. Proper handling of edge cases and interactions with other components contribute to the overall reliability and functionality of the compiler.
