@@ -1,63 +1,53 @@
 # LexerReaders Component of the Quantum Language Compiler
 
-The `lexerreaders` component is a crucial part of the Quantum Language (QL) compiler, responsible for reading and parsing tokens from the source code into meaningful components that can be further processed by the compiler's parser. This component includes two primary functions: `readString` and `readIdentifierOrKeyword`.
+The `lexerreaders` component is an essential part of the Quantum Language (QL) compiler, tasked with reading and parsing tokens from the source code into meaningful elements that can be further processed by the compiler's parser. This component primarily consists of two functions: `readString` and `readIdentifierOrKeyword`.
 
 ## Overview
 
-The `lexerreaders` component operates at the lexical analysis stage of the compilation process. Its main goal is to convert raw text input into a sequence of tokens, which represent the smallest units of meaning in the language. These tokens are then used by the parser to construct the abstract syntax tree (AST).
+The `lexerreaders` component plays a pivotal role in the lexical analysis phase of the QL compiler. It reads characters from the input source code and identifies them as tokens such as strings, identifiers, keywords, operators, and punctuation marks. These tokens are then passed on to the parser for syntactic analysis.
 
-## Files and Functions
+### Directory Structure
+
+- **readString.cpp**: Contains the implementation of the `readString` function, which specifically handles the parsing of string literals from the source code.
+- **readIdentifierOrKeyword.cpp**: Contains the implementation of the `readIdentifierOrKeyword` function, which identifies and categorizes words as either identifiers or reserved keywords.
+
+## Functions
 
 ### readString
 
-- **Purpose**: Reads a string literal from the source code.
-- **Parameters**:
-  - `input`: A reference to the input stream containing the source code.
-  - `startPos`: The starting position of the token in the source code.
-- **Return Value**: A `Token` object representing the string literal.
-- **Description**: This function handles the reading of string literals, including escape sequences and ensuring that the string is properly terminated. It returns a `Token` object with the type set to `STRING` and the value set to the parsed string.
+**Purpose**: Parses string literals from the source code.
+
+**Parameters**:
+- `input`: A reference to the input stream containing the source code.
+- `token`: A reference to the token object where the parsed string will be stored.
+
+**Returns**:
+- `true` if a valid string literal was successfully parsed; otherwise, `false`.
+
+**Description**:
+The `readString` function reads characters from the input stream until it encounters the closing quote character (`"`). It ensures that escape sequences within the string are correctly interpreted and stores the resulting string in the provided token object.
 
 ### readIdentifierOrKeyword
 
-- **Purpose**: Reads an identifier or keyword from the source code.
-- **Parameters**:
-  - `input`: A reference to the input stream containing the source code.
-  - `startPos`: The starting position of the token in the source code.
-- **Return Value**: A `Token` object representing the identifier or keyword.
-- **Description**: This function distinguishes between identifiers and keywords. Identifiers are names used to identify variables, functions, or other entities, while keywords have special meanings within the language. The function returns a `Token` object with the appropriate type (`IDENTIFIER` or `KEYWORD`) and value based on the content of the source code.
+**Purpose**: Identifies and categorizes words as either identifiers or reserved keywords.
 
-## Overall Flow
+**Parameters**:
+- `input`: A reference to the input stream containing the source code.
+- `token`: A reference to the token object where the parsed identifier or keyword will be stored.
 
-1. **Initialization**: The lexer starts by initializing its state, including setting up the input stream and preparing any necessary data structures for tokenization.
-2. **Character Reading**: Characters are read from the input stream one by one.
-3. **Token Recognition**: Depending on the character, the lexer recognizes different types of tokens such as strings, identifiers, keywords, operators, etc.
-4. **Token Construction**: For recognized tokens, the lexer constructs `Token` objects using the `readString` and `readIdentifierOrKeyword` functions.
-5. **Error Handling**: If the lexer encounters invalid characters or unterminated strings, it raises errors accordingly.
-6. **Output**: Tokens are outputted sequentially, forming the basis for subsequent parsing stages.
+**Returns**:
+- `true` if a valid identifier or keyword was successfully parsed; otherwise, `false`.
 
-## Usage Example
+**Description**:
+The `readIdentifierOrKeyword` function reads characters from the input stream until it encounters a non-alphanumeric character or whitespace. It checks if the word belongs to the set of reserved keywords and categorizes it accordingly. If not, it treats the word as an identifier.
 
-```cpp
-#include "LexerReaders.h"
+## Flow
 
-int main() {
-    std::istringstream input("Hello, world! let x = 10;");
-    Token token;
-    
-    // Read a string
-    token = readString(input, Position(1, 1));
-    std::cout << "Token Type: " << token.type << ", Token Value: " << token.value << std::endl;
+1. The lexer begins reading the source code from the input stream.
+2. For each character encountered, it determines whether the character forms part of a string literal or an identifier/keyword using the `readString` and `readIdentifierOrKeyword` functions respectively.
+3. Once a token is identified, it is stored in the appropriate data structure and passed on to the parser for further processing.
+4. This process continues until all characters in the source code have been analyzed and converted into tokens.
 
-    // Read an identifier or keyword
-    token = readIdentifierOrKeyword(input, Position(1, 14));
-    std::cout << "Token Type: " << token.type << ", Token Value: " << token.value << std::endl;
+By effectively handling the parsing of strings and identifiers/keywords, the `lexerreaders` component ensures that the subsequent stages of the compilation process receive well-formed and categorized tokens, facilitating accurate syntax analysis and error detection.
 
-    return 0;
-}
-```
-
-In this example, the `lexerreaders` component reads a string and an identifier/keyword from a sample input stream and prints their respective types and values.
-
-## Conclusion
-
-The `lexerreaders` component plays a vital role in the Quantum Language compiler by converting raw text into structured tokens. Understanding and utilizing these functions effectively is essential for developers working on the lexer and parser phases of the compiler.
+For more detailed information on the implementation and usage of these functions, refer to the individual `.cpp` files in this directory.
