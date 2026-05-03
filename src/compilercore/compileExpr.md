@@ -1,81 +1,48 @@
 # `compileExpr` Function
 
 ## Purpose
-The `compileExpr` function is a crucial component of the Quantum Language compiler that handles the compilation of expressions into intermediate representation (IR). This function takes an expression node and its line number as input, processes the expression according to its type, and emits corresponding IR instructions.
+The `compileExpr` function is a critical component of the Quantum Language compiler responsible for compiling expressions into intermediate representation (IR). It accepts an expression node and its line number as inputs, processing the expression according to its type.
 
-## Why It Works This Way
-This implementation uses `std::visit` along with `if constexpr` to handle different types of expression nodes efficiently. By leveraging template metaprogramming, the function avoids runtime overhead associated with traditional polymorphism and directly compiles each type of expression based on its nature. This approach ensures that the compiler can generate optimized IR code tailored to each expression type.
+## Parameters
+- **node**: The expression node to be compiled.
+- **ln**: The line number where the expression occurs in the source code.
 
-## Parameters/Return Value
-- **Parameters**:
-  - `node`: A reference to the expression node to be compiled.
-  - `ln`: An integer representing the line number in the source code where the expression appears.
-
-- **Return Value**: None. The function directly interacts with the IR emission mechanism and does not return any value.
+## Return Value
+This function does not return any value directly but instead emits operations into the IR through calls to `emit`.
 
 ## Edge Cases
-1. **Unsupported Expression Types**: If the expression node type is not supported by the current implementation, the function will likely need to be updated or extended to handle new types.
-2. **Nested Expressions**: The function should correctly handle nested expressions by recursively calling itself on child nodes.
-3. **Error Handling**: While not explicitly shown in the provided snippet, proper error handling should be implemented to manage issues such as invalid literals or undefined identifiers.
+1. **Nil Literal**: When encountering a `NilLiteral`, the function emits an operation to load a nil constant.
+2. **Boolean Literals**: For boolean literals (`True` or `False`), the function emits specific operations (`Op::LOAD_TRUE` or `Op::LOAD_FALSE`) without additional arguments.
+3. **Number and String Literals**: These are handled similarly by emitting `Op::LOAD_CONST` followed by the constant value added using `addConst`.
+4. **Complex Expressions**: Nested or complex expressions like binary, unary, assignment, function calls, etc., are recursively processed by calling specialized functions (`compileBinary`, `compileUnary`, etc.).
 
-## Interactions With Other Components
-- **IR Emission Module**: The `emit` function is used to generate IR instructions based on the expression type and its value. This module is essential for converting high-level language constructs into low-level machine instructions.
-- **Symbol Table Management**: For identifier expressions (`Identifier`), the function interacts with the symbol table to resolve variable names and their corresponding addresses.
-- **Expression Compilation Modules**: Functions like `compileBinary`, `compileUnary`, etc., are invoked for specific expression types, demonstrating modular design and separation of concerns within the compiler.
+## Interactions with Other Components
+- **Emit Function**: `compileExpr` interacts with the `emit` function to generate IR instructions. Each type of expression corresponds to a specific set of IR operations.
+- **Constant Pool Management**: The `addConst` function is used to manage the constant pool within the IR, ensuring that each unique constant is only stored once.
+- **Expression Visitors**: The use of `std::visit` allows `compileExpr` to handle different types of expression nodes dynamically, making the implementation flexible and scalable.
 
-Here's a more complete example of how the `compileExpr` function might look:
+## Implementation Details
+The function uses `std::visit` to dispatch based on the type of the expression node (`n`). Depending on the type, it calls a corresponding helper function:
+- **NumberLiteral**: Emits `Op::LOAD_CONST` with the numeric value.
+- **StringLiteral**: Emits `Op::LOAD_CONST` with the string value.
+- **BoolLiteral**: Emits either `Op::LOAD_TRUE` or `Op::LOAD_FALSE` based on the boolean value.
+- **NilLiteral**: Emits `Op::LOAD_NIL`.
+- **Identifier**: Calls `compileIdentifier` to handle variable references.
+- **BinaryExpr**: Calls `compileBinary` to process binary operations.
+- **UnaryExpr**: Calls `compileUnary` to handle unary operations.
+- **AssignExpr**: Calls `compileAssign` to process assignments.
+- **CallExpr**: Calls `compileCall` to handle function calls.
+- **IndexExpr**: Calls `compileIndex` to process indexing operations.
+- **SliceExpr**: Calls `compileSlice` to handle slicing operations.
+- **MemberExpr**: Calls `compileMember` to process member access operations.
+- **ArrayLiteral**: Calls `compileArray` to handle array literals.
+- **DictLiteral**: Calls `compileDict` to handle dictionary literals.
+- **TupleLiteral**: Calls `compileTuple` to handle tuple literals.
+- **LambdaExpr**: Calls `compileLambda` to process lambda expressions.
+- **TernaryExpr**: Calls `compileTernary` to handle ternary conditional expressions.
+- **ListComp**: Calls `compileListComp` to process list comprehensions.
+- **SuperExpr**: Calls `compileSuper` to handle super class references.
+- **NewExpr**: Calls `compileNew` to process object instantiation.
+- **AddressOfExpr**: Calls `compileAddressOf` to handle address-of operations.
 
-```cpp
-void CompilerCore::compileExpr(const ExprNode& node, int ln) {
-    std::visit([this, ln](const auto& n) -> void {
-        using T = std::decay_t<decltype(n)>;
-        if constexpr (std::is_same_v<T, NumberLiteral>)
-            emit(Op::LOAD_CONST, addConst(QuantumValue(n.value)), ln);
-        else if constexpr (std::is_same_v<T, StringLiteral>)
-            emit(Op::LOAD_CONST, addConst(QuantumValue(n.value)), ln);
-        else if constexpr (std::is_same_v<T, BoolLiteral>)
-            emit(n.value ? Op::LOAD_TRUE : Op::LOAD_FALSE, 0, ln);
-        else if constexpr (std::is_same_v<T, NilLiteral>)
-            emit(Op::LOAD_NIL, 0, ln);
-        else if constexpr (std::is_same_v<T, Identifier>)
-            compileIdentifier(n, ln);
-        else if constexpr (std::is_same_v<T, BinaryExpr>)
-            compileBinary(n, ln);
-        else if constexpr (std::is_same_v<T, UnaryExpr>)
-            compileUnary(n, ln);
-        else if constexpr (std::is_same_v<T, AssignExpr>)
-            compileAssign(n, ln);
-        else if constexpr (std::is_same_v<T, CallExpr>)
-            compileCall(n, ln);
-        else if constexpr (std::is_same_v<T, IndexExpr>)
-            compileIndex(n, ln);
-        else if constexpr (std::is_same_v<T, SliceExpr>)
-            compileSlice(n, ln);
-        else if constexpr (std::is_same_v<T, MemberExpr>)
-            compileMember(n, ln);
-        else if constexpr (std::is_same_v<T, ArrayLiteral>)
-            compileArray(n, ln);
-        else if constexpr (std::is_same_v<T, DictLiteral>)
-            compileDict(n, ln);
-        else if constexpr (std::is_same_v<T, TupleLiteral>)
-            compileTuple(n, ln);
-        else if constexpr (std::is_same_v<T, LambdaExpr>)
-            compileLambda(n, ln);
-        else if constexpr (std::is_same_v<T, TernaryExpr>)
-            compileTernary(n, ln);
-        else if constexpr (std::is_same_v<T, ListComp>)
-            compileListComp(n, ln);
-        else if constexpr (std::is_same_v<T, SuperExpr>)
-            compileSuper(n, ln);
-        else if constexpr (std::is_same_v<T, NewExpr>)
-            compileNew(n, ln);
-        else if constexpr (std::is_same_v<T, AddressOfExpr>)
-            compileAddressOf(n, ln);
-        // Handle unsupported expression types here
-        else
-            throw CompileError("Unsupported expression type", ln);
-    }, node.expr);
-}
-```
-
-In this enhanced version, the function includes error handling for unsupported expression types, ensuring robustness and maintainability of the compiler.
+Each of these helper functions is designed to handle specific types of expressions, breaking down the complexity of `compileExpr`. By leveraging `std::visit` and dynamic dispatch, the function ensures efficient and accurate compilation of various expression types in the Quantum Language.
