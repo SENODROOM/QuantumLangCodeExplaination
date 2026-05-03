@@ -2,49 +2,43 @@
 
 ## Overview
 
-The `set` function is a member method of the `Value` class in the Quantum Language compiler. It assigns a new value to a variable or constant within the current scope. If the variable is defined as a constant, an error is thrown to prevent reassignment. If the variable is not found in the current scope, the function checks its parent scope. If the parent also does not contain the variable, a `NameError` is thrown indicating that the variable is undefined.
+The `set` function is a member method of the `Value` class in the Quantum Language compiler. It assigns a new value to a variable or constant within the current scope. If the variable is defined as a constant, an error is thrown to prevent reassignment. If the variable is not found in the current scope but exists in a parent scope, the assignment is propagated to the parent scope. If neither the current nor the parent scope contains the variable, a `NameError` is thrown indicating that the variable is undefined.
 
-## Parameters/Return Value
+## Parameters
 
-- **Parameters**:
-  - `name`: A string representing the name of the variable or constant to be assigned a new value.
-  - `val`: The new value to be assigned. This can be of various types depending on the context in which the `Value` class is used.
+- `name`: A string representing the name of the variable or constant to be assigned a new value.
+- `val`: The new value to be assigned to the variable or constant. This can be of any type supported by the Quantum Language compiler.
 
-- **Return Value**: 
-  - None (`void`). The function updates the value of the specified variable or constant directly.
+## Return Value
 
-## How It Works
-
-1. **Locate Variable in Current Scope**:
-   - The function first attempts to find the variable or constant named `name` in the `vars` map, which represents the local variables and constants in the current scope.
-
-2. **Check for Constant**:
-   - If the variable is found in the `vars` map, the function then checks if `name` is also present in the `constants` set. If it is, a `RuntimeError` is thrown because constants cannot be reassigned.
-
-3. **Update Local Variable**:
-   - If the variable is found and is not a constant, the function updates the value of the variable in the `vars` map to `val`.
-
-4. **Sync with Shared Cells**:
-   - To ensure consistency across different parts of the program that might share the same variable, the function also checks if there is a corresponding entry in the `cells` map. If such an entry exists, it dereferences the shared cell pointer and assigns `val` to the memory location pointed to by the shared cell.
-
-5. **Delegate to Parent Scope**:
-   - If the variable is not found in the current scope, the function checks if there is a parent scope (`parent`). If a parent scope exists, it calls the `set` function on the parent scope with the same arguments (`name` and `val`).
-
-6. **Throw Error for Undefined Variable**:
-   - If the variable is not found in either the current scope nor its parent, a `NameError` is thrown, indicating that the variable is undefined.
+This function does not return a value (`void`). It updates the value of the specified variable or constant within the current scope or propagates the assignment to the parent scope.
 
 ## Edge Cases
 
-- **Reassigning Constants**: Attempting to reassign a value to a constant will result in a `RuntimeError`. This ensures that once a constant is initialized, its value remains unchanged throughout the execution of the program.
-  
-- **Variable Not Found in Current or Parent Scope**: If the variable is not found in either the current or parent scope, a `NameError` is thrown. This prevents accidental modification of undeclared variables, ensuring that all variable modifications are intentional and declared.
-
-- **Shared Cell Consistency**: By updating the value in the `cells` map, the function ensures that any part of the program that shares the same variable through pointers or references sees the updated value immediately.
+1. **Constant Reassignment**: Attempting to assign a new value to a constant results in a `RuntimeError`. This ensures that constants retain their initial values throughout the program execution.
+2. **Parent Scope Assignment**: If the variable is not found in the current scope but exists in a parent scope, the assignment is made in the parent scope. This allows variables to be accessible across different scopes without explicit declaration in each scope.
+3. **Undefined Variable**: If the variable is neither found in the current nor the parent scope, a `NameError` is thrown. This helps catch errors early in the development process, ensuring all variables are properly declared before use.
 
 ## Interactions with Other Components
 
-- **Scope Management**: The `set` function interacts with the scope management system of the compiler. It uses the `vars`, `constants`, and `cells` maps to track and manage variables and their values efficiently.
+- **Scope Management**: The `set` function interacts with the scope management system to determine where the variable or constant should be updated. It uses the `vars` map to store local variables and the `constants` set to identify constants.
+- **Cell Synchronization**: For variables stored in shared cells (both pointer and reference cases), the `set` function also updates the value in the corresponding cell using the `cells` map. This ensures that changes to the variable are reflected in all places where it is accessed.
 
-- **Error Handling**: The function relies on error handling mechanisms provided by the compiler, specifically throwing `RuntimeError` and `NameError` when appropriate conditions are met.
+Here's a breakdown of how the function works:
 
-- **Memory Management**: When dealing with shared cells, the function indirectly interacts with the memory management subsystem, ensuring that changes made to the shared cell are reflected in all parts of the program that reference it.
+1. **Local Variable Check**:
+   - The function first checks if the variable or constant named `name` exists in the current scope by looking up its entry in the `vars` map.
+   - If the variable exists, it further checks whether it is a constant by looking it up in the `constants` set.
+   - If the variable is a constant, a `RuntimeError` is thrown, preventing reassignment.
+   - If the variable is not a constant, its value is updated in the `vars` map.
+
+2. **Parent Scope Check**:
+   - If the variable is not found in the current scope, the function checks if there is a parent scope by verifying if the `parent` pointer is not null.
+   - If a parent scope exists, the function calls the `set` method on the parent scope, passing the same `name` and `val`.
+   - This allows assignments to propagate up the scope hierarchy, making variables accessible across different scopes.
+
+3. **Undefined Variable Error**:
+   - If neither the current nor the parent scope contains the variable, a `NameError` is thrown, indicating that the variable is undefined.
+   - This helps catch errors related to undeclared variables, ensuring proper variable declarations before use.
+
+By handling these cases and interacting with other components like scope management and cell synchronization, the `set` function provides robust support for variable assignment in the Quantum Language compiler, ensuring correct behavior and preventing common programming errors.
