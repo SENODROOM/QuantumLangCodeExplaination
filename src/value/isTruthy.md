@@ -1,48 +1,59 @@
 # `isTruthy` Function Explanation
 
-The `isTruthy` function in the Quantum Language compiler evaluates whether a given quantum value is considered "truthy". A truthy value is one that can be interpreted as `true` in a boolean context, whereas a falsy value is interpreted as `false`.
+The `isTruthy` function in the Quantum Language compiler determines whether a given quantum value is considered "truthy" or "falsy." This evaluation is crucial for control flow statements and conditional logic within the language.
 
 ## What It Does
 
-The `isTruthy` function takes a quantum value of any type and returns a boolean indicating whether the value is truthy or not. The function uses `std::visit` to handle different types of quantum values and applies specific rules to determine their truthiness based on their underlying data types.
+The `isTruthy` function takes a single parameter of type `QuantumData`, which represents any valid quantum data type. The function returns a boolean value indicating whether the provided quantum data is truthy.
+
+Here's a breakdown of how the function evaluates different types of quantum data:
+
+- **QuantumNil**: Always returns `false`. In many programming languages, `nil` or `None` is considered a falsy value.
+  
+- **bool**: Returns the value directly. If the boolean is `true`, it returns `true`; otherwise, it returns `false`.
+  
+- **double**: Checks if the double value is not equal to `0.0`. Non-zero values are considered truthy, while zero is considered falsy.
+  
+- **std::string**: Evaluates the string based on its content. An empty string (`""`) and a string containing only a null character (`"\0"`) are considered falsy. Any non-empty string is considered truthy.
+  
+- **std::shared_ptr<Array>**: Checks if the array pointed to by the shared pointer is not empty. If the array contains elements, it returns `true`; otherwise, it returns `false`.
+  
+- **std::shared_ptr<QuantumPointer>**: Verifies both the presence of the pointer and whether it points to a non-null object. If the pointer is valid and points to an object that is not null, it returns `true`; otherwise, it returns `false`.
+
+For all other data types, the function defaults to returning `true`, treating them as truthy.
 
 ## Why It Works This Way
 
-The implementation of `isTruthy` follows specific rules for each type of quantum value:
-
-- **QuantumNil**: Always returns `false`, as `nil` represents an empty or null state.
-- **bool**: Directly returns the boolean value itself.
-- **double**: Returns `true` if the double value is not equal to zero (`0.0`).
-- **std::string**: Returns `true` if the string is not empty and does not consist solely of a null character (`'\0'`).
-- **std::shared_ptr<Array>**: Returns `true` if the shared pointer points to an array that is not empty.
-- **std::shared_ptr<QuantumPointer>**: Returns `true` if the shared pointer is not null and the pointed-to value is not null (i.e., the `QuantumPointer` is valid).
-
-For all other types, the function returns `true` by default, assuming they are truthy unless explicitly handled otherwise.
+This implementation ensures that the `isTruthy` function adheres to common boolean evaluation rules found in many programming languages. By explicitly defining the behavior for each data type, the function provides clear guidelines for what constitutes a truthy value. This approach helps maintain consistency across different parts of the compiler and simplifies the handling of conditional logic.
 
 ## Parameters/Return Value
 
-### Parameters
+- **Parameters**:
+  - `data`: A `QuantumData` object representing the quantum value to evaluate.
 
-- `data`: A variant of quantum values (`QuantumNil`, `bool`, `double`, `std::string`, `std::shared_ptr<Array>`, `std::shared_ptr<QuantumPointer>`).
-
-### Return Value
-
-- `bool`: Indicates whether the provided quantum value is truthy.
+- **Return Value**:
+  - A `bool` value indicating whether the provided quantum data is truthy.
 
 ## Edge Cases
 
-- An empty string (`""`) is considered falsy.
-- A string consisting solely of a null character (`'\0'`) is also considered falsy.
-- An empty array (`std::shared_ptr<Array>()`) is considered falsy.
-- A `nullptr` for `std::shared_ptr<QuantumPointer>` is considered falsy.
-- A `QuantumPointer` pointing to a null value is considered falsy.
+- **Empty String**: An empty string (`""`) is considered falsy because it has no meaningful content.
+  
+- **Null Character String**: A string containing only a null character (`"\0"`) is also considered falsy due to its lack of meaningful characters.
+  
+- **Zero Double**: A double value of `0.0` is considered falsy because it represents the absence of a numerical value.
+  
+- **Empty Array**: An array that does not contain any elements is considered falsy.
+  
+- **Null Pointer**: A `QuantumPointer` that is either invalid or points to a null object is considered falsy.
 
 ## Interactions With Other Components
 
 The `isTruthy` function interacts with various components within the Quantum Language compiler:
 
-- **Variant Handling**: Uses `std::visit` to handle different types of quantum values encapsulated in a variant.
-- **Array Operations**: Checks if an array is empty when evaluating a `std::shared_ptr<Array>`.
-- **Pointer Validation**: Validates whether a `QuantumPointer` is null and whether the pointed-to value is null before considering it truthy.
+- **Type Checking**: The function uses type checking techniques to determine the appropriate evaluation method for the input `QuantumData`.
+  
+- **Control Flow**: The results of the `isTruthy` function are used to control the flow of execution in conditional statements and loops.
+  
+- **Error Handling**: While not shown in the code snippet, the function may interact with error handling mechanisms to ensure that invalid inputs do not cause runtime errors.
 
-This function ensures that quantum values are evaluated correctly in boolean contexts, which is essential for control flow operations such as conditional statements and loops.
+By providing a comprehensive evaluation of quantum data types, the `isTruthy` function facilitates robust control flow and conditional logic within the Quantum Language compiler.
