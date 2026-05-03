@@ -2,56 +2,69 @@
 
 ## Overview
 
-The `setField` function is a member method of the `Value` class in the Quantum Language compiler. Its primary purpose is to assign a new value to an existing field within the `Value` object. This function allows for dynamic updates to the structure of the `Value`, enabling more flexible and responsive data handling within the compiler.
+The `setField` function is a member method of the `Value` class in the Quantum Language compiler. Its primary purpose is to assign a new value to an existing field within the `Value` object. This function allows for dynamic updates to the structure of the `Value`.
 
-## Parameters
+### Parameters
+- `name`: A string representing the name of the field that needs to be updated.
+- `val`: A rvalue reference to a `std::unique_ptr<Value>` which represents the new value to be assigned to the specified field.
 
-- `name`: A string representing the name of the field to be updated.
-- `val`: A reference to a `Value` object that represents the new value to be assigned to the specified field.
+### Return Value
+- The function does not return any value (`void`).
 
-## Return Value
+### Edge Cases
+1. **Non-existent Field**: If the field named `name` does not exist in the `Value` object, the function will create a new field and assign the value `val` to it.
+2. **Null Pointer**: If `val` is a null pointer, the function will remove the field named `name` from the `Value` object.
+3. **Self-Assignment**: Assigning a value to itself using `setField(name, std::move(fields[name]))` is safe as it uses move semantics to avoid unnecessary copying.
 
-This function returns nothing (`void`). It directly modifies the internal state of the `Value` object by updating the specified field.
+### Interactions with Other Components
+- **Value Class**: The `Value` class contains a map called `fields` where each key-value pair represents a field and its corresponding value. The `setField` function interacts directly with this map to update or add fields.
+- **Memory Management**: Since `val` is passed by rvalue reference, the function uses move semantics to transfer ownership of the memory managed by `val` to the `fields` map. This ensures efficient memory management and avoids potential issues related to deep copying large objects.
+- **Error Handling**: The function does not explicitly handle errors. However, the use of `std::move` implies that any exceptions thrown during the move operation would propagate up the call stack.
 
-## Edge Cases
-
-1. **Non-existent Field**: If the specified field does not exist within the `Value` object, the `setField` function will create a new field with the given name and assign the provided value to it.
-2. **Overwriting Existing Field**: If the specified field already exists, the `setField` function will overwrite its current value with the new one provided.
-3. **Empty Field Name**: Passing an empty string as the `name` parameter will result in a runtime error or undefined behavior, depending on how the implementation handles such cases.
-4. **Null or Invalid Value Object**: Passing a null or invalid `Value` object as the `val` parameter may lead to unexpected results or crashes, as the function attempts to move the value into the specified field.
-
-## Interactions with Other Components
-
-The `setField` function interacts with various components within the Quantum Language compiler:
-
-1. **Data Structure Management**: It manages the internal data structure of the `Value` object, which typically involves a map or dictionary to store field-value pairs.
-2. **Memory Allocation**: When creating a new field, the function may involve memory allocation to store the new value.
-3. **Error Handling**: The function includes basic error handling to manage cases where the field name is empty or the value object is invalid.
-4. **Optimization Opportunities**: By allowing dynamic updates, the `setField` function opens up opportunities for optimization in areas like code generation and compilation speed, as it can adapt to changing requirements during the compilation process.
-
-## Implementation Details
-
-Here's a detailed breakdown of the `setField` function:
+### Example Usage
+Here's how you might use the `setField` function in your code:
 
 ```cpp
-void Value::setField(const std::string& name, Value&& val) {
-    // Move the new value into the specified field
-    fields[name] = std::move(val);
+#include "Value.h"
+
+int main() {
+    // Create a Value object
+    Value myValue;
+
+    // Set a new field with a non-null value
+    auto newValue = std::make_unique<Value>(42);
+    myValue.setField("myField", std::move(newValue));
+
+    // Check if the field was successfully added
+    if (myValue.hasField("myField")) {
+        std::cout << "Field 'myField' has been set." << std::endl;
+    }
+
+    // Set the same field again with a different value
+    newValue = std::make_unique<Value>("Hello");
+    myValue.setField("myField", std::move(newValue));
+
+    // Check if the field was successfully updated
+    if (myValue.hasField("myField") && myValue.getField("myField")->isString()) {
+        std::cout << "Field 'myField' has been updated to 'Hello'." << std::endl;
+    }
+
+    // Remove the field
+    myValue.setField("myField", nullptr);
+
+    // Check if the field was removed
+    if (!myValue.hasField("myField")) {
+        std::cout << "Field 'myField' has been removed." << std::endl;
+    }
+
+    return 0;
 }
 ```
 
-### Explanation
-
-1. **Member Method Declaration**:
-   - The function is declared as a member method of the `Value` class, indicated by `void Value::setField`.
-   - It takes two parameters: `const std::string& name` and `Value&& val`. The `const` keyword ensures that the function does not modify the passed field name, while the rvalue reference (`&&`) indicates that the function will take ownership of the `val` object, potentially avoiding unnecessary copies.
-
-2. **Updating the Field**:
-   - Inside the function, the line `fields[name] = std::move(val);` moves the new value (`val`) into the specified field identified by `name`.
-   - The use of `std::move` suggests that the `Value` class has a move constructor and move assignment operator, which are essential for efficient resource management and transfer.
-
-3. **Edge Case Handling**:
-   - While the provided snippet does not explicitly handle all edge cases, the use of `std::move` implies that the `Value` class should have proper move semantics implemented.
-   - Error handling related to empty field names or invalid value objects would typically be performed before calling this function, ensuring robustness in the overall system.
-
-Overall, the `setField` function is a crucial component for managing dynamic data structures within the Quantum Language compiler, providing flexibility and efficiency in data handling and adaptation during the compilation process.
+In this example:
+- We first create a `Value` object named `myValue`.
+- We then set a new field named `"myField"` with an integer value `42`.
+- We check if the field was successfully added.
+- We update the field with a string value `"Hello"`.
+- We verify that the field was updated correctly.
+- Finally, we remove the field by setting it to `nullptr` and confirm that it was indeed removed.
