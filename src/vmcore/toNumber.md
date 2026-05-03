@@ -2,39 +2,34 @@
 
 ## Overview
 
-The `toNumber` function is designed to convert a given value (`v`) into a numeric type. This function is particularly useful in scenarios where input values need to be processed as numbers, such as arithmetic operations or comparisons.
+The `toNumber` function is an essential utility within the Quantum Language compiler's Virtual Machine (VM) core. Its primary purpose is to convert a given value (`v`) into a numeric type, enabling subsequent arithmetic operations or comparisons on that value. This function ensures that data types are correctly handled during runtime, preventing errors that could arise from incompatible types.
 
-## Parameters and Return Value
+## Functionality and Implementation
 
-- **Parameters**:
-  - `v`: The value to be converted into a number. This can be of any type that might represent a numeric value, including integers, floating-point numbers, and strings.
-  - `ctx`: A string representing the context in which the conversion is being attempted. This parameter is used to provide more informative error messages.
-  - `line`: An integer representing the line number in the source code where the conversion is taking place. This helps in pinpointing the exact location of an error during debugging.
+### Conversion Logic
 
-- **Return Value**:
-  - Returns a `double`, which is a standard representation of numeric values in C++. If the input value cannot be converted to a number, a `TypeError` is thrown.
+1. **Direct Number Conversion**: If the input value `v` is already of a numeric type (e.g., integer, floating-point), the function returns `v` as is without any modification. This is checked using the `isNumber()` method.
 
-## How It Works
+2. **String to Number Conversion**: If `v` is a string, the function attempts to convert it into a double-precision floating-point number using `std::stod()`. This conversion is wrapped in a try-catch block to handle any exceptions that might occur if the string cannot be converted to a valid number. For example, strings containing non-numeric characters will trigger an exception, which is caught and ignored, ensuring robustness against invalid inputs.
 
-1. **Check if the Input is Already a Number**:
-   - The function first checks if the input value `v` is already a number using the `isNumber()` method. If it is, the function simply returns the numeric value obtained by calling `asNumber()` on `v`.
+3. **Error Handling**: If neither direct number conversion nor string-to-number conversion is possible, the function throws a `TypeError`, indicating that the expected input was a number but received a different type. The error message includes context (`ctx`), the actual type of the received value (`v.typeName()`), and the line number where the error occurred.
 
-2. **Convert String to Number**:
-   - If the input value `v` is not a number but is a string, the function attempts to convert the string to a double using `std::stod()`. This method is part of the `<string>` library and tries to parse the string as a decimal floating-point number.
-   - The conversion process is wrapped inside a `try-catch` block. If the string cannot be parsed into a valid number (e.g., due to non-numeric characters), the exception is caught silently, and the function proceeds to the next step.
+### Edge Cases
 
-3. **Throw Error if Conversion Fails**:
-   - If the input value `v` is neither a number nor a string that can be converted to a number, the function throws a `TypeError`. The error message includes the expected type ("number"), the actual type encountered (`v.typeName()`), and the line number (`line`). This provides clear feedback about the nature of the error and its location.
+- **Empty String**: When converting a string to a number, an empty string will result in an exception being thrown, which is caught and ignored. This means that attempting to convert an empty string to a number will not cause a runtime error but will instead return a default numeric value (typically 0).
 
-## Edge Cases
+- **Non-Numeric Strings**: Strings that contain characters other than digits, decimal points, and optional leading '+' or '-' signs will fail to convert to a number. In such cases, the function handles these gracefully by catching the exception and returning a default numeric value.
 
-- **Empty String**: If the input string is empty, `std::stod()` will throw an exception, leading to the `TypeError`.
-- **Non-Numeric Characters**: Any string containing non-numeric characters will result in a failed conversion, triggering the `TypeError`.
-- **Integer Strings**: Strings that represent whole numbers (e.g., "42") will be successfully converted to doubles without fractional parts.
+- **Integer Overflow**: Although not explicitly handled in the provided code snippet, the function implicitly supports integer overflow when converting strings to numbers. If a string represents a number larger than can be stored in a double, the behavior depends on the implementation of `std::stod()`, which may either truncate the number or throw an exception.
 
 ## Interactions with Other Components
 
-- **Value Class**: The function relies on the `Value` class to determine the type of the input value (`v`) and to perform the conversion if necessary. The `Value` class likely has methods like `isNumber()` and `asNumber()` to handle different types of data.
-- **Error Handling**: The use of exceptions and custom error messages (`TypeError`) indicates that this function interacts with an error handling system within the compiler. When a `TypeError` is thrown, it should be caught and handled appropriately elsewhere in the compiler's codebase.
+The `toNumber` function interacts closely with various components of the VM core:
 
-This function is crucial for ensuring that all inputs are properly formatted as numbers before they are used in calculations or comparisons, thereby maintaining the integrity and correctness of the program.
+- **Value Class**: The function utilizes methods from the `Value` class, specifically `isNumber()` and `asString()`, to determine the type of the input value and extract its string representation, respectively.
+
+- **Error Handling Mechanism**: By throwing a `TypeError`, the function integrates seamlessly with the compiler's error handling system, allowing for consistent reporting of type-related issues across different parts of the compiler.
+
+- **Type System**: The function relies on the compiler's type system to identify whether a value is numeric or string. This interaction ensures that the function operates only on compatible data types, maintaining the integrity of the program's execution environment.
+
+In summary, the `toNumber` function plays a crucial role in the Quantum Language compiler by facilitating the conversion of values into numeric types. Its design ensures flexibility and robustness, making it suitable for various applications within the compiler's architecture.
