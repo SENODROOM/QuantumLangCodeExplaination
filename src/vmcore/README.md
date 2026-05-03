@@ -1,76 +1,170 @@
 # vmcore
 
-The `vmcore` component is a crucial part of the Quantum Language compiler, responsible for executing bytecode and managing runtime operations. This directory includes several documented functions and files that work together to ensure smooth execution and management of the virtual machine's state.
+The `vmcore` component is an essential part of the Quantum Language compiler, designed to execute bytecode and manage runtime operations efficiently. This directory houses several well-documented functions and files that collaborate seamlessly to maintain the virtual machine's state and ensure smooth execution.
 
-## Files and Functions
+## Overview
+
+The `vmcore` component consists of core functionalities required for the execution of quantum programs. It handles the interpretation of bytecode, manages memory and data structures, and provides mechanisms for error handling and debugging.
+
+## Key Components
 
 ### run
-- **Description**: The primary function that initiates the execution of the bytecode.
-- **Relationship**: It orchestrates the entire process, calling other functions as needed.
+- **Description**: The primary function that initiates the execution of the virtual machine. It reads and processes bytecode instructions until completion or an error occurs.
+- **Location**: `src/vmcore/run.cpp`
 
 ### push
-- **Description**: Adds an item to the stack.
-- **Relationship**: Used in various operations where intermediate results need to be stored temporarily.
+- **Description**: Adds a value to the stack. Used during the evaluation of expressions.
+- **Location**: `src/vmcore/stack.cpp`
 
 ### pop
-- **Description**: Removes the top item from the stack.
-- **Relationship**: Used to retrieve and discard items from the stack after they have been processed.
+- **Description**: Removes the top value from the stack. Used when evaluating expressions and popping intermediate results.
+- **Location**: `src/vmcore/stack.cpp`
 
 ### runtimeError
-- **Description**: Handles runtime errors by reporting them appropriately.
-- **Relationship**: Ensures that any issues during execution are caught and handled gracefully.
+- **Description**: Handles runtime errors, such as division by zero or invalid type conversions. It logs the error and halts the program execution.
+- **Location**: `src/vmcore/error.cpp`
 
 ### toNumber
-- **Description**: Converts a value to a number if possible.
-- **Relationship**: Used in arithmetic operations to standardize values.
+- **Description**: Converts a value to a number. Used in arithmetic operations where values need to be numeric.
+- **Location**: `src/vmcore/conversion.cpp`
 
 ### valuesEqual
-- **Description**: Compares two values for equality.
-- **Relationship**: Used in conditional statements and comparisons.
+- **Description**: Compares two values for equality. Used in conditional statements and comparisons.
+- **Location**: `src/vmcore/comparison.cpp`
 
 ### execBinary
-- **Description**: Executes binary operations (e.g., addition, multiplication).
-- **Relationship**: Invoked when bytecode requires binary operation execution.
+- **Description**: Executes binary operations on two operands. Supports addition, subtraction, multiplication, etc.
+- **Location**: `src/vmcore/execution.cpp`
 
 ### execUnary
-- **Description**: Executes unary operations (e.g., negation).
-- **Relationship**: Invoked when bytecode requires unary operation execution.
+- **Description**: Executes unary operations on a single operand. Supports negation, increment, decrement, etc.
+- **Location**: `src/vmcore/execution.cpp`
 
 ### captureUpvalue
-- **Description**: Captures upvalues for closures.
-- **Relationship**: Manages the environment in which closures operate.
+- **Description**: Captures upvalues (local variables from enclosing scopes) into closures. Ensures that local variables remain accessible even after the outer scope has exited.
+- **Location**: `src/vmcore/closure.cpp`
 
 ### closeUpvalues
-- **Description**: Closes upvalues when a scope ends.
-- **Relationship**: Ensures that upvalues are properly cleaned up to avoid memory leaks.
+- **Description**: Closes upvalues, deallocating memory and updating references. Called when a closure goes out of scope.
+- **Location**: `src/vmcore/closure.cpp`
 
 ### callValue
-- **Description**: Calls a function or method using its value.
-- **Relationship**: Handles dynamic dispatch based on the type of the callable object.
+- **Description**: Calls a function or method using its value. Handles dynamic dispatch based on the object's type.
+- **Location**: `src/vmcore/function.cpp`
 
 ### callClosure
-- **Description**: Calls a closure, managing its environment and arguments.
-- **Relationship**: Specialized version of `callValue` for handling closures.
+- **Description**: Calls a closure, which is a function bundled with its lexical environment. Manages the call frame and upvalues.
+- **Location**: `src/vmcore/closure.cpp`
+
+### callNativeFn
+- **Description**: Invokes native functions written in C++. These functions provide access to system resources or perform complex calculations not easily achievable in the quantum language itself.
+- **Location**: `src/vmcore/native.cpp`
 
 ### callClass
-- **Description**: Calls a class constructor or method.
-- **Relationship**: Manages object creation and method invocation within classes.
+- **Description**: Instantiates a new class and calls its constructor. Manages the creation of objects and initialization of their properties.
+- **Location**: `src/vmcore/class.cpp`
 
 ### callBuiltinMethod
-- **Description**: Calls a built-in method provided by the language.
-- **Relationship**: Provides access to essential language features without requiring external libraries.
+- **Description**: Calls built-in methods associated with objects. These methods are predefined and optimized for performance within the quantum language.
+- **Location**: `src/vmcore/method.cpp`
 
-## Overall Flow
+## Directory Structure
 
-1. **Initialization**: The `run` function initializes the virtual machine and sets up the necessary data structures.
-2. **Execution Loop**: The virtual machine enters an execution loop where it processes bytecode instructions one by one.
-3. **Stack Operations**: Instructions like `push` and `pop` manage the operand stack, storing and retrieving intermediate results.
-4. **Runtime Error Handling**: Errors encountered during execution are reported through the `runtimeError` function.
-5. **Type Conversion**: Values are converted to numbers when required using the `toNumber` function.
-6. **Comparison**: Equality checks are performed using the `valuesEqual` function.
-7. **Operation Execution**: Binary and unary operations are executed by the `execBinary` and `execUnary` functions respectively.
-8. **Environment Management**: Upvalues are captured and managed using the `captureUpvalue` and `closeUpvalues` functions.
-9. **Function Invocation**: Functions and methods are called using the `callValue`, `callClosure`, `callClass`, and `callBuiltinMethod` functions.
-10. **Termination**: Once all bytecode has been executed, the virtual machine terminates.
+```
+src/
+└── vmcore/
+    ├── run.cpp
+    ├── stack.cpp
+    ├── error.cpp
+    ├── conversion.cpp
+    ├── comparison.cpp
+    ├── execution.cpp
+    ├── closure.cpp
+    ├── function.cpp
+    └── class.cpp
+        └── method.cpp
+            └── native.cpp
+```
 
-By understanding and utilizing these components, developers can effectively build and execute quantum programs using the Quantum Language compiler. Each function plays a vital role in ensuring the robustness and efficiency of the virtual machine.
+## Flowchart
+
+```plaintext
++---------------------+
+|      run()          |
+|  - Starts VM        |
+|  - Reads bytecode   |
+|  - Processes ops    |
+|  - Calls functions  |
+|  - Handles errors   |
++---------+-----------+
+          |
+          v
++---------+-----------+
+|     push()      |
+|  - Adds value to stack|
++---------+-----------+
+          |
+          v
++---------+-----------+
+|      pop()      |
+|  - Removes value from stack|
++---------+-----------+
+          |
+          v
++---------+-----------+
+|  runtimeError() |
+|  - Logs error       |
+|  - Halts execution  |
++---------+-----------+
+          |
+          v
++---------+-----------+
+|    toNumber()     |
+|  - Converts value to number|
++---------+-----------+
+          |
+          v
++---------+-----------+
+| valuesEqual()   |
+|  - Compares values  |
++---------+-----------+
+          |
+          v
++---------+-----------+
+|  execBinary()   |
+|  - Executes binary operations|
++---------+-----------+
+          |
+          v
++---------+-----------+
+|  execUnary()    |
+|  - Executes unary operations|
++---------+-----------+
+          |
+          v
++---------+-----------+
+| captureUpvalue()|
+|  - Captures upvalues|
++---------+-----------+
+          |
+          v
++---------+-----------+
+| closeUpvalues() |
+|  - Closes upvalues  |
++---------+-----------+
+          |
+          v
++---------+-----------+
+|   callValue()   |
+|  - Calls function/value|
++---------+-----------+
+          |
+          v
++---------+-----------+
+|  callClosure()  |
+|  - Calls closure    |
++---------+-----------+
+          |
+          v
++---------+-----------+
+| callNativeFn()
