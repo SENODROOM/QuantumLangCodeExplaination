@@ -2,36 +2,35 @@
 
 ## Function Purpose
 
-The `parseMulDiv` function is part of the Quantum Language compiler's parser and is responsible for parsing expressions involving multiplication (`*`), division (`/`), modulo (`%`), and floor division (`//`). This function ensures that these operations are correctly handled in the abstract syntax tree (AST) during the compilation process.
+The `parseMulDiv` function is an integral part of the Quantum Language compiler's parser, tasked with interpreting expressions that include multiplication (`*`), division (`/`), modulo (`%`), and floor division (`//`). This function ensures that these arithmetic operations are correctly parsed and structured within the abstract syntax tree (AST).
 
-## Why It Works This Way
+## Parameters and Return Value
 
-The function uses a loop to repeatedly parse multiplication, division, modulo, and floor division operations after parsing a power expression (`parsePower()`). This design allows for handling multiple consecutive arithmetic operations within an expression, ensuring correct precedence and associativity rules are respected.
+- **Parameters**: None explicitly listed in the provided code snippet.
+- **Return Value**: The function returns a unique pointer to an `ASTNode`, which represents the root of a subtree corresponding to the parsed expression involving multiplication, division, modulo, or floor division.
 
-- **Loop Structure**: The loop continues as long as any of the specified token types (`TokenType::STAR`, `TokenType::SLASH`, `TokenType::PERCENT`, `TokenType::FLOOR_DIV`) are found in the input stream.
-- **Precedence Handling**: By using a loop, the function can handle higher precedence operations first (e.g., exponentiation before multiplication).
-- **Associativity Handling**: Left associativity is naturally enforced by the order in which operations are parsed and combined.
+## How It Works
 
-## Parameters/Return Value
+1. **Initial Parsing**: The function begins by calling `parsePower()`, which parses the left-hand side of the expression. This initial call sets up the `left` variable with the result of the power operation.
 
-### Parameters
+2. **Loop for Multiplicative Operations**: The function then enters a loop that continues as long as the next token is one of the specified multiplicative operators (`*`, `/`, `%`, `//`). Inside the loop:
+   - **Line Number Retrieval**: The line number of the current token is retrieved using `current().line`.
+   - **Operator Consumption**: The operator token is consumed using `consume()`, and its value is stored in the `op` variable.
+   - **Right Hand Side Parsing**: Another call to `parsePower()` is made to parse the right-hand side of the expression, setting the `right` variable.
+   - **Tree Construction**: A new `ASTNode` is constructed using the `BinaryExpr` structure, encapsulating the operator and the two operands (`left` and `right`). This node is then assigned back to `left`, effectively building the AST from bottom to top.
 
-- None explicitly listed in the provided code snippet.
-
-### Return Value
-
-- `std::unique_ptr<ASTNode>`: A unique pointer to the root node of the AST representing the parsed expression. If there are no multiplicative or division operations, it returns the result of `parsePower()`.
+3. **Termination**: Once there are no more multiplicative operators following the current token, the loop terminates, and the function returns the final `left` node, which now represents the entire parsed expression.
 
 ## Edge Cases
 
-1. **No Operations**: If the input expression contains only one term without any multiplication, division, modulo, or floor division operators, the function will simply call `parsePower()` and return its result.
-2. **Mixed Precedence**: The function correctly handles mixed precedence scenarios by evaluating higher precedence operations first. For example, in the expression `2 * 3 + 4`, it will first evaluate `2 * 3` and then add `4`.
-3. **Empty Input**: While not explicitly shown in the code, if the input stream is empty or does not contain any valid tokens, the function should gracefully handle this case, possibly returning a default AST node or throwing an appropriate error.
+- **No Operators**: If the expression consists solely of a single term without any of the specified operators, the function will simply return the result of `parsePower()`.
+- **Nested Expressions**: The function handles nested expressions gracefully by recursively calling itself when encountering another `parseMulDiv()` construct within the parsed terms.
+- **Invalid Tokens**: If the next token after `parsePower()` is not one of the expected multiplicative operators, the loop condition fails, and the function returns the initial `left` node.
 
 ## Interactions with Other Components
 
-- **ParserExpressions.h**: This header file likely contains declarations for related functions such as `parsePower()`, which `parseMulDiv()` calls to get the initial term of the expression.
-- **TokenStream**: The function interacts with the `TokenStream` class to consume tokens and check their type. It uses methods like `current()`, `consume()`, and `check()` to manage the parsing process.
-- **ASTNode**: This class represents nodes in the abstract syntax tree. `parseMulDiv()` constructs new `BinaryExpr` nodes to represent each operation and combines them into the final AST structure.
+- **Tokenizer**: The `parseMulDiv` function relies on the tokenizer to provide the sequence of tokens for parsing. It uses methods like `current()` and `consume()` to interact with the tokenizer.
+- **Abstract Syntax Tree (AST)**: The function constructs nodes in the AST based on the parsed expressions. These nodes can be further processed by subsequent stages of the compiler, such as semantic analysis and code generation.
+- **Error Handling**: While not shown in the snippet, the function should integrate with the error handling mechanisms of the compiler to manage unexpected tokens or malformed expressions.
 
-In summary, `parseMulDiv` is a crucial component of the Quantum Language compiler's parser, designed to handle complex arithmetic expressions involving multiple operations. Its implementation leverages a loop to ensure correct precedence and associativity, making it robust and versatile for various input scenarios.
+By ensuring that all multiplicative operations are correctly parsed and integrated into the AST, the `parseMulDiv` function facilitates the compilation process, allowing for accurate representation and manipulation of quantum language expressions.
