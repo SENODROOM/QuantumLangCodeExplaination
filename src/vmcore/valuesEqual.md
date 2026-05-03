@@ -1,39 +1,32 @@
 # `valuesEqual` Function
 
 ## Purpose
-The `valuesEqual` function is designed to compare two quantum language values (`a` and `b`) for equality. It returns `true` if the values are equal and `false` otherwise.
+The `valuesEqual` function in the Quantum Language compiler is designed to compare two quantum language values (`a` and `b`) for equality. It returns `true` if the values are equal and `false` otherwise. This function ensures that values of different types are handled appropriately, providing a robust mechanism for comparing quantum data structures.
 
 ## Parameters
 - **`a`**: The first quantum language value to be compared.
 - **`b`**: The second quantum language value to be compared.
 
 ## Return Value
-- **`bool`**: Returns `true` if the values are equal, and `false` otherwise.
+- **`bool`**: Returns `true` if `a` and `b` are equal, and `false` otherwise.
 
-## Why It Works This Way
-The function checks the type of each value before comparing them. This ensures that comparisons are made only between compatible types, preventing runtime errors due to type mismatches. Here's how it works:
+## How it Works
+The function uses a series of type checks and comparisons to determine if two values are equal. Here’s how it works:
 
-1. **Nil Comparison**: If both values are `nil`, they are considered equal.
-2. **Boolean Comparison**: If both values are booleans, their truth values are directly compared using the `==` operator.
-3. **Numeric Comparison**: If both values are numbers, their numeric values are compared using the `==` operator.
-4. **String Comparison**: If both values are strings, their string content is compared using the `==` operator.
-5. **Array Comparison**: If both values are arrays, their memory addresses (pointers) are compared using the `==` operator. This means that two arrays are considered equal only if they point to the same location in memory, not if they contain the same elements.
+1. **Type Checks**:
+   - If both `a` and `b` are `nil`, they are considered equal.
+   - If both `a` and `b` are boolean values, their equality is determined by comparing the boolean states directly.
+   - If both `a` and `b` are numeric values, their equality is checked using the `==` operator.
+   - If both `a` and `b` are string values, their equality is verified by checking if the string contents match exactly.
+   - If both `a` and `b` are array values, their equality is determined by pointer comparison rather than content comparison. This means that only arrays stored at the same memory location are considered equal.
 
-## Edge Cases
-- **Type Mismatch**: Comparing different types (e.g., a boolean and a number) will always result in `false`.
-- **Empty Arrays**: Two empty arrays will be considered equal because their pointers are the same (assuming they were created at the same time).
-- **Different Memory Locations**: Even if two arrays contain the same elements, they will not be considered equal unless they point to the exact same memory location.
+2. **Edge Cases**:
+   - When comparing `nil` values, the function correctly identifies them as equal.
+   - For boolean, number, and string values, direct comparison operators ensure accurate results.
+   - Arrays are compared by reference, which can lead to unexpected behavior if arrays are copied or moved without proper handling. This is a design choice made for performance reasons but requires careful management when dealing with array comparisons.
 
-## Interactions With Other Components
-This function is likely used within the Quantum Language compiler's virtual machine core to ensure that operations like assignment or comparison between variables produce the expected results. For instance, when evaluating expressions or handling control flow, the VM might need to determine if two values are equal to proceed correctly.
+3. **Interactions with Other Components**:
+   - `valuesEqual` interacts with various parts of the compiler's architecture, including the virtual machine core (`VmCore.cpp`). It is used within the VM to check conditions and perform operations based on value equality.
+   - The function also plays a crucial role in the evaluation of expressions where value comparison is necessary. For example, in control flow statements like `if` and `while`, `valuesEqual` helps in determining whether the condition is met.
 
-Here is an example of how this function might be used in a larger context:
-```cpp
-// Assuming 'a' and 'b' are quantum language values
-if (valuesEqual(a, b)) {
-    // Perform some operation since 'a' and 'b' are equal
-} else {
-    // Handle the case where 'a' and 'b' are not equal
-}
-```
-In this example, `valuesEqual` helps in deciding whether to execute certain code paths based on the equality of two values.
+By implementing these type-specific comparisons and handling edge cases carefully, `valuesEqual` provides a reliable foundation for value-based operations in the Quantum Language compiler, ensuring that the virtual machine operates correctly and efficiently.
