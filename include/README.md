@@ -1,77 +1,67 @@
-# QuantumLanguage Compiler - Value.h
+# QuantumLanguage Compiler - Vm.h
 
 ## Overview
 
-The `include/Value.h` header file is an essential part of the QuantumLanguage compiler, focusing on defining the data types and structures used within the virtual machine (VM). This file includes various value types such as nil, booleans, numbers, strings, arrays, dictionaries, closures, native functions, instances, classes, bound methods, and pointers. The primary goal is to provide a robust and flexible system for representing values in the quantum programming language during both compile-time and run-time phases.
+The `include/Vm.h` header file is a crucial component of the QuantumLanguage compiler, focusing on defining the virtual machine (VM) that executes compiled code. This VM manages execution contexts, handles exceptions, and maintains the runtime environment, ensuring efficient and accurate execution of the program.
 
 ## Role in Compiler Pipeline
 
-The `Value.h` file plays a crucial role in the QuantumLanguage compiler's pipeline. It defines how values are stored, manipulated, and passed between different stages of the compilation process. Specifically:
+The Virtual Machine (`VM`) operates at the heart of the QuantumLanguage compiler's execution phase. It takes the output of the bytecode generation stage and runs it, managing the flow of control, handling function calls, and maintaining the state of the program during its execution. The VM is integral to the compiler's ability to produce executable programs from source code.
 
-1. **Compile-Time Representation**: During the parsing and semantic analysis phases, `Value.h` helps represent expressions, variables, and function calls as abstract syntax trees (ASTs).
-2. **Run-Time Execution**: In the VM layer, `Value.h` is used to manage the state of variables, handle operations like arithmetic and logical comparisons, and invoke functions or methods.
-3. **Memory Management**: By using smart pointers (`std::shared_ptr`) for many value types, `Value.h` ensures that memory is managed efficiently and safely, preventing leaks and dangling references.
+### Key Design Decisions and Why
 
-## Key Design Decisions and Why
+1. **Separation of Concerns**: By separating the VM’s responsibilities into different structures and classes, such as `CallFrame`, `ExceptionHandler`, and `Closure`, the design ensures that each part has a clear focus and can be independently developed and tested.
 
-### Use of Variants
+2. **Exception Handling**: The inclusion of an `ExceptionHandler` structure allows the VM to manage exceptions gracefully. This includes saving the current state before jumping to a handler and restoring it afterward, ensuring that the program remains consistent even in the face of errors.
 
-The `QuantumValue` struct uses `std::variant` to store different types of data. This choice was made because it allows for a single type (`QuantumValue`) to represent multiple possible values without needing to use unions or inheritance. It simplifies type checking and handling at compile time and run time.
+3. **Dynamic Memory Management**: Using smart pointers like `std::shared_ptr` for `Upvalue`, `Closure`, and other dynamic objects helps manage memory efficiently, preventing leaks and dangling references.
 
-### Smart Pointers
-
-For managing dynamic memory, `Value.h` extensively uses `std::shared_ptr`. This decision ensures automatic memory management, reducing the risk of memory leaks and dangling references. Additionally, it supports efficient sharing of objects across the VM, which can be beneficial for performance optimizations.
-
-### Custom Types for Specific Concepts
-
-Custom types like `Closure`, `QuantumClass`, `QuantumInstance`, and `QuantumBoundMethod` are defined to encapsulate specific concepts in quantum programming. For example, `Closure` represents a function along with its lexical environment, allowing for capturing and reusing variables.
+4. **Stack-Based Execution Model**: The VM uses a stack-based model for both local variables and function arguments, which simplifies the management of these resources and makes the implementation more straightforward.
 
 ## Major Classes/Functions Overview
 
-### QuantumValue
+### Upvalue
+- **Purpose**: Represents a captured variable from an enclosing scope that needs to be accessible within a nested function or closure.
+- **Key Features**:
+  - `cell`: A shared pointer to the actual value being captured.
+  - `closed`: Storage for the value after it has been popped from the stack.
 
-- **Purpose**: Represents any value in the quantum programming language.
-- **Data Members**:
-  - `Data`: A variant containing all possible value types.
-- **Methods**:
-  - Constructors for each value type.
-  - Type-checking methods (`isNil`, `isBool`, etc.).
+### Closure
+- **Purpose**: Encapsulates a chunk of bytecode along with any upvalues it needs to access outer variables.
+- **Key Features**:
+  - `chunk`: A shared pointer to the bytecode chunk.
+  - `upvalues`: A vector of shared pointers to upvalues.
+  - `name`: The name of the closure, often used for debugging purposes.
 
-### QuantumPointer
+### CallFrame
+- **Purpose**: Holds information about the current function call, including the closure being executed, the instruction pointer, and the base index for local variables.
+- **Key Features**:
+  - `closure`: A shared pointer to the closure being called.
+  - `ip`: The current instruction pointer within the bytecode chunk.
+  - `stackBase`: The starting index of local variables on the value stack.
 
-- **Purpose**: Represents a pointer to a variable within the VM.
-- **Data Members**:
-  - `cell`: A shared pointer to the actual variable storage.
-  - `varName`: The name of the variable for display and debugging purposes.
-  - `offset`: An offset for pointer arithmetic.
-- **Methods**:
-  - `isNull()`: Checks if the pointer is null.
-  - `deref()`: Dereferences the pointer, throwing an exception if it is null.
+### ExceptionHandler
+- **Purpose**: Defines how the VM should handle exceptions, including where to jump and how to unwind the stack.
+- **Key Features**:
+  - `catchIp`: The instruction pointer to jump to when an exception occurs.
+  - `frameDepth`: The number of call frames to unwind to.
+  - `stackDepth`: The number of values to restore on the stack.
 
-### QuantumNil
-
-- **Purpose**: Represents the nil value, often used to indicate the absence of a value.
-- **Usage**: Used internally where a value is required but not provided.
-
-### QuantumNativeFunc and QuantumNative
-
-- **Purpose**: Represent native functions written in C++ that can be invoked from the quantum programming language.
-- **Data Members**:
-  - `name`: The name of the native function.
-  - `fn`: The function itself, taking a vector of `QuantumValue`s and returning a `QuantumValue`.
+### VM Class
+- **Overview**: Manages the entire execution process, including running chunks, handling exceptions, and maintaining the runtime environment.
+- **Key Methods**:
+  - `run(std::shared_ptr<Chunk> chunk)`: Executes a top-level script by running its corresponding bytecode chunk.
+  - `registerNatives()`: Registers native functions that can be called from the bytecode.
+  - `runFrame(size_t stopDepth = 0)`: Runs a single call frame until it reaches a specified stopping point.
+  - `push(QuantumValue v)`, `pop()`, `peek(int offset = 0)`: Manage the value stack, allowing pushing, popping, and peeking at values.
+  - `callValue(QuantumValue callee, int argCount, int line)`, `callClosure(std::shared_ptr<Closure> closure, int argCount, int line)`, `callNativeFn(std::shared_ptr<QuantumNative> fn, int argCount, int line)`, `callClass(std::shared_ptr<QuantumClass> klass, int argCount, int line)`, `callBuiltinMethod(...)`: Handle various types of function calls, including built-in methods and class constructors.
 
 ## Tradeoffs
 
-### Memory Efficiency vs. Simplicity
+1. **Memory Usage vs. Performance**: Using smart pointers for dynamic memory management increases overhead but provides better safety and reduces manual memory management errors. However, this might slightly impact performance compared to raw pointers.
 
-Using `std::variant` and smart pointers adds complexity to the codebase but significantly improves memory efficiency and safety. However, it may require more careful handling and understanding of these features to maintain performance and avoid potential issues.
+2. **Complexity vs. Maintainability**: Separating concerns into multiple classes and structs improves maintainability by making the codebase easier to navigate and understand. However, it also adds complexity, potentially increasing development time.
 
-### Flexibility vs. Performance
+3. **Flexibility vs. Simplicity**: Allowing dynamic memory management and separate execution contexts offers high flexibility, enabling complex features like closures and exceptions. But this comes at the cost of simplicity, requiring careful handling of memory and context switching.
 
-The flexibility of having a single type (`QuantumValue`) capable of storing multiple value types comes at the cost of potentially reduced performance compared to specialized types. However, this tradeoff is deemed acceptable given the benefits of simplicity and safety.
-
-### Compile-Time vs. Run-Time Overhead
-
-While `std::variant` provides type-safe alternatives at compile time, it introduces some overhead at run time due to the need to check and handle different types dynamically. This is generally considered an acceptable tradeoff for the benefits it offers.
-
-In conclusion, the `include/Value.h` header file is a fundamental component of the QuantumLanguage compiler, providing a versatile and safe way to represent and manage values throughout the compilation process. Its design choices reflect a balance between flexibility, safety, and performance, making it well-suited for the needs of quantum programming languages.
+In conclusion, the `Vm.h` header file plays a pivotal role in the QuantumLanguage compiler’s execution phase, providing a robust framework for managing the runtime environment and executing compiled code efficiently. Its design choices balance safety, flexibility, and performance, ensuring that the compiler can handle a wide range of programming scenarios effectively.
