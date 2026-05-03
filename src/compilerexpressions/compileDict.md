@@ -2,44 +2,61 @@
 
 ## Overview
 
-The `compileDict` function is responsible for compiling dictionary expressions in the Quantum Language compiler. It processes pairs of keys and values to construct a dictionary object. If the dictionary contains a spread operator (`...`), it uses special helper functions to merge dictionaries; otherwise, it constructs the dictionary directly.
+The `compileDict` function is responsible for compiling dictionary expressions in the Quantum Language compiler. It processes pairs of keys and values to construct a dictionary object. If the dictionary contains a spread operator (`...`), it uses special helper functions to merge dictionaries efficiently.
 
-## Parameters/Return Value
+## Parameters
 
-- **Parameters**: 
-  - `e`: A reference to an expression node representing a dictionary literal. This node contains pairs of keys and values.
-  
-- **Return Value**: 
-  - The function does not explicitly return a value but rather emits bytecode instructions that represent the compiled dictionary.
+- `e`: A reference to an expression node representing the dictionary to be compiled.
 
-## How It Works
+## Return Value
 
-1. **Check for Spread Operator**:
-   - The function first checks if any key in the dictionary is `nullptr`. If it finds a `nullptr`, it sets the `hasSpread` flag to `true` and breaks out of the loop. This indicates the presence of a spread operator in the dictionary.
-
-2. **Emit Bytecode for Dictionary Creation**:
-   - If the dictionary contains a spread operator, the function starts by emitting an instruction to create an empty dictionary using `Op::MAKE_DICT`.
-   - It then iterates over each pair in the dictionary.
-     - If the key is `nullptr`, indicating a spread operator, the function emits an instruction to load the global variable `__dict_merge__`, swaps the current dictionary on top of the stack, compiles the value expression, and calls the `__dict_merge__` function with two arguments (the current dictionary and the value).
-     - For regular key-value pairs, it emits an instruction to load the global variable `__dict_set__`, swaps the current dictionary on top of the stack, compiles the key expression, compiles the value expression, and calls the `__dict_set__` function with three arguments (the current dictionary, the key, and the value).
-
-3. **Direct Dictionary Construction**:
-   - If the dictionary does not contain a spread operator, the function simply iterates over each key-value pair, compiles both the key and the value expressions, and finally emits an instruction to create the dictionary using `Op::MAKE_DICT` with the size of the dictionary as an argument.
-
-4. **Bytecode Emission**:
-   - Throughout the process, the function uses the `emit` method to output bytecode instructions. Each instruction includes an operation code (`Op`), optional operands, and the line number where the operation occurs.
+This function does not explicitly return a value. Instead, it emits bytecode instructions that represent the compilation of the dictionary expression.
 
 ## Edge Cases
 
-- **Empty Dictionary**: If the dictionary is empty, the function will not emit any instructions related to merging or setting items, directly moving to creating an empty dictionary.
-- **Single Key-Value Pair**: If the dictionary contains only one key-value pair, the function will compile the key and value separately and then create a dictionary with one item.
-- **Dictionary with Only Spread Operator**: If the dictionary consists solely of a spread operator without any explicit key-value pairs, the function will still create an empty dictionary and then call `__dict_merge__` with `None` as the second argument.
+1. **Empty Dictionary**: If the dictionary is empty, the function will not emit any instructions since there are no key-value pairs to process.
+2. **Dictionary with Spread Operator**: The function handles dictionaries containing a spread operator (`...`). When encountering such a pair, it calls a special helper function `__dict_merge__` to merge the existing dictionary with another dictionary.
+3. **Non-Spread Key-Value Pairs**: For regular key-value pairs without the spread operator, the function compiles each key and value separately and then constructs the dictionary using the `MAKE_DICT` opcode.
 
 ## Interactions with Other Components
 
-- **Expression Compilation**: The `compileDict` function interacts with the `compileExpr` function to compile individual key and value expressions within the dictionary.
-- **Global Variable Loading**: When encountering a spread operator, the function loads the global variable `__dict_merge__` to handle dictionary merging.
-- **Dictionary Operations**: The function uses global variables `__dict_set__` and `__dict_merge__` to perform dictionary operations. These functions are assumed to be defined elsewhere in the codebase.
-- **Bytecode Emission**: The `emit` method is used to generate bytecode instructions, which are essential for executing the compiled program. This method likely belongs to a class responsible for managing the compilation process.
+- **Helper Functions**: The function interacts with helper functions like `__dict_merge__` and `__dict_set__` when handling spread operators and setting individual key-value pairs in the dictionary, respectively.
+- **Bytecode Emission**: The function relies on the `emit` method to generate bytecode instructions. This method is part of the compiler's backend infrastructure responsible for translating high-level language constructs into machine code or intermediate representations suitable for further processing.
+- **Expression Compilation**: Inside the loop, the function calls `compileExpr` on both the key and value of each pair. This ensures that the keys and values themselves are properly compiled before being used to construct the dictionary.
 
-Overall, the `compileDict` function efficiently handles dictionary literals, including those with spread operators, by leveraging existing helper functions and bytecode instructions.
+## Detailed Explanation
+
+### Handling Spread Operators
+
+When the dictionary contains a spread operator (`...`), the function first checks if any of the key-value pairs have a null key, indicating the presence of a spread operator. If found, it sets the `hasSpread` flag to `true`.
+
+If `hasSpread` is `true`, the function proceeds as follows:
+1. Emits the `MAKE_DICT` opcode to create an empty dictionary.
+2. Iterates over each key-value pair in the dictionary.
+3. When encountering a pair with a null key, it emits the `LOAD_GLOBAL` opcode to load the `__dict_merge__` helper function from the global namespace.
+4. Swaps the current dictionary onto the stack and compiles the value of the spread pair.
+5. Calls the `__dict_merge__` function with two arguments (the current dictionary and the spread dictionary) using the `CALL` opcode.
+6. Continues to the next iteration without emitting additional instructions for the spread pair itself.
+
+For non-spread key-value pairs, the function performs the following steps:
+1. Emits the `LOAD_GLOBAL` opcode to load the `__dict_set__` helper function from the global namespace.
+2. Swaps the current dictionary onto the stack.
+3. Compiles the key of the pair.
+4. Compiles the value of the pair.
+5. Calls the `__dict_set__` function with three arguments (the current dictionary, the key, and the value) using the `CALL` opcode.
+
+Finally, after processing all pairs, the function emits the `MAKE_DICT` opcode again to finalize the construction of the dictionary, passing the size of the dictionary as an argument.
+
+### Example Usage
+
+Consider the following Quantum Language dictionary expression:
+
+```ql
+let myDict = { "a": 1, ...anotherDict, "c": 3 };
+```
+
+In this example, `myDict` is constructed with a spread operator. The `compileDict` function would handle the spread operator by calling the `__dict_merge__` helper function to merge `anotherDict` into the new dictionary.
+
+### Conclusion
+
+The `compileDict` function is crucial for handling dictionary expressions in the Quantum Language compiler. By checking for spread operators and using appropriate helper functions, it efficiently constructs dictionaries while ensuring compatibility with other parts of the compiler's backend infrastructure.
