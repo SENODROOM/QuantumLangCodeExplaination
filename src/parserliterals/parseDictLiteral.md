@@ -2,51 +2,64 @@
 
 ## Overview
 
-The `parseDictLiteral` function in the Quantum Language compiler is responsible for parsing dictionary literals from the source code. Dictionary literals are represented using curly braces `{}` and can contain pairs of keys and values. This function handles both standard dictionary entries and shorthand properties.
+The `parseDictLiteral` function in the Quantum Language compiler is designed to parse dictionary literals from the source code. Dictionary literals are structured using curly braces `{}`, containing pairs of keys and values. This function is crucial for handling data structures that require key-value mappings in the language.
 
-## Parameters and Return Value
+### Why It Works This Way
 
-- **Parameters**: None explicitly listed in the provided snippet, but it relies on global state such as `current()` and `pos`.
-- **Return Value**: An instance of `DictLiteral`, which represents the parsed dictionary literal.
+The implementation of `parseDictLiteral` follows a systematic approach to ensure accurate parsing of dictionary literals:
 
-## How It Works
+1. **Initialization**: The function begins by recording the line number where the dictionary literal starts (`ln`). It then expects a left brace `{`, indicating the start of the dictionary, and skips any new lines before proceeding.
 
-### Step-by-Step Parsing Process
+2. **Parsing Pairs**: Inside a loop, the function continuously parses key-value pairs until a right brace `}` is encountered or the end of the file is reached. Each pair consists of a key followed by a colon `:` and a value.
 
-1. **Initialization**:
-   - The function starts by recording the current line number (`ln`) where the dictionary literal begins.
-   - It then checks if the next token is an opening brace `{`. If not, it throws an error indicating that a brace was expected.
+3. **Handling Spreads**: The function checks for the spread operator `...`. If found, it consumes the operator and recursively parses an expression, treating it as a spread expression. A special sentinel (`nullptr`) is used to indicate that the key is a spread expression.
 
-2. **Skipping Newlines**:
-   - After expecting the opening brace, the function skips any newline characters to ensure proper parsing of the dictionary content.
+4. **Key Parsing**: Keys can be either quoted strings, numbers, bare identifiers, or type keywords. The function handles each case appropriately:
+   - **Bare Identifiers**: If the next token is a colon `:`, the current identifier is treated as a bare string key.
+   - **Shorthand Properties**: If the next token is a comma `,` or a right brace `}`, the current identifier is treated as a shorthand property, where the value is implicitly taken from the same variable name.
 
-3. **Parsing the Dictionary Body**:
-   - A `while` loop is used to iterate through the tokens until either a closing brace `}` is encountered or the end of the input is reached.
-   - Inside the loop, there are two main branches to handle different scenarios:
-     - **Spread Syntax**: If the current token is an identifier followed by "...", it indicates a spread syntax (`{...obj}`). The function consumes the "...", parses the expression following it, and adds a pair to the dictionary with a `nullptr` key. This special sentinel is used to indicate that the pair is a spread.
-     - **Standard Key-Value Pairs**: For standard key-value pairs, the function checks if the current token is an identifier, a type keyword, or a string literal. If these conditions are met, it attempts to determine if the next token is a colon `:`:
-       - If the next token is a colon, it treats the current token as a bare string key and converts it into a `StringLiteral` node.
-       - If the next token is a comma `,` or a closing brace `}`, it treats the current token as a shorthand property. In this case, it also converts the token into a `StringLiteral` node but sets a flag (`isShorthand`) to indicate that this is a shorthand property.
-       - If neither condition is met, it calls `parseExp` to parse the key expression.
+5. **Value Parsing**: After parsing the key, the function calls `parseExp()` to parse the value associated with the key.
 
-4. **Handling Commas and Closing Braces**:
-   - After processing each key-value pair, the function checks if the next token is a comma `,`. If so, it skips any newlines and continues to the next iteration.
-   - If the next token is a closing brace `}`, the loop breaks, indicating the end of the dictionary literal.
+6. **Edge Cases**:
+   - The function gracefully handles missing colons between keys and values.
+   - It correctly processes nested dictionaries and arrays within dictionary literals.
+   - The presence of comments or new lines is managed to maintain the integrity of the parsed structure.
 
-5. **Returning the Result**:
-   - Once the loop completes, the function returns the parsed `DictLiteral`.
+7. **Interactions with Other Components**:
+   - The function interacts with the `Tokenizer` to retrieve the next token and determine its type.
+   - It uses the `ErrorReporter` to report syntax errors if unexpected tokens are encountered.
+   - The parsed AST nodes are constructed and added to the `dict.pairs` vector, which represents the dictionary literal in the abstract syntax tree.
 
-## Edge Cases
+## Parameters/Return Value
 
-- **Empty Dictionary Literal**: If the dictionary literal is empty (i.e., only contains an opening brace followed by a closing brace), the function will correctly return an empty `DictLiteral`.
-- **Invalid Spread Syntax**: If the spread syntax is used incorrectly (e.g., without a preceding object), the function will throw an appropriate error.
-- **Misplaced Comma**: If a comma is placed after a closing brace, the function will skip the comma and continue parsing, potentially leading to unexpected behavior.
+- **Parameters**:
+  - None explicitly listed; however, it relies on global state such as the current position in the token stream (`pos`), the list of tokens (`tokens`), and the tokenizer functions (`current()`, `consume()`, etc.).
 
-## Interactions with Other Components
+- **Return Value**:
+  - Returns a `DictLiteral` object representing the parsed dictionary literal. The `DictLiteral` contains a vector of pairs, where each pair consists of a key and a value. If a spread expression is encountered, the key is set to `nullptr`.
 
-- **Token Stream**: The function uses the global token stream (`tokens`) and its position (`pos`) to read and consume tokens.
-- **Error Handling**: If the expected tokens are not found during parsing, the function throws errors using mechanisms like `expect` and `consume`.
-- **AST Construction**: The function constructs an Abstract Syntax Tree (AST) by creating nodes such as `StringLiteral` and adding them to the `dict.pairs`.
-- **Utility Functions**: The function utilizes utility functions like `skipNewlines` and `match` to manage whitespace and token matching efficiently.
+## Example Usage
 
-This comprehensive approach ensures that the `parseDictLiteral` function accurately parses dictionary literals according to the Quantum Language's grammar rules, handling various edge cases and interacting seamlessly with other parts of the compiler.
+Here's an example of how `parseDictLiteral` might be called and used in the context of the Quantum Language compiler:
+
+```cpp
+// Assuming 'tokenizer' has been initialized and positioned at the start of the dictionary literal
+auto dictLiteral = parseDictLiteral();
+
+// Now 'dictLiteral' contains the parsed dictionary literal, which can be further processed or analyzed
+for (const auto& pair : dictLiteral.pairs)
+{
+    if (pair.first != nullptr)
+    {
+        // Process regular key-value pair
+        std::cout << "Key: " << pair.first->toString() << ", Value: " << pair.second->toString() << std::endl;
+    }
+    else
+    {
+        // Handle spread expression
+        std::cout << "Spread Expression: " << pair.second->toString() << std::endl;
+    }
+}
+```
+
+This example demonstrates how the parsed dictionary literal can be iterated over to access individual key-value pairs or spread expressions.
