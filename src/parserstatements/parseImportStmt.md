@@ -2,62 +2,51 @@
 
 ## Purpose
 
-The `parseImportStmt` function is responsible for parsing import statements in the Quantum Language source code. It constructs an `ImportStmt` object that represents the parsed import statement and returns a unique pointer to an `ASTNode` containing this statement.
-
-## How It Works
-
-### Parsing Structure
-
-1. **Module Specification**:
-   - If the current token indicates a `from` statement (`isFrom` is true):
-     - The function expects an identifier representing the module name (e.g., `module.sub`).
-     - After the module name, it expects the keyword `import`.
-   - If not a `from` statement (`isFrom` is false):
-     - The function assumes direct imports without a base module.
-
-2. **Import Items**:
-   - The function enters a loop where it repeatedly parses individual import items until it encounters a token that is neither a comma nor a newline/semicolon.
-   - For each import item:
-     - It expects an identifier representing the item's name (e.g., `A`, `B`).
-     - Optionally, it checks for the `as` keyword followed by another identifier to specify an alias for the imported item.
-
-3. **Whitespace Handling**:
-   - After parsing the import statement, the function consumes any trailing newlines or semicolons to ensure proper parsing of subsequent statements.
-
-4. **Return Value**:
-   - The function returns a unique pointer to an `ASTNode` containing the parsed `ImportStmt`. The node includes the line number where the statement was found.
+The `parseImportStmt` function parses import statements in the Quantum Language source code. It constructs an `ImportStmt` object representing the parsed import statement and returns a unique pointer to an `ASTNode` containing this statement.
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - None explicitly listed in the provided code snippet. However, based on context and typical usage in parsers, this function likely takes a reference to the parser state, which includes tokens and their positions.
+  - None
 
 - **Return Value**:
-  - Returns a `std::unique_ptr<ASTNode>` containing the parsed `ImportStmt`.
+  - Returns a unique pointer (`std::unique_ptr`) to an `ASTNode`, which contains an `ImportStmt` object. The `ImportStmt` object holds information about the imported items and their aliases.
+
+## How It Works
+
+1. **Initialization**: 
+   - The function initializes an `ImportStmt` object named `stmt`.
+   - It retrieves the current line number (`ln`) using `current().line`.
+
+2. **Parsing Based on Statement Type**:
+   - If the current token indicates a `from` statement (`isFrom` is true), it processes the import statement in the form of `from module.sub import A, B`. However, currently, it only reads an identifier (e.g., `module.sub`).
+     - The function expects a `TokenType::IDENTIFIER` (the module name) and then checks for the `TokenType::IMPORT` keyword.
+     - It enters a loop where it repeatedly expects identifiers (item names to be imported) and optionally aliases (using the `as` keyword). Each item is stored in an `ImportStmt::Item` structure within the `stmt.imports` vector.
+     - The loop continues until a comma is encountered, indicating another item to import.
+   - If the current token indicates a direct import statement (`isFrom` is false), it processes the import statement in the form of `import A as B, C`.
+     - The function sets the `module` field of `stmt` to an empty string since there's no base module being specified.
+     - It enters a similar loop to the previous case but without expecting a module name initially.
+
+3. **Consuming Whitespace**:
+   - After parsing the import items, the function consumes any trailing whitespace or newlines using a loop that checks for either `TokenType::NEWLINE` or `TokenType::SEMICOLON`.
+
+4. **Returning AST Node**:
+   - Finally, the function creates an `ASTNode` containing the parsed `ImportStmt` object and its line number (`ln`). It returns a unique pointer to this `ASTNode`.
 
 ## Edge Cases
 
-1. **Invalid Syntax**:
-   - If the syntax deviates from expected patterns (e.g., missing `import` keyword after `from`), the function will throw exceptions indicating the expected token.
+- **Empty Module Name**: If the `from` statement does not specify a module name, the current implementation treats it as an error and expects a module name. This can be improved to handle cases where direct imports are allowed without specifying a module.
+  
+- **Missing Aliases**: The function allows importing items without specifying aliases. In such cases, the `alias` field in the `ImportStmt::Item` will remain empty.
 
-2. **Empty Module Name**:
-   - When parsing direct imports, the function sets the module name to an empty string (`""`). This implies that the import is happening at the global level rather than within a specific module.
-
-3. **Trailing Commas**:
-   - The function handles trailing commas gracefully by continuing to parse import items until it encounters a non-comma token.
+- **Trailing Commas**: The function handles trailing commas gracefully by continuing to consume tokens until a newline or semicolon is encountered.
 
 ## Interactions With Other Components
 
-1. **Token Stream**:
-   - The function relies on the token stream managed by the parser. It uses methods like `current()`, `expect()`, and `match()` to navigate through the tokens.
+- **Tokenizer**: The function uses the tokenizer to retrieve the current token and check subsequent tokens. It relies on the tokenizer to identify different types of tokens like `IDENTIFIER`, `IMPORT`, `AS`, `COMMA`, etc.
 
-2. **Abstract Syntax Tree (AST)**:
-   - Upon successful parsing, the function creates an `ImportStmt` object and encapsulates it within an `ASTNode`. This AST node is then returned to be integrated into the overall AST structure of the program.
+- **Error Handling**: The function includes basic error handling to ensure that expected tokens are present. For example, it expects an `IDENTIFIER` after `'from'` and `'import'` keywords, and an `IDENTIFIER` after `'as'`.
 
-3. **Error Handling**:
-   - The function incorporates error handling mechanisms to manage unexpected tokens or syntax errors. Exceptions are thrown when the expected tokens are not encountered, ensuring robustness during parsing.
+- **Abstract Syntax Tree (AST)**: The function constructs an `ImportStmt` object and wraps it in an `ASTNode`. This `ASTNode` is later used by other parts of the compiler to generate code, perform semantic analysis, or optimize the program.
 
-4. **Line Number Tracking**:
-   - The function captures the line number of the import statement using `current().line` and stores it in the `ln` variable. This information is crucial for debugging and error reporting purposes.
-
-This comprehensive approach ensures that the `parseImportStmt` function can accurately parse various forms of import statements in the Quantum Language, providing a solid foundation for further compilation steps.
+This function is crucial for correctly interpreting and processing import statements in the Quantum Language, ensuring that the abstract syntax tree accurately reflects the intended usage of imported modules and items.
