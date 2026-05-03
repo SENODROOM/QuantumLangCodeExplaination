@@ -1,36 +1,53 @@
 # parseCTypeVarDecl
 
-The `parseCTypeVarDecl` function in the Quantum Language compiler is designed to parse a variable declaration of C-like types, including handling pointers, const qualifiers, and member function pointers. This function ensures that the syntax of the variable declaration adheres to the rules specified for C-like languages within the compiler's grammar.
+## Overview
 
-## What It Does
-
-- **Consumes Pointer Stars**: The function first checks for any pointer stars (`*`) and const qualifiers (`const`) between the type and the variable name. For example, it can handle declarations like `int* p`, `int *p`, `int* const p`, and `const int* const p`.
-- **Handles Function Pointers**: If the next token is an open parenthesis (`(`), it treats the declaration as a function pointer. It then consumes the parentheses and continues checking for pointer stars and const qualifiers inside them.
-- **Discards Class Names for Member Pointers**: If the declaration includes a class name followed by two colons (`::`), it discards the class name and only keeps the variable name. This is typical for member function pointers.
-- **Accepts Variable/Parameter Names**: Finally, the function accepts either an identifier token or a keyword token (such as `INPUT` or `PRINT`) as the variable or parameter name. If neither is found, it raises an error indicating that a variable name was expected after the type.
-
-## Why It Works This Way
-
-This approach allows the compiler to accurately parse complex variable declarations that include various modifiers and special syntax constructs common in C-like languages. By breaking down the parsing process into multiple steps, each responsible for a specific part of the declaration, the function ensures that all possible combinations of syntax are handled correctly.
+The `parseCTypeVarDecl` function in the Quantum Language compiler is responsible for parsing variable declarations that follow C-like syntax rules. It specifically handles declarations involving pointers, const qualifiers, and member function pointers. The function ensures that the syntax of the variable declaration adheres to the specified rules and constructs appropriate data structures to represent the parsed declaration.
 
 ## Parameters/Return Value
 
-### Parameters
-- None explicitly defined in the provided code snippet.
+- **Parameters**:
+  - None explicitly listed in the provided code snippet, but it operates on global state (`current()` and `tokens`).
 
-### Return Value
-- The function returns a `Token` representing the parsed variable or parameter name.
+- **Return Value**:
+  - The function returns a `VariableDeclaration` object representing the parsed variable declaration.
+
+## How It Works
+
+### Step-by-Step Parsing Process
+
+1. **Initialization**:
+   - The function starts by storing the current line number in the variable `ln`.
+
+2. **Handling Pointers and Const Qualifiers**:
+   - The function checks for any pointer stars (`*`) or const qualifiers (`const`) immediately following the type. These can appear before or after the variable name.
+   - If a star (`*`) is found, it sets the `isPointer` flag to `true`.
+   - If a const qualifier is found, it continues to consume tokens until all consecutive const qualifiers have been processed.
+
+3. **Checking for Function Pointers**:
+   - The function then checks if there is an opening parenthesis `(`, which might indicate a function pointer declaration.
+   - If a parenthesis is found, it consumes the token and processes any additional pointer stars or const qualifiers within the parentheses.
+
+4. **Handling Member Function Pointers**:
+   - The function further checks if the next two tokens are colons (`:`), indicating a potential member function pointer declaration.
+   - If these tokens are found, it consumes them along with the class name (which is discarded). It also processes any additional pointer stars or const qualifiers that may follow.
+
+5. **Parsing Variable Name**:
+   - Finally, the function accepts either an identifier token or a keyword token (such as `input` or `print`) as the variable name.
+   - If an identifier is found, it consumes the token.
+   - If a keyword is found, it consumes the token.
+   - If neither is found, it expects an identifier and throws an error message.
 
 ## Edge Cases
 
-- **Empty Declaration**: The function will raise an error if it encounters a type without a subsequent variable name.
-- **Invalid Qualifiers**: The function will ignore invalid qualifiers (e.g., `volatile`) but will still treat valid ones (`const`, `*`) correctly.
-- **Misplaced Parentheses**: If parentheses are encountered where they are not expected (e.g., outside a function pointer declaration), the function will raise an error.
+- **Empty Declaration**: The function should handle cases where there is no variable name or identifier following the type declaration.
+- **Invalid Syntax**: The function should correctly identify and handle invalid syntax patterns, such as missing colons or incorrect placement of const qualifiers.
+- **Complex Types**: The function should be able to parse complex types, including nested pointers and multiple const qualifiers.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens that represent the source code being compiled. It uses methods like `current()`, `check()`, and `consume()` to interact with the tokenizer.
-- **Grammar Rules**: The function implements specific grammar rules for parsing variable declarations. These rules are defined elsewhere in the compiler's codebase and ensure that the parsed declarations conform to the language's syntax.
-- **Error Handling**: If the function encounters unexpected tokens or malformed declarations, it uses error-handling mechanisms to report issues back to the user, guiding them towards correcting their input.
+- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens (`current()`, `tokens`, `consume()`).
+- **Error Handling**: The function uses error handling mechanisms to report syntax errors when expected tokens are not found.
+- **Symbol Table**: While not explicitly shown in the provided code snippet, the parsed variable declarations would likely be added to a symbol table for subsequent semantic analysis and code generation phases.
 
-By carefully managing the parsing of different parts of the variable declaration and interacting seamlessly with the tokenizer and grammar rules, the `parseCTypeVarDecl` function provides robust support for C-like variable declarations within the Quantum Language compiler.
+By understanding how `parseCTypeVarDecl` works, developers can better appreciate the intricacies involved in parsing C-like type declarations and ensure that their implementations adhere to the correct syntax rules.
