@@ -1,67 +1,37 @@
 # ParserCore Component of the Quantum Language Compiler
 
-The `ParserCore` component is a crucial part of the Quantum Language (QL) compiler, responsible for parsing the input source code into an abstract syntax tree (AST). This process involves lexical analysis and syntactic analysis to ensure that the source code adheres to the language's grammar rules.
+The `ParserCore` component is a fundamental module in the Quantum Language (QL) compiler, tasked with converting the input source code into an Abstract Syntax Tree (AST). This transformation ensures that the source code conforms to the language's grammatical structure, enabling subsequent compilation stages to proceed accurately.
 
 ## Directory Structure
 
 ```
 parsercore/
 ├── check.cpp
-├── check.h
 ├── match.cpp
-├── match.h
 ├── atEnd.cpp
-├── atEnd.h
 ├── skipNewlines.cpp
-├── skipNewlines.h
 └── parse.cpp
-    └── parse.h
 ```
 
-## Files and Functions
+### Files Overview
 
-### check.cpp/check.h
-
-- **Purpose**: Contains utility functions to verify conditions during parsing.
-- **Functions**:
-  - `bool check(const std::string& condition)`: Checks if a given condition is met.
-  - `void assertCheck(bool condition, const std::string& message)`: Asserts that a condition is true; throws an error if false.
-
-### match.cpp/match.h
-
-- **Purpose**: Implements functions to match specific patterns in the input source code.
-- **Functions**:
-  - `bool match(const std::string& pattern)`: Attempts to match a given pattern at the current position in the input.
-  - `std::string getMatchedText()`: Retrieves the text that was matched.
-
-### atEnd.cpp/atEnd.h
-
-- **Purpose**: Provides functionality to determine if the end of the input has been reached.
-- **Functions**:
-  - `bool atEnd()`: Returns true if the parser has reached the end of the input source code.
-
-### skipNewlines.cpp/skipNewlines.h
-
-- **Purpose**: Handles the skipping of newline characters in the input source code.
-- **Functions**:
-  - `void skipNewlines()`: Skips over all consecutive newline characters until a non-newline character is encountered.
-
-### parse.cpp/parse.h
-
-- **Purpose**: The main file containing the implementation of the parsing logic.
-- **Classes**:
-  - `class Parser`: Manages the state and operations of the parser.
-- **Functions**:
-  - `Node* parseProgram()`: Parses the entire program from the input source code.
-  - `Node* parseStatement()`: Parses individual statements within the program.
-  - `Node* parseExpression()`: Parses expressions used within statements.
+1. **check.cpp**: Contains utility functions to verify the correctness of tokens or patterns within the source code.
+2. **match.cpp**: Implements algorithms for matching specific token sequences against the grammar rules.
+3. **atEnd.cpp**: Provides functionality to determine whether the end of the source code has been reached during parsing.
+4. **skipNewlines.cpp**: Includes methods to efficiently skip over newline characters, ensuring that they do not interfere with the parsing process.
+5. **parse.cpp**: The primary file where the main parsing logic resides, utilizing the aforementioned utilities to construct the AST.
 
 ## Overall Flow
 
-1. **Initialization**: The `Parser` class is initialized with the input source code.
-2. **Lexical Analysis**: The `skipNewlines` function is called to handle any leading newlines. Then, the `match` function checks for specific tokens or patterns.
-3. **Syntactic Analysis**: The `parseProgram`, `parseStatement`, and `parseExpression` functions recursively build the AST based on the parsed tokens.
-4. **Validation**: The `check` function ensures that the parsed structure meets the required criteria before proceeding.
-5. **Completion**: The parsing continues until the end of the input is reached, as determined by the `atEnd` function.
+The `ParserCore` operates through several key steps:
 
-By following this structured approach, `ParserCore` efficiently transforms the quantum language source code into a detailed AST, which can then be further processed by subsequent stages of the compiler.
+1. **Lexical Analysis**: Tokens are extracted from the source code using a lexer (not shown here but integral to `ParserCore`).
+2. **Syntactic Analysis**:
+   - **Initialization**: The parser initializes itself, preparing to start parsing from the beginning of the source code.
+   - **Token Matching**: Using the `match` function, the parser checks and matches tokens against expected grammar rules.
+   - **Tree Construction**: As valid tokens are matched, the parser constructs nodes in the AST. Each node represents a part of the source code that corresponds to a rule in the grammar.
+   - **Error Handling**: If a token sequence does not match any expected rule, the parser raises an error, indicating a potential issue in the source code.
+   - **Completion Check**: The `atEnd` function is used to confirm when the entire source code has been successfully parsed.
+3. **Post-Parsing Actions**: After constructing the AST, the parser may perform additional actions such as semantic analysis or optimization before passing the AST to the next stage of the compiler.
+
+By meticulously handling each phase, the `ParserCore` ensures robust and accurate parsing of the Quantum Language source code, setting the foundation for successful compilation.
