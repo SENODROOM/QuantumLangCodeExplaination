@@ -4,38 +4,35 @@ The `skipBlockComment` function is designed to handle the skipping of block comm
 
 ## What It Does
 
-This function consumes characters from the input source code stream (`src`) until it encounters the end of a block comment, which is marked by the sequence "*/". Once the end of the block comment is found, the function returns, effectively skipping over the entire block comment without further processing.
+This function consumes characters from the input source code stream (`src`) until it encounters the end of a block comment, which is marked by "*/". Once the end of the comment is found, the function returns, effectively skipping over the entire block comment without processing its contents as part of the token stream.
 
 ## Why It Works This Way
 
-The function operates under the assumption that the current position (`pos`) in the source code stream has already consumed the opening sequence of a block comment, i.e., "/*". The function then enters a loop where it continuously advances through the source code until it finds the closing sequence "*/". During each iteration of the loop, the function checks if the current character is "*" and the next character is "/". If both conditions are met, it skips these two characters and exits the loop, returning control to the caller. If not, it simply advances to the next character in the stream.
-
-This approach ensures that the function correctly identifies and skips block comments, even if they span multiple lines or contain nested comments. By consuming characters one at a time and checking for the closing sequence, the function can accurately determine when to stop.
+The function operates under the assumption that block comments begin with "/*" and end with "*/". By iterating through the characters in the source code one by one using the `advance()` method, the function checks for the sequence "*/" at each step. When this sequence is detected, the function skips both the "*" and "/" characters and then exits, ensuring that only valid tokens are processed further in the lexical analysis stage.
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - None
+  - `src`: A reference to the string representing the source code being analyzed.
+  - `pos`: The current position within the source code string where the lexer is located.
 
-- **Return Value**:
-  - `void`: The function does not return any value; it simply advances the position in the source code stream until it reaches the end of the block comment.
+- **Return Value**: 
+  - The function does not explicitly return any value. Instead, it modifies the internal state of the lexer by advancing the position (`pos`) until the end of the block comment is reached.
 
 ## Edge Cases
 
-1. **Unterminated Block Comment**: If the function encounters an unterminated block comment (i.e., it reaches the end of the source code stream without finding "*/"), it will silently reach the end of the file. This behavior might be considered unexpected, but it simplifies error handling in the lexer by avoiding explicit checks for comment termination.
+1. **Unterminated Block Comment**: If the source code ends before encountering the "*/" sequence marking the end of a block comment, the function will simply reach the end of the file (`EOF`). In such cases, the lexer may need to handle errors or warnings appropriately, depending on the compiler's design.
 
-2. **Nested Comments**: Although the function does not explicitly support nested comments, its design allows it to handle such scenarios gracefully. As long as the closing sequence "*/" appears after the opening sequence "/*", the function will correctly identify and skip the entire block comment.
+2. **Nested Comments**: The function assumes that there are no nested block comments in the source code. If nested comments are allowed, additional logic would be required to correctly identify and skip them.
 
-3. **Comments Spanning Multiple Lines**: The function can easily handle block comments that span multiple lines, as it continues to consume characters until it finds the closing sequence.
+3. **Comments Within Strings**: The function should be aware of string literals, as they can contain sequences that resemble block comment markers ("*"). Proper handling of these cases ensures that the lexer does not mistakenly interpret strings as comments.
 
 ## Interactions With Other Components
 
-The `skipBlockComment` function interacts primarily with the following components:
+- **Lexer Core**: The `skipBlockComment` function is typically invoked by the lexer core when it encounters the start of a block comment ("/*"). After calling `skipBlockComment`, the lexer can continue with the next token or character in the source code.
 
-- **LexerCore Class**: This function is part of the `LexerCore` class, which handles the overall lexical analysis process. It is called when the lexer encounters a block comment marker ("/*").
+- **Error Handling**: Depending on the implementation, this function might interact with an error handler component to report unterminated block comments or other issues related to comment parsing.
 
-- **Source Code Stream (`src`)**: The function reads characters from the `src` stream, advancing the position (`pos`) as it goes. This interaction is crucial for moving through the source code and identifying comment boundaries.
+- **Token Stream**: Although the function itself does not produce tokens, it affects the flow of tokenization by skipping over block comments. This interaction is crucial for maintaining the integrity of the token stream and preventing incorrect parsing of subsequent code.
 
-- **Current Character and Peek Functionality**: The function uses the `current()` method to get the character at the current position and the `peek()` method to look ahead at the next character. These methods are essential for accurately detecting the closing sequence of a block comment.
-
-Overall, the `skipBlockComment` function plays a vital role in the lexer's ability to correctly parse and skip block comments in the source code, ensuring that subsequent tokens are processed accurately.
+By carefully managing the consumption of characters and handling edge cases, the `skipBlockComment` function plays a vital role in the lexical analysis process, ensuring that block comments do not interfere with the proper identification and processing of tokens in the Quantum Language compiler.
