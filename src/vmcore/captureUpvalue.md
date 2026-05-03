@@ -2,41 +2,31 @@
 
 ## Overview
 
-The `captureUpvalue` function is a crucial method in the Quantum Language compiler's Virtual Machine (VM) core (`VmCore.cpp`). This function is responsible for capturing upvalues during the execution of quantum programs. An upvalue refers to a local variable or parameter that is captured and used by a closure, which is a function that has access to variables from its enclosing scope even after that scope has finished executing.
+The `captureUpvalue` function is a critical method within the Quantum Language compiler's Virtual Machine (VM) core (`VmCore.cpp`). Its primary responsibility is to manage and capture upvalues during the execution of quantum programs. An upvalue refers to a local variable that is accessible from an inner function or closure but not defined within that inner function itself.
+
+### Why It Works This Way
+
+The function operates under the principle of managing upvalues efficiently by maintaining a list of currently open upvalues (`openUpvalues_`). When a closure attempts to access a local variable from its enclosing scope, the VM checks if there is already an open upvalue associated with that variable. If such an upvalue exists, it reuses it; otherwise, it creates a new one.
+
+This approach minimizes memory usage and improves performance by avoiding unnecessary duplication of variables. By using a shared pointer alias, the function ensures that the upvalue points directly into the existing stack frame, thus preventing any additional copies of the data.
 
 ## Parameters
 
-- **`stackIdx`**: The index of the stack slot containing the value to be captured as an upvalue.
+- **`stackIdx`**: The index of the local variable on the stack that needs to be captured as an upvalue.
 
 ## Return Value
 
-- **`std::shared_ptr<Upvalue>`**: Returns a pointer to the `Upvalue` object that captures the specified stack slot. If an existing upvalue already points to the same stack slot, it returns that upvalue instead of creating a new one.
-
-## How It Works
-
-1. **Check Existing Upvalues**:
-   - The function iterates through the list of currently open upvalues (`openUpvalues_`) using a range-based for loop.
-   - For each upvalue, it checks whether the cell it points to is the same as the cell at the specified stack index (`&stack_[stackIdx]`).
-   - If a match is found, the function immediately returns the existing upvalue.
-
-2. **Create New Upvalue**:
-   - If no existing upvalue matches the specified stack index, the function proceeds to create a new upvalue.
-   - A `std::shared_ptr<QuantumValue>` named `cell` is created. This pointer uses a custom deleter that points to the address of the stack slot (`&stack_[stackIdx]`). This ensures that the stack slot remains valid as long as there is at least one upvalue referencing it.
-   - A new `Upvalue` object is then created using `std::make_shared`, passing the `cell` pointer as an argument.
-   - The newly created upvalue is added to the list of open upvalues (`openUpvalues_`).
-
-3. **Return the New Upvalue**:
-   - Finally, the function returns the pointer to the newly created upvalue.
+The function returns a shared pointer to an `Upvalue` object. This `Upvalue` object encapsulates the reference to the local variable on the stack and provides mechanisms for accessing and updating the variable within closures.
 
 ## Edge Cases
 
-- **Stack Slot Out of Bounds**: If the provided `stackIdx` is out of bounds (i.e., less than 0 or greater than or equal to the size of the stack), the behavior is undefined. However, in practice, such errors would likely be caught earlier in the program when accessing the stack.
-- **Multiple Captures of the Same Stack Slot**: If multiple closures attempt to capture the same stack slot, the function will return the same upvalue object for all of them. This allows the closure to maintain a consistent reference to the stack slot throughout its lifetime.
+1. **Duplicate Upvalues**: If multiple closures attempt to access the same local variable, the function will reuse the existing upvalue instead of creating a new one. This prevents redundant storage and potential conflicts between different closures.
+2. **Stack Frame Management**: The function assumes that the stack frame containing the local variable remains valid throughout the lifetime of the upvalue. If the stack frame is deallocated before the upvalue is accessed, undefined behavior may occur.
 
-## Interactions with Other Components
+## Interactions With Other Components
 
-- **`openUpvalues_` Vector**: This vector stores pointers to all currently open upvalues. It is part of the VM state and is accessed frequently during the execution of quantum programs.
-- **`QuantumValue` Class**: This class represents the values stored on the VM stack. Each `QuantumValue` can be referenced by upvalues.
-- **Closures**: When a closure is created, it may need to capture upvalues from its enclosing scope. The `captureUpvalue` function is called to ensure that these upvalues are correctly managed and maintained.
+- **`openUpvalues_` List**: This function interacts with the `openUpvalues_` list, which stores all currently open upvalues. The list helps in identifying whether an upvalue has already been created for a given stack slot.
+- **`QuantumValue` Stack**: The function accesses elements of the `QuantumValue` stack to capture local variables. The stack holds the values of local variables and function arguments during program execution.
+- **`Upvalue` Class**: The function uses the `Upvalue` class to create and manage upvalues. Each `Upvalue` object maintains a reference to a local variable on the stack and provides methods for accessing and modifying that variable.
 
-In summary, the `captureUpvalue` function efficiently manages upvalues in the VM by reusing existing upvalues where possible and ensuring that stack slots remain accessible to closures. This design helps in maintaining the integrity and consistency of quantum program execution.
+By carefully managing upvalues, the `captureUpvalue` function ensures efficient execution of quantum programs, particularly those involving closures and nested functions.
