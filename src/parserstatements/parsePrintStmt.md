@@ -2,54 +2,52 @@
 
 ## Purpose
 
-The `parsePrintStmt` function is designed to parse print statements in the Quantum Language compiler. It handles both simple print statements and those that include keyword arguments such as `sep`, `end`, `file`, and `flush`.
+The `parsePrintStmt` function is responsible for parsing print statements within the Quantum Language compiler. This function aims to handle both basic print statements and those that include optional keyword arguments like `sep`, `end`, `file`, and `flush`. By correctly interpreting these elements, the function ensures that the print statement is accurately represented in the Abstract Syntax Tree (AST).
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - None explicitly defined within the provided code snippet.
+  - None explicitly mentioned in the provided code snippet.
 
 - **Return Value**:
-  - An `ASTNodePtr` representing the parsed print statement node in the Abstract Syntax Tree (AST).
+  - The function returns an `ASTNodePtr` representing the parsed print statement.
 
-## How It Works
+## Workflow
 
-### Parsing Simple Print Statements
+1. **Initialization**: 
+   - The function starts by initializing variables to track the line number (`ln`), whether a newline should be added after printing (`newline`), the separator string (`sep`), the end-of-line string (`end_str`), and a vector of AST nodes (`args`) to store the expressions to be printed.
 
-If the current token is not an opening parenthesis (`(`), indicating a simple print statement without any keyword arguments, the function proceeds as follows:
+2. **Handling Parentheses**:
+   - If the next token is an opening parenthesis (`TokenType::LPAREN`), indicating a complex print statement with keyword arguments, the function consumes the token and skips any newlines until a closing parenthesis or the end of input is encountered.
+   
+3. **Parsing Keyword Arguments**:
+   - Within the parentheses, the function checks for identifier tokens followed by an assignment operator (`=`). These indicate potential keyword arguments (`sep`, `end`, `file`, `flush`). For each detected keyword argument:
+     - The keyword name is consumed.
+     - The assignment operator is also consumed.
+     - Depending on the keyword, the function further processes the following token:
+       - For `sep` and `end`, if the next token is a string literal (`TokenType::STRING`), its value is assigned to `sep` or `end_str` respectively. If not, the function calls `parseExpr()` to consume and discard the expression.
+       - For `file` and `flush`, the function simply calls `parseExpr()` to consume and discard the expression without using its value.
 
-1. **Line Number**: The line number of the current token is stored in the variable `ln`.
-2. **Expression Parsing**: The function calls `parseExpr()` to parse the expression following the `print` keyword and adds it to the `args` vector.
-3. **Comma Handling**: The function continues parsing expressions separated by commas until it reaches the end of the input or encounters a non-comma token.
+4. **Parsing Non-Key Argument Expressions**:
+   - If the next token is not a keyword argument, the function parses it as an expression using `parseExpr()` and adds the resulting AST node to the `args` vector.
+   - Commas are used to separate multiple arguments. The function continues processing subsequent arguments until a comma is no longer found or the end of the parentheses is reached.
 
-### Parsing Print Statements with Keyword Arguments
+5. **Closing Parenthesis**:
+   - After parsing all arguments, the function expects a closing parenthesis (`TokenType::RPAREN`). If this token is missing, an error message is generated.
 
-If the current token is an opening parenthesis (`(`), indicating a print statement with keyword arguments, the function proceeds as follows:
+6. **Handling Simple Print Statements**:
+   - If the initial token is not an opening parenthesis, the function assumes a simpler print statement with only one or more expressions separated by commas. It parses these expressions into the `args` vector similarly to the previous step.
 
-1. **Line Number**: The line number of the current token is stored in the variable `ln`.
-2. **Opening Parenthesis Consumption**: The function consumes the opening parenthesis using `consume()`.
-3. **Skipping Newlines**: The function skips any newlines using `skipNewlines()`.
-4. **Argument Parsing Loop**: The function enters a loop where it parses each argument inside the parentheses:
-   - **Keyword Argument Detection**: If the current token is an identifier followed by an assignment operator (`=`) and one of the keywords `sep`, `end`, `file`, or `flush`, the function processes the keyword argument accordingly:
-     - For `sep`: If the next token is a string literal, the function updates the `sep` variable with the string value. Otherwise, it discards the non-literal expression.
-     - For `end`: If the next token is a string literal, the function updates the `end_str` variable with the string value and sets `newline` to `false`. This prevents the default newline behavior when printing. Otherwise, it discards the non-literal expression.
-     - For `file` and `flush`: These keywords are currently handled by consuming and discarding the associated expression.
-   - **Non-Key Argument Parsing**: If the current token is not a keyword argument, the function parses it as a regular expression using `parseExpr()` and adds it to the `args` vector.
-   - **Comma Skipping**: After processing each argument, the function skips any newlines and checks for a comma. If a comma is found, it continues parsing the next argument. If not, it breaks out of the loop.
-5. **Closing Parenthesis Expectation**: The function expects a closing parenthesis (`)`). If it doesn't find one, it throws an error.
+7. **Finalizing the AST Node**:
+   - Once all arguments are processed, the function constructs an `ASTNodePtr` representing the print statement. This node includes the line number (`ln`), the `newline` flag, the `sep`, `end_str`, and the `args` vector.
 
-### Edge Cases
+8. **Edge Cases**:
+   - The function gracefully handles cases where keyword arguments are not properly formatted (e.g., missing values or incorrect syntax).
+   - It also manages scenarios with multiple expressions separated by commas, ensuring they are correctly grouped into the `args` vector.
 
-- **Missing Closing Parenthesis**: If a print statement includes keyword arguments but lacks a closing parenthesis, the function will throw an error.
-- **Non-Literal Values for Keywords**: If a keyword argument like `sep` or `end` is not followed by a string literal, the function will discard the non-literal expression.
-- **Empty Print Statement**: If the `print` keyword is followed immediately by a closing parenthesis without any arguments, the function will still create a valid AST node for the print statement.
+9. **Interactions with Other Components**:
+   - The `parsePrintStmt` function interacts closely with the lexer to consume tokens and determine their type.
+   - It leverages the parser's state machine to manage the flow of tokens and ensure correct parsing of nested structures.
+   - Upon successful parsing, the function contributes to building the AST, which is then used by other parts of the compiler for semantic analysis, code generation, and execution.
 
-## Interactions with Other Components
-
-The `parsePrintStmt` function interacts with several other components of the Quantum Language compiler:
-
-- **Token Stream**: It uses the global `tokens` stream to access and consume tokens.
-- **Error Handling**: It utilizes functions like `expect` and `consume` to handle errors and advance the token stream.
-- **Abstract Syntax Tree (AST)**: It constructs an `ASTNodePtr` representing the parsed print statement, which can be used by subsequent stages of compilation for further processing.
-
-This function is crucial for correctly interpreting and compiling print statements in the Quantum Language, ensuring that the output format matches the specified requirements.
+This comprehensive approach allows the `parsePrintStmt` function to effectively parse various forms of print statements in the Quantum Language, providing a robust foundation for further compilation steps.
