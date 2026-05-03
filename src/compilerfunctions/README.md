@@ -1,64 +1,92 @@
 # CompilerFunctions
 
-The `compilerfunctions` component is an integral part of the Quantum Language (QL) compiler, designed to handle various compilation tasks essential for transforming high-level quantum programming constructs into executable machine code or intermediate representations suitable for further processing in quantum computing environments.
+The `compilerfunctions` component is a crucial module within the Quantum Language (QL) compiler, responsible for executing fundamental compilation operations necessary to convert high-level quantum programming constructs into executable machine code or intermediate representations that can be processed by quantum computing hardware and software systems.
 
 ## Overview
 
-This component includes several key functions and utilities that facilitate different stages of the compilation process:
+### Purpose
+The primary function of the `compilerfunctions` component is to provide a set of tools and utilities that facilitate the translation and optimization of quantum programs. This includes parsing source code, applying semantic analysis, generating intermediate code, and optimizing it for performance on quantum devices.
 
-- **compileFunction**: This function is the primary entry point for compiling individual quantum functions. It takes a high-level quantum function as input and produces an optimized, executable representation.
+### Files and Their Roles
+- **compileFunction**: This file contains the implementation of the main compilation function, which orchestrates the entire compilation process from source code to optimized executable code.
 
-## Files and Their Roles
+## Flowchart
 
-### compileFunction.cpp
+```markdown
++-------------------+
+|  compileFunction    |
++---------+---------+
+          |
+          v
++---------v---------+
+|  Parse Source Code  |
++---------+---------+
+          |
+          v
++---------v---------+
+|  Semantic Analysis  |
++---------+---------+
+          |
+          v
++---------v---------+
+|  Generate IR      |
++---------+---------+
+          |
+          v
++---------v---------+
+|  Optimize IR        |
++---------+---------+
+          |
+          v
++---------v---------+
+|  Output Executable|
++-------------------+
+```
 
-- **Role**: Implements the logic for compiling quantum functions.
-- **Dependencies**: Includes headers from the `quantumast` and `optimization` components to access abstract syntax tree (AST) structures and optimization algorithms respectively.
-- **Purpose**: Converts a quantum function represented in the AST into an optimized executable form using various techniques such as gate decomposition, circuit simplification, and error correction strategies.
+## Detailed Description
 
-### optimization.h
+### Parsing Source Code
+The `Parse Source Code` step involves converting the raw text input of a quantum program into a structured representation known as an Abstract Syntax Tree (AST). This AST serves as the foundation for subsequent compilation stages.
 
-- **Role**: Contains declarations for optimization-related classes and functions.
-- **Purpose**: Defines interfaces and implementations for optimizing quantum circuits before they are compiled.
+### Semantic Analysis
+Following the parsing phase, the `Semantic Analysis` step checks the validity and correctness of the quantum program according to its language rules. It ensures that all quantum gates, qubits, and control structures are used appropriately and that there are no logical errors or inconsistencies in the program.
 
-### quantumast.h
+### Generating Intermediate Representation (IR)
+Once the program has been successfully parsed and analyzed, the next step is to generate an intermediate representation (IR). The IR is a lower-level, more abstract form of the program that is easier to optimize and translate into executable code. Common IRs include three-address code and quantum-specific IR formats like Quil IR.
 
-- **Role**: Contains declarations for classes representing elements of the quantum abstract syntax tree.
-- **Purpose**: Provides a structured representation of quantum programs, enabling easier manipulation and analysis during the compilation process.
+### Optimizing IR
+Optimizing the IR is critical for improving the performance of the resulting quantum program. This step applies various techniques such as gate cancellation, loop unrolling, and resource allocation to reduce the number of gates, minimize circuit depth, and efficiently utilize available quantum resources.
 
-## Overall Flow
-
-1. **Input Parsing**: The high-level quantum program is parsed into an AST using the `quantumast` component.
-2. **Optimization**: The `compileFunction` uses the optimization framework provided by `optimization.h` to apply various optimizations to the AST.
-3. **Compilation**: After optimization, the `compileFunction` converts the AST into an executable format, leveraging specific algorithms and techniques tailored for quantum computing.
-4. **Output Generation**: The final executable representation of the quantum function is generated and returned.
+### Outputting Executable Code
+Finally, the `Output Executable Code` step converts the optimized IR back into a format that can be executed by quantum computers. Depending on the target platform, this might involve translating the IR into a specific instruction set or generating code that can be run on classical simulators.
 
 ## Usage Example
 
+Here's a simplified example of how you might use the `CompilerFunctions` component:
+
 ```cpp
-#include "quantumast.h"
-#include "optimization.h"
-#include "compileFunction.h"
+#include "compilerfunctions.h"
 
 int main() {
-    // Parse the quantum program into an AST
-    QuantumProgram* program = parseQuantumProgram("example.qasm");
+    // Load quantum program source code
+    std::string sourceCode = "...";
 
-    // Optimize the AST
-    optimizeQuantumProgram(program);
+    // Compile the quantum program
+    QuantumProgram* program = compileFunction(sourceCode);
 
-    // Compile the optimized AST into an executable form
-    QuantumExecutable* executable = compileFunction(program);
-
-    // Use the executable for simulation or execution on quantum hardware
-    runQuantumExecutable(executable);
+    // Execute the compiled program
+    executeQuantumProgram(program);
 
     return 0;
 }
 ```
 
+In this example, the `compileFunction` takes the source code of a quantum program as input and returns a `QuantumProgram` object representing the compiled program. The `executeQuantumProgram` function then executes this compiled program.
+
 ## Contributing
 
-Contributions to the `compilerfunctions` component are welcome! Please ensure your changes are well-documented and tested before submitting a pull request.
+Contributions to the `compilerfunctions` component are welcome! If you find a bug, have a feature request, or want to improve the documentation, please open an issue or submit a pull request on our GitHub repository.
 
-For more detailed information on each function and its implementation, refer to the individual source files and their respective header files within this directory.
+---
+
+Feel free to adjust any details based on your specific requirements or additional features you'd like to highlight!
