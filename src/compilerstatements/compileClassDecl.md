@@ -1,35 +1,37 @@
 # `compileClassDecl` Function
 
 ## Purpose
-The `compileClassDecl` function in the Quantum Language compiler is responsible for compiling class declarations into bytecode. This includes creating the class object, handling inheritance, and defining methods within the class.
+The `compileClassDecl` function in the Quantum Language compiler is responsible for compiling class declarations into bytecode. This process involves several key steps:
+- Creating the class object.
+- Handling class inheritance.
+- Defining methods within the class.
+
+By following these steps, the function ensures that the class structure is correctly represented in the bytecode, allowing for efficient execution of class-based operations.
 
 ## Parameters/Return Value
-- **Parameters**:
-  - `s`: A reference to a `ClassDecl` object representing the class declaration to be compiled.
-  - `line`: An integer representing the line number of the class declaration in the source code.
+### Parameters
+- `s`: An ASTNode representing the class declaration to be compiled.
+- `line`: The line number in the source code where the class declaration occurs.
 
-- **Return Value**: None. The function directly emits bytecode instructions using the `emit` function.
+### Return Value
+This function does not explicitly return a value. Instead, it modifies the global state of the compiler by emitting bytecode instructions that define the class and its members.
 
 ## Detailed Explanation
-
 ### Step-by-Step Breakdown
 
-1. **Emit Class Name Constant**:
+1. **Loading Class Name**:
    ```cpp
    emit(Op::LOAD_CONST, addConst(QuantumValue(s.name)), line);
    ```
-   - This instruction loads the constant string representation of the class name (`s.name`) onto the stack.
-   - `addConst` adds the constant to the constant pool and returns its index.
-   - `Op::LOAD_CONST` is an opcode that indicates loading a constant value onto the stack.
+   - This instruction loads the name of the class into the bytecode stack. The `addConst` function adds the class name to the constant pool, ensuring uniqueness and efficient storage.
 
-2. **Create Class Object**:
+2. **Creating the Class Object**:
    ```cpp
    emit(Op::MAKE_CLASS, 0, line);
    ```
-   - This instruction creates a new class object based on the loaded class name.
-   - `Op::MAKE_CLASS` is an opcode that constructs a new class object.
+   - The `Op::MAKE_CLASS` opcode creates a new class object on the bytecode stack using the class name loaded previously.
 
-3. **Handle Inheritance**:
+3. **Handling Inheritance**:
    ```cpp
    if (!s.base.empty())
    {
@@ -37,68 +39,77 @@ The `compileClassDecl` function in the Quantum Language compiler is responsible 
        emit(Op::INHERIT, 0, line);
    }
    ```
-   - If the class has a base class (`!s.base.empty()`), the following steps are executed:
-     - `emitLoad(s.base, line)`: Loads the constant string representation of the base class name onto the stack.
-     - `emit(Op::INHERIT, 0, line)`: Emits an opcode to inherit the current class from the base class.
-   - `Op::INHERIT` is an opcode that sets up inheritance between two classes.
+   - If the class has a base class specified (`!s.base.empty()`), the function emits an instruction to load the base class's name and then uses the `Op::INHERIT` opcode to set up inheritance. This means the newly created class will inherit all properties and methods from its base class.
 
-4. **Define Methods**:
+4. **Binding Class Fields**:
+   ```cpp
+   auto bindClassField = [&](ASTNodePtr &member)
+   {
+       if (member->is<ClassDecl>())
+       {
+           auto &nested = member->as<ClassDecl>();
+           compileClassDecl(nested, member->line);
+           emitLoad(nested.name, member->line);
+           emit(Op::BIND_METHOD, addStr(nested.name), member->line);
+           return true;
+       }
+       if (member->is<VarDecl>())
+       {
+           auto &field = member->as<VarDecl>();
+           if (field.initializer)
+               compileExpr(*field.initializer);
+           else
+               emit(Op::LOAD_NIL, 0, member->line);
+           emit(Op::BIND_METHOD, addStr(field.name), member->line);
+           return true;
+       }
+       if (member->is<ExprStmt>() &&
+           member->as<ExprStmt>().expr &&
+           member->as<ExprStmt>().expr->is<AssignExpr>())
+       {
+           auto &assign = member->as<ExprStmt>().expr->as<AssignExpr>();
+           if (assign.target->is<Identifier>())
+           {
+               compileExpr(*assign.value);
+               emit(Op::BIND_METHOD, addStr(assign.target->as<Identifier>().name), member->line);
+               return true;
+           }
+       }
+       return false;
+   };
+   ```
+   - A lambda function `bindClassField` is defined to handle different types of members within the class (fields or nested classes).
+   - For each member, it checks whether the member is another class declaration (`ClassDecl`). If so, it recursively compiles the nested class and binds its methods to the current class.
+   - If the member is a variable declaration (`VarDecl`), it compiles the initializer expression (if provided) or pushes `nil` onto the stack if there is no initializer. Then, it binds the field as a method.
+   - If the member is an expression statement containing an assignment expression (`AssignExpr`) targeting an identifier, it compiles the right-hand side of the assignment and binds it as a method.
+
+5. **Compiling Class Members**:
+   ```cpp
+   for (auto &field : s.fields)
+       bindClassField(field);
+   ```
+   - Iterates over each field declared within the class and applies the `bindClassField` lambda to compile and bind them as methods.
+
+6. **Compiling Methods**:
    ```cpp
    for (auto &method : s.methods)
    {
+       if (bindClassField(method))
+           continue;
        if (!method->is<FunctionDecl>())
            continue;
        auto &fd = method->as<FunctionDecl>();
+
        // Prepend "self" as slot 0 so the instance is always at the first local.
        // The VM calls methods with the instance as the first argument (argCount+1).
        // "this" references are resolved to "self" by emitLoad/emitStore.
        std::vector<std::string> methodParams;
-       std::vector<bool> methodRefs;
-       methodParams.push_back("self");
-       methodRefs.push_back(false);
-       for (size_t i = 0; i < fd.params.size(); ++i)
-       {
-           methodParams.push_back(fd.params[i]);
-           methodRefs.push_back(i < fd.paramIsRef.size() ? fd.paramIsRef[i] : false);
-       }
-
-       auto fnChunk = compileFunction(fd.name, methodParams, methodRefs, fd.defaultArgs, fd.body.get(), method->line);
-       auto closureTpl = std::make_shared<Closure>(fnChunk);
-       emit(Op::LOAD_CONST, addConst(QuantumValue(closureTpl)), method->line);
-       emit(Op::MAKE_FUNCTION, 0, method->line);
-       emit(Op::BIND_METHOD, addStr(fd.name), method->line);
-   }
    ```
-   - Iterates over each method declared in the class (`for (auto &method : s.methods)`).
-   - Checks if the method is a function declaration (`if (!method->is<FunctionDecl>()) continue)`).
-   - Prepends `"self"` to the method parameters list to ensure that the instance is always passed as the first argument.
-   - Calls `compileFunction` to compile the method body into bytecode chunks (`fnChunk`).
-   - Creates a `Closure` object wrapping the function chunk (`closureTpl`).
-   - Loads the constant string representation of the closure template onto the stack.
-   - Emits an opcode to create a function object from the closure template (`Op::MAKE_FUNCTION`).
-   - Binds the method to the class using its name (`Op::BIND_METHOD`).
+   - Iterates over each method declared within the class.
+   - It first attempts to bind the method using `bindClassField`. If successful, it skips further processing.
+   - If the member is not a function declaration (`FunctionDecl`), it continues to the next iteration.
+   - If the member is a function declaration, it prepares to compile the method body. The comment explains that the virtual machine (VM) expects the instance (`self`) to be passed as the first argument when calling methods, which is handled internally by the `emitLoad` and `emitStore` functions.
 
-5. **Define Global or Local Class**:
-   ```cpp
-   if (current_->scopeDepth == 0)
-   {
-       emit(Op::DEFINE_GLOBAL, addStr(s.name), line);
-   }
-   else
-   {
-       declareLocal(s.name, line);
-       emit(Op::DEFINE_LOCAL, static_cast<int>(current_->locals.size()) - 1, line);
-   }
-   ```
-   - Depending on the scope depth (`current_->scopeDepth`):
-     - If the scope depth is 0, it means the class is being defined globally. The function emits an opcode to define the global class (`Op::DEFINE_GLOBAL`).
-     - Otherwise, it declares the class as a local variable and emits an opcode to define the local class (`Op::DEFINE_LOCAL`). The local index is determined by subtracting 1 from the size of the current locals vector.
-
-## Edge Cases
-- **Empty Base Class**: If the class does not have a base class (`s.base.empty()`), the inheritance step is skipped.
-- **No Methods**: If the class contains no methods, the loop defining methods will not execute, and only the class creation and definition steps will occur.
-- **Method Compilation Errors**: If there are errors during the compilation of any method, they should be handled appropriately by the caller of `compileClassDecl`.
-
-## Interactions with Other Components
-- **Constant Pool**: The `addConst` function interacts with the constant pool to store and retrieve constants used in the class declaration.
-- **Bytecode Emission
+### Edge Cases
+- **Empty Base Class**: If the class does not have a base class, the function simply creates the class without any inheritance setup.
+- **Nested Classes**: Nested classes are treated as fields and are recursively compiled to ensure
