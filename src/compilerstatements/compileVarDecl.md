@@ -1,40 +1,36 @@
 # `compileVarDecl` Function
 
 ## Purpose
-The `compileVarDecl` function is responsible for compiling variable declarations in the Quantum Language compiler. It handles both global and local variable declarations, as well as their initializers.
+The `compileVarDecl` function is designed to handle the compilation of variable declarations within the Quantum Language compiler. This includes processing both global and local variables, as well as any associated initializers.
 
 ## Parameters/Return Value
-- **Parameters**: 
-  - `s`: A reference to a `VariableDeclaration` object containing information about the variable being declared, such as its name, whether it's a constant (`isConst`), and an optional initializer expression (`initializer`).
-  - `line`: An integer representing the current line number in the source code, used for error reporting and debugging purposes.
-  
-- **Return Value**: None. The function directly modifies the compiled bytecode through calls to `emit`.
+- **Parameters**:
+  - `s`: A reference to a `VariableDeclaration` object representing the variable declaration to be compiled.
+- **Return Value**:
+  - None. The function directly emits bytecode instructions into the current compilation context.
 
-## How It Works
-1. **Initializer Check**:
-   - If the variable declaration includes an initializer (`s.initializer` is not null), the function compiles the initializer using `compileExpr(*s.initializer)`.
-   - If there is no initializer, the function emits a `LOAD_NIL` operation to load the nil value onto the stack.
+## Detailed Explanation
 
-2. **Scope Depth Check**:
-   - The function checks the current scope depth (`current_->scopeDepth`). This determines whether the variable is being declared globally or locally.
-   
-3. **Global Declaration**:
-   - If the current scope depth is 0 (`current_->scopeDepth == 0`), indicating that the variable is at the global level, the function proceeds to define the variable.
-   - If the variable is marked as a constant (`s.isConst`), it emits a `DEFINE_CONST` operation followed by the variable name (converted to a string using `addStr(s.name)`). This operation defines a constant in the global environment.
-   - If the variable is not a constant, it emits a `DEFINE_GLOBAL` operation with the same parameters. This operation defines a non-constant variable in the global environment.
+### Variable Declaration Handling
+The function begins by checking if the variable declaration `s` has an initializer. If an initializer exists, it calls `compileExpr(*s.initializer)` to compile the expression that initializes the variable. If there is no initializer, it emits an `Op::LOAD_NIL` instruction to load the nil value onto the stack.
 
-4. **Local Declaration**:
-   - If the current scope depth is greater than 0, indicating that the variable is within a local scope, the function declares the local variable first using `declareLocal(s.name, line)`. This step may involve setting up metadata or tracking local variables.
-   - After declaring the local variable, the function emits a `DEFINE_LOCAL` operation. The index of the local variable is determined by subtracting 1 from the size of the `locals` vector (`static_cast<int>(current_->locals.size()) - 1`). This operation defines the local variable within the current scope.
+### Scope Depth Check
+Next, the function checks the scope depth of the current compilation context (`current_->scopeDepth`). This determines whether the variable is being declared globally or locally.
 
-## Edge Cases
-- **Empty Initializer**: When a variable is declared without an initializer, the function correctly loads the nil value onto the stack.
-- **Constant Variable**: Declaring a constant variable results in different bytecode operations compared to a non-constant variable, ensuring proper handling of immutable values.
-- **Nested Scopes**: The function correctly distinguishes between global and local variable declarations based on the scope depth, allowing for nested scoping rules in the language.
+#### Global Variable Declaration
+If the scope depth is zero (`current_->scopeDepth == 0`), indicating that the variable is being declared at the global level, the function proceeds to define the variable. Depending on whether the variable is marked as constant (`s.isConst`), it either emits an `Op::DEFINE_CONST` or an `Op::DEFINE_GLOBAL` instruction. The name of the variable is passed as a string argument using `addStr(s.name)`, which ensures that the variable name is correctly interned and referenced in the bytecode.
 
-## Interactions with Other Components
-- **Emit Function**: The `emit` function is crucial here as it adds operations to the compiled bytecode. It interacts with the `Op` enum, which likely contains various operation codes like `DEFINE_CONST`, `DEFINE_GLOBAL`, and `LOAD_NIL`.
-- **Current Scope**: The function relies on the `current_` pointer, which points to the current compilation context or scope. This pointer is essential for determining whether the variable is global or local.
-- **Locals Vector**: In local scope declarations, the function uses the `locals` vector to track the number of local variables and their indices. This interaction ensures that each local variable has a unique identifier within its scope.
+#### Local Variable Declaration
+If the scope depth is greater than zero, the variable is being declared within a local scope. The function first declares the local variable using `declareLocal(s.name, line)`. This step typically involves setting up metadata about the local variable, such as its position in the local symbol table. After declaring the local variable, the function emits an `Op::DEFINE_LOCAL` instruction. The index of the local variable is calculated as `static_cast<int>(current_->locals.size()) - 1`, ensuring that the correct position is used when referencing the local variable later in the code.
 
-Overall, the `compileVarDecl` function plays a vital role in the compilation process by handling variable declarations according to their scope and initialization status, thereby generating appropriate bytecode for the Quantum Language interpreter.
+### Edge Cases
+- **No Initializer**: If the variable declaration does not include an initializer, the function defaults to initializing the variable with the nil value. This behavior ensures that all variables have a defined state before use.
+- **Scope Depth Zero**: When dealing with global variables, the function must ensure that the variable names are unique and correctly mapped to their definitions. This is crucial for preventing conflicts between different parts of the program.
+- **Scope Depth Greater Than Zero**: For local variables, the function must manage the local symbol table efficiently. Ensuring that the indices are correctly calculated helps maintain the integrity of the local variable references throughout the scope.
+
+### Interactions with Other Components
+- **Symbol Table Management**: The function interacts with the symbol table component to manage both global and local variables. During global variable declarations, it updates the global symbol table. During local variable declarations, it manages the local symbol table within the current scope.
+- **Bytecode Emission**: The function relies on the bytecode emission component to generate the appropriate opcodes for defining variables. Whether emitting `Op::DEFINE_CONST`, `Op::DEFINE_GLOBAL`, or `Op::DEFINE_LOCAL`, the function ensures that the correct operations are performed based on the variable's scope and initialization status.
+- **Expression Compilation**: If the variable declaration includes an initializer, the function delegates the compilation of the initializer expression to the `compileExpr` method. This interaction allows the `compileVarDecl` function to focus on variable definition while the `compileExpr` method handles the specifics of expression evaluation.
+
+In summary, the `compileVarDecl` function plays a critical role in the Quantum Language compiler by handling the compilation of variable declarations, including their initializers, based on their scope. By interacting with the symbol table and bytecode emission components, the function ensures efficient and accurate variable management across different parts of the program.
