@@ -1,74 +1,63 @@
-# QuantumLanguage Compiler - Lexer.h
+# QuantumLanguage Compiler - Opcode.h
 
 ## Overview
 
-The `Lexer.h` header file is an essential part of the QuantumLanguage compiler, responsible for converting source code into tokens. Tokens represent the smallest meaningful units of the language, such as keywords, identifiers, numbers, strings, and operators. The lexer plays a critical role in the compilation process by breaking down the source code into these discrete elements, which are then processed by subsequent stages of the compiler.
+The `include/Opcode.h` header file defines the set of operations (opcodes) used by the QuantumLanguage compiler's virtual machine (VM). These opcodes dictate how the VM processes bytecode instructions, enabling it to manage execution contexts, handle exceptions, and maintain the runtime environment efficiently.
 
 ## Role in Compiler Pipeline
 
-The Lexer operates at the beginning of the compiler pipeline, taking raw source code as input and producing a sequence of tokens. These tokens serve as the foundation for further parsing and semantic analysis. The primary responsibilities of the Lexer include:
-
-- **Tokenization**: Converting the source code into individual tokens based on predefined rules.
-- **Error Handling**: Identifying and reporting syntax errors encountered during tokenization.
-- **Context Management**: Maintaining information about the current position in the source code, including line and column numbers, to provide precise error messages.
-
-By accurately tokenizing the source code, the Lexer ensures that the subsequent parser can build a correct abstract syntax tree (AST), leading to more reliable and efficient compilation.
+The opcode definitions play a critical role in the compiler pipeline. They serve as the foundation for generating executable bytecode, which is then interpreted or executed directly by the VM. The VM uses these opcodes to perform various tasks such as loading constants, managing variables, performing arithmetic operations, handling control flow, calling functions, and managing exceptions.
 
 ## Key Design Decisions and Why
 
-### Tokenization Rules
+1. **Stack Manipulation**: Operations like `LOAD_CONST`, `POP`, `LOAD_GLOBAL`, etc., are designed to manipulate the VM's stack. This approach allows for a flexible and dynamic memory management strategy, suitable for both simple and complex programs.
 
-The Lexer uses a set of rules to determine how to break down the source code into tokens. These rules are defined using regular expressions and include handling of comments, strings, numbers, and operators. The decision to use regular expressions simplifies the implementation of complex tokenization patterns while maintaining readability and maintainability.
+2. **Variables and Captures**: The opcodes `DEFINE_GLOBAL`, `LOAD_GLOBAL`, `STORE_GLOBAL`, `DEFINE_LOCAL`, `LOAD_LOCAL`, and `STORE_LOCAL` manage variable storage and upvalue/closure captures. This ensures that variables are correctly scoped and accessible throughout the program.
 
-### Error Reporting
+3. **Arithmetic and Bitwise Operations**: Basic arithmetic (`ADD`, `SUB`, `MUL`, etc.) and bitwise operations (`BIT_AND`, `BIT_OR`, `BIT_XOR`, etc.) are essential for any programming language. The short-circuiting behavior in logical operations (`AND`, `OR`) optimizes performance by avoiding unnecessary computations.
 
-To improve the debugging experience, the Lexer includes detailed error reporting capabilities. It not only identifies syntax errors but also provides information about their location in the source code (line and column). This helps developers quickly locate and fix issues in their code.
+4. **String Operations**: The `CONCAT` opcode provides a dedicated way to concatenate strings, which can be more efficient than using general-purpose arithmetic operations.
 
-### Context Information
+5. **Control Flow**: Conditional jumps (`JUMP_IF_FALSE`, `JUMP_IF_TRUE`) and loops (`LOOP`) allow for structured control flow within the program. Absolute jumps (`JUMP_ABSOLUTE`) provide flexibility for branching to specific locations in the bytecode.
 
-Maintaining context information such as line and column numbers is crucial for generating accurate error messages. By keeping track of these details, the Lexer ensures that any issues are reported with the most relevant and precise information possible.
+6. **Functions and Calls**: The `CALL` and `RETURN` opcodes enable function calls and returns, supporting both built-in and user-defined functions. The `MAKE_FUNCTION` and `MAKE_CLOSURE` opcodes create functions and closures, respectively, allowing for higher-order functions and lexical scoping.
+
+7. **Collections**: Operations to create arrays (`MAKE_ARRAY`), dictionaries (`MAKE_DICT`), and tuples (`MAKE_TUPLE`) support data structure manipulation, essential for handling complex data types.
+
+8. **Member Access**: The `GET_INDEX`, `SET_INDEX`, `GET_MEMBER`, `SET_MEMBER`, and `GET_SUPER` opcodes facilitate member and index access, enabling object-oriented programming features.
+
+9. **Iteration**: The `FOR_ITER` and `MAKE_ITER` opcodes support iteration over collections, providing a powerful mechanism for looping constructs.
+
+10. **Classes**: The `MAKE_CLASS`, `INHERIT`, `BIND_METHOD`, and `INSTANCE_NEW` opcodes enable the creation and instantiation of classes, supporting object-oriented programming paradigms.
+
+11. **Exceptions**: Exception handling is crucial for robust error management. The `PUSH_HANDLER`, `POP_HANDLER`, `RAISE`, and `RERAISE` opcodes ensure that exceptions are caught, handled, and propagated appropriately.
+
+12. **Pointers (C++ Extensions)**: To leverage C++'s pointer capabilities, the `ADDRESS_OF`, `DEREF`, and `ARROW` opcodes provide direct support for address-of, dereference, and arrow operations, enhancing interoperability between C++ and QuantumLanguage.
+
+13. **Miscellaneous**: Additional opcodes like `PRINT` provide basic utilities for debugging and outputting information during execution.
 
 ## Major Classes/Functions Overview
 
-### Lexer Class
+- **Op Enum Class**: This enumeration class defines all the available opcodes, each represented by a unique integer value. It serves as the core interface for interpreting bytecode.
 
-The `Lexer` class encapsulates the functionality required for tokenization. Its main components include:
+- **Value Class**: This class represents the data type used by the VM. It supports various types including integers, floats, booleans, strings, arrays, dictionaries, tuples, and objects.
 
-- **Constructor (`explicit Lexer(const std::string &source)`)**: Initializes the lexer with the source code.
-- **Tokenize Function (`std::vector<Token> tokenize()`)**: Converts the source code into a vector of tokens.
+- **Chunk Class**: Represents a chunk of bytecode, containing an array of opcodes and associated data. Chunks are used to store the intermediate representation generated by the compiler.
 
-#### Private Members
+- **QuantumFunction Class**: Wraps a chunk of bytecode into a callable function. Functions can have parameters and return values, and they can be defined as either native (C++) or bytecode-based.
 
-- **Source Code (`std::string src`)**: Stores the source code being tokenized.
-- **Position (`size_t pos`)**: Tracks the current position within the source code.
-- **Line and Column Numbers (`int line`, `int col`)**: Maintain information about the current line and column in the source code.
-- **Keywords Map (`static const std::unordered_map<std::string, TokenType> keywords`)**: Maps keyword strings to their corresponding token types.
-- **Pending Tokens (`std::vector<Token> pendingTokens_`)**: Used for handling f-string expansions.
-- **Macros Map (`std::unordered_map<std::string, std::vector<Token>> defines_`)**: Stores macro definitions for C-style preprocessor directives.
+- **IteratorState Class**: Manages the state of iterators used in `FOR_ITER` operations. It encapsulates the current position and the collection being iterated over.
 
-#### Private Methods
-
-- **Current Character (`char current() const`)**: Returns the character at the current position.
-- **Peek Character (`char peek(int offset = 1) const`)**: Returns the character at the specified offset without advancing the position.
-- **Advance Position (`char advance()`)**: Advances the position to the next character and returns it.
-- **Skip Whitespace (`void skipWhitespace()`)**: Skips over whitespace characters until a non-whitespace character is found.
-- **Skip Comment (`void skipComment()`)**: Skips over single-line comments starting with `//`.
-- **Skip Block Comment (`void skipBlockComment()`)**: Skips over multi-line comments enclosed between `/*` and `*/`.
-
-- **Read Number (`Token readNumber()`)**: Reads a number token from the source code.
-- **Read String (`Token readString(char quote)`)**: Reads a string token from the source code, handling both single and double quotes.
-- **Read Template Literal (`void readTemplateLiteral(std::vector<Token> &out, int startLine, int startCol)`)**: Handles template literals, expanding them into multiple tokens.
-- **Read Identifier or Keyword (`Token readIdentifierOrKeyword()`)**: Reads an identifier or keyword token from the source code.
-- **Read Operator (`Token readOperator()`)**: Reads an operator token from the source code.
-
-These methods work together to efficiently tokenize the source code while handling various edge cases and providing robust error reporting.
+- **ExceptionHandler Class**: Handles exceptions by storing the instruction pointer where the exception should be caught. When an exception occurs, the VM jumps to the appropriate handler.
 
 ## Tradeoffs
 
-While the Lexer provides powerful features for tokenization and error reporting, there are some tradeoffs to consider:
+- **Performance vs. Flexibility**: While the stack-based model offers high flexibility, it may not always be the most performant for large-scale applications. However, for a dynamically typed language like QuantumLanguage, the stack model provides a good balance between simplicity and functionality.
 
-- **Complexity**: Implementing a comprehensive lexer requires careful consideration of all possible token patterns and edge cases. This adds complexity to the implementation and increases the likelihood of bugs.
-- **Performance**: The lexer must be efficient enough to handle large source files without significant performance degradation. Optimizations such as lookahead and caching can help mitigate this issue.
-- **Flexibility**: Providing extensive support for features like f-string expansions and C-style preprocessor directives increases flexibility but may complicate the lexer's logic.
+- **Memory Management**: The stack-based model requires careful memory management to avoid overflow and underflow errors. Efficient garbage collection mechanisms are necessary to manage memory effectively.
 
-Despite these challenges, the Lexer remains a vital component of the QuantumLanguage compiler, enabling accurate and efficient tokenization of source code.
+- **Interoperability**: Supporting C++ pointers through dedicated opcodes enhances interoperability but adds complexity to the VM implementation. Balancing this against the need for pure bytecode execution is a tradeoff.
+
+- **Exception Handling**: The explicit exception handling mechanism allows for precise control over error propagation but adds overhead compared to simpler models. The decision to use explicit handlers instead of implicit ones was made based on the need for robust error management in the language.
+
+Overall, the `Opcode.h` file plays a vital role in defining the quantum nature of the QuantumLanguage compiler's virtual machine, enabling efficient and expressive
