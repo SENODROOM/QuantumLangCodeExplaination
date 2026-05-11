@@ -2,43 +2,31 @@
 
 ## Overview
 
-The `pop` function is a method within the `VmCore` class of the Quantum Language compiler's virtual machine core. This function is responsible for removing and returning the top element from the internal quantum computation stack (`stack_`). It plays a crucial role in managing the state of quantum computations by allowing the retrieval of the most recent result or value pushed onto the stack.
+The `pop` function is a method within the `VmCore` class of the Quantum Language compiler's virtual machine core. This function is responsible for removing and returning the top element from the internal quantum computation stack (`stack_`). It plays a crucial role in managing the state of quantum computations during execution.
 
-## Parameters
+## Parameters/Return Value
 
-- None
+- **Parameters**: None
+- **Return Value**: The top element of the quantum computation stack as a `QuantumValue`.
 
-## Return Value
+## How It Works
 
-- Returns a `QuantumValue`, which represents the topmost item that was removed from the stack.
+The `pop` function operates by checking whether the stack is empty. If the stack is indeed empty, it throws a `RuntimeError` indicating a "VM stack underflow," which signifies an attempt to pop an element from an empty stack. This check prevents potential runtime errors that could arise from accessing invalid memory locations.
+
+If the stack is not empty, the function proceeds to remove the top element using `std::move`. This ensures that the element is efficiently transferred without copying its contents, which can be beneficial when dealing with large or complex data types. After transferring the element, the function calls `stack_.pop_back()` to actually remove the element from the stack.
+
+Finally, the function returns the moved element.
 
 ## Edge Cases
 
-1. **Empty Stack**: If the stack is empty when `pop` is called, the function throws a `RuntimeError` with the message "VM stack underflow". This ensures that there is always at least one element on the stack before attempting to remove it, preventing potential runtime errors.
-
-2. **Large Stack Size**: The function operates efficiently even for large stacks due to its use of `std::vector`, which provides fast access and removal operations at the end of the container.
-
-3. **Stack with Mixed Types**: Since `QuantumValue` can represent various types of quantum data (e.g., qubits, measurements), the `pop` function can handle a stack containing elements of different types.
+1. **Empty Stack**: Attempting to pop from an empty stack results in a `RuntimeError`.
+2. **Large Data Types**: When popping elements that contain large or complex data types, the use of `std::move` helps optimize performance by avoiding unnecessary copies.
 
 ## Interactions with Other Components
 
-- **Execution Flow**: The `pop` function is typically used after an operation that has computed a result and needs to pass that result to another part of the program. For example, after performing a measurement, the result might be popped off the stack and used elsewhere.
+The `pop` function interacts with the following components:
 
-- **Memory Management**: By moving the top element out of the stack using `std::move`, the function helps in transferring ownership without copying, potentially saving memory resources when dealing with large objects.
+- **Stack Management**: Directly manages the quantum computation stack (`stack_`) by removing elements from it.
+- **Error Handling**: Utilizes error handling mechanisms provided by the `RuntimeError` exception to manage stack underflow situations gracefully.
 
-- **Error Handling**: The function includes error handling to manage the case where the stack is unexpectedly empty, ensuring robustness in the face of unexpected conditions during execution.
-
-Here is the implementation of the `pop` function:
-
-```cpp
-QuantumValue VmCore::pop() {
-    if (stack_.empty()) {
-        throw RuntimeError("VM stack underflow");
-    }
-    QuantumValue v = std::move(stack_.back()); // Move the top element
-    stack_.pop_back(); // Remove the top element from the stack
-    return v; // Return the moved element
-}
-```
-
-This implementation ensures that the stack is properly managed and that any attempt to pop from an empty stack results in an appropriate error being thrown.
+This function is essential for maintaining the integrity and efficiency of quantum computation operations within the virtual machine core. By ensuring proper stack management and handling potential errors, it supports the smooth execution of quantum programs.
