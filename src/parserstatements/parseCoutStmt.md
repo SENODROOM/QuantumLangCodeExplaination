@@ -2,58 +2,56 @@
 
 ## Purpose
 
-The `parseCoutStmt` function in the Quantum Language compiler is designed to parse statements involving outputting data to the console using the `cout` keyword. It constructs an abstract syntax tree (AST) node representing a print statement based on the parsed input.
+The `parseCoutStmt` function in the Quantum Language compiler is responsible for parsing statements that involve outputting data to the console using the `cout` keyword. It constructs an abstract syntax tree (AST) node representing a print statement based on the parsed input.
 
 ## Functionality
 
-The function processes a sequence of expressions and special tokens (`<<`, `endl`) to build a `PrintStmt` AST node. The primary goal is to handle multiple expressions being inserted into the output stream correctly without misinterpreting them as bitwise shift operators.
+The function parses a sequence of expressions and strings to be printed to the console. It handles both direct expressions and special identifiers like `endl`, which indicates a newline should be printed. The function ensures that the `<<` operator is correctly recognized as the stream insertion operator rather than a bitwise shift operator by calling `parseAddSub()` instead of `parseExpr()`.
 
-### Key Steps
+### Detailed Steps:
 
 1. **Initialization**: 
-   - Retrieves the current line number (`ln`) where the statement starts.
-   - Initializes an empty vector `args` to store the expressions to be printed.
-   - Sets a boolean flag `newline` to `false`, which will be used to indicate whether a newline should be included after the print operation.
+   - Retrieve the current line number (`ln`) where the statement starts.
+   - Initialize an empty vector `args` to store the parsed expressions and strings.
+   - Set a boolean flag `newline` to `false`.
 
-2. **Loop to Parse Expressions**:
-   - Continuously skips any newlines in the input.
-   - Checks if the current token is a left shift operator (`<<`). If not, breaks out of the loop.
-   - Consumes the left shift token to move past it.
-   - If the next token is the identifier `endl`, consumes it and sets `newline` to `true`. This indicates that the end of the line should be explicitly handled.
-   - Otherwise, parses the next expression at the add/sub precedence level using `parseAddSub()` and adds it to the `args` vector.
+2. **Parsing Expressions**:
+   - Enter a loop that continues until a non-left shift token (`<<`) is encountered.
+   - Skip any newlines using `skipNewlines()`.
+   - Check if the current token is a left shift (`<<`). If not, break out of the loop.
+   - Consume the left shift token (`consume()`).
 
-3. **Handling Newline or Semicolon**:
-   - Skips any remaining newlines or semicolons in the input, ensuring that the statement ends properly.
+3. **Handling Special Identifiers**:
+   - If the next token is an identifier and its value is `endl`, consume the token and set `newline` to `true`. This indicates that a newline character should be printed.
+   - Continue to the next iteration of the loop.
 
-4. **Return Statement**:
-   - Constructs and returns a unique pointer to an `ASTNode` containing a `PrintStmt` object. This `PrintStmt` includes the collected arguments and the `newline` flag.
+4. **Parsing Regular Expressions**:
+   - For regular expressions, call `parseAddSub()` to ensure that the `<<` operator is treated as a stream insertion operator rather than a bitwise shift operator.
+   - Check if the parsed expression is a string literal and if its value ends with `\n`. If so, set `newline` to `true`.
+   - Otherwise, push the parsed expression into the `args` vector.
 
-## Why It Works This Way
-
-- **Avoiding Bitwise Shift Confusion**: By calling `parseAddSub()` instead of `parseExpr()`, the function ensures that the `<<` operator is treated as a stream insertion operator rather than a bitwise shift operator. This prevents premature consumption of `<<` tokens within nested expressions.
-  
-- **Flexible Output Handling**: The ability to include `endl` as a separate token allows for explicit control over when newlines are added to the output, providing flexibility in how print statements are formatted.
+5. **Finalizing Parsing**:
+   - After exiting the loop, consume any remaining newlines or semicolons using `while (check(TokenType::NEWLINE) || check(TokenType::SEMICOLON)) consume();`.
+   - Create and return a unique pointer to an AST node representing the print statement. The node contains the parsed arguments and a boolean indicating whether a newline should be printed.
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - None directly passed to the function; it uses global state (current token, input stream) to determine what to parse.
+  - None explicitly mentioned in the provided code snippet.
 
 - **Return Value**:
-  - Returns a `unique_ptr<ASTNode>` containing a `PrintStmt` object. The `PrintStmt` encapsulates the list of expressions to be printed and a boolean indicating whether a newline should be appended.
+  - Returns a unique pointer to an AST node of type `PrintStmt`, containing the parsed arguments and a boolean indicating whether a newline should be printed.
 
 ## Edge Cases
 
-- **Empty Print Statement**: If there are no expressions or special tokens after `cout`, the function will still construct a valid `PrintStmt` with an empty argument list.
-- **String Literal with `\n`**: If a string literal containing `\n` is encountered, it is treated as a newline character and the `newline` flag is set accordingly.
-- **Misuse of `endl`**: If `endl` is used outside of a `cout` context, it will be ignored, and the `newline` flag will remain `false`.
+- **Empty Statement**: If there are no expressions or strings to print, the function will return a `PrintStmt` with an empty `args` vector and `newline` set to `false`.
+- **String Literal Ending with `\n`**: If a string literal ends with `\n`, it is considered as a newline trigger and `newline` is set to `true`.
+- **Bare `\n` String**: A bare string literal with only `\n` is treated as `endl` and `newline` is set to `true`.
 
 ## Interactions with Other Components
 
-- **Tokenizer**: The function relies on the tokenizer to provide the next token in the input stream. The tokenizer's state is advanced through calls like `consume()` and `skipNewlines()`.
-  
-- **Precedence Parsing**: The use of `parseAddSub()` leverages the existing precedence parsing mechanism to handle expressions correctly. This integration ensures consistency with the rest of the language's parsing rules.
+- **Tokenizer**: The function interacts with the tokenizer to retrieve the current token and check its type.
+- **Error Handling**: While not shown in the provided code snippet, error handling mechanisms are likely integrated within the parser to manage unexpected tokens or syntax errors.
+- **Abstract Syntax Tree (AST)**: The function constructs an AST node of type `PrintStmt`, which represents the parsed print statement. This node is then used by the compiler's subsequent stages to generate executable code.
 
-- **Error Handling**: While not shown in the snippet, the function likely interacts with error handling mechanisms to manage situations where invalid tokens are encountered during parsing.
-
-This comprehensive approach ensures that `parseCoutStmt` can accurately parse complex print statements in the Quantum Language, maintaining both correctness and flexibility in output formatting.
+By ensuring that the `<<` operator is correctly recognized as the stream insertion operator and handling special identifiers like `endl`, the `parseCoutStmt` function facilitates accurate parsing of console output statements in the Quantum Language.
