@@ -2,41 +2,31 @@
 
 ## Overview
 
-The `defineRef` function plays a crucial role in the Quantum Language compiler, specifically within the `Value.cpp` file. Its primary purpose is to create a direct association between a given variable name and a shared cell, ensuring that all read and write operations on the variable are handled through this cell. This mechanism facilitates efficient memory management and synchronization across different parts of the compiler.
+The `defineRef` function is an essential component of the Quantum Language compiler, located in the `Value.cpp` file. This function establishes a direct binding between a specified variable name and a shared cell. By doing so, any subsequent read or write operations on the variable will be automatically redirected to the shared cell, facilitating efficient data management and synchronization across different parts of the program.
 
 ## Parameters
 
-- **name**: A string representing the variable name to be associated with the shared cell.
-- **cell**: A pointer to a shared cell object (`std::shared_ptr<SharedCell>`). This cell will store the value of the variable and manage its lifecycle.
+- **name**: A string representing the name of the variable to which the shared cell should be bound.
+- **cell**: A pointer to a shared cell object that holds the actual data associated with the variable.
 
 ## Return Value
 
-This function does not return any value explicitly. It operates by modifying internal data structures within the compiler.
+This function does not return any value explicitly. However, it updates two internal maps:
+- **cells**: A map where keys are variable names and values are pointers to shared cells.
+- **vars**: Another map where keys are variable names and values are references to the data stored in the corresponding shared cells.
 
-## How It Works
-
-1. **Direct Binding**: The function binds the provided variable name (`name`) directly to the shared cell (`cell`). This means that whenever the variable is accessed or modified, the operations will be performed on the shared cell, which handles the actual storage and retrieval of the value.
-
-2. **Synchronization**: To ensure consistency and facilitate iteration over variables, the function also updates the `vars` map. This map stores the current values of all variables, allowing for easy access and iteration without needing to interact with the shared cells directly.
-
-   ```cpp
-   vars[name] = *cell; // keep vars in sync for iteration (e.g. getVars())
-   ```
-
-   Here, `*cell` dereferences the shared cell to obtain the current value stored in it.
+These updates enable the compiler to track variable bindings and their associated data efficiently, supporting various operations such as variable lookup, modification, and iteration.
 
 ## Edge Cases
 
-- **Duplicate Variable Names**: If the same variable name is passed multiple times to `defineRef`, the existing binding will be overwritten. This behavior ensures that each variable name is always associated with the most recent shared cell.
-  
-- **Null Cell Pointer**: Passing a null pointer as the `cell` parameter will result in undefined behavior. It is essential to ensure that the `cell` pointer is valid before calling `defineRef`.
+1. **Duplicate Variable Names**: If the same variable name is passed multiple times, each subsequent call will overwrite the previous binding. This means that only the last defined reference for a particular variable name will be valid.
+2. **Null Cell Pointers**: Passing a null pointer for the `cell` parameter can lead to undefined behavior when attempting to access the data through the variable. It is important to ensure that a non-null cell pointer is always provided.
+3. **Empty Strings**: Attempting to bind an empty string as a variable name may result in errors or unexpected behavior, depending on how the compiler handles such cases.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Memory Management**: By using shared pointers, `defineRef` supports automatic memory management. When the last reference to a shared cell is removed, the cell is automatically deallocated, preventing memory leaks.
+The `defineRef` function interacts closely with other parts of the Quantum Language compiler, particularly with the `ScopeManager` class. The `ScopeManager` is responsible for managing variable scopes and lifetimes. When a variable is defined using `defineRef`, the `ScopeManager` ensures that the variable's scope is correctly tracked, allowing for proper garbage collection and scope resolution during compilation.
 
-- **Iteration Over Variables**: The updated `vars` map allows other components of the compiler to easily iterate over all defined variables and their current values. This is particularly useful during compilation phases where variable states need to be checked or manipulated.
+Additionally, `defineRef` is used in conjunction with the `ExpressionEvaluator` class, which evaluates expressions involving variables. By maintaining a consistent mapping between variable names and shared cells, `defineRef` enables the `ExpressionEvaluator` to accurately resolve variable references and perform necessary computations.
 
-- **Thread Safety**: Although not explicitly mentioned in the code snippet, the use of shared pointers implies thread safety. Multiple threads can safely access and modify the shared cell without causing race conditions, as long as proper synchronization mechanisms are used when accessing the `cells` and `vars` maps.
-
-In summary, the `defineRef` function is a fundamental method in the Quantum Language compiler responsible for establishing efficient variable bindings and maintaining synchronized state information. Its implementation leverages shared pointers to support automatic memory management and thread-safe operations, making it a robust component of the compiler infrastructure.
+Overall, the `defineRef` function serves as a fundamental building block for variable management in the Quantum Language compiler, ensuring efficient data handling and seamless integration with other compiler components.
