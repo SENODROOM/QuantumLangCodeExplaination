@@ -1,63 +1,76 @@
-# QuantumLanguage Compiler - Opcode.h
+# QuantumLanguage Compiler - Parser.h
 
 ## Overview
 
-The `include/Opcode.h` header file defines the set of operations (opcodes) used by the QuantumLanguage compiler's virtual machine (VM). These opcodes dictate how the VM processes bytecode instructions, enabling it to manage execution contexts, handle exceptions, and maintain the runtime environment efficiently.
+The `include/Parser.h` header file is an essential part of the QuantumLanguage compiler, responsible for converting a sequence of tokens into an Abstract Syntax Tree (AST). This parser implements a Pratt parser to handle operator precedence and associativity, ensuring that expressions are correctly parsed according to their rules.
 
 ## Role in Compiler Pipeline
 
-The opcode definitions play a critical role in the compiler pipeline. They serve as the foundation for generating executable bytecode, which is then interpreted or executed directly by the VM. The VM uses these opcodes to perform various tasks such as loading constants, managing variables, performing arithmetic operations, handling control flow, calling functions, and managing exceptions.
+The Parser operates as a critical step in the QuantumLanguage compiler's pipeline. It takes the output from the Lexer, which tokenizes the source code, and constructs an AST that represents the structure of the program. The AST is then used by subsequent phases such as semantic analysis, optimization, and code generation.
 
 ## Key Design Decisions and Why
 
-1. **Stack Manipulation**: Operations like `LOAD_CONST`, `POP`, `LOAD_GLOBAL`, etc., are designed to manipulate the VM's stack. This approach allows for a flexible and dynamic memory management strategy, suitable for both simple and complex programs.
+1. **Pratt Parser**: The choice of a Pratt parser allows for flexible handling of operator precedence and associativity without requiring complex recursive descent or lookahead techniques. This makes the implementation simpler and more intuitive.
 
-2. **Variables and Captures**: The opcodes `DEFINE_GLOBAL`, `LOAD_GLOBAL`, `STORE_GLOBAL`, `DEFINE_LOCAL`, `LOAD_LOCAL`, and `STORE_LOCAL` manage variable storage and upvalue/closure captures. This ensures that variables are correctly scoped and accessible throughout the program.
+2. **Exception Handling**: The `ParseError` class extends `std::runtime_error`, providing additional information about the error location (`line` and `col`). This helps in diagnosing issues more effectively during development.
 
-3. **Arithmetic and Bitwise Operations**: Basic arithmetic (`ADD`, `SUB`, `MUL`, etc.) and bitwise operations (`BIT_AND`, `BIT_OR`, `BIT_XOR`, etc.) are essential for any programming language. The short-circuiting behavior in logical operations (`AND`, `OR`) optimizes performance by avoiding unnecessary computations.
+3. **Token Helpers**: Functions like `current()`, `peek()`, `consume()`, `expect()`, `check()`, `match()`, `atEnd()`, and `skipNewlines()` provide utility for navigating through the token stream. These functions ensure that the parser can accurately identify and consume tokens as required.
 
-4. **String Operations**: The `CONCAT` opcode provides a dedicated way to concatenate strings, which can be more efficient than using general-purpose arithmetic operations.
-
-5. **Control Flow**: Conditional jumps (`JUMP_IF_FALSE`, `JUMP_IF_TRUE`) and loops (`LOOP`) allow for structured control flow within the program. Absolute jumps (`JUMP_ABSOLUTE`) provide flexibility for branching to specific locations in the bytecode.
-
-6. **Functions and Calls**: The `CALL` and `RETURN` opcodes enable function calls and returns, supporting both built-in and user-defined functions. The `MAKE_FUNCTION` and `MAKE_CLOSURE` opcodes create functions and closures, respectively, allowing for higher-order functions and lexical scoping.
-
-7. **Collections**: Operations to create arrays (`MAKE_ARRAY`), dictionaries (`MAKE_DICT`), and tuples (`MAKE_TUPLE`) support data structure manipulation, essential for handling complex data types.
-
-8. **Member Access**: The `GET_INDEX`, `SET_INDEX`, `GET_MEMBER`, `SET_MEMBER`, and `GET_SUPER` opcodes facilitate member and index access, enabling object-oriented programming features.
-
-9. **Iteration**: The `FOR_ITER` and `MAKE_ITER` opcodes support iteration over collections, providing a powerful mechanism for looping constructs.
-
-10. **Classes**: The `MAKE_CLASS`, `INHERIT`, `BIND_METHOD`, and `INSTANCE_NEW` opcodes enable the creation and instantiation of classes, supporting object-oriented programming paradigms.
-
-11. **Exceptions**: Exception handling is crucial for robust error management. The `PUSH_HANDLER`, `POP_HANDLER`, `RAISE`, and `RERAISE` opcodes ensure that exceptions are caught, handled, and propagated appropriately.
-
-12. **Pointers (C++ Extensions)**: To leverage C++'s pointer capabilities, the `ADDRESS_OF`, `DEREF`, and `ARROW` opcodes provide direct support for address-of, dereference, and arrow operations, enhancing interoperability between C++ and QuantumLanguage.
-
-13. **Miscellaneous**: Additional opcodes like `PRINT` provide basic utilities for debugging and outputting information during execution.
+4. **Recursive Descent Parsing**: The parser uses a combination of recursive descent and Pratt parsing to handle different types of statements and expressions. This approach simplifies the parsing logic and makes it easier to extend the language syntax.
 
 ## Major Classes/Functions Overview
 
-- **Op Enum Class**: This enumeration class defines all the available opcodes, each represented by a unique integer value. It serves as the core interface for interpreting bytecode.
+### Parser Class
 
-- **Value Class**: This class represents the data type used by the VM. It supports various types including integers, floats, booleans, strings, arrays, dictionaries, tuples, and objects.
+- **Constructor**: `explicit Parser(std::vector<Token> tokens)` initializes the parser with a vector of tokens.
+- **parse() Function**: `ASTNodePtr parse()` parses the entire input and returns the root of the AST.
 
-- **Chunk Class**: Represents a chunk of bytecode, containing an array of opcodes and associated data. Chunks are used to store the intermediate representation generated by the compiler.
+### Private Member Functions
 
-- **QuantumFunction Class**: Wraps a chunk of bytecode into a callable function. Functions can have parameters and return values, and they can be defined as either native (C++) or bytecode-based.
+#### Token Helpers
 
-- **IteratorState Class**: Manages the state of iterators used in `FOR_ITER` operations. It encapsulates the current position and the collection being iterated over.
+- **current()**: Returns the current token without advancing the position.
+- **peek(int offset = 1)**: Returns the token at the specified offset without advancing the position.
+- **consume()**: Consumes the current token and advances the position.
+- **expect(TokenType t, const std::string &msg)**: Ensures the next token matches the expected type, throwing a `ParseError` if not.
+- **check(TokenType t) const**: Checks if the next token matches the specified type.
+- **match(TokenType t)**: If the next token matches the specified type, consumes it and returns true; otherwise, returns false.
+- **atEnd() const**: Determines if the end of the token stream has been reached.
+- **skipNewlines()**: Skips any newline characters in the token stream.
 
-- **ExceptionHandler Class**: Handles exceptions by storing the instruction pointer where the exception should be caught. When an exception occurs, the VM jumps to the appropriate handler.
+#### Statement Parsing
+
+- **parseStatement()**: Parses a single statement.
+- **parseBlock()**: Parses a block of statements enclosed in curly braces.
+- **parseBodyOrStatement()**: Parses either a block or a single statement, allowing for brace-optional blocks.
+- **parseVarDecl(bool isConst)**: Parses a variable declaration, optionally specifying whether it should be constant.
+- **parseFunctionDecl()**: Parses a function declaration.
+- **parseClassDecl()**: Parses a class declaration.
+- **parseIfStmt()**, **parseWhileStmt()**, **parseForStmt()**: Parses conditional and loop statements.
+- **parseReturnStmt()**: Parses a return statement.
+- **parsePrintStmt()** and **parseInputStmt()**: Parses print and input statements.
+- **parseCoutStmt()** and **parseCinStmt()**: Parses formatted output and input statements using `cout` and `cin`.
+- **parseImportStmt(bool isFrom = false)**: Parses import statements, optionally specifying whether they are from another module.
+
+#### Expression Parsing
+
+- **parseExpr()**: Parses a full expression using Pratt parsing.
+- **parseAssignment()**, **parseOr()**, **parseAnd()**, **parseBitwise()**, **parseEquality()**, **parseComparison()**, **parseShift()**, **parseAddSub()**, **parseMulDiv()**, **parsePower()**, **parseUnary()**, **parsePostfix()**, **parsePrimary()**: These functions parse specific types of expressions based on their operators and precedences.
+
+#### Literal Parsing
+
+- **parseArrayLiteral()** and **parseDictLiteral()**: Parses array and dictionary literals respectively.
+- **parseLambda()**: Parses lambda functions.
+- **parseArrowFunction(std::vector<std::string> params, int ln)**: Parses arrow functions with specified parameters and line number.
+- **parseArgList()**: Parses a list of arguments for function calls or declarations.
+- **parseParamList(std::vector<bool> *outIsRef = nullptr, std::vector<ASTNodePtr> *outDefaultArgs = nullptr, std::vector<std::string> *outParamTypes = nullptr)**: Parses a list of parameters for function declarations, populating optional vectors with reference status, default arguments, and parameter types.
 
 ## Tradeoffs
 
-- **Performance vs. Flexibility**: While the stack-based model offers high flexibility, it may not always be the most performant for large-scale applications. However, for a dynamically typed language like QuantumLanguage, the stack model provides a good balance between simplicity and functionality.
+1. **Complexity vs. Flexibility**: While the Pratt parser provides flexibility in handling operator precedence, it might add some complexity compared to other parsing approaches. However, this tradeoff is deemed acceptable for its simplicity and ease of extension.
 
-- **Memory Management**: The stack-based model requires careful memory management to avoid overflow and underflow errors. Efficient garbage collection mechanisms are necessary to manage memory effectively.
+2. **Performance**: Recursive descent parsers can be less efficient than Pratt parsers due to potential stack overflows and increased overhead. However, the performance impact is mitigated by careful implementation and use of tail recursion where possible.
 
-- **Interoperability**: Supporting C++ pointers through dedicated opcodes enhances interoperability but adds complexity to the VM implementation. Balancing this against the need for pure bytecode execution is a tradeoff.
+3. **Readability**: The use of token helpers and clear separation of concerns between different parsing stages improves readability and maintainability of the codebase.
 
-- **Exception Handling**: The explicit exception handling mechanism allows for precise control over error propagation but adds overhead compared to simpler models. The decision to use explicit handlers instead of implicit ones was made based on the need for robust error management in the language.
-
-Overall, the `Opcode.h` file plays a vital role in defining the quantum nature of the QuantumLanguage compiler's virtual machine, enabling efficient and expressive
+By leveraging these design decisions and implementing robust parsing mechanisms, the `Parser.h` header file ensures that the QuantumLanguage compiler can efficiently and accurately convert source code
