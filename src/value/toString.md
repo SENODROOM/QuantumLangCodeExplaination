@@ -4,36 +4,36 @@ The `toString()` function in the Quantum Language compiler is designed to conver
 
 ## What It Does
 
-The `toString()` function takes a quantum value of any type and returns its corresponding string representation. The function uses `std::visit` to handle different types of quantum values, ensuring that each type is converted appropriately.
+The `toString()` function takes an instance of a quantum data type and returns its string representation. The function uses `std::visit` to handle different data types gracefully without explicit casting or branching logic.
 
 ## Why It Works This Way
 
-The function works by utilizing `std::visit` to apply a lambda function to the quantum value. This lambda function checks the type of the quantum value using `if constexpr` statements and converts it accordingly. For example, boolean values are converted to `"true"` or `"false"`, numeric values are formatted to strings with appropriate precision, and complex structures like arrays and dictionaries are recursively converted to their string representations.
-
-This approach allows the function to handle multiple quantum data types without requiring explicit casting or type checking, making the code more concise and easier to maintain.
+Using `std::visit` allows the function to be generic and handle multiple data types efficiently. Each case within `std::visit` corresponds to a specific quantum data type, and the lambda function processes each type accordingly. This approach ensures that the function can seamlessly integrate with any new data types added to the compiler's quantum language without requiring modifications to the existing code.
 
 ## Parameters/Return Value
 
-- **Parameters**: None
-- **Return Value**: A `std::string` representing the string form of the quantum value.
+- **Parameters**: None. The function operates on the current context or object it is called on.
+- **Return Value**: A `std::string` representing the string form of the quantum data type.
 
 ## Edge Cases
 
-- **QuantumNil**: Returns `"nil"`.
-- **bool**: Returns `"true"` or `"false"`.
-- **double**: Handles both integer and floating-point numbers, formatting them to strings with up to 10 decimal places unless they are very large integers.
-- **std::string**: Directly returns the string value.
-- **std::shared_ptr<Array>**: Converts an array to a string representation, handling nested arrays and strings appropriately.
-- **std::shared_ptr<Dict>**: Converts a dictionary to a string representation, including key-value pairs and handling nested dictionaries and strings.
-- **std::shared_ptr<Closure>** and **std::shared_ptr<QuantumNative>**: Return a string indicating the closure or native function name.
-- **std::shared_ptr<QuantumInstance>**: If a `__str__` method is defined for the class, it calls that method to get the string representation. Otherwise, it falls back to a default implementation.
+1. **QuantumNil**: Returns `"nil"` directly since there is no meaningful string representation for this type.
+2. **bool**: Converts `true` to `"true"` and `false` to `"false"`.
+3. **double**: Handles both integer and floating-point values:
+   - If the value is an integer (`std::floor(v) == v`) and less than `1e15`, it converts the value to a long long integer and then to a string.
+   - For all other values, it formats the number to 10 decimal places using `std::ostringstream`.
+4. **std::string**: Simply returns the string itself.
+5. **Array**: Converts an array to a string representation, handling nested arrays and strings appropriately.
+6. **Dict**: Converts a dictionary to a string representation, formatting keys and values correctly.
+7. **Closure** and **QuantumNative**: Provides a simple string representation indicating the type and name of the closure or native function.
+8. **QuantumInstance**: Calls the `__str__` method if defined for the class of the instance. If not defined, it falls back to a default string representation.
 
 ## Interactions With Other Components
 
-The `toString()` function interacts with several other components of the Quantum Language compiler:
+- **Debugging and Logging**: The `toString()` function is used extensively throughout the compiler for generating debug logs and error messages. Having a consistent and informative string representation helps developers understand the state of the program during runtime.
+  
+- **User Interface**: When interacting with users through command-line interfaces or graphical user interfaces, the `toString()` function ensures that data is presented in a readable format. For example, when displaying the contents of an array or dictionary, the function provides a clear and structured string output.
 
-- **Debugging and Logging**: By converting quantum values to strings, the function facilitates better debugging and logging of internal states and operations.
-- **User Interface**: When displaying results or errors to users, the `toString()` function ensures that quantum values are presented in a readable format.
-- **Serialization**: In some cases, the string representation of quantum values may be used for serialization purposes, allowing data to be stored or transmitted as text.
+- **Serialization**: While not explicitly mentioned in the provided code snippet, the `toString()` function can also be used for serialization purposes. By converting complex quantum data structures into strings, the function facilitates easy storage and transmission of data across different parts of the compiler or even between compilers.
 
-Overall, the `toString()` function is essential for maintaining readability and usability throughout the development and operation of the Quantum Language compiler.
+In summary, the `toString()` function is a versatile utility in the Quantum Language compiler, providing a standardized way to represent various quantum data types as strings. Its use enhances readability, debugging capabilities, and user interface interactions, making it an essential part of the compiler's infrastructure.
