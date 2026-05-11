@@ -1,30 +1,30 @@
 # `getField` Function
 
 ## Purpose
-The `getField` function retrieves a field or method from an instance of a class in the Quantum Language compiler. This function is essential for accessing properties and behaviors encapsulated within objects during runtime.
+The `getField` function is designed to retrieve a field or method from an instance of a class in the Quantum Language compiler. It plays a crucial role in allowing access to properties and behaviors encapsulated within objects at runtime.
 
 ## Parameters
-- `name`: A string representing the name of the field or method to retrieve. This parameter specifies which property or behavior should be accessed from the object.
+- **name**: A string representing the name of the field or method to be retrieved. This parameter specifies which member of the class should be accessed.
 
 ## Return Value
-The function returns a `QuantumValue` object that represents either the field or method associated with the given name. If the specified field or method exists, it is returned successfully.
-
-## Edge Cases
-1. **Non-existent Field/Method**: If the provided `name` does not correspond to any existing field or method in the object's class hierarchy, the function throws a `NameError`. This ensures that the user is aware of attempting to access something that doesn't exist.
-2. **Case Sensitivity**: The function is case-sensitive when searching for fields and methods. It will only find matches that exactly match the case of the provided `name`.
+- Returns a `QuantumValue` object containing either the requested field or method. If the field or method exists, it is returned directly; otherwise, it is wrapped in a `QuantumValue`.
 
 ## How It Works
-The `getField` function operates in two main steps:
-1. **Field Search**: First, it checks if the field named `name` exists directly within the object's current class (`klass`). If found, it returns the corresponding `QuantumValue`.
-2. **Method Search**: If the field is not found in the current class, the function proceeds to search up the class hierarchy. It starts by retrieving the base class of the current class (`k = k->base.get()`). Then, it iterates through all classes in the hierarchy, checking each one for a method named `name`. If a method is found, it is wrapped in a `QuantumValue` and returned. If no field or method is found after traversing the entire hierarchy, a `NameError` is thrown.
+The function operates in two primary steps:
+1. **Field Search**: It first searches for the specified field (`name`) within the current class's `fields` map. If the field is found, it is immediately returned as a `QuantumValue`.
+2. **Method Search**: If the field is not found, the function proceeds to search for the method in the class hierarchy. It starts with the current class (`klass`) and iterates through its base classes using a pointer (`k`). For each base class, it checks the `methods` map. If the method is found, it is returned wrapped in a `QuantumValue`. The search continues up the inheritance chain until the root class is reached without finding the method.
 
-This approach allows `getField` to dynamically access both fields and methods at runtime, providing flexibility and power to the Quantum Language compiler.
+If neither the field nor any method matching the provided name is found in the class or its hierarchy, the function throws a `NameError`, indicating that the specified field or method does not exist on the given class instance.
+
+## Edge Cases
+- **Non-existent Field/Method**: If the specified field or method does not exist anywhere in the class or its base classes, the function will throw a `NameError`.
+- **Ambiguity**: In a scenario where multiple base classes contain a field or method with the same name, the function will return the one from the closest ancestor class in the inheritance chain. This ensures that the correct member is accessed based on the most derived class.
 
 ## Interactions with Other Components
-The `getField` function interacts with several key components of the Quantum Language compiler:
-- **Class Hierarchy**: It uses the class hierarchy to traverse upwards from the object's class to its base classes, searching for the requested field or method.
-- **Fields Storage**: Fields are stored in a map called `fields`, making quick lookup possible.
-- **Methods Storage**: Methods are also stored in a map called `methods`, allowing similar fast retrieval as for fields.
-- **Exception Handling**: When a non-existent field or method is accessed, the function throws a `NameError`, which is handled by the exception system of the compiler.
+The `getField` function interacts closely with several key components of the Quantum Language compiler:
+- **Class Definition**: It relies on the `klass` parameter to identify the class whose members are being searched.
+- **Fields Map**: Each class has a `fields` map that stores all the fields defined within it. The function uses this map to quickly locate the specified field.
+- **Methods Map**: Similarly, each class has a `methods` map that contains all the methods available. The function checks these maps in the base classes to ensure that inherited methods can also be accessed.
+- **Inheritance Hierarchy**: The function traverses the inheritance hierarchy using the `base` pointer of each class. This allows it to search for members in parent classes when they are not present in the current class.
 
-By leveraging these components, `getField` provides robust functionality for accessing object properties and behaviors, enhancing the capabilities of the Quantum Language compiler.
+Overall, the `getField` function is a fundamental utility in the Quantum Language compiler, enabling dynamic access to class members across different levels of inheritance. Its implementation ensures efficient searching and retrieval of fields and methods, providing robust support for object-oriented programming features in the language.
