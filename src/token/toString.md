@@ -2,46 +2,43 @@
 
 ## Overview
 
-The `toString` function is a member method of the `Token` class in the Quantum Language compiler's source code (`src/Token.cpp`). This function converts a `Token` object into its string representation, providing details such as the token's type, line number, and value. The primary purpose of this function is to facilitate debugging and logging by offering a human-readable format of the token.
+The `toString` function is a member method of the `Token` class in the Quantum Language compiler's source code (`src/Token.cpp`). This function converts a `Token` object into its string representation, providing details such as the token's type, line number, and value. The purpose of this function is to facilitate debugging and logging by offering a human-readable format of the token.
 
-## Parameters
+### Why It Works This Way
 
-- None
+The function uses an `std::ostringstream` to build a formatted string that includes the line number, column number, and value of the token. By concatenating these elements within square brackets, the output becomes clear and structured, making it easier to identify tokens during debugging sessions or when generating logs.
 
-## Return Value
+### Parameters/Return Value
 
-- **Type**: `std::string`
-- **Description**: Returns a string that represents the current state of the `Token` object. The string format is `[<line>:<col> <value>]`, where `<line>` is the line number where the token was encountered, `<col>` is the column number within that line, and `<value>` is the actual value of the token.
+- **Parameters**: None
+- **Return Value**: A `std::string` representing the token in a readable format.
 
-## Edge Cases
+### Edge Cases
 
-1. **Empty Token**: If the token has an empty value or invalid line/column numbers, the function will still return a string in the format `[:<line>:<col> ]`. However, this might not be very informative without additional context.
-2. **Large Line/Column Numbers**: The function handles large integers gracefully, converting them to strings using standard integer-to-string conversion mechanisms provided by the C++ Standard Library.
+1. **Empty Token Value**: If the token's value is empty, the function will still produce a valid string representation in the form `[line:col []]`.
+2. **Special Characters in Value**: Special characters in the token's value are handled correctly by `std::ostringstream`, which ensures they are properly escaped or displayed.
 
-## Interactions with Other Components
+### Interactions With Other Components
 
-- **Logging**: The `toString` function is often used in logging statements to provide detailed information about tokens being processed during compilation.
-- **Debugging**: Developers can use the output of `toString` to inspect tokens at various stages of the compilation process, aiding in debugging and understanding the flow of the compiler.
+The `toString` function interacts primarily with the `Token` class itself, accessing its private members such as `line`, `col`, and `value`. These values are then used to construct a descriptive string. Additionally, the function may be called by other parts of the compiler, such as the lexer or parser, to generate debug information or error messages.
 
-### Example Usage
-
-Here’s how you might use the `toString` function in your code:
+Here is the implementation of the `toString` function:
 
 ```cpp
-#include "Token.h"
-#include <iostream>
+#include <sstream>
+#include <iomanip>
 
-int main() {
-    Token t(10, 5, "example");
-    std::cout << "Token: " << t.toString() << std::endl; // Output: Token: [10:5 example]
-    return 0;
+std::string Token::toString() const {
+    std::ostringstream oss;
+    oss << "[" << std::setw(3) << std::setfill('0') << line << ":"
+        << std::setw(3) << std::setfill('0') << col << " "
+        << "\"" << value << "\"]";
+    return oss.str();
 }
 ```
 
-In this example, a `Token` object is created with line number 10, column number 5, and value `"example"`. The `toString` method is then called on this object, and the resulting string is printed to the console.
+In this implementation:
+- `std::setw(3)` and `std::setfill('0')` ensure that the line and column numbers are always three digits wide, padding with zeros if necessary.
+- The value is enclosed in double quotes to handle special characters gracefully.
 
-### Implementation Details
-
-The implementation uses `std::ostringstream` to construct the string representation of the token. This approach ensures efficient string concatenation and formatting. The function simply inserts the line number, column number, and value into the stream, formatted as specified, and then returns the constructed string.
-
-This method provides a clear and concise string representation of a `Token`, making it easier to understand and debug the tokenization process in the Quantum Language compiler.
+This function provides a concise yet informative string representation of a token, enhancing the readability and usability of diagnostic outputs in the Quantum Language compiler.
