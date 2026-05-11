@@ -1,53 +1,69 @@
 # LexerReaders Component of the Quantum Language Compiler
 
-The `lexerreaders` component is an essential part of the Quantum Language (QL) compiler, tasked with reading and parsing tokens from the source code into meaningful elements that can be further processed by the compiler's parser. This component primarily consists of two functions: `readString` and `readIdentifierOrKeyword`.
+The `lexerreaders` component is a crucial part of the Quantum Language (QL) compiler, responsible for reading and parsing tokens from the source code into meaningful elements that can be further processed by the compiler's parser. This component primarily consists of two functions: `readString` and `readIdentifierOrKeyword`.
 
 ## Overview
 
-The `lexerreaders` component plays a pivotal role in the lexical analysis phase of the QL compiler. It reads characters from the input source code and identifies them as tokens such as strings, identifiers, keywords, operators, and punctuation marks. These tokens are then passed on to the parser for syntactic analysis.
+The `lexerreaders` component plays a pivotal role in tokenizing the input source code. It reads characters from the input stream and converts them into tokens that represent different types of elements such as strings, identifiers, keywords, and operators. The tokens are then passed on to the parser for syntactic analysis.
 
-### Directory Structure
+### Functions
 
-- **readString.cpp**: Contains the implementation of the `readString` function, which specifically handles the parsing of string literals from the source code.
-- **readIdentifierOrKeyword.cpp**: Contains the implementation of the `readIdentifierOrKeyword` function, which identifies and categorizes words as either identifiers or reserved keywords.
+1. **`readString`**:
+   - **Purpose**: Reads a string literal from the source code.
+   - **Process**: 
+     1. Starts reading from the current position until it encounters a closing quote (`"`).
+     2. Handles escape sequences within the string.
+     3. Returns the parsed string token.
+   
+2. **`readIdentifierOrKeyword`**:
+   - **Purpose**: Reads an identifier or keyword from the source code.
+   - **Process**: 
+     1. Starts reading from the current position until it encounters a non-alphanumeric character or whitespace.
+     2. Checks if the read sequence matches any known keywords.
+     3. If it matches a keyword, returns the corresponding keyword token; otherwise, returns an identifier token.
 
-## Functions
+### File Structure
 
-### readString
+- **`readString.cpp`**: Contains the implementation of the `readString` function.
+- **`readIdentifierOrKeyword.cpp`**: Contains the implementation of the `readIdentifierOrKeyword` function.
+- **`token.h`**: Defines the structure and types of tokens used by the lexer.
 
-**Purpose**: Parses string literals from the source code.
+## Usage
 
-**Parameters**:
-- `input`: A reference to the input stream containing the source code.
-- `token`: A reference to the token object where the parsed string will be stored.
+To use the `lexerreaders` component, you need to include the necessary header file and call the appropriate functions with the source code as input. Here’s a basic example:
 
-**Returns**:
-- `true` if a valid string literal was successfully parsed; otherwise, `false`.
+```cpp
+#include "token.h"
 
-**Description**:
-The `readString` function reads characters from the input stream until it encounters the closing quote character (`"`). It ensures that escape sequences within the string are correctly interpreted and stores the resulting string in the provided token object.
+int main() {
+    std::string sourceCode = "\"Hello, World!\" quantum";
+    
+    // Read a string token
+    Token* stringToken = readString(sourceCode);
+    std::cout << "String Token: " << stringToken->value << std::endl;
+    
+    // Read an identifier or keyword token
+    Token* idOrKeywordToken = readIdentifierOrKeyword(sourceCode);
+    std::cout << "ID/Keyword Token: " << idOrKeywordToken->value << std::endl;
+    
+    return 0;
+}
+```
 
-### readIdentifierOrKeyword
+## Contributing
 
-**Purpose**: Identifies and categorizes words as either identifiers or reserved keywords.
+Contributions to the `lexerreaders` component are welcome. Please follow these steps to contribute:
 
-**Parameters**:
-- `input`: A reference to the input stream containing the source code.
-- `token`: A reference to the token object where the parsed identifier or keyword will be stored.
+1. Fork the repository.
+2. Create a new branch for your feature or bug fix.
+3. Make your changes and commit them.
+4. Push your changes to your forked repository.
+5. Open a pull request to merge your changes into the main branch.
 
-**Returns**:
-- `true` if a valid identifier or keyword was successfully parsed; otherwise, `false`.
+## License
 
-**Description**:
-The `readIdentifierOrKeyword` function reads characters from the input stream until it encounters a non-alphanumeric character or whitespace. It checks if the word belongs to the set of reserved keywords and categorizes it accordingly. If not, it treats the word as an identifier.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Flow
+---
 
-1. The lexer begins reading the source code from the input stream.
-2. For each character encountered, it determines whether the character forms part of a string literal or an identifier/keyword using the `readString` and `readIdentifierOrKeyword` functions respectively.
-3. Once a token is identified, it is stored in the appropriate data structure and passed on to the parser for further processing.
-4. This process continues until all characters in the source code have been analyzed and converted into tokens.
-
-By effectively handling the parsing of strings and identifiers/keywords, the `lexerreaders` component ensures that the subsequent stages of the compilation process receive well-formed and categorized tokens, facilitating accurate syntax analysis and error detection.
-
-For more detailed information on the implementation and usage of these functions, refer to the individual `.cpp` files in this directory.
+Feel free to update the content based on additional details or requirements specific to your project.
