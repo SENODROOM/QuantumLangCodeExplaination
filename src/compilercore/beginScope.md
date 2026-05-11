@@ -2,29 +2,26 @@
 
 ## Overview
 
-The `beginScope` function is an essential method within the Quantum Language compiler's `CompilerCore.cpp` file. Its primary purpose is to increment the scope depth of the currently active compilation unit. This function is pivotal in maintaining and managing the hierarchical structure of scopes during the compilation process, ensuring that variables and symbols are correctly resolved based on their scope levels.
+The `beginScope` function is an integral part of the Quantum Language compiler, specifically defined in the `CompilerCore.cpp` file. Its main responsibility is to increase the scope depth of the active compilation unit. This function plays a crucial role in managing variable declarations, symbol tables, and other context-related data structures during the compilation process.
 
-## Parameters and Return Value
+## Parameters
 
-- **Parameters**: None
-- **Return Value**: None
+- None
 
-The `beginScope` function does not accept any parameters nor does it return any value. It simply modifies the state of the current compilation unit by increasing its scope depth.
+## Return Value
 
-## Why It Works This Way
-
-Incrementing the scope depth allows the compiler to keep track of how deeply nested the current context is. This information is crucial for symbol resolution and scoping rules enforcement. By maintaining a count of the scope depth, the compiler can ensure that each variable or symbol is only accessible within its intended scope, preventing name clashes and unintended side effects.
+- None
 
 ## Edge Cases
 
-1. **Initial Scope Depth**: If the initial scope depth is zero, calling `beginScope` will set it to one. This ensures that the first scope level is properly accounted for.
-2. **Nested Scopes**: The function supports multiple levels of nesting. Each call to `beginScope` increases the depth by one, allowing for complex scope hierarchies.
-3. **Scope Reset**: There is no explicit mechanism provided in the given code snippet to reset the scope depth. However, in typical compilation processes, scope depth would be reset at certain points, such as when a new compilation unit starts or when a block is exited.
+1. **Initial Scope**: If the compilation unit starts without any scopes, calling `beginScope` will set the initial scope depth to 1.
+2. **Nested Scopes**: Each call to `beginScope` increments the scope depth by 1. For example, if `beginScope` is called twice consecutively, the scope depth will be increased from 1 to 3.
+3. **Empty Compilation Unit**: If there are no active compilation units or the current compilation unit has already been finalized, calling `beginScope` will not have any effect.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Symbol Table Management**: The `beginScope` function interacts closely with the symbol table management component of the compiler. As the scope depth increases, the symbol table should reflect this change by allocating space for new symbols at the appropriate level.
-- **Error Handling**: During the compilation process, the scope depth helps in error handling. For example, if an attempt is made to access a symbol outside its valid scope, the compiler can use the scope depth to detect this and report an error accordingly.
-- **Code Generation**: The scope depth is also used during the code generation phase. Different scope levels may require different instructions or data structures to be generated, so the compiler uses the scope depth to tailor its output appropriately.
+1. **Symbol Table Management**: The `beginScope` function interacts closely with the symbol table component. When a new scope begins, the symbol table is updated to reflect the additional layer of context. This allows for proper resolution of identifiers within nested scopes.
+2. **Variable Declarations**: As the scope depth increases, more variables can be declared without causing conflicts with existing identifiers. This ensures that each variable has a unique identifier within its respective scope.
+3. **Error Handling**: During the compilation process, errors may occur due to scope-related issues such as undeclared identifiers or shadowing. The `beginScope` function helps in managing these scenarios by ensuring that the correct scope is being referenced at all times.
 
-In summary, the `beginScope` function is a fundamental part of the Quantum Language compiler's scope management system. By incrementing the scope depth, it facilitates correct symbol resolution, error detection, and code generation, thereby ensuring the quality and correctness of the compiled output.
+In summary, the `beginScope` function is a critical component of the Quantum Language compiler, responsible for managing the scope depth of the active compilation unit. It interacts with various other components to ensure proper symbol table management, variable declaration handling, and error resolution during the compilation process. By understanding how this function works, developers can gain insights into the inner workings of the compiler and how it manages different layers of context during the compilation process.
