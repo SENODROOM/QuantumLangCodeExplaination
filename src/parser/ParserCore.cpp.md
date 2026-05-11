@@ -2,68 +2,61 @@
 
 ## Overview
 
-`ParserCore.cpp` is a critical component of the Quantum Language compiler, responsible for transforming the input source code into an Abstract Syntax Tree (AST). This file contains the implementation of the `Parser` class, which manages both the lexical analysis and syntactic parsing stages of the compilation process.
+`ParserCore.cpp` is a crucial component of the Quantum Language compiler, responsible for transforming the input source code into an Abstract Syntax Tree (AST). This file contains the implementation of the `Parser` class, which manages both the lexical analysis and syntactic parsing stages of the compilation process.
 
 ## Role in Compiler Pipeline
 
-The parser plays a pivotal role in the Quantum Language compiler by converting the raw text of the source code into a structured representation known as an AST. This AST serves as the foundation for subsequent stages of the compilation process, including semantic analysis and code generation.
+The parser operates as the second stage in the compiler's pipeline after lexical analysis. Its primary responsibility is to convert the sequence of tokens produced by the lexer into a structured AST that represents the program's syntax. This AST serves as the foundation for subsequent phases such as semantic analysis, optimization, and code generation.
 
 ### Key Design Decisions and Why
 
-1. **Tokenization**: The parser relies on pre-tokenized input to simplify its task. This decision avoids the complexity of implementing a lexer within the parser itself, allowing for more focused development on the syntactic rules.
+1. **Separation of Lexical Analysis and Syntactic Parsing**: By separating these two stages, the parser ensures that it can operate on a clean stream of tokens without worrying about tokenization details. This separation enhances modularity and maintainability.
 
-2. **Recursive Descent Parsing**: The parser uses a recursive descent approach, where each function corresponds to a grammar rule. This method ensures that the parser can handle complex grammars with ease and provides clear insights into how the language is parsed.
+2. **Abstract Syntax Tree (AST)**: The use of an AST allows the parser to represent complex structures like nested blocks, function calls, and control flow statements in a hierarchical manner. This representation facilitates easier manipulation and analysis during later stages of compilation.
 
-3. **Lookahead Mechanism**: To manage non-LL(1) grammars, the parser implements a lookahead mechanism using the `peek()` function. This allows the parser to look ahead at upcoming tokens without consuming them, enabling it to make informed decisions based on future syntax.
+3. **Exception Handling for Errors**: The parser includes robust error handling mechanisms to manage unexpected tokens or syntax errors. These exceptions provide detailed information about the error location and type, aiding in debugging and improving user experience.
 
-4. **Error Handling**: The parser includes robust error handling mechanisms through the `expect()` and `match()` functions. These functions help in identifying and reporting syntax errors gracefully, guiding developers towards correcting their code.
+4. **Flexibility with Token Consumption**: The parser provides methods to consume tokens (`consume`) and check their types (`check`, `match`). This flexibility enables precise control over how tokens are processed and helps in building complex grammars.
 
 ## Major Classes/Functions Overview
 
 ### Parser Class
 
-- **Constructor (`Parser::Parser(std::vector<Token> tokens)`)**:
-  - Initializes the parser with a vector of tokens obtained from lexical analysis.
-
-- **Current Token Access (`Parser::current()`)**:
-  - Returns the current token being processed.
-
-- **Peek Ahead (`Parser::peek(int offset)`)**:
-  - Allows accessing a token at a specified offset ahead in the sequence without advancing the position.
-
-- **Consume Current Token (`Parser::consume()`)**:
-  - Advances the parser's position to the next token and returns the current one.
-
-- **Expect Specific Token Type (`Parser::expect(TokenType t, const std::string &msg)`)**:
-  - Checks if the current token matches the expected type. If not, throws a `ParseError` with a custom message indicating what was expected and what was encountered.
-
-- **Check Token Type (`Parser::check(TokenType t)`)**:
-  - Returns `true` if the current token matches the specified type.
-
-- **Match Token Type (`Parser::match(TokenType t)`)**:
-  - Consumes the current token if it matches the specified type, otherwise returns `false`.
-
-- **Skip Newlines (`Parser::skipNewlines()`)**:
-  - Continuously consumes newline tokens until the end of the input or a non-newline token is encountered.
-
-- **Main Parsing Function (`Parser::parse()`)**:
-  - Constructs the AST by repeatedly calling `parseStatement()` until the end of the input is reached. It also skips any newlines between statements.
+- **Constructor**: Initializes the parser with a vector of tokens.
+- **Current Method**: Returns the current token being processed.
+- **Peek Method**: Returns the token at a specified offset ahead in the token stream.
+- **Consume Method**: Advances the position in the token stream and returns the current token.
+- **Expect Method**: Checks if the current token matches the expected type and throws an exception if not, otherwise advancing the position.
+- **Check Method**: Verifies if the current token has the specified type.
+- **Match Method**: Attempts to match the current token with the specified type and advances the position if successful.
+- **AtEnd Method**: Determines if the end of the token stream has been reached.
+- **SkipNewlines Method**: Skips any consecutive newline tokens.
+- **Parse Method**: Main entry point for parsing the entire source code. It constructs a block statement containing all parsed statements.
 
 ### ASTNode Class
 
-This class represents nodes in the Abstract Syntax Tree (AST), serving as the building blocks for the structured representation of the source code. Each node encapsulates information about a specific part of the syntax, such as expressions, statements, or declarations.
+- Represents nodes in the Abstract Syntax Tree.
+- Contains various types of statements, expressions, and declarations.
+- Provides methods to access and manipulate the tree structure.
+
+### BlockStmt Class
+
+- Inherits from ASTNode.
+- Represents a block of statements, typically used for grouping code within functions, loops, or conditionals.
+- Contains a list of statements.
 
 ## Tradeoffs
 
-### Advantages
+1. **Complexity vs. Simplicity**:
+   - **Complexity**: The parser requires careful handling of different token types and grammar rules, leading to more complex code.
+   - **Simplicity**: A simpler parser might miss important features or be harder to extend.
 
-- **Simplicity**: By separating lexical analysis and parsing, the codebase becomes cleaner and easier to maintain.
-- **Flexibility**: Recursive descent parsing allows for straightforward implementation of complex grammars.
-- **Readability**: Clear separation of concerns makes the code easier to understand and debug.
+2. **Performance vs. Usability**:
+   - **Performance**: Efficient parsing algorithms can improve overall compilation speed.
+   - **Usability**: Detailed error messages and flexible token consumption enhance usability and debugging capabilities.
 
-### Disadvantages
+3. **Memory Usage vs. Execution Time**:
+   - **Memory Usage**: Storing the entire AST in memory can increase memory usage, especially for large programs.
+   - **Execution Time**: Optimized AST traversal and manipulation can reduce execution time during subsequent phases.
 
-- **Performance Overhead**: The lookahead mechanism adds some overhead compared to simpler parsers like LL(1).
-- **Increased Complexity**: Managing multiple lookahead levels can lead to more intricate code, potentially increasing maintenance costs.
-
-Overall, the design of `ParserCore.cpp` strikes a balance between simplicity and functionality, making it well-suited for the Quantum Language compiler's needs.
+By carefully balancing these tradeoffs, the `ParserCore.cpp` aims to provide a reliable and efficient tool for converting Quantum Language source code into an AST, supporting the broader goals of the compiler.
