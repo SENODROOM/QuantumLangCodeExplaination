@@ -2,54 +2,40 @@
 
 ## Overview
 
-The `compileFunction` function is a key component within the Quantum Language compiler, specifically located in the `CompilerFunctions.cpp` file. Its primary role is to convert a function definition into a sequence of bytecode instructions that can be executed by the quantum virtual machine (QVM). The function ensures proper setup and management of the function's scope, parameter declarations, and body execution.
-
-### Why It Works This Way
-
-This implementation of `compileFunction` follows a structured approach to handle the compilation of functions:
-
-1. **Initialization**: A new `CompilerState` object (`fnState`) is created for the function, which includes setting the function name and linking it to the current state (`prev`). This helps maintain the context during the compilation process.
-
-2. **Scope Management**: The function begins by entering a new scope using `beginScope()`. This isolates the local variables and parameters of the function from the global scope or outer scopes.
-
-3. **Parameter Declaration**: Each parameter specified in the function definition is declared as a local variable using the `declareLocal` function. If a parameter is marked as a reference (indicated by square brackets `[ ]`), the function further processes these parameters to create nested local variables representing elements of the array or reference type.
-
-4. **Body Compilation**: Depending on whether the function body is a block statement (`BlockStmt`) or an expression, the function compiles the body accordingly:
-   - For `BlockStmt`, it calls `compileBlock` to handle multiple statements within the block.
-   - For single expressions, it compiles the expression using `compileExpr` and then emits a `RETURN` instruction to ensure the function returns the computed value.
-
-5. **Return Handling**: Regardless of the body type, the function always emits a `RETURN_NIL` instruction at the end to handle cases where the function might not explicitly return a value. This ensures consistent behavior across all functions.
-
-6. **Scope End**: After compiling the function body, the function ends the scope using `endScope(line)`, effectively cleaning up any resources associated with the local variables.
-
-7. **Result Compilation**: Finally, the function compiles the function's chunk (sequence of bytecode instructions) and sets the `upvalueCount` based on the number of upvalues required by the function.
+The `compileFunction` function is a crucial component within the Quantum Language compiler, specifically found in the `CompilerFunctions.cpp` file. This function's main responsibility is to convert a function definition into a sequence of bytecode instructions that can be executed by the quantum virtual machine (QVM). It ensures that the function's local variables and parameters are properly declared and managed during the compilation process.
 
 ### Parameters/Return Value
 
 - **Parameters**:
   - `name`: A string representing the name of the function being compiled.
-  - `params`: A vector of strings representing the parameters of the function.
-  - `paramIsRef`: An optional vector indicating whether each parameter is a reference type.
-  - `body`: A pointer to a `Node` representing the body of the function.
-  - `line`: An integer representing the source code line number for error reporting.
+  - `params`: A vector of strings containing the names of the function's parameters.
+  - `paramIsRef`: A vector of booleans indicating whether each parameter is passed by reference.
+  - `body`: A pointer to a statement representing the body of the function.
+  - `line`: An integer representing the line number where the function is defined.
 
 - **Return Value**:
-  - Returns a pointer to a `Chunk` object containing the compiled bytecode instructions for the function.
+  - Returns a shared pointer to a `Chunk` object, which represents the compiled bytecode of the function.
 
 ### Edge Cases
 
-- **Empty Function Body**: If the function body is empty, the function will still emit a `RETURN_NIL` instruction to ensure proper termination.
+- If the function has no parameters or body, it will still compile successfully, but the resulting bytecode will simply return `nil`.
+- If any parameter name is not enclosed in square brackets (`[]`), it will be treated as a regular variable declaration without special handling.
+- If the body of the function consists solely of an expression, the compiler will generate bytecode to evaluate that expression and then return its result.
+
+### Interactions with Other Components
+
+- **CompilerState**: The function uses a `CompilerState` object to manage the state of the compiler during the compilation of the function. This includes setting up the scope, declaring local variables, and managing the function's chunk of bytecode.
   
-- **Single Expression Body**: When a function has a single expression as its body, the compiler automatically adds a `RETURN` instruction to ensure the expression's result is returned.
+- **Scope Management**: The function begins by creating a new scope for the function using the `beginScope()` method. This isolates the function's local variables from those in the enclosing scope.
 
-- **Reference Parameters**: The function correctly handles parameters that are references (e.g., `[array]`), creating nested local variables to represent individual elements of the reference type.
+- **Parameter Handling**: For each parameter in the `params` vector, the function checks if the parameter name is enclosed in square brackets. If so, it assumes the parameter is an array and generates additional bytecode to handle array indexing. Each element of the array is treated as a separate local variable.
 
-### Interactions With Other Components
+- **Statement Compilation**: Depending on whether the function body is a block statement (`BlockStmt`) or a single expression, the function calls either `compileBlock()` or `compileExpr()` to generate the appropriate bytecode. If the body is a single expression, the function also emits a `RETURN` instruction to ensure the expression's result is returned.
 
-- **CompilerState**: The function uses the `CompilerState` class to manage the state of the compiler, including the current scope, local variables, and function-specific data.
+- **Bytecode Emission**: Throughout the compilation process, the function uses various methods like `emit()` to insert bytecode instructions into the current function's chunk. These instructions include loading constants, accessing local variables, performing operations, and defining new local variables.
 
-- **Bytecode Instructions**: The function interacts with various bytecode operations such as `Op::LOAD_LOCAL`, `Op::LOAD_CONST`, `Op::GET_INDEX`, and `Op::RETURN` to generate the appropriate instructions for the function.
+- **End Scope**: After compiling the function's body, the function ends the scope using the `endScope()` method to clean up any resources associated with the local variables.
 
-- **Error Reporting**: Although not shown in the provided snippet, the function likely integrates with the compiler's error reporting system to provide meaningful feedback about issues encountered during compilation.
+- **Upvalue Count**: Finally, the function calculates and sets the `upvalueCount` for the compiled function's chunk. Upvalues are references to variables from outer scopes, and their count is essential for proper execution of the function within nested scopes.
 
-By following this structured approach, the `compileFunction` method ensures that function definitions are accurately converted into executable bytecode, maintaining the integrity and functionality of the quantum program.
+In summary, the `compileFunction` function is integral to the Quantum Language compiler, ensuring that functions are correctly translated into executable bytecode while managing local variables and parameters efficiently.
