@@ -1,61 +1,49 @@
-# QuantumLanguage Compiler - TypeChecker.h
+# QuantumLanguage Compiler - Value.h
 
 ## Overview
 
-The `include/TypeChecker.h` header file is an essential part of the QuantumLanguage compiler, dedicated to performing static type checking on abstract syntax tree (AST) nodes. This process ensures that the code adheres to the defined type constraints before it is executed, thereby preventing runtime errors related to type mismatches.
+The `include/Value.h` header file is an essential part of the QuantumLanguage compiler, designed to define the data types and structures used within the virtual machine (VM). This file plays a critical role in managing the runtime environment, enabling the VM to handle various data types including nil, booleans, numbers, strings, arrays, dictionaries, closures, native functions, instances, classes, and bound methods. The use of `std::variant` allows for flexible and type-safe handling of these different value types.
 
 ## Role in Compiler Pipeline
 
-### Key Steps
+The `Value.h` file is integral to the QuantumLanguage compiler's pipeline, particularly during the execution phase where values need to be manipulated and passed between operations. It provides the foundational data structures necessary for the VM to operate correctly, ensuring that all data types are properly managed and accessed throughout the execution process.
 
-1. **Parsing**: The source code is parsed into an AST.
-2. **Semantic Analysis**: The `TypeChecker` class performs semantic analysis on the AST to ensure type correctness.
-3. **Code Generation**: If the type checking passes, the next step is code generation.
+## Key Design Decisions and Why
 
-### Why Semantic Analysis?
+1. **Use of `std::variant`**: Choosing `std::variant` over traditional unions or inheritance-based designs ensures type safety and flexibility. Each variant alternative represents a specific data type, allowing the compiler to perform compile-time checks and avoid runtime errors related to incorrect type usage.
 
-Semantic analysis is critical because it checks not just the syntactic structure of the code but also its meaning and adherence to language rules. By identifying type errors early during the compilation phase, the compiler can save time and resources that would otherwise be spent debugging runtime issues.
+2. **Shared Pointers (`std::shared_ptr`) for Reference Counting**: Utilizing shared pointers helps manage memory efficiently by automatically keeping track of references to objects. This prevents memory leaks and dangling pointers, which are common issues with raw pointers, especially in complex programs involving multiple data structures and object lifetimes.
+
+3. **Structures for Different Value Types**: By defining separate structures for each value type, such as `QuantumNil`, `Closure`, `QuantumClass`, etc., the file promotes clarity and organization. Each structure encapsulates the behavior and properties associated with its respective data type, making the code easier to understand and maintain.
+
+4. **Pointer Structure (`QuantumPointer`)**: The inclusion of a dedicated `QuantumPointer` structure allows for the management of variables as pointers. This feature is crucial for supporting dynamic memory allocation and manipulation, which are fundamental aspects of many programming languages.
 
 ## Major Classes/Functions Overview
 
-### 1. `StaticTypeError`
-- **Role**: Inherits from `std::runtime_error` and is used to throw exceptions when a static type error is detected.
-- **Attributes**:
-  - `int line`: Stores the line number where the error occurred.
-- **Constructor**:
-  - `StaticTypeError(const std::string &msg, int l)`: Initializes the exception with a message and the line number.
+- **QuantumNil**: Represents the nil value, often used to indicate the absence of a value or an empty state.
+  
+- **Closure**: Encapsulates a function along with its lexical environment. This allows functions to access variables from their enclosing scope even after they have gone out of scope.
 
-### 2. `TypeEnv`
-- **Role**: Represents the type environment, which tracks variable types within different scopes.
-- **Attributes**:
-  - `std::map<std::string, std::string> vars`: Maps variable names to their types.
-  - `std::shared_ptr<TypeEnv> parent`: Points to the parent scope's type environment.
-- **Methods**:
-  - `void define(const std::string& name, const std::string& type)`: Defines a new variable in the current scope.
-  - `std::string resolve(const std::string& name)`: Resolves the type of a variable by looking up its definition in the current or parent scope. Returns "any" if the variable is not found.
+- **QuantumClass**: Defines a class, which includes attributes and methods. Instances of classes can be created and manipulated within the VM.
 
-### 3. `TypeChecker`
-- **Role**: Manages the overall type checking process, including setting up the global type environment and invoking type checking on individual nodes.
-- **Attributes**:
-  - `std::shared_ptr<TypeEnv> globalEnv`: Holds the global type environment.
-- **Methods**:
-  - `TypeChecker()`: Constructor initializes the global type environment.
-  - `void check(const std::vector<ASTNodePtr>& nodes)`: Checks a list of AST nodes.
-  - `void check(const ASTNodePtr& node)`: Checks a single AST node.
-  - `std::string checkNode(const ASTNodePtr& node, std::shared_ptr<TypeEnv> env)`: Recursively checks an AST node and returns its type.
+- **QuantumInstance**: Represents an instance of a class. It contains the actual data for the attributes defined in the class.
+
+- **QuantumBoundMethod**: Wraps a method so it can be called with a specific instance as the context. This is useful for implementing object-oriented features like method invocation.
+
+- **QuantumNativeFunc**: A type alias for native functions, which are implemented in C++ and invoked from the VM. These functions can interact directly with the host system and provide performance-critical operations.
+
+- **QuantumNative**: Combines a native function's name with its implementation. This structure facilitates the registration and lookup of native functions within the VM.
+
+- **QuantumValue**: The primary data structure representing any value in the QuantumLanguage. It uses `std::variant` to store different types of data and provides methods to check the type of the stored value and access its contents safely.
+
+- **Array** and **Dict**: Aliases for `std::vector` and `std::unordered_map`, respectively, providing convenient ways to represent and manipulate arrays and dictionaries of `QuantumValue`.
 
 ## Tradeoffs
 
-### Advantages
+- **Memory Overhead**: Using `std::shared_ptr` for reference counting adds some overhead compared to raw pointers. However, this tradeoff is justified by the benefits of automatic memory management and reduced risk of memory-related bugs.
 
-- **Preventing Runtime Errors**: Early detection of type errors through static type checking reduces the likelihood of runtime crashes.
-- **Improved Code Quality**: Ensures that the codebase is more robust and easier to maintain due to explicit type declarations.
-- **Enhanced Developer Experience**: Provides clear, actionable error messages directly at the point of declaration, aiding in quicker bug resolution.
+- **Complexity**: The introduction of multiple data types and structures increases the complexity of the codebase. While this may lead to more verbose and harder-to-read code in certain parts, it ultimately improves the robustness and maintainability of the compiler.
 
-### Disadvantages
+- **Performance**: The use of `std::variant` might introduce slight performance penalties due to the overhead of type checking and variant dispatch. However, these costs are generally outweighed by the benefits of type safety and flexibility.
 
-- **Increased Complexity**: Implementing a comprehensive type checker requires handling multiple type systems and complex interactions between them.
-- **Performance Overhead**: While generally minimal, type checking does add some overhead to the compilation process, especially for large codebases.
-- **Maintenance Cost**: As the language evolves, maintaining and updating the type checker becomes increasingly challenging.
-
-Overall, the `TypeChecker.h` file plays a vital role in ensuring the reliability and quality of the QuantumLanguage compiler's output by enforcing strict type constraints during the semantic analysis stage.
+Overall, the `include/Value.h` header file is a vital component of the QuantumLanguage compiler, providing a comprehensive and type-safe framework for managing runtime values. Its design choices balance functionality, efficiency, and ease of maintenance, ensuring that the compiler can handle a wide range of data types and operations effectively.
