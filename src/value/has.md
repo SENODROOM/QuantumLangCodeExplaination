@@ -6,31 +6,26 @@ The `has` function is a member method of the `Value` class in the Quantum Langua
 
 ## What It Does
 
-The `has` function determines if a variable with a specified name (`name`) is present in the current scope or any of its ancestor scopes. If the variable is found in either the current scope or any parent scope, the function returns `true`; otherwise, it returns `false`.
+The `has` function determines if a variable with a given name (`name`) is present in the current scope or any enclosing scope. If the variable is found in the current scope, the function returns `true`. If not, and there is a parent scope, the function recursively calls itself on the parent scope to search further up the scope hierarchy. If the variable is never found, the function ultimately returns `false`.
 
-### Why It Works This Way
+This functionality is crucial for managing variable lookup during compilation, ensuring that variables are accessible where they should be and preventing errors related to undefined variables.
 
-This implementation ensures that variable lookup respects the scope hierarchy, which is crucial for correctly resolving variables in nested structures. By checking both the current scope and its parents, the function provides a comprehensive search mechanism that adheres to the rules of variable scoping in the Quantum Language.
+## Parameters
 
-## Parameters/Return Value
+- **name**: A string representing the name of the variable whose existence is being checked.
 
-- **Parameters**:
-  - `const std::string& name`: The name of the variable to check for existence.
+## Return Value
 
-- **Return Value**:
-  - `bool`: Returns `true` if the variable exists in the current scope or any parent scope; otherwise, returns `false`.
+- **bool**: Returns `true` if the variable exists in the current scope or any parent scope; otherwise, returns `false`.
 
 ## Edge Cases
 
-1. **Empty Scope**: If the current scope (`this->vars`) is empty and there is no parent scope (`!this->parent`), the function will correctly return `false`.
-2. **Variable Not Found**: If the variable is not found in the current scope but also not found in any parent scope, the function will return `false`.
-3. **Parent Scope Null**: If the current scope does not have a parent scope (`!this->parent`), the function will stop searching at the current scope level and return `false`.
+1. **Empty Scope**: If the current scope is empty and there is no parent scope, the function will correctly return `false`.
+2. **Variable in Parent Scope**: If the variable is defined in an enclosing scope but not in the current scope, the function will traverse up the scope chain until it finds the variable or reaches the top-level scope without finding it.
+3. **Multiple Scopes**: The function handles multiple levels of nested scopes, checking each one sequentially until it either finds the variable or exhausts all possible scopes.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-The `has` function interacts with the following components:
+The `has` function interacts closely with the `Scope` class, which manages the variable environment for different parts of the code. Each `Value` object represents a variable or expression and contains a pointer to its containing `Scope`. When the `has` function is called, it uses this pointer to traverse up the scope chain as necessary.
 
-- **Scope Management**: The function relies on the `Value` class maintaining a reference to its parent scope (`this->parent`). This allows it to traverse up the scope chain when necessary.
-- **Variable Storage**: The function uses the `std::unordered_map<std::string, Value*> vars` member variable to store and look up variables by their names. This data structure enables efficient variable access based on their names.
-
-In summary, the `has` function is essential for managing variable scope in the Quantum Language compiler. By recursively checking the current scope and its parent scopes, it ensures that variables are resolved correctly according to the language's scoping rules.
+Additionally, the `has` function may interact with other components such as the symbol table and parser, depending on how the scope management is implemented in the broader context of the Quantum Language compiler. These interactions ensure that variable names are correctly resolved and used throughout the compilation process.
