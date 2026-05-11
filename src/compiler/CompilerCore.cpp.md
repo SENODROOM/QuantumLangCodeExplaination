@@ -2,47 +2,65 @@
 
 ## Overview
 
-`src/compiler/CompilerCore.cpp` is a fundamental part of the Quantum Language compiler, tasked with transforming Abstract Syntax Trees (ASTs) into executable bytecode. This file encapsulates the primary logic for compiling various AST nodes and maintaining the state of the compilation process.
+`src/compiler/CompilerCore.cpp` is a crucial component of the Quantum Language compiler responsible for converting Abstract Syntax Trees (ASTs) into executable bytecode. This file centralizes the core logic required to compile different AST nodes and manage the state of the compilation process.
 
 ### Role in Compiler Pipeline
 
-The `CompilerCore.cpp` serves as the heart of the compiler's compilation pipeline. It takes the root node of the AST and recursively compiles each child node until the entire tree is converted into bytecode. The resulting bytecode is stored in a `Chunk`, which is then executed by the virtual machine (VM).
+In the Quantum Language compiler pipeline, `CompilerCore.cpp` acts as the heart of the compilation process. It starts by initializing a new `CompilerState` object representing the script context. The compiler then processes the root AST node, which could be either a block statement or another type of node. If it's a block statement, the compiler calls `compileBlock`, otherwise, it directly compiles the node using `compileNode`. After processing the root node, the compiler emits a `RETURN_NIL` instruction to indicate the end of execution. Finally, it returns the compiled chunk.
 
 ### Key Design Decisions and Why
 
-1. **Separation of Concerns**: By isolating the compilation logic into separate functions, such as `compileNode` and `compileBlock`, the codebase becomes more modular and easier to maintain. Each function handles a specific type of AST node or block, making it straightforward to understand and modify individual parts of the compiler without affecting others.
+#### Scope Management
+- **Design Decision**: The compiler maintains a stack-based scope system where each scope has its own set of local variables.
+- **Why**: This approach allows for dynamic scoping and nested scopes, essential features in many programming languages.
 
-2. **Scope Management**: The `CompilerCore.cpp` implements scope management through the `beginScope` and `endScope` functions. These functions track the depth of nested scopes and manage the stack of local variables accordingly. This ensures that variables are correctly accessed and modified within their respective scopes, preventing issues like variable shadowing and out-of-scope errors.
+#### Upvalues
+- **Design Decision**: To support closures, the compiler uses upvalues—references to variables in outer scopes.
+- **Why**: Upvalues enable functions to capture and access variables from their enclosing scopes, providing flexibility and power in functional programming.
 
-3. **Symbol Resolution**: The compiler resolves symbols (variables and functions) using the `resolveLocal`, `resolveUpvalue`, and `addUpvalue` functions. These functions search for symbols in the current scope, then in enclosing scopes, and finally in the global scope. If a symbol is found, it emits the appropriate bytecode instruction to load or store the value. If not found, it adds the symbol to the global scope or creates an upvalue if necessary.
-
-4. **Bytecode Emission**: The `emit` function is used to generate bytecode instructions. Depending on the operation required, it may emit instructions to load values, store values, perform arithmetic operations, call functions, and more. This abstraction allows the compiler to focus on the semantic meaning of the code rather than the low-level details of generating bytecode.
+#### Error Handling
+- **Design Decision**: The compiler throws exceptions when errors occur during the compilation process.
+- **Why**: Exceptions provide a robust way to handle errors gracefully, ensuring that the compiler can stop at any point and report issues clearly.
 
 ### Major Classes/Functions Overview
 
-- **Compiler Class**:
-  - **Constructor**: Initializes the compiler with a default state.
-  - **compile Function**: Takes the root AST node and compiles it into bytecode, returning a shared pointer to the compiled chunk.
-  - **beginScope Function**: Increases the scope depth, preparing the compiler for new local variables.
-  - **endScope Function**: Decreases the scope depth and pops any unused local variables from the stack.
-  - **declareLocal Function**: Declares a new local variable in the current scope.
-  - **emitLoad Function**: Emits bytecode to load a value from a local or global variable.
-  - **emitStore Function**: Emits bytecode to store a value into a local or global variable.
+#### Compiler Class
+- **Overview**: Manages the overall compilation process, including error handling and state management.
+- **Key Functions**:
+  - `compile(ASTNode &root)`: Compiles the entire AST starting from the root node.
+  - `emit(Op op, int arg1, int arg2)`: Emits bytecode instructions to the current chunk.
+  - `emitLoad(const std::string &name, int line)`: Emits instructions to load a variable from locals or globals.
+  - `emitStore(const std::string &name, int line)`: Emits instructions to store a value into a variable.
 
-- **CompilerState Struct**:
-  - Represents the state of the compiler during the compilation process.
-  - Contains information about the current scope depth, local variables, and upvalues.
+#### CompilerState Struct
+- **Overview**: Represents the state of the compiler at a given point in time, including the current chunk, scope depth, and local variables.
+- **Key Members**:
+  - `chunk`: The current chunk being compiled.
+  - `scopeDepth`: The depth of the current scope.
+  - `locals`: A list of local variables within the current scope.
 
-- **Op Enum**:
-  - Defines the set of bytecode operations supported by the VM.
-  - Operations include loading and storing values, performing arithmetic, calling functions, and more.
+#### Local Variable Struct
+- **Overview**: Describes a local variable, including its name, depth, and whether it's captured by a closure.
+- **Key Members**:
+  - `name`: The name of the local variable.
+  - `depth`: The depth of the scope in which the variable is declared.
+  - `isCaptured`: Indicates whether the variable is captured by a closure.
+
+#### Upvalue Struct
+- **Overview**: Represents an upvalue used in closures, indicating whether it refers to a local or global variable.
+- **Key Members**:
+  - `isLocal`: Whether the upvalue refers to a local variable.
+  - `index`: The index of the variable in the enclosing scope or chunk.
 
 ### Tradeoffs
 
-- **Memory Usage**: Maintaining a stack of local variables and upvalues can lead to increased memory usage, especially in deeply nested scopes. However, this is necessary for correct symbol resolution and local variable access.
-  
-- **Complexity**: The separation of concerns and scope management introduce additional complexity to the compiler. While this makes the codebase more maintainable, it also requires careful handling to avoid bugs related to scope and symbol resolution.
-  
-- **Performance**: Emitting bytecode directly from the compiler can be slower compared to other approaches, such as intermediate representation (IR). However, this direct approach simplifies the execution phase and can result in faster overall performance.
+#### Memory Usage vs. Performance
+- **Tradeoff**: The use of upvalues adds overhead to memory usage due to additional data structures but improves performance by allowing efficient access to variables in outer scopes.
 
-In summary, `src/compiler/CompilerCore.cpp` plays a critical role in the Quantum Language compiler by providing the core logic for converting ASTs into bytecode. Its design decisions, including separation of concerns, scope management, and symbol resolution, ensure that the compiler is robust, maintainable, and performs well.
+#### Flexibility vs. Complexity
+- **Tradeoff**: Supporting dynamic scoping increases the flexibility of the language but also complicates the compiler implementation, requiring careful handling of scope depths and upvalues.
+
+#### Error Handling vs. Robustness
+- **Tradeoff**: Throwing exceptions simplifies error reporting but may lead to higher runtime costs compared to other error handling mechanisms like returning error codes.
+
+Overall, `CompilerCore.cpp` plays a pivotal role in transforming source code into executable bytecode, managing scope and upvalues, and handling errors effectively. Its design decisions balance flexibility, performance, and robustness, making it a vital part of the Quantum Language compiler.
