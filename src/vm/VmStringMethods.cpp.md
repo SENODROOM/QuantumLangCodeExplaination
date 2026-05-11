@@ -2,37 +2,43 @@
 
 ## Role in Compiler Pipeline
 
-`VmStringMethods.cpp` is an integral component of the Quantum Language compiler's virtual machine (VM) layer. This file houses the implementation of several string manipulation methods that operate on `QuantumValue` objects representing strings. These methods are executed during the runtime phase of the quantum program, enabling developers to carry out common string operations efficiently.
+`VmStringMethods.cpp` plays a crucial role in the Quantum Language compiler's virtual machine (VM) layer. It contains the implementation of various string manipulation methods that operate on `QuantumValue` objects representing strings. These methods are invoked during the runtime execution of quantum programs, allowing developers to perform common string operations such as length calculation, case transformation, trimming, substring checks, and splitting.
 
 ## Key Design Decisions and Why
 
-1. **Method Overloading**: The code uses method overloading based on the name of the string operation (`m`). For instance, both `"length"` and `"size"` invoke the same functionality to return the length of the string. This decision simplifies the interface for users, making it easier to call these methods without worrying about their exact names.
+### Method Implementation
+- **Length Calculation**: Implemented using `std::string::size()` to calculate the length of the string.
+- **Case Transformation**: Utilized `std::transform()` with `std::toupper` and `std::tolower` to convert the string to uppercase or lowercase.
+- **Trimming**: Used `std::isspace()` to check for whitespace characters at both ends of the string and removed them accordingly.
+- **Substring Checks**: Employed `std::string::substr()` and `std::string::find()` to determine if one string starts with another or if a specific substring exists within a string.
+- **Splitting**: Handled both simple character-based splits and regular expression-based splits, providing flexibility in how strings can be divided into substrings.
 
-2. **Case Insensitivity**: Methods like `"toUpperCase"` and `"toLowerCase"` handle case conversion using standard library functions (`std::transform`) with `::toupper` and `::tolower`. Additionally, `"startsWith"` and `"endsWith"` support case-insensitive checks when provided with a flag indicating such behavior. This flexibility ensures that developers can choose the appropriate level of case sensitivity for their needs.
+### Error Handling
+- The function includes basic error handling to ensure that methods like `startsWith`, `endsWith`, and `includes` do not fail when called without arguments. Instead, they return `false`.
 
-3. **Regular Expression Support**: The `"split"` method supports splitting strings using regular expressions. If the separator is not specified or is a nil value, it defaults to splitting by individual characters. If the separator starts with a forward slash (`/`) and includes additional options (like 'i' for case insensitivity), it constructs a regex pattern accordingly. This approach provides powerful text processing capabilities directly within the VM layer.
-
-4. **Efficient String Operations**: By leveraging standard library functions and algorithms, the code ensures efficient and safe string manipulations. For example, `std::transform` is used for case transformations, which is optimized for performance. Similarly, `std::find`, `std::substr`, and `std::regex` provide robust solutions for common string operations.
+### Tradeoffs
+- **Performance**: Using standard library functions for string manipulation ensures good performance but may not be optimized for very large strings.
+- **Flexibility**: Providing multiple method names (e.g., `length`, `size`) allows for easy integration with different programming paradigms and user preferences.
+- **Complexity**: Regular expression support adds complexity to the codebase but enhances its functionality, making it suitable for advanced string processing tasks.
 
 ## Major Classes/Functions Overview
 
-- **VM Class**: Contains the core logic for calling string methods. It takes a string (`str`), a method name (`m`), and arguments (`args`), then processes the request according to the method name.
+### Class: VM
+- **Function: callStringMethod**
+  - **Parameters**:
+    - `const std::string &str`: The input string on which the method will operate.
+    - `const std::string &m`: The name of the string method to invoke.
+    - `std::vector<QuantumValue> args`: Arguments required by the string method.
+  - **Returns**: A `QuantumValue` object containing the result of the string method.
+  - **Purpose**: This function dynamically dispatches calls to various string manipulation methods based on the provided method name and arguments.
 
-- **callStringMethod Function**: This function is responsible for determining which string method to execute based on the provided method name. It handles various cases including length, case transformation, trimming, prefix/suffix checking, inclusion, indexing, and splitting.
+### Functionality Breakdown
+- **Length Calculation (`length`, `size`)**: Returns the number of characters in the string.
+- **Case Transformation (`toUpperCase`, `upper`, `toLowerCase`, `lower`)**: Converts the string to either all uppercase or all lowercase.
+- **Trimming (`trim`, `strip`)**: Removes leading and trailing whitespace characters from the string.
+- **Substring Checks (`startsWith`, `startswith`, `endsWith`, `endswith`, `includes`, `contains`)**: Determines if the string starts with, ends with, or contains a specified substring.
+- **Splitting (`split`)**: Divides the string into substrings based on a delimiter or regular expression.
 
-- **Helper Functions**: Several helper functions are utilized to simplify the implementation:
-  - `std::transform`: Used for converting string cases.
-  - `std::isspace`: Checks for whitespace characters.
-  - `std::find`: Searches for substrings within a string.
-  - `std::substr`: Extracts substrings from a string.
-  - `std::regex`: Supports splitting strings using regular expressions.
+## Conclusion
 
-## Tradeoffs
-
-1. **Flexibility vs. Complexity**: Allowing case-insensitive checks and regular expression splitting adds significant complexity to the codebase. However, it enhances the usability and power of the string manipulation methods, providing developers with more flexible tools.
-
-2. **Performance vs. Safety**: Using standard library functions generally offers better performance compared to custom implementations. However, it also means relying on the safety and correctness of these functions, which could potentially introduce bugs or vulnerabilities.
-
-3. **Memory Usage**: Regular expression operations may consume more memory than simpler string manipulations, especially for large input strings or complex patterns. Balancing memory usage with performance is crucial for maintaining efficiency.
-
-Overall, `VmStringMethods.cpp` plays a vital role in the Quantum Language compiler by providing essential string manipulation capabilities. Its design decisions balance usability, performance, and safety, ensuring that developers have access to robust tools for handling text data within their quantum programs.
+`VmStringMethods.cpp` is a vital part of the Quantum Language compiler's VM layer, offering essential string manipulation capabilities. Its design choices balance performance, flexibility, and ease of use, making it a robust solution for string processing in quantum applications.
