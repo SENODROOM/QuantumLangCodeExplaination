@@ -2,67 +2,59 @@
 
 ## Role in Compiler Pipeline
 
-`CompilerFunctions.cpp` plays a pivotal role in the Quantum Language compiler's pipeline by compiling function definitions into executable chunks. The primary responsibilities include:
-
-- **Creating New Scope**: A new scope is established specifically for the function to isolate its variables from the global or outer scopes.
-- **Declaring Local Variables**: All parameters and local variables within the function are declared, ensuring they are accessible during compilation.
-- **Handling Parameter References**: If parameters are passed by reference, special handling is done to manage these references effectively.
-- **Generating Bytecode**: Function bodies are translated into bytecode, which is then executed by the virtual machine (`Vm`).
-
-This step is essential for the correct execution of quantum programs, as it ensures that all necessary resources and variables are properly managed and accessible within the function context.
+`CompilerFunctions.cpp` is a crucial component of the Quantum Language compiler's pipeline responsible for compiling function definitions into executable chunks. It handles the creation of new scopes, declaration of local variables, and compilation of function bodies. This ensures that each function operates within its own isolated environment, preventing variable conflicts with other parts of the program.
 
 ## Key Design Decisions and Why
 
-### Scoping and Variable Management
+### 1. Scope Management
+- **New Scope Creation**: Each function definition starts by creating a new scope (`beginScope()`). This isolation is essential for managing local variables independently of global or outer function scopes.
+- **End Scope**: After compiling the function body, the scope is properly closed (`endScope(line)`), ensuring that all resources associated with it are freed.
 
-**Decision**: To create a new scope for each function, isolating its variables from other scopes.
+### 2. Parameter Handling
+- **Parameter Declaration**: Function parameters are declared locally within their respective function scope using the `declareLocal` method. This allows each parameter to be accessed and manipulated within the function.
+- **Reference Parameters**: If a parameter is marked as a reference (`paramIsRef`), special handling is applied during compilation to manage references correctly.
 
-**Why**: This decision is critical because it prevents variable conflicts between functions and maintains the integrity of the program state. By using a new scope, the compiler can ensure that variables defined within a function do not interfere with those defined elsewhere.
+### 3. Compilation Logic
+- **Block Statements**: If the function body consists of block statements (`BlockStmt`), they are compiled using `compileBlock`. Otherwise, individual expressions are compiled directly, followed by an explicit `RETURN` operation.
+- **Return Statement**: Regardless of the function body structure, a final `RETURN_NIL` operation is emitted to ensure the function returns `nil` when completed without hitting a return statement elsewhere.
 
-### Handling Parameter References
-
-**Decision**: To support both value and reference passing for function parameters.
-
-**Why**: Quantum programming often requires mutable data structures, making reference passing a necessity. However, value passing is also important for operations where the original data should remain unchanged. Supporting both allows developers to choose the most appropriate method based on their needs, enhancing flexibility and performance.
-
-### Bytecode Generation
-
-**Decision**: To generate bytecode directly from the abstract syntax tree (AST) nodes.
-
-**Why**: Bytecode generation is efficient and allows for easy translation and execution by the virtual machine. It provides a layer of abstraction between the high-level AST and the low-level instructions that the VM understands, simplifying the compilation process while maintaining optimal performance.
+### 4. Upvalue Support
+- **Upvalue Descriptors**: To support closures, upvalue descriptors are packed as the last constant in the chunk. These descriptors indicate whether an upvalue is local or external and its index, enabling efficient closure construction at runtime.
 
 ## Major Classes/Functions Overview
 
-### `Compiler::compileFunction`
-
-The central function in `CompilerFunctions.cpp`, `compileFunction`, handles the compilation of function definitions. Its key steps include:
-
-- **Setting Up State**: Initializes a new `CompilerState` for the function, setting flags and preparing the scope.
-- **Parameter Handling**: Declares all function parameters, including handling reference parameters.
-- **Body Compilation**: Compiles the function body, either as a block statement or an expression, ensuring proper bytecode emission.
-- **Upvalue Management**: Packs upvalue descriptors as constants for use in `MAKE_CLOSURE` instructions, allowing closure creation.
-- **Cleanup**: Restores the previous compiler state after function compilation is complete.
+### `Compiler`
+- **Role**: Manages the overall state of the compiler, including the current scope and the main compilation logic.
+- **Key Methods**:
+  - `compileFunction`: Compiles a function definition into an executable chunk.
+  - `emit`: Emits bytecode operations into the current chunk.
+  - `addConst`: Adds constants to the chunk's constant pool.
 
 ### `CompilerState`
+- **Role**: Represents the state of the compiler for a specific function or scope.
+- **Properties**:
+  - `chunk`: Holds the bytecode chunk being generated.
+  - `locals`: Tracks local variables within the scope.
+  - `upvalues`: Stores information about upvalues used in closures.
 
-A class representing the state of the compiler at any given point. It includes information about the current scope, function details, and bytecode chunk being generated.
-
-### `emit`
-
-A utility function used to emit bytecode instructions into the current chunk. It takes operation codes and operands, appending them to the chunk's instruction list.
+### `Op`
+- **Role**: Enumerates the various bytecode operations supported by the Quantum Language compiler.
+- **Example Operations**:
+  - `LOAD_LOCAL`: Loads a local variable onto the stack.
+  - `LOAD_CONST`: Loads a constant value onto the stack.
+  - `GET_INDEX`: Retrieves an indexed value from a table or array.
+  - `RETURN`: Returns a value from the function.
+  - `RETURN_NIL`: Returns `nil` from the function.
 
 ## Tradeoffs
 
-### Memory Usage vs. Performance
+### Isolation vs. Performance
+- **Tradeoff**: Creating new scopes for functions enhances code isolation but may introduce some performance overhead due to additional scope management operations.
 
-**Tradeoff**: Creating a new scope for each function increases memory usage due to additional data structures but improves performance by reducing scope conflicts and ensuring better isolation.
+### Flexibility vs. Simplicity
+- **Tradeoff**: Supporting both block statements and direct expression compilation offers flexibility but increases complexity in the compiler's logic.
 
-### Flexibility vs. Complexity
+### Memory Usage vs. Runtime Efficiency
+- **Tradeoff**: Packing upvalue descriptors as constants reduces memory usage but might impact runtime efficiency slightly due to additional descriptor parsing.
 
-**Tradeoff**: Supporting both value and reference passing adds complexity to the compiler but enhances flexibility, allowing developers to write more robust and performant quantum programs.
-
-### Abstraction Level vs. Direct Control
-
-**Tradeoff**: Generating bytecode directly from AST nodes provides a higher level of abstraction but may limit direct control over the generated code, potentially affecting optimization opportunities.
-
-Overall, `CompilerFunctions.cpp` is a vital part of the Quantum Language compiler, ensuring that function definitions are correctly compiled into executable bytecode. Its design decisions balance various factors such as memory usage, performance, flexibility, and abstraction, providing a solid foundation for the compiler's functionality.
+Overall, `src/compiler/CompilerFunctions.cpp` is a vital part of the Quantum Language compiler, ensuring that function definitions are correctly compiled into isolated, executable chunks while supporting advanced features like closures and flexible control flow.
