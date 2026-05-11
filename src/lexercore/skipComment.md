@@ -4,38 +4,29 @@ The `skipComment` function is designed to handle comments in the source code bei
 
 ## What It Does
 
-The primary purpose of the `skipComment` function is to skip over comment lines in the input source code. This allows the lexer to continue processing the next valid token after encountering a comment.
+The `skipComment` function advances the lexer's position through the input source until it encounters the end of the line, effectively skipping over any comment text. This function is crucial for parsing quantum language files where comments can appear anywhere within the code.
 
 ### Why It Works This Way
 
-The function uses a loop to iterate through the source code starting from the current position (`pos`). It continues advancing the position until it encounters a newline character (`'\n'`) or reaches the end of the source code (`src.size()`). This ensures that the entire comment line is skipped, including any characters that might be part of the comment syntax.
+This approach ensures that the lexer skips over comments without affecting the subsequent parsing process. By advancing the position only until the newline character (`'\n'`) is encountered, the function maintains the integrity of the rest of the code structure, allowing the parser to continue processing from the correct location.
 
-### Parameters/Return Value
+## Parameters/Return Value
 
 - **Parameters**:
   - None
 
 - **Return Value**:
-  - The function returns `void`, meaning it doesn't return any value. It simply advances the position in the source code to skip over the comment.
+  - The function returns nothing (`void`). It modifies the internal state of the lexer by changing its position.
 
-### Edge Cases
+## Edge Cases
 
-1. **End of Source Code**: If the current position (`pos`) is already at the end of the source code (`src.size()`), the loop condition will fail immediately, and the function will not perform any action.
-2. **Single Line Comment**: The function assumes that single-line comments start with `//`. If the comment starts with something else (e.g., `/*` for multi-line comments), the function may not work correctly.
-3. **Trailing Characters**: If there are characters following the comment on the same line, these characters will also be skipped until the newline character is encountered.
+1. **Single-line Comments**: If the comment starts at the beginning of the line, the function will correctly skip all characters up to the newline.
+2. **Multi-line Comments**: Although the provided code snippet only handles single-line comments, the lexer should be designed to handle multi-line comments as well, which would involve different logic to detect the start and end of the comment block.
+3. **Empty Lines**: If the line consists entirely of whitespace followed by a comment, the function will still correctly skip the entire line.
 
-### Interactions With Other Components
+## Interactions With Other Components
 
-The `skipComment` function interacts with the lexer's state machine by advancing the position (`pos`) within the source code. This advancement occurs inside the loop, which continues until either the end of the source code or a newline character is reached. Once the loop exits, the lexer can proceed to process the next token in the source code.
+- **Lexer Core**: The `skipComment` function is part of the Lexer Core component, responsible for breaking down the source code into tokens. After calling `skipComment`, the lexer continues processing the next token on the following line.
+- **Error Handling**: While not explicitly shown in the snippet, the lexer should include error handling mechanisms to manage unexpected situations such as unterminated comments or invalid characters within comments.
 
-Here is the updated implementation of the `skipComment` function:
-
-```cpp
-void LexerCore::skipComment() {
-    while (pos < src.size() && current() != '\n') {
-        advance();
-    }
-}
-```
-
-This function effectively skips over comment lines, ensuring that the lexer processes only valid tokens.
+By implementing the `skipComment` function as described, the Quantum Language compiler can accurately parse source code containing comments, ensuring that these elements do not interfere with the compilation process.

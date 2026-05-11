@@ -1,54 +1,56 @@
 # `execBinary`
 
-The `execBinary` function is a critical component of the Quantum Language compiler's virtual machine core (`VmCore.cpp`). Its primary responsibility is to execute binary operations between two quantum values (`L` and `R`) based on the specified operation type (`op`). This function ensures that operations can be performed seamlessly across different data types, including strings, arrays, and numbers.
+The `execBinary` function is an essential part of the Quantum Language compiler's virtual machine core (`VmCore.cpp`). Its main purpose is to execute binary operations between two quantum values (`L` and `R`) based on the specified operation type (`op`). This function handles various types of binary operations including string concatenation, array concatenation, comparison, and numeric arithmetic.
 
-## Functionality
+## What It Does
+
+The `execBinary` function takes three parameters:
+- `Op op`: The type of binary operation to be executed.
+- `QuantumValue L`: The left operand.
+- `QuantumValue R`: The right operand.
+
+It returns a `QuantumValue` representing the result of the binary operation.
+
+## Why It Works This Way
 
 ### String Concatenation
-- **Condition**: When `op` is `Op::ADD` and either `L` or `R` is a string.
-- **Operation**: The function concatenates the string representations of `L` and `R`.
-- **Return Value**: A new `QuantumValue` containing the concatenated string.
+
+When both operands are strings or one of them is a string and the other is a number, the function performs string concatenation. If either operand is a string, it attempts to convert the other operand to a string using `std::to_string`. If successful, it concatenates the two strings and returns the result as a new `QuantumValue`.
 
 ### Array Concatenation
-- **Condition**: When `op` is `Op::ADD` and both `L` and `R` are arrays.
-- **Operation**: The function creates a new array by copying all elements from `L` followed by all elements from `R`.
-- **Return Value**: A new `QuantumValue` containing the concatenated array.
+
+For array operands, the function checks if both are arrays. If so, it creates a copy of the first array and appends all elements from the second array to it. The resulting array is then returned as a new `QuantumValue`.
 
 ### Comparison Operators
-- **Condition**: When `op` is either `Op::EQ` (equal) or `Op::NEQ` (not equal).
-- **Operation**: The function compares the values of `L` and `R`, allowing for mixed types.
-  - For equality (`Op::EQ`), it returns `true` if the values are equal, otherwise `false`.
-  - For inequality (`Op::NEQ`), it returns `true` if the values are not equal, otherwise `false`.
-- **Return Value**: A new `QuantumValue` containing a boolean result of the comparison.
+
+Comparison operators (`EQ` and `NEQ`) allow for mixed types. The function converts both operands to their numeric equivalents (if possible) using `std::stod` for strings and `static_cast<double>` for booleans. It then compares these numeric values and returns a boolean `QuantumValue` indicating whether the condition is true or false.
 
 ### Numeric Arithmetic
-- **Condition**: When `op` is any numeric arithmetic operation (`Op::ADD`, `Op::SUB`, `Op::MUL`).
-- **Operation**:
-  - Converts `L` and `R` to their numeric equivalents if they are not already numbers.
-  - Handles special cases where one or both operands are strings or booleans by attempting to convert them to numbers.
-  - Performs the specified arithmetic operation (`ADD`, `SUB`, `MUL`).
-- **Return Value**: A new `QuantumValue` containing the result of the arithmetic operation as a number.
 
-## Parameters and Return Value
+For numeric operands, the function performs basic arithmetic operations such as addition (`ADD`), subtraction (`SUB`), and multiplication (`MUL`). If one of the operands is a string that can be converted to a number, the function attempts the conversion before performing the operation. For array and number combinations in multiplication, the function repeats the array elements according to the number value.
+
+## Parameters/Return Value
 
 - **Parameters**:
-  - `L`: The left-hand side quantum value.
-  - `R`: The right-hand side quantum value.
-  - `op`: The operation type to perform, which can be one of `Op::ADD`, `Op::SUB`, `Op::MUL`, `Op::EQ`, or `Op::NEQ`.
+  - `Op op`: Specifies the type of binary operation.
+  - `QuantumValue L`: The left operand.
+  - `QuantumValue R`: The right operand.
 
 - **Return Value**:
-  - Returns a new `QuantumValue` representing the result of the binary operation.
+  - Returns a `QuantumValue` representing the result of the binary operation.
 
 ## Edge Cases
 
-- **Mixed Types in Comparison**: The function correctly handles comparisons between different types by converting them to numbers when necessary.
-- **Non-Numeric Strings in Arithmetic**: If a string cannot be converted to a number, it defaults to `0`. This allows operations like `"5" + 2` to produce `"52"` instead of throwing an error.
-- **Negative Numbers in Array Repeat**: When using the multiplication operator (`Op::MUL`) with arrays and negative numbers, the function treats the absolute value of the number and repeats the array accordingly.
+- **Mixed Types**: When comparing or performing arithmetic with mixed types (e.g., string and number), the function ensures proper handling by converting strings to numbers where applicable.
+- **Invalid Conversion**: If a string cannot be converted to a number, the function defaults to zero for that operand during arithmetic operations.
+- **Negative Numbers**: In numeric operations, negative numbers are handled correctly, allowing for standard mathematical calculations.
 
-## Interactions with Other Components
+## Interactions With Other Components
 
-- **Type Conversion**: The function interacts with the `isNumber()`, `isString()`, `isBool()`, `asNumber()`, `asString()`, and `asBool()` methods of the `QuantumValue` class to determine and convert the types of `L` and `R`.
-- **Array Operations**: For array operations, the function uses the `std::shared_ptr<Array>` and related methods to manage and manipulate arrays efficiently.
-- **Error Handling**: The function includes error handling mechanisms to gracefully handle situations where string conversion fails, ensuring robustness in the face of unexpected input.
+The `execBinary` function interacts with several other components within the Quantum Language compiler:
 
-Overall, the `execBinary` function serves as a versatile and essential part of the Quantum Language compiler's virtual machine, enabling complex operations across various data types with ease and reliability.
+- **Type Checking**: It uses methods like `isString()`, `isArray()`, and `isNumber()` to determine the type of each operand.
+- **Conversion Functions**: Methods such as `toString()`, `asArray()`, and `asNumber()` are used to manipulate and access the data within `QuantumValue`.
+- **Utility Functions**: Helper functions like `valuesEqual()` are utilized for comparisons.
+
+Overall, the `execBinary` function plays a crucial role in executing binary operations efficiently and correctly across different data types within the Quantum Language compiler's virtual machine.

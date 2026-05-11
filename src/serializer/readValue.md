@@ -1,36 +1,44 @@
 # `readValue` Function
 
-The `readValue` function is an essential part of the Quantum Language compiler's serialization system, tasked with reconstructing values from serialized data. It ensures that complex data structures and their contents can be accurately restored when necessary.
+The `readValue` function is a crucial component of the Quantum Language compiler's serialization system, responsible for reconstructing values from serialized data. This function plays a vital role in ensuring that complex data structures and their contents are accurately restored when required.
 
 ## What it Does
 
-The `readValue` function takes serialized data and an offset as input, then reconstructs the original value based on the data at the specified offset. The function handles various types of values including nil, boolean, number, string, array, and closure.
+The primary purpose of the `readValue` function is to deserialize a value from a byte stream (`data`) at a specified offset (`offset`). The function reads the type of the value first and then processes the data based on the type to recreate the original value.
+
+### Parameters
+- `const char* data`: A pointer to the serialized data.
+- `size_t& offset`: A reference to the current offset within the serialized data. This parameter is updated as the function progresses through the data.
+
+### Return Value
+- Returns a `QuantumValue` object representing the deserialized value.
 
 ## Why it Works This Way
 
-This design allows the `readValue` function to dynamically determine the type of value being reconstructed and handle each type appropriately. By using a switch statement, the function can efficiently process different value types without requiring additional conditional checks. This approach simplifies the implementation and improves performance.
+The `readValue` function works by reading the type of the value from the serialized data using the `readRaw<ValueType>` template function. Once the type is determined, the function uses a switch statement to handle each type individually:
 
-## Parameters/Return Value
+1. **ValueType::VAL_NIL**: If the type is `nil`, the function returns an empty `QuantumValue`.
+2. **ValueType::VAL_BOOL**: For boolean values, the function reads a single byte from the data. If the byte is non-zero, it returns a `QuantumValue` containing `true`; otherwise, it returns `false`.
+3. **ValueType::VAL_NUMBER**: Numbers are represented as double precision floating-point values. The function reads a double from the data and returns a `QuantumValue` containing this number.
+4. **ValueType::VAL_STRING**: Strings are stored as length-prefixed sequences of bytes. The function reads the string length and then calls `readString` to extract the actual string data, returning a `QuantumValue` containing the string.
+5. **ValueType::VAL_ARRAY**: Arrays are represented by their size followed by elements of the array. The function reads the array size, creates a new `Array` shared pointer, and recursively reads each element into the array before returning a `QuantumValue` containing the array.
+6. **ValueType::VAL_CLOSURE**: Closures are represented by chunks of code. The function reads the closure chunk using `readChunk` and returns a `QuantumValue` containing a new `Closure` shared pointer initialized with this chunk.
 
-- **Parameters**:
-  - `const uint8_t* data`: A pointer to the serialized data.
-  - `uint32_t& offset`: A reference to the current offset within the serialized data.
-
-- **Return Value**:
-  - Returns a `QuantumValue` object representing the reconstructed value.
+If an unknown value type is encountered, the function throws a `std::runtime_error`.
 
 ## Edge Cases
 
-1. **Nil Type**: If the serialized data indicates a nil value (`ValueType::VAL_NIL`), the function returns an empty `QuantumValue`.
-2. **Boolean Type**: For boolean values, the function reads a single byte from the serialized data. If the byte is non-zero, it returns a `QuantumValue` containing `true`; otherwise, it returns `false`.
-3. **Number Type**: When encountering a number, the function reads a double precision floating-point number from the serialized data and constructs a `QuantumValue` around it.
-4. **String Type**: Strings are handled by calling the `readString` function, which reads the length and characters of the string from the serialized data and constructs a `QuantumValue` around it.
-5. **Array Type**: Arrays require reading the size of the array first, followed by reconstructing each element recursively using `readValue`. The resulting `QuantumValue` contains a shared pointer to an `Array` object.
-6. **Closure Type**: Closures involve reading a chunk of serialized data, which represents the code or environment associated with the closure. The function constructs a `QuantumValue` around a shared pointer to a `Closure` object created from this chunk.
+- **Empty Data Stream**: If the data stream is empty or the offset exceeds the available data, the behavior is undefined.
+- **Invalid Type**: If an invalid or unexpected type is encountered during deserialization, the function will throw an exception.
+- **Large Array/Closure**: Handling very large arrays or closures requires sufficient memory and could potentially lead to stack overflow or out-of-memory errors.
 
 ## Interactions with Other Components
 
-- **Serialization System**: The `readValue` function interacts closely with the overall serialization system, utilizing helper functions like `readRaw`, `readString`, and `readChunk` to extract individual parts of the serialized data.
-- **Data Structures**: It reconstructs values into appropriate data structures such as `QuantumValue`, `Array`, and `Closure`.
+The `readValue` function interacts closely with several other components of the Quantum Language compiler's serialization system:
 
-By handling all possible value types and interacting seamlessly with other components of the serialization system, the `readValue` function facilitates the accurate restoration of complex data structures in the Quantum Language compiler.
+- **`readRaw<T>` Template Function**: Used to read raw binary data of type `T` from the serialized data.
+- **`readString` Function**: Extracts a string from the serialized data based on its length prefix.
+- **`readChunk` Function**: Reads a chunk of code from the serialized data, which is used to create `Closure` objects.
+- **`ValueType` Enum**: Defines the possible types of values that can be serialized, including `nil`, `bool`, `number`, `string`, `array`, and `closure`.
+
+These interactions ensure that the `readValue` function can correctly interpret and reconstruct various data types from the serialized byte stream.

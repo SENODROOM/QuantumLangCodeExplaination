@@ -2,31 +2,45 @@
 
 ## Overview
 
-The `resolveLocal` function is a utility method used within the Quantum Language compiler's `CompilerCore.cpp` file. Its main functionality is to find and return the index of a local variable in the current scope based on its name. If the variable is not found, it returns `-1`. This function plays a crucial role in managing variables during compilation, ensuring that references to local variables are correctly resolved.
+The `resolveLocal` function is a utility method utilized within the Quantum Language compiler's `CompilerCore.cpp` file. This function primarily serves to identify and retrieve the index of a local variable within the current lexical scope based on its name. If the specified variable is not found, the function returns `-1`.
 
-## Parameters
+### Why It Works This Way
 
-- **`const std::string& name`**: The name of the local variable whose index needs to be resolved.
+The implementation of `resolveLocal` iterates through the list of local variables in reverse order. This approach ensures that the most recently declared variable is returned first, adhering to the Last In, First Out (LIFO) principle commonly associated with stack-based languages. By starting from the end of the list and moving towards the beginning, the function can quickly locate the variable without having to traverse the entire list.
 
-## Return Value
+### Parameters/Return Value
 
-- **`int`**: The index of the local variable if found; otherwise, `-1`.
+- **Parameters**:
+  - `name` (const std::string&): The name of the local variable to be resolved.
 
-## How It Works
+- **Return Value**:
+  - `int`: The index of the local variable if found; otherwise, `-1`.
 
-The function iterates over the list of local variables (`state->locals`) in reverse order. This approach ensures that the most recently declared variable with the given name is found first, as per the Last-In-First-Out (LIFO) principle. For each variable, it checks if the variable's name matches the provided name using the equality operator (`==`). If a match is found, the function immediately returns the index of that variable. If the loop completes without finding a match, the function returns `-1`, indicating that the variable was not found in the current scope.
+### Edge Cases
 
-## Edge Cases
+- **Empty Scope**: If there are no local variables in the current scope (`state->locals.empty()`), the function will return `-1`.
+- **Variable Not Found**: If the specified variable name does not exist among the local variables in the current scope, the function will also return `-1`.
+- **Multiple Declarations**: In scenarios where multiple variables share the same name but are declared at different scopes, only the most recent declaration will be identified.
 
-- **Empty Scope**: If the current scope has no local variables (`state->locals.empty()`), the function will return `-1`.
-- **Multiple Variables with the Same Name**: Since the function searches in reverse order, it will return the index of the last variable declared with the same name. This behavior can be useful in some scenarios but may need adjustments depending on the language's rules regarding variable shadowing.
-- **Variable Not Found**: If no variable with the specified name exists in the current scope, the function returns `-1`.
+### Interactions with Other Components
 
-## Interactions with Other Components
+The `resolveLocal` function interacts closely with the `CompilerState` object, which maintains information about the current compilation state including the list of local variables. This interaction allows the function to access the necessary data to perform its resolution task accurately.
 
-The `resolveLocal` function interacts with several components within the compiler:
+Here is a more detailed breakdown of the function:
 
-- **Scope Management**: It relies on the `state->locals` vector, which represents the current scope's local variables. This vector is maintained by higher-level functions responsible for handling scopes.
-- **Error Handling**: If the variable is not found, the function returns `-1`. However, error handling should be implemented at a higher level to provide meaningful feedback or take appropriate actions when an unresolved variable reference is encountered.
+```cpp
+int CompilerCore::resolveLocal(const std::string& name) {
+    // Iterate through the locals vector in reverse order
+    for (int i = static_cast<int>(state->locals.size()) - 1; i >= 0; --i) {
+        // Check if the current local variable matches the given name
+        if (state->locals[i].name == name) {
+            // Return the index of the matching local variable
+            return i;
+        }
+    }
+    // Return -1 if the variable is not found
+    return -1;
+}
+```
 
-In summary, the `resolveLocal` function is essential for resolving local variable indices in the current scope, facilitating correct variable access during compilation. Its implementation efficiently handles various edge cases and integrates seamlessly with the compiler's scope management system.
+In summary, the `resolveLocal` function is an essential utility for locating local variables within the current scope. Its LIFO iteration strategy ensures efficient resolution, while its interaction with the `CompilerState` object provides the necessary context to perform accurate lookups.

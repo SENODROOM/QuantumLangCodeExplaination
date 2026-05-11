@@ -1,47 +1,41 @@
-# `parseCinStmt`
+## `parseCinStmt`
 
-The `parseCinStmt` function is integral to the Quantum Language compiler's parser, specifically designed to handle input statements in the format of `cin >> var`, `cin >> arr[i]`, or `cin >> *(ptr+i)`. These statements are used to read values from standard input into variables, arrays, or pointers within the program.
+### Purpose
+The `parseCinStmt` function is crucial for parsing input statements in the Quantum Language compiler's parser, specifically handling the syntax of `cin >> var`, `cin >> arr[i]`, or `cin >> *(ptr+i)`. These statements are essential for reading values from standard input into variables, arrays, or pointers.
 
-## What It Does
+### Why It Works This Way
+This function operates differently from `parseExpr()` because the `>>` token can also be interpreted as a bitwise shift operator in C++. To avoid conflicts, `parseCinStmt` employs a strategy that distinguishes between these two interpretations based on whether the target variable starts with `*`.
 
-The function parses input statements involving the `cin` object, which is commonly used in C++ for reading data from the user. It processes different types of expressions following the `>>` operator, including direct variable references, array elements, pointer dereferences, and combinations thereof.
+#### Handling Parenthesized Expressions
+If the target starts with `*` followed by an opening parenthesis `(`, the function assumes that the statement involves dereferencing an expression within parentheses. In such cases, `parseCinStmt` parses the entire parenthesized expression using `parseExpr()`. After parsing, it wraps the result in a `DerefExpr` node to represent the dereferencing operation.
 
-## Why It Works This Way
+#### Handling Postfix Only
+For all other cases, where the target does not start with `*`, the function simply parses the postfix expression following `cin >>`.
 
-The existing implementation avoids using the `parseExpr()` function because the `>>` operator could otherwise be interpreted as a bitwise right shift operation rather than an input stream extraction operator. To correctly identify and parse `cin >>` statements, the function employs a strategy based on token consumption:
+### Parameters/Return Value
+- **Parameters**: None explicitly mentioned in the provided code snippet.
+- **Return Value**: The function returns a unique pointer to an `ASTNode` representing the parsed input statement. If the statement involves `cin.ignore()`, `cin.get(...)`, `cin.getline(...)`, or similar methods, it returns a `BlockStmt` containing no operations (effectively treating them as no-ops).
 
-1. **Handling Special Methods**: If the statement begins with `cin.` followed by any identifier (like `.ignore()`, `.get()`, `.getline()`, etc.), the function treats these as no-operations (`no-op`). This allows the parser to recognize common input methods without executing them.
+### Edge Cases
+- **No Input Operator (`>>`)**: If the next token is not `>>`, the function breaks out of the loop and returns a `BlockStmt`.
+- **Bitwise Shift vs. Input Operator**: The function correctly identifies `cin >>` as an input operator rather than a bitwise shift operator when the target variable starts with `*`.
+- **Empty Argument List**: If there is an empty argument list after a dot (`.`), the function consumes it and continues until a newline or semicolon is encountered.
 
-2. **Parsing Parenthesized Expressions**: For statements like `*(ptr+i)`, where the target is a dereferenced expression, the function consumes tokens until it encounters a balanced set of parentheses. Once the parentheses are closed, it wraps the parsed expression in a `DerefExpr` node, indicating that the expression should be dereferenced before assignment.
+### Interactions With Other Components
+- **Token Stream Processing**: `parseCinStmt` interacts with the token stream managed by the parser, consuming tokens as it progresses through the statement.
+- **Expression Parsing**: For cases involving dereferencing expressions, `parseCinStmt` calls `parseExpr()` to parse the expression within the parentheses.
+- **Error Handling**: The function includes error handling to ensure that the correct number of closing parentheses `)` is found when parsing expressions within parentheses.
 
-3. **Postfix Parsing**: For simpler statements like `cin >> var`, the function parses the expression following the `>>` operator directly without additional context.
+### Example Usage
+Here’s how you might call `parseCinStmt` in a context where you need to parse an input statement:
 
-## Parameters/Return Value
+```cpp
+auto stmt = parseCinStmt();
+if (stmt) {
+    // Process the parsed statement
+} else {
+    // Handle parsing failure
+}
+```
 
-### Parameters
-
-- None explicitly mentioned in the provided code snippet.
-
-### Return Value
-
-- Returns a unique pointer to an `ASTNode` representing the parsed input statement. If the statement involves special methods like `.ignore()`, `.get()`, etc., it returns a `BlockStmt` node wrapped in an `ASTNode`.
-
-## Edge Cases
-
-1. **Special Methods**: Statements starting with `cin.` followed by any identifier are treated as no-operations. This includes various input methods such as `.ignore()`, `.get()`, `.getline()`, etc.
-
-2. **Parentheses**: When encountering `*(ptr+i)`, the function ensures that all nested parentheses are properly matched and parsed before wrapping the expression in a `DerefExpr`.
-
-3. **Whitespace Handling**: The function skips newlines and semicolons at the end of the statement to ensure proper parsing and handling of subsequent statements.
-
-4. **Error Handling**: If the expected closing parenthesis `)` is not found when parsing a dereferenced expression, the function throws an error message indicating the missing parenthesis.
-
-## Interactions With Other Components
-
-- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens that make up the input statement.
-  
-- **Expression Parser**: Although `parseExpr()` is avoided due to potential misinterpretation of the `>>` operator, the function internally uses similar logic to parse expressions, ensuring that parentheses are handled correctly.
-
-- **Abstract Syntax Tree (AST)**: The parsed input statement is represented as an AST node. Depending on the complexity of the expression, this might result in either a simple `AssignmentExpr` or a more complex structure involving `DerefExpr`.
-
-In summary, `parseCinStmt` is a crucial component of the Quantum Language compiler's parser, responsible for accurately interpreting and converting input statements into their corresponding AST nodes. Its design ensures that special methods are recognized and handled appropriately, while also correctly parsing expressions involving pointer dereferences.
+In summary, `parseCinStmt` ensures that input statements in the Quantum Language compiler are correctly parsed, distinguishing between bitwise shift operators and actual input operations, thereby avoiding syntax errors and ensuring proper compilation of quantum programs.

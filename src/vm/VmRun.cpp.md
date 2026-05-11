@@ -2,65 +2,57 @@
 
 ## Role in Compiler Pipeline
 
-`VmRun.cpp` plays a critical role in the Quantum Language compiler's virtual machine (VM) subsystem. Its primary function is to interpret and execute bytecode instructions within the VM environment. This file manages the execution flow, including interpreting each instruction, updating the program counter (`ip`), and manipulating the stack based on the operation codes encountered.
+`VmRun.cpp` is a crucial component of the Quantum Language compiler's virtual machine (VM) subsystem. It handles the interpretation and execution of bytecode instructions within the VM environment. The main responsibilities include managing the execution flow, executing each instruction, updating the program counter (`ip`), and manipulating the stack based on the operation codes encountered during execution.
 
 ## Key Design Decisions and Why
 
-1. **Bytecode Interpretation**: The core functionality of `VmRun.cpp` revolves around interpreting bytecode instructions. Each instruction is processed sequentially, ensuring that the code executes correctly according to its intended logic.
+1. **Bytecode Interpretation**: `VmRun.cpp` focuses on interpreting bytecode instructions directly rather than compiling them into native machine code. This approach allows for dynamic execution and easier debugging, as the source code can be easily traced back to the bytecode instructions.
 
-2. **Stack Management**: The VM uses a stack-based architecture to manage data during execution. Operations like `LOAD_CONST`, `POP`, `DUP`, and `SWAP` are implemented to manipulate the stack efficiently, allowing for complex computations and control structures.
+2. **Stack Manipulation**: The stack is used to manage local variables and function call contexts. Operations such as pushing and popping values onto/from the stack, duplicating values, and swapping values are essential for maintaining the state during function calls and arithmetic operations.
 
-3. **Global Variables**: The VM supports global variables through the `DEFINE_GLOBAL` and `LOAD_GLOBAL` opcodes. These allow functions to access and modify variables defined outside their scope, enhancing the flexibility and reusability of the code.
+3. **Global Variables Management**: The VM includes mechanisms to define and access global variables. This is necessary for maintaining state across different functions and modules, allowing for data persistence and interaction between them.
 
-4. **Error Handling**: Robust error handling is implemented to catch runtime errors, such as accessing undefined global variables or exceeding the maximum number of execution steps. This ensures that the compiler can gracefully handle unexpected situations without crashing.
+4. **Debugging Support**: Conditional compilation with `DEBUG_TRACE_EXECUTION` enables tracing of the execution process. This feature aids developers in understanding how the VM executes the bytecode, which is invaluable for debugging and optimizing performance.
 
-5. **Debugging Support**: Conditional compilation with `DEBUG_TRACE_EXECUTION` enables detailed tracing of the VM's execution state. This feature helps developers debug and understand how the bytecode is interpreted, providing insights into the internal workings of the VM.
+5. **Step Limiting**: To prevent potential infinite loops or excessive execution time, `VmRun.cpp` implements a step limiting mechanism. If the number of executed steps exceeds a predefined maximum (`MAX_STEPS`), an exception is thrown, indicating that the execution might be stuck in an infinite loop.
 
 ## Major Classes/Functions Overview
 
 ### Class: `VM`
-- **Purpose**: Manages the overall execution state of the VM, including the call stack, current instruction pointer (`ip`), and global variable storage.
+- **Role**: Manages the overall state of the virtual machine, including the call stack, program counter, and global variables.
 - **Key Functions**:
-  - `runFrame(size_t stopDepth)`: The main function that drives the execution of bytecode instructions until a specified depth is reached.
+  - `runFrame(size_t stopDepth)`: Executes bytecode instructions until reaching a specified depth in the call stack.
   - `push(const QuantumValue &value)`: Adds a value to the top of the stack.
-  - `pop()`: Removes the top value from the stack.
-  - `peek(size_t distance)`: Retrieves the value at a specific distance from the top of the stack without removing it.
+  - `pop()`: Removes and returns the value at the top of the stack.
+  - `peek(size_t offset)`: Returns the value at a specific offset from the top of the stack without removing it.
 
 ### Class: `CallFrame`
-- **Purpose**: Represents a single frame on the call stack, containing information about the currently executing closure, the instruction pointer, and the base of the stack.
+- **Role**: Represents a single function call frame within the call stack. Each frame contains information about the current function being executed, including its closure, chunk of bytecode, and the base index of the stack.
 - **Key Members**:
-  - `Closure *closure`: Pointer to the closure being executed.
-  - `size_t ip`: Current instruction pointer within the closure's bytecode.
-  - `size_t stackBase`: Base index of the stack for this frame.
+  - `closure`: A pointer to the closure containing the function's bytecode and constants.
+  - `stackBase`: The base index of the stack where the function's local variables start.
+  - `ip`: The current instruction pointer within the bytecode chunk.
 
 ### Class: `Chunk`
-- **Purpose**: Stores the bytecode and constant pool for a function or script.
+- **Role**: Holds the bytecode and constants for a function or script. Each chunk represents a segment of executable code.
 - **Key Members**:
-  - `std::vector<Instruction> code`: Bytecode instructions.
-  - `std::vector<QuantumValue> constants`: Pool of constants used by the bytecode.
+  - `code`: A vector of `Instruction` objects representing the bytecode.
+  - `constants`: A vector of `QuantumValue` objects representing the constants used in the bytecode.
 
 ### Class: `Instruction`
-- **Purpose**: Represents a single bytecode instruction, including an opcode and optional operands.
+- **Role**: Encapsulates a single bytecode instruction, including its operation code and any associated operands.
 - **Key Members**:
-  - `Op op`: Operation code indicating the type of instruction.
-  - `uint8_t operand`: Optional operand associated with the instruction.
-
-### Class: `QuantumValue`
-- **Purpose**: Represents a value in the VM, which can be a number, string, boolean, or more complex types like functions or closures.
-- **Key Methods**:
-  - `isString()`, `asString()`: Checks if the value is a string and retrieves it.
-  - `isNative()`, `asNative()`: Checks if the value is a native function and retrieves it.
-  - `isFunction()`, `asFunction()`: Checks if the value is a user-defined function and retrieves it.
-  - `toString()`: Converts the value to a human-readable string representation.
+  - `op`: The operation code indicating what action should be taken.
+  - `operand`: An optional operand used by certain operation codes, such as loading constants.
 
 ## Tradeoffs
 
-1. **Performance vs. Debuggability**: Enabling debugging features like `DEBUG_TRACE_EXECUTION` adds overhead but provides valuable insights during development. However, these features may degrade performance in production environments.
+1. **Performance vs. Debuggability**: Direct bytecode interpretation offers better debuggability but may sacrifice performance compared to compiled approaches. The tradeoff here lies in the need for quick development and debugging versus optimized runtime performance.
 
-2. **Memory Usage**: The stack-based architecture requires additional memory to store values temporarily. While efficient for many operations, it could lead to higher memory usage for deeply nested function calls or large data structures.
+2. **Memory Usage**: Using a stack-based architecture requires additional memory management for local variables and function call contexts. However, this is generally more efficient than allocating memory for each variable individually.
 
-3. **Complexity**: Implementing a full-fledged VM introduces complexity in terms of code maintenance and potential bugs. Balancing simplicity with robustness is a continuous challenge.
+3. **Complexity vs. Flexibility**: Implementing a full-fledged VM adds complexity to the compiler but provides greater flexibility in terms of language features and execution models.
 
-4. **Flexibility vs. Constraints**: Allowing global variables enhances flexibility but imposes constraints on code organization and potential side effects. Careful management is required to avoid unintended interactions between different parts of the program.
+4. **Safety vs. Speed**: Step limiting helps ensure safety against infinite loops but may introduce overhead in checking the step count at each instruction. Balancing these factors is essential for practical use.
 
-By addressing these tradeoffs, `VmRun.cpp` aims to provide a versatile and reliable execution environment for Quantum Language programs, balancing performance, usability, and maintainability.
+Overall, `VmRun.cpp` serves as the core interpreter for the Quantum Language compiler, enabling dynamic execution and facilitating various language features through careful design and implementation.

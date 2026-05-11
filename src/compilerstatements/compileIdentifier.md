@@ -2,49 +2,45 @@
 
 ## Overview
 
-The `compileIdentifier` function is a vital part of the Quantum Language (QL) compiler, tasked with compiling identifier expressions found in the source code. This function is located within the `src/compiler/CompilerStatements.cpp` file.
+The `compileIdentifier` function is a critical component of the Quantum Language (QL) compiler, responsible for processing and compiling identifier expressions encountered in the source code. This function resides in the `src/compiler/CompilerStatements.cpp` file.
 
 ### Purpose
 
-The primary purpose of `compileIdentifier` is to translate an identifier expression into machine-readable code that can be executed on a quantum computer. An identifier expression typically refers to a variable or a function name used in the program.
+The main purpose of the `compileIdentifier` function is to handle the compilation of identifier expressions. It ensures that the identifiers are correctly resolved and their associated values or references are properly loaded into the quantum circuit being compiled.
 
 ### Parameters
 
-- **e**: A reference to an `Expression` object representing the identifier expression to be compiled. The `Expression` class contains information about the type of expression and its associated data.
-- **line**: An integer representing the line number in the source code where the identifier expression appears. This parameter is used for error reporting purposes.
+- `e`: A reference to an `Expression` object representing the identifier expression to be compiled.
+- `line`: An integer indicating the current line number in the source code where the identifier is used.
 
 ### Return Value
 
-This function does not return any value explicitly. Instead, it performs side effects by emitting machine code instructions using the `emitLoad` function.
-
-### Edge Cases
-
-1. **Undefined Identifier**: If the identifier referenced in the expression is not defined anywhere in the program, the `emitLoad` function will throw an exception indicating an undefined symbol. This ensures that the compiler catches and reports errors related to undeclared variables or functions.
-2. **Scope Issues**: Identifiers can exist in different scopes throughout the program. The `compileIdentifier` function must correctly resolve which scope the identifier belongs to based on the current context. This involves maintaining a stack of scopes during compilation.
-
-### Interactions with Other Components
-
-- **Symbol Table**: The `compileIdentifier` function interacts with the symbol table to retrieve information about the identifier being compiled. The symbol table stores details such as the type, scope, and location of each identifier declared in the program.
-- **Emit Functions**: It uses various `emit...` functions to generate machine code instructions. For example, `emitLoad` is responsible for loading the value of the identifier onto the stack. These functions are part of the backend of the compiler, which translates high-level language constructs into low-level machine code.
+This function does not return any value explicitly. Instead, it performs actions directly on the quantum circuit being compiled.
 
 ### Implementation Details
 
-Here's a breakdown of how the `compileIdentifier` function works:
-
-1. **Retrieve Symbol Information**: The function first looks up the identifier in the symbol table to get details about its type, scope, and whether it has been declared.
-2. **Check Scope**: It verifies if the identifier is accessible in the current scope. If not, it throws an error.
-3. **Emit Load Instruction**: Based on the retrieved information, the function emits a `load` instruction using the `emitLoad` function. This instruction fetches the value of the identifier from memory and pushes it onto the stack.
-
-### Example Usage
+The implementation of the `compileIdentifier` function is straightforward:
 
 ```cpp
-// Assuming 'expr' is an Expression object representing an identifier 'myVar'
-int lineNumber = 42;
-compileIdentifier(expr, lineNumber);
+{ emitLoad(e.name, line); }
 ```
 
-In this example, `compileIdentifier` would look up the symbol `myVar`, check if it is accessible at line 42, and then emit a `load` instruction to push the value of `myVar` onto the stack.
+Here's a breakdown of what this line does:
+- **emitLoad**: This is a helper function that generates the appropriate quantum gate or operation to load the value associated with the identifier `e.name`.
+- **e.name**: This parameter represents the name of the identifier whose value needs to be loaded.
+- **line**: This parameter specifies the line number in the source code where the identifier is used, which might be necessary for error reporting or debugging purposes.
 
-### Conclusion
+### Edge Cases
 
-The `compileIdentifier` function is essential for the correct compilation of identifier expressions in the Quantum Language compiler. By interacting with the symbol table and using appropriate `emit...` functions, it ensures that the generated machine code accurately reflects the intended behavior of the identifier in the source code. Handling edge cases like undefined identifiers and scope issues adds robustness to the compiler, making it more reliable and easier to debug.
+1. **Undefined Identifier**: If the identifier `e.name` has not been previously defined in the scope, the `emitLoad` function should raise an error or exception indicating that the identifier is undefined at the given line.
+2. **Scope Resolution**: The function must correctly resolve the identifier based on its scope. For instance, if the same identifier exists in multiple scopes, the most recent definition should take precedence.
+3. **Type Mismatch**: If the type of the identifier does not match the expected type for the context in which it is used, the `emitLoad` function should generate an appropriate error message.
+
+### Interactions with Other Components
+
+The `compileIdentifier` function interacts closely with several other parts of the QL compiler:
+- **Symbol Table**: It uses the symbol table to look up the definition of the identifier. The symbol table contains information about all identifiers declared in the source code, including their types and definitions.
+- **Error Handling**: The function relies on the error handling mechanism to report errors related to undefined identifiers or type mismatches.
+- **Quantum Circuit Generation**: It calls the `emitLoad` function to generate the necessary quantum operations for loading the identifier's value into the circuit.
+
+In summary, the `compileIdentifier` function plays a crucial role in resolving and loading identifier expressions during the compilation process of the Quantum Language. Its interaction with the symbol table, error handling, and quantum circuit generation ensures that the compiled quantum circuit accurately reflects the intended behavior of the source code.

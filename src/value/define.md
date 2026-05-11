@@ -1,43 +1,38 @@
 # `define` Function in Quantum Language Compiler
 
 ## Overview
-The `define` function is used within the Quantum Language compiler to introduce new variables or constants into the current lexical scope. This function is essential for managing the symbol table and enabling access to these identifiers throughout the program.
+The `define` function in the Quantum Language compiler is crucial for introducing new variables or constants into the current lexical scope. This function updates the symbol table, ensuring that these identifiers can be accessed and used throughout the program. By defining variables and constants, the compiler facilitates data management and control flow, making it possible to write complex quantum algorithms efficiently.
 
-### Parameters
-- `name`: A string representing the name of the variable or constant being defined.
-- `val`: A value object that holds the data associated with the variable or constant.
-- `isConst`: A boolean flag indicating whether the identifier should be treated as a constant (i.e., its value cannot be changed after definition).
+## Parameters
+- **name**: A string representing the name of the variable or constant being defined.
+- **val**: The value associated with the variable or constant. This could be any type supported by the Quantum Language, such as integers, floating-point numbers, or complex types like qubits.
+- **isConst**: A boolean flag indicating whether the identifier should be treated as a constant. If set to `true`, the identifier's value cannot be modified after its initial assignment.
 
-### Return Value
-This function does not return any value; it is a void function.
+## Return Value
+This function does not return any value explicitly. However, it modifies the internal state of the compiler by updating the symbol table with the new variable or constant.
 
-### Edge Cases
-1. **Duplicate Definitions**: If an attempt is made to define an identifier that already exists in the current scope, the behavior is undefined and may result in runtime errors or unexpected behavior.
-2. **Scope Management**: The function must correctly manage the scope hierarchy, ensuring that identifiers are only accessible within their intended scope and not leaking into outer scopes unintentionally.
-3. **Memory Management**: Proper memory management is required to avoid leaks when defining values that hold dynamically allocated resources.
+## Edge Cases
+1. **Duplicate Names**: If an attempt is made to define a variable or constant with a name that already exists in the current scope, the existing definition will be overwritten. This behavior ensures that there is only one definition per identifier at any given time.
+2. **Scope Management**: The `define` function operates on the current lexical scope. If called outside of a valid scope, it may lead to undefined behavior or errors.
+3. **Constant Assignment**: When defining a constant (`isConst` set to `true`), attempting to reassign a new value to the constant will result in an error. This enforces immutability and helps prevent logical errors in the code.
 
-### Interactions with Other Components
-- **Symbol Table**: The `define` function interacts with the symbol table to store the new variable or constant. It updates both the general `vars` map and the `constants` map if the identifier is marked as a constant.
-- **Lexical Analysis**: During lexical analysis, tokens are identified and passed to the `define` function to create new identifiers. The function ensures that these identifiers are properly scoped and managed.
-- **Semantic Analysis**: After the `define` function has added new identifiers to the symbol table, semantic analysis can proceed to check the types and usage of these identifiers according to the language's rules.
+## Interactions with Other Components
+- **Symbol Table**: The `define` function interacts directly with the symbol table, which is responsible for storing information about all variables and constants in the program. It adds the new identifier to the symbol table along with its value and mutability status.
+- **Error Handling**: During the execution of the `define` function, the compiler checks for duplicate names and immutable assignments. If either condition is violated, appropriate error messages are generated and handled, preventing the program from running with incorrect definitions.
 
-### Example Usage
-Here is an example of how the `define` function might be used within the compiler:
-
+## Example Usage
 ```cpp
-void define(const std::string& name, Value val, bool isConst) {
-    // Store the variable or constant in the symbol table
-    vars[name] = std::move(val);
+// Define a variable 'x' with an integer value 5
+define("x", 5);
 
-    // Mark the identifier as a constant if necessary
-    if (isConst) {
-        constants[name] = true;
-    }
-}
+// Define a constant 'pi' with a floating-point value 3.14159
+define("pi", 3.14159, true);
 
-// Example call during compilation
-define("pi", 3.14159, true); // Define pi as a constant
-define("counter", 0, false); // Define counter as a mutable variable
+// Attempting to redefine 'x' will overwrite the existing value
+define("x", 10); // Now 'x' has the value 10
+
+// Attempting to reassign 'pi' will result in an error since it is a constant
+define("pi", 3.14); // Error: Cannot reassign constant 'pi'
 ```
 
-In this example, the `define` function is called twice to add two new identifiers to the symbol table: `pi`, which is a constant with the value `3.14159`, and `counter`, which is a mutable variable initialized to `0`. The function ensures that these identifiers are stored correctly and appropriately flagged as constants or variables.
+By understanding how the `define` function works and its interactions with other components, developers can effectively manage their quantum programs, ensuring correct data handling and preventing runtime errors.

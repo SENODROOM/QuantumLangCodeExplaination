@@ -2,60 +2,50 @@
 
 ## Overview
 
-The Token component is an essential part of the Quantum Language Compiler, tasked with parsing and managing tokens derived from the source code. Tokens serve as the fundamental elements of the language, encompassing keywords, identifiers, literals, and operators. This component guarantees accurate conversion of the source code into a structured format, enabling subsequent stages of compilation.
+The Token component is a crucial module within the Quantum Language Compiler, responsible for parsing and managing tokens extracted from the source code. Tokens represent the basic building blocks of the language, including keywords, identifiers, literals, and operators. This component ensures precise transformation of the source code into a structured format, facilitating further processing stages such as syntax analysis and semantic interpretation.
 
 ### Key Features
 
 - **Tokenization**: Converts raw source code into individual tokens.
-- **Token Management**: Stores and provides access to tokens for further processing.
-- **Error Handling**: Identifies and reports syntax errors during tokenization.
+- **Token Types**: Identifies and categorizes different types of tokens (e.g., keywords, identifiers, literals).
+- **Error Handling**: Detects and reports syntax errors in the source code.
 
-### Directory Structure
+## Directory Structure
 
+This directory contains the following files:
+
+- `token.h`: Header file defining the Token class and related utilities.
+- `token.cpp`: Source file implementing the functionalities defined in `token.h`.
+- `tokenizer.h`: Header file declaring the Tokenizer class responsible for generating tokens.
+- `tokenizer.cpp`: Source file providing the implementation details for the Tokenizer class.
+- `tests/`: Subdirectory containing unit tests for the Token and Tokenizer components.
+
+## Overall Flow
+
+1. **Source Code Input**: The Token component receives the source code as input.
+2. **Tokenization Process**:
+   - The `Tokenizer` class processes the source code character by character.
+   - It identifies patterns that match predefined token types (keywords, identifiers, literals, etc.).
+   - Valid tokens are generated and stored.
+3. **Token Storage**: Tokens are managed using a data structure like a vector or list.
+4. **Token Output**: The Token component outputs the structured list of tokens.
+5. **Error Reporting**: Any detected syntax errors are reported through appropriate mechanisms.
+
+## Functions and Files
+
+### `toString`
+
+- **Location**: `token.h`
+- **Description**: Converts a Token object to its string representation.
+- **Parameters**: None
+- **Return Value**: A string representing the Token.
+
+```cpp
+// Example usage
+Token myToken("example", TokenType::IDENTIFIER);
+std::string tokenString = myToken.toString();
 ```
-token/
-├── include/
-│   └── token.hpp
-├── src/
-│   ├── lexer.cpp
-│   ├── tokenizer.cpp
-│   └── error_handler.cpp
-└── tests/
-    ├── test_lexer.cpp
-    ├── test_tokenizer.cpp
-    └── test_error_handler.cpp
-```
 
-### Files and Their Functions
+---
 
-#### `include/token.hpp`
-
-This header file defines the `Token` class and related enumerations for token types and values. It also includes declarations for the main components of the Token module.
-
-#### `src/lexer.cpp`
-
-The `lexer.cpp` file implements the lexical analysis phase. It reads the source code character by character, identifies patterns corresponding to different token types, and generates tokens accordingly.
-
-#### `src/tokenizer.cpp`
-
-The `tokenizer.cpp` file manages the collection and organization of tokens. It stores tokens in a data structure and provides methods to retrieve them, ensuring efficient access throughout the compilation process.
-
-#### `src/error_handler.cpp`
-
-The `error_handler.cpp` file handles syntax errors encountered during tokenization. It reports errors to the user, providing context and suggestions for corrections.
-
-#### `tests/test_lexer.cpp`, `tests/test_tokenizer.cpp`, `tests/test_error_handler.cpp`
-
-These test files validate the functionality of the lexer, tokenizer, and error handler components. They use various test cases to ensure that the components correctly identify and manage tokens and handle errors.
-
-### Overall Flow
-
-1. **Lexer Initialization**: The lexer is initialized with the source code.
-2. **Character Reading**: The lexer reads characters from the source code one by one.
-3. **Pattern Matching**: It matches these characters against predefined patterns to identify token types.
-4. **Token Generation**: Tokens are generated based on the matched patterns.
-5. **Token Storage**: Generated tokens are stored in the tokenizer's data structure.
-6. **Syntax Error Detection**: During the tokenization process, any syntax errors are detected and reported using the error handler.
-7. **Compilation Continuation**: Once all tokens are successfully managed and errors are handled, the compilation continues with the next phase.
-
-By understanding and utilizing the Token component, developers can effectively parse and manage tokens in the Quantum Language Compiler, facilitating robust and error-free compilation processes.
+By leveraging the Token component, the Quantum Language Compiler can efficiently parse and manage the source code, ensuring a solid foundation for subsequent stages of compilation.

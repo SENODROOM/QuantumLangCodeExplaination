@@ -2,55 +2,40 @@
 
 ## Purpose
 
-The `compileReturn` function is designed to handle the compilation of return statements within the Quantum Language compiler. This function ensures that the appropriate bytecode instructions are emitted based on whether a value or `nil` is being returned.
+The `compileReturn` function is responsible for compiling return statements in the Quantum Language compiler. It determines whether a value or `nil` should be returned and emits the corresponding bytecode instruction accordingly.
 
 ## Workflow
 
-1. **Check for Return Value**: The function first checks if there is a value (`s.value`) associated with the return statement.
-2. **Compile Expression**: If a value exists, the function calls `compileExpr(*s.value)` to compile the expression that needs to be returned. This involves converting the expression into a series of bytecode operations that can be executed by the quantum interpreter.
-3. **Emit RETURN Opcode**: After compiling the expression, the function emits the `Op::RETURN` opcode followed by the number of arguments (which is always 0 in this context) and the current line number. This opcode indicates that the function should return the computed value.
-4. **Handle Nil Return**: If no value is associated with the return statement (`s.value` is `nullptr`), the function directly emits the `Op::RETURN_NIL` opcode. This opcode signals that the function should return `nil`, which typically represents a null or undefined value in the language.
+The function follows these steps:
 
-## Edge Cases
+1. **Check for Return Value**: 
+   - If `s.value` is not null (`if (s.value)`), it means there is a value to be returned. The function proceeds to compile this expression using `compileExpr(*s.value)`.
+   
+2. **Emit Bytecode**:
+   - After compiling the expression, the function emits a `RETURN` bytecode instruction. The `Op::RETURN` operation takes three arguments: the number of values to return (which is `0` in this case), the current line number (`line`), and any additional data required for the operation.
 
-- **Empty Return Statement**: When a return statement without any value is encountered, the function correctly handles this case by emitting `Op::RETURN_NIL`.
-- **Complex Expressions**: The function can handle complex expressions that need to be compiled before being returned. This includes arithmetic operations, function calls, and variable references.
+3. **Handle `nil` Return**:
+   - If `s.value` is null (`else`), it indicates that the function should return `nil`. In this scenario, the function directly emits an `Op::RETURN_NIL` bytecode instruction. This operation also takes two arguments: the number of values to return (`0`) and the current line number (`line`).
 
-## Interactions with Other Components
+### Parameters/Return Value
 
-- **Expression Compiler**: The `compileExpr` function, which is called when a value is present, interacts with various components such as the symbol table, type checker, and optimization passes to ensure that the expression is compiled accurately and efficiently.
-- **Bytecode Emitter**: The `emit` function is used to generate the actual bytecode instructions. This function must be able to handle different opcodes (`Op::RETURN` and `Op::RETURN_NIL`) and integrate them seamlessly into the overall bytecode stream.
-- **Scope Management**: During the compilation process, scope management might be necessary to resolve variables and functions referenced in the return expression. This interaction ensures that the correct symbols are accessed and their values are properly handled.
+- **Parameters**:
+  - `s`: A structure containing information about the return statement, including the optional value to be returned.
+  - `line`: An integer representing the current line number in the source code where the return statement appears.
 
-## Implementation Details
+- **Return Value**:
+  - None. The function performs its operations internally and emits bytecode as necessary.
 
-Here's a breakdown of the implementation:
+### Edge Cases
 
-```cpp
-void compileReturn(Statement s, int line)
-{
-    // Check if there is a value to return
-    if (s.value)
-    {
-        // Compile the expression to be returned
-        compileExpr(*s.value);
-        
-        // Emit the RETURN opcode followed by the number of arguments (0) and the line number
-        emit(Op::RETURN, 0, line);
-    }
-    else
-    {
-        // Emit the RETURN_NIL opcode indicating no value is being returned
-        emit(Op::RETURN_NIL, 0, line);
-    }
-}
-```
+- **No Return Value**: When `s.value` is null, indicating that the function should return `nil`, the function handles this gracefully by emitting the `Op::RETURN_NIL` instruction.
+  
+- **Multiple Values**: Although not shown in the provided code snippet, the `Op::RETURN` instruction can take more than one argument to specify the number of values to return. However, in the given implementation, only one value is returned.
 
-### Explanation
+### Interactions with Other Components
 
-- **Condition Check**: The function starts by checking if `s.value` is not `nullptr`. This condition determines whether an expression needs to be compiled or if `nil` should be returned.
-- **Expression Compilation**: If `s.value` is not `nullptr`, the function calls `compileExpr(*s.value)` to compile the expression. This step is crucial as it converts the high-level expression into low-level bytecode operations.
-- **Opcode Emitters**: Depending on whether a value or `nil` is being returned, the function emits either `Op::RETURN` or `Op::RETURN_NIL`. These opcodes are essential for controlling the flow of execution and managing the stack state of the quantum interpreter.
-- **Line Number**: Both opcodes include the current line number (`line`). This helps in debugging and error reporting by providing context about where the return statement was located in the source code.
+- **Expression Compilation**: The `compileExpr` function is called when a value needs to be returned. This function is likely defined elsewhere in the compiler's codebase and is responsible for converting the expression into bytecode.
+  
+- **Bytecode Emission**: The `emit` function is used to generate and output bytecode instructions. This function is assumed to be part of the compiler's infrastructure and manages the emission of bytecode based on the operation type and arguments provided.
 
-This function plays a vital role in ensuring that the quantum language's return semantics are correctly translated into executable bytecode, facilitating efficient program execution.
+In summary, the `compileReturn` function efficiently handles the compilation of return statements by checking for a return value and emitting the appropriate bytecode instruction. Its design ensures that both explicit returns and implicit returns (`nil`) are correctly processed, making it a crucial component of the Quantum Language compiler's functionality.

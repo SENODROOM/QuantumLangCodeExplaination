@@ -2,95 +2,97 @@
 
 ## Overview
 
-The Serializer component is a fundamental module within the Quantum Language compiler, responsible for converting complex data structures into a flat, binary format for storage or transmission, and vice versa. This ensures efficient handling of data during compilation processes, maintaining integrity and compatibility across different stages and systems.
+The Serializer component is a crucial module in the Quantum Language compiler, designed to convert complex data structures into a flat, binary format for storage or transmission, and vice versa. This process enhances efficiency and maintains data integrity and compatibility throughout various stages of the compilation process.
+
+### Key Features
+
+- **Data Conversion**: Converts complex data structures into a flat, binary format and vice versa.
+- **Efficiency**: Ensures efficient handling of data, reducing memory usage and speeding up I/O operations.
+- **Integrity**: Maintains data integrity through checksums and validation mechanisms.
+- **Compatibility**: Supports seamless data exchange between different parts of the compiler and external systems.
 
 ## Files and Functions
 
+This directory contains several documented functions and files that facilitate the serialization and deserialization processes:
+
 ### writeRaw
-- **Purpose**: Writes raw bytes to the output stream.
+- **Description**: Writes raw bytes to the output stream.
 - **Parameters**:
   - `data`: A pointer to the data to be written.
-  - `size`: The size of the data in bytes.
-  
+  - `size`: The size of the data to be written.
+- **Returns**: None
+
 ### readRaw
-- **Purpose**: Reads raw bytes from the input stream.
+- **Description**: Reads raw bytes from the input stream.
 - **Parameters**:
-  - `buffer`: A pointer to the buffer where the data will be stored.
-  - `size`: The number of bytes to read.
-  
+  - `data`: A pointer to the buffer where the data will be stored.
+  - `size`: The size of the data to be read.
+- **Returns**: None
+
 ### writeString
-- **Purpose**: Writes a string to the output stream.
+- **Description**: Writes a string to the output stream.
 - **Parameters**:
   - `str`: The string to be written.
-  
+- **Returns**: None
+
 ### readString
-- **Purpose**: Reads a string from the input stream.
-- **Returns**: The read string.
-  
+- **Description**: Reads a string from the input stream.
+- **Parameters**:
+  - `buffer`: A pointer to the buffer where the string will be stored.
+  - `maxSize`: The maximum size of the buffer.
+- **Returns**: None
+
 ### writeValue
-- **Purpose**: Writes a generic value to the output stream.
+- **Description**: Writes a value of any type to the output stream.
 - **Parameters**:
   - `value`: The value to be written.
-  
+- **Returns**: None
+
 ### readValue
-- **Purpose**: Reads a generic value from the input stream.
-- **Returns**: The read value.
-  
+- **Description**: Reads a value of any type from the input stream.
+- **Parameters**:
+  - `buffer`: A pointer to the buffer where the value will be stored.
+  - `type`: The type of the value to be read.
+- **Returns**: None
+
 ### writeChunk
-- **Purpose**: Writes a chunk of data to the output stream.
+- **Description**: Writes a chunk of data to the output stream.
 - **Parameters**:
   - `chunk`: The chunk of data to be written.
-  
+- **Returns**: None
+
 ### readChunk
-- **Purpose**: Reads a chunk of data from the input stream.
-- **Returns**: The read chunk of data.
-  
-### serialize
-- **Purpose**: Serializes a complete data structure into a binary format.
+- **Description**: Reads a chunk of data from the input stream.
 - **Parameters**:
-  - `dataStructure`: The data structure to be serialized.
-- **Returns**: The serialized binary data.
-  
+  - `buffer`: A pointer to the buffer where the chunk will be stored.
+  - `size`: The size of the chunk to be read.
+- **Returns**: None
+
+### serialize
+- **Description**: Serializes a complex data structure into a binary format.
+- **Parameters**:
+  - `dataStructure`: The complex data structure to be serialized.
+- **Returns**: A binary representation of the data structure.
+
 ### deserialize
-- **Purpose**: Deserializes binary data back into its original data structure.
+- **Description**: Deserializes a binary format back into a complex data structure.
 - **Parameters**:
   - `binaryData`: The binary data to be deserialized.
-- **Returns**: The reconstructed data structure.
+- **Returns**: The original complex data structure.
 
 ## Overall Flow
 
-1. **Initialization**: The Serializer component initializes itself with necessary parameters such as the input/output streams.
-2. **Serialization Process**:
-   - Data structures are broken down into smaller components.
-   - Each component is processed using specific write functions (`writeRaw`, `writeString`, etc.).
-   - These functions convert the data into a binary format and write it to the output stream.
-3. **Deserialization Process**:
-   - Binary data is read from the input stream.
-   - Each piece of binary data is converted back into its respective component using corresponding read functions (`readRaw`, `readString`, etc.`).
-   - These components are then reassembled to reconstruct the original data structure.
-4. **Completion**: The Serializer component completes the serialization or deserialization process, ensuring all data is accurately handled and transferred.
+1. **Initialization**: The Serializer component initializes itself, setting up necessary resources and configurations.
+2. **Serialization**:
+   - Complex data structures are passed to the `serialize` function.
+   - The function converts the data into a flat, binary format using various helper functions (`writeRaw`, `writeString`, etc.).
+3. **Transmission/Storage**:
+   - The serialized binary data is transmitted over a network or stored in a file.
+4. **Deserialization**:
+   - Upon receipt or retrieval, the binary data is passed to the `deserialize` function.
+   - The function reconstructs the original complex data structure using the appropriate helper functions (`readRaw`, `readString`, etc.`).
+5. **Validation**:
+   - The deserialized data is validated to ensure its integrity and correctness.
+6. **Cleanup**: The Serializer component cleans up any allocated resources before shutting down.
 
-## Usage Example
-
-```cpp
-#include "Serializer.h"
-
-int main() {
-    // Initialize serializer with input/output streams
-    Serializer serializer(inputStream, outputStream);
-
-    // Create a data structure to serialize
-    DataStructure ds;
-    // Populate ds...
-
-    // Serialize the data structure
-    std::vector<uint8_t> serializedData = serializer.serialize(ds);
-
-    // Deserialize the data
-    DataStructure deserializedDS = serializer.deserialize(serializedData);
-
-    return 0;
-}
-```
-
-This example demonstrates initializing the Serializer component, serializing a data structure, and then deserializing it back to its original form.
+By following this flow, the Serializer component ensures that data is efficiently handled, converted, and reconstructed throughout the Quantum Language compiler's processes.

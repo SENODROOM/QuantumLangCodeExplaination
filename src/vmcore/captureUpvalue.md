@@ -2,31 +2,30 @@
 
 ## Overview
 
-The `captureUpvalue` function is a critical method within the Quantum Language compiler's Virtual Machine (VM) core (`VmCore.cpp`). Its primary responsibility is to manage and capture upvalues during the execution of quantum programs. An upvalue refers to a local variable that is accessible from an inner function or closure but not defined within that inner function itself.
+The `captureUpvalue` function is a crucial method within the Quantum Language compiler's Virtual Machine (VM) core (`VmCore.cpp`). Its primary responsibility is to manage and capture upvalues during the execution of quantum programs. An upvalue refers to a variable that is in scope outside of a closure but is accessed inside the closure. This function ensures that such variables are correctly captured and managed so they can be referenced later when the closure is executed.
 
 ### Why It Works This Way
 
-The function operates under the principle of managing upvalues efficiently by maintaining a list of currently open upvalues (`openUpvalues_`). When a closure attempts to access a local variable from its enclosing scope, the VM checks if there is already an open upvalue associated with that variable. If such an upvalue exists, it reuses it; otherwise, it creates a new one.
+The function operates under the principle of managing upvalues efficiently while avoiding unnecessary copies. By using `std::shared_ptr`, it creates a reference to the variable on the stack without taking ownership of it. This allows the upvalue to persist even after the original stack frame has been deallocated, ensuring that the closure can still access the variable safely.
 
-This approach minimizes memory usage and improves performance by avoiding unnecessary duplication of variables. By using a shared pointer alias, the function ensures that the upvalue points directly into the existing stack frame, thus preventing any additional copies of the data.
+### Parameters/Return Value
 
-## Parameters
+- **Parameters**:
+  - `stackIdx`: The index of the stack slot containing the variable to be captured as an upvalue.
+  
+- **Return Value**:
+  - A `std::shared_ptr<Upvalue>` representing the upvalue that captures the variable at the specified stack index.
 
-- **`stackIdx`**: The index of the local variable on the stack that needs to be captured as an upvalue.
+### Edge Cases
 
-## Return Value
+1. **Multiple Captures**: If the same variable is captured multiple times within different closures, each closure will get its own unique upvalue instance.
+2. **Stack Slot Reuse**: If a stack slot is reused for a different variable before the current closure finishes executing, the upvalue will still point to the correct variable because `std::shared_ptr` manages the lifetime of the captured object.
+3. **Scope Exit**: When the outer scope exits and the stack frame is deallocated, the upvalue continues to hold a valid reference to the variable through the shared pointer mechanism.
 
-The function returns a shared pointer to an `Upvalue` object. This `Upvalue` object encapsulates the reference to the local variable on the stack and provides mechanisms for accessing and updating the variable within closures.
+### Interactions With Other Components
 
-## Edge Cases
+- **Stack Management**: The function interacts with the VM's stack, accessing and capturing variables from specific slots.
+- **Closure Creation**: Upvalues are used in the creation of closures, allowing them to maintain references to their lexical environment.
+- **Garbage Collection**: The use of `std::shared_ptr` helps in managing garbage collection, ensuring that variables captured as upvalues are not prematurely destroyed.
 
-1. **Duplicate Upvalues**: If multiple closures attempt to access the same local variable, the function will reuse the existing upvalue instead of creating a new one. This prevents redundant storage and potential conflicts between different closures.
-2. **Stack Frame Management**: The function assumes that the stack frame containing the local variable remains valid throughout the lifetime of the upvalue. If the stack frame is deallocated before the upvalue is accessed, undefined behavior may occur.
-
-## Interactions With Other Components
-
-- **`openUpvalues_` List**: This function interacts with the `openUpvalues_` list, which stores all currently open upvalues. The list helps in identifying whether an upvalue has already been created for a given stack slot.
-- **`QuantumValue` Stack**: The function accesses elements of the `QuantumValue` stack to capture local variables. The stack holds the values of local variables and function arguments during program execution.
-- **`Upvalue` Class**: The function uses the `Upvalue` class to create and manage upvalues. Each `Upvalue` object maintains a reference to a local variable on the stack and provides methods for accessing and modifying that variable.
-
-By carefully managing upvalues, the `captureUpvalue` function ensures efficient execution of quantum programs, particularly those involving closures and nested functions.
+This function is essential for maintaining state and enabling functional programming constructs within the Quantum Language compiler's VM. By carefully managing upvalues, it ensures that closures can access external variables correctly and safely, even after the outer scope has exited.

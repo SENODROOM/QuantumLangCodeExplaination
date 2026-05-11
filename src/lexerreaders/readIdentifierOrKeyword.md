@@ -4,40 +4,34 @@ The `readIdentifierOrKeyword` function is designed to identify and process ident
 
 ## What It Does
 
-The function reads characters from the input source code starting at the current position (`pos`) until it encounters a character that is not alphanumeric or an underscore. If the identifier starts with "r" or "R", followed by a double or single quote, it treats the enclosed string as a raw string, which means it will not interpret any escape sequences within the string. Similarly, if the identifier starts with "f" or "F", followed by a double or single quote, it treats the enclosed string as an f-string, which allows for embedded expressions that are evaluated during runtime and prefixed with `${}`.
+The function reads characters from the input source code until it encounters a non-alphanumeric character or an underscore (`_`). If the sequence of characters forms a valid identifier or keyword, it returns a corresponding token. Additionally, it handles special prefixes for raw strings (`r"..."`, `r'...'`) and formatted string literals (`f"..."`, `f'...'`).
 
 ## Why It Works This Way
 
-This approach ensures that the lexer correctly identifies and categorizes different types of tokens:
-- **Identifiers**: Words that do not match any predefined keyword but are valid for variable names, function names, etc.
-- **Keywords**: Reserved words that have special meanings in the language, such as `let`, `if`, `else`, etc.
-- **Raw Strings**: Literal strings without escape sequences, useful for paths, URLs, and other data that should not be interpreted.
-- **F-Strings**: Template literals that allow for dynamic content insertion, enhancing readability and maintainability.
-
-By handling these cases separately, the lexer can accurately parse the source code and generate the appropriate tokens for each part.
+This approach ensures that all valid identifiers and keywords are correctly recognized and classified. By iterating through the characters and checking their type, the function can differentiate between identifiers, keywords, and special string literals. The handling of raw and formatted string literals allows for accurate parsing of these constructs, which may contain embedded expressions or escape sequences.
 
 ## Parameters/Return Value
 
-### Parameters
-- None
+- **Parameters**:
+  - None explicitly mentioned in the provided code snippet, but it likely takes the following implicit parameters:
+    - `src`: A reference to the source code string being lexed.
+    - `pos`: A reference to the current position in the source code string.
+    - `line`: The current line number in the source code.
+    - `col`: The current column number in the source code.
 
-### Return Value
-- Returns a `Token` object representing the identifier or keyword.
-  - If the token is an identifier, its type is `TokenType::IDENTIFIER`.
-  - If the token is a keyword, its type is `TokenType::KEYWORD`.
-  - If the token is a raw string, its type is `TokenType::STRING`.
-  - If the token is an f-string, its type is also `TokenType::STRING`.
+- **Return Value**:
+  - Returns a `Token` object representing the identified identifier, keyword, or string literal. The token includes its type, value, starting line, and starting column.
 
 ## Edge Cases
 
-- **Empty Identifier**: If the input starts with a non-alphanumeric character, the function returns an empty identifier token.
-- **Invalid F-String Syntax**: If the f-string syntax is incorrect (e.g., missing closing brace), the function may enter an infinite loop or produce unexpected results.
-- **Unicode Characters**: The function assumes that all characters are ASCII, so it does not handle Unicode characters specifically.
+- **Empty Identifier**: If the first character encountered is not alphanumeric or an underscore, the function should return a token indicating the end of an identifier or keyword.
+- **Raw String Literal**: If the function encounters a raw string literal prefix (`r"..."`, `r'...'`) followed by a matching quote, it should correctly handle the literal without interpreting escape sequences.
+- **Formatted String Literal**: If the function encounters a formatted string literal prefix (`f"..."`, `f'...'`) followed by a matching quote, it should convert `{expr}` parts to `${expr}` before re-lexing as a template literal.
 
 ## Interactions With Other Components
 
-- **Lexer Class**: This function is a member of the `Lexer` class, which manages the overall lexing process.
-- **Parser Class**: The generated tokens are used by the parser to construct the abstract syntax tree (AST) of the program.
-- **Error Handling**: If the function encounters an invalid token or syntax error, it should throw an exception or set an error flag that can be handled by the parser or higher-level components.
+- **Lexer Phase**: This function is integral to the lexer phase, converting raw text into tokens that represent the structure of the source code.
+- **Parser Phase**: Tokens returned by `readIdentifierOrKeyword` are used by the parser to construct the abstract syntax tree (AST) of the program.
+- **Error Handling**: The function implicitly interacts with error handling mechanisms within the compiler to report invalid identifiers or syntax errors related to string literals.
 
-Overall, the `readIdentifierOrKeyword` function is essential for parsing the Quantum Language's syntax and ensuring that the subsequent stages of compilation can work with well-formed tokens.
+Overall, the `readIdentifierOrKeyword` function is essential for accurately parsing identifiers, keywords, and special string literals in the Quantum Language source code, ensuring that the subsequent phases of the compiler can work with well-formed tokens.

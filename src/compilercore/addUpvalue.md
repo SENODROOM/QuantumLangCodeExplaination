@@ -1,23 +1,31 @@
 # `addUpvalue` Function
 
 ## Purpose
-The `addUpvalue` function is used in the Quantum Language compiler to manage upvalues within the current compilation state. An upvalue is essentially a reference to a local variable from an enclosing function that is captured and accessible within a nested function.
+The `addUpvalue` function is crucial in managing upvalues within the current compilation state of the Quantum Language compiler. Upvalues are references to local variables from an enclosing function that are captured and accessible within a nested function. This function ensures that each upvalue is unique and correctly indexed within the compilation state.
 
 ## Parameters
-- `state`: A pointer to the current compilation state, which includes information about the upvalues being managed.
-- `index`: The index of the local variable in the enclosing function's local variable array that needs to be captured as an upvalue.
-- `isLocal`: A boolean indicating whether the referenced local variable is a local variable (`true`) or a free variable (`false`).
+- **`State* state`**: A pointer to the current compilation state, which includes information about upvalues and the chunk being compiled.
+- **`bool isLocal`**: A boolean indicating whether the referenced variable is local (`true`) or non-local (`false`).
+- **`int index`**: The index of the local variable being referenced.
 
 ## Return Value
-The function returns the index of the upvalue that was added or found. This index can then be used to refer to the upvalue in subsequent operations, such as generating code to access the upvalue.
+- **`int`**: The index of the upvalue within the `state->upvalues` vector. If the upvalue is newly added, this index will be the size of the vector minus one.
 
 ## How It Works
-The function iterates through the list of upvalues stored in the current compilation state. For each upvalue, it checks if the upvalue has the same `index` and `isLocal` status as the one being added. If a match is found, the function returns the index of the existing upvalue. If no match is found, the function adds a new upvalue to the list with the provided `index` and `isLocal` status. It also increments the `upvalueCount` in the chunk associated with the current compilation state to reflect the addition of the new upvalue.
+The function iterates through the `state->upvalues` vector to check if there already exists an upvalue with the same `index` and `isLocal` status. If such an upvalue is found, its index is returned immediately, ensuring that duplicate upvalues are not added to the list.
+
+If no matching upvalue is found, a new upvalue is constructed with the provided `isLocal` and `index`, and appended to the `state->upvalues` vector. Additionally, the `upvalueCount` of the current chunk (`state->chunk->upvalueCount`) is incremented to reflect the addition of a new upvalue.
+
+Finally, the function returns the index of the newly added or existing upvalue, allowing the caller to use this index when generating code that accesses the upvalue.
 
 ## Edge Cases
-- **Duplicate Upvalue**: If the same upvalue (with the same `index` and `isLocal` status) is encountered multiple times during the compilation process, the function will return the index of the first occurrence, avoiding unnecessary duplication.
-- **Index Out of Range**: The function assumes that the `index` parameter is valid and corresponds to a local variable in the enclosing function. If the `index` is out of range, undefined behavior may occur.
-- **Chunk Capacity**: The function increments the `upvalueCount` in the chunk. If the chunk's capacity for upvalues is exceeded, additional memory allocation would need to be handled to accommodate more upvalues.
+- **Duplicate Upvalues**: If the same upvalue (with the same `index` and `isLocal` status) is encountered multiple times during compilation, the function will return the same index each time, avoiding duplication.
+- **Empty Upvalue Vector**: When the `state->upvalues` vector is empty, the first call to `addUpvalue` will result in the creation of the first upvalue and return an index of 0.
+- **Non-Local Variables**: Non-local variables (where `isLocal` is `false`) can also be managed using this function, providing flexibility in how upvalues are handled across different scopes.
 
 ## Interactions with Other Components
-The `addUpvalue` function interacts closely with the `CompilationState` class, which manages the overall state of the compilation process. It also interacts with the `Chunk` class, which stores bytecode instructions and metadata related to the compiled functions, including the count of upvalues. Additionally, this function might interact with other parts of the compiler responsible for handling closures and nested functions, ensuring that upvalues are correctly captured and managed throughout the compilation process.
+- **Compilation State**: The function interacts directly with the `State` object, which holds all necessary information for the current compilation process, including the list of upvalues.
+- **Chunk Management**: The function updates the `upvalueCount` of the current chunk, which is essential for maintaining accurate metadata about the chunk's structure and dependencies.
+- **Code Generation**: By returning the correct index of an upvalue, this function facilitates the generation of appropriate bytecode instructions that access these upvalues.
+
+In summary, the `addUpvalue` function plays a vital role in managing upvalues within the Quantum Language compiler, ensuring that each upvalue is uniquely identified and properly indexed. Its interaction with the compilation state and chunk management components makes it indispensable for handling nested functions and their variable captures efficiently.
