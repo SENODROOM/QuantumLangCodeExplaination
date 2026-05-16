@@ -2,45 +2,52 @@
 
 ## Role in Compiler Pipeline
 
-`ParserStatements.cpp` plays a crucial role in the Quantum Language compiler's parsing phase. It converts individual statements from the source code into Abstract Syntax Tree (AST) nodes. This step is essential because it sets the foundation for subsequent stages such as semantic analysis and code generation. By accurately parsing statements, `ParserStatements.cpp` ensures that the compiler can understand and process the quantum code correctly.
+`ParserStatements.cpp` is an integral part of the Quantum Language compiler's parsing phase. Its primary function is to convert individual statements from the source code into Abstract Syntax Tree (AST) nodes. This stage is fundamental because it lays the groundwork for subsequent phases such as semantic analysis and code generation. By accurately parsing statements, the compiler can build a structured representation of the program that facilitates further processing and optimization.
 
 ## Key Design Decisions and Why
 
-### Handling Decorators
-The parser includes functionality to skip Python-style decorators (`@property`, `@dataclass`). This is done to maintain compatibility with various programming paradigms and to ensure that the core parsing logic remains focused on quantum-specific syntax.
+The design of `ParserStatements.cpp` involves several critical choices aimed at ensuring robustness, flexibility, and efficiency:
 
-### Storage Class Specifiers
-To handle C/C++ storage class specifiers like `static`, `extern`, `inline`, `volatile`, `register`, and `mutable`, the parser checks for these identifiers and skips them. This decision allows the compiler to support mixed-language projects or legacy codebases without interfering with the quantum language's syntax.
+1. **Decorator Handling**: The parser includes logic to skip Python-style decorators. This decision is made to accommodate different programming paradigms within the same language, allowing developers to use familiar syntax without interference with the core language structure.
 
-### Type Keywords
-The parser distinguishes between quantum-specific type keywords and C-style type qualifiers. For example, it treats `"const int"` as a C-type variable declaration rather than a quantum constant. This approach ensures that quantum code is parsed according to its specific rules, while still allowing for interop with existing C/C++ code.
+2. **Storage Class Specifiers**: The parser also skips C/C++ storage class specifiers like `static`, `extern`, `inline`, etc. This choice ensures that the parser remains compatible with various C-based languages, maintaining a broad scope of support.
+
+3. **Type Hint Parsing**: The implementation includes specialized functions to handle type hints, particularly for C-style variable declarations. This decision is crucial for supporting both Quantum-specific and traditional C-like types, providing a seamless transition between the two.
 
 ## Major Classes/Functions Overview
 
-### Parser Class
-- **Functionality**: The main parser class responsible for converting tokens into AST nodes.
-- **Key Functions**:
-  - `parseStatement()`: Parses an individual statement and returns an AST node.
-  - `skipNewlines()`: Skips any newline characters in the input stream.
-  - `consume()`: Consumes the current token and advances to the next one.
-  - `check(TokenType type)`: Checks if the current token matches the specified type.
+### `Parser::parseStatement()`
+- **Role**: This function serves as the entry point for parsing individual statements. It handles the initial tokenization and skips any unnecessary tokens before delegating to more specific parsing functions.
+- **Why**: It centralizes the statement parsing logic, making it easier to manage and extend.
 
-### ASTNode Class
-- **Role**: Represents a node in the Abstract Syntax Tree.
-- **Subclasses**:
-  - `BlockStmt`: Represents a block of statements.
-  - `VarDecl`: Represents a variable declaration.
-  - `ConstDecl`: Represents a constant declaration.
+### `Parser::skipNewlines()`
+- **Role**: Skips over newline characters to ensure that the parser does not get stuck on whitespace.
+- **Why**: Maintaining clean and efficient parsing by ignoring extraneous newlines.
+
+### `Parser::consume()`
+- **Role**: Consumes the current token and advances the parser to the next token.
+- **Why**: Essential for moving through the token stream and building the AST.
+
+### `Parser::check(TokenType type)`
+- **Role**: Checks if the current token matches the specified type without advancing the parser.
+- **Why**: Allows for conditional parsing based on the current token type.
+
+### `Parser::parseVarDecl(bool isConst)`
+- **Role**: Parses variable declarations, handling both regular and constant declarations.
+- **Why**: Necessary for constructing AST nodes representing variables, which are foundational elements of any program.
+
+### `Parser::parseCTypeVarDecl(const std::string& typeHint)`
+- **Role**: Specialized function to parse C-style variable declarations, considering type hints and qualifiers.
+- **Why**: Ensures compatibility with C-based languages while incorporating Quantum-specific features.
 
 ## Tradeoffs
 
-### Complexity vs. Flexibility
-By handling both quantum-specific and C-style syntax within the same parser, the implementation becomes more complex but offers greater flexibility. This allows the compiler to support mixed-language projects or legacy codebases without significant changes to the core parsing logic.
+While `ParserStatements.cpp` provides comprehensive support for various statement structures, it introduces some trade-offs:
 
-### Performance vs. Accuracy
-The parser optimizes performance by skipping unnecessary tokens (like decorators and storage class specifiers). However, this may compromise accuracy in certain edge cases where these tokens could be valid in other contexts. To mitigate this, additional validation steps can be introduced during semantic analysis.
+1. **Complexity**: The inclusion of decorator and storage class specifier handling increases the complexity of the parser. However, this complexity is necessary for accommodating diverse programming paradigms.
 
-### Interoperability vs. Isolation
-Allowing the parser to handle C-style type qualifiers provides interoperability with existing C/C++ codebases. However, this may introduce potential conflicts or ambiguities when parsing mixed-language code. To address this, careful design and testing are required to ensure consistent behavior across different languages.
+2. **Performance**: The parser must efficiently handle large input sizes and maintain low overhead. Optimizations such as skipping unnecessary tokens help mitigate performance issues.
 
-In conclusion, `ParserStatements.cpp` is a vital component of the Quantum Language compiler's parsing phase, providing accurate and flexible conversion of statements into AST nodes. While it introduces some complexity and potential tradeoffs, the benefits of supporting mixed-language projects and maintaining compatibility with existing codebases make it a worthwhile investment.
+3. **Flexibility vs. Simplicity**: Supporting both Quantum-specific and C-like types requires a balance between flexibility and simplicity. Overly complex implementations can lead to bugs and maintenance difficulties.
+
+Overall, `ParserStatements.cpp` is a vital component of the Quantum Language compiler, designed to handle a wide range of statement structures while ensuring robustness and efficiency. Its careful consideration of different language features and its modular approach make it a cornerstone of the compiler's functionality.
