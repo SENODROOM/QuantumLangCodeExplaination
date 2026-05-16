@@ -2,43 +2,28 @@
 
 ## Overview
 
-The `toString` function is a member method of the `Token` class in the Quantum Language compiler's source code (`src/Token.cpp`). This function converts a `Token` object into its string representation, providing details such as the token's type, line number, and value. The purpose of this function is to facilitate debugging and logging by offering a human-readable format of the token.
-
-### Why It Works This Way
-
-The function uses an `std::ostringstream` to build a formatted string that includes the line number, column number, and value of the token. By concatenating these elements within square brackets, the output becomes clear and structured, making it easier to identify tokens during debugging sessions or when generating logs.
+The `toString` function is a member method of the `Token` class within the Quantum Language compiler's source code located at `src/Token.cpp`. This function serves to convert a `Token` object into a human-readable string format, which includes essential details like the token's type, line number, and value.
 
 ### Parameters/Return Value
 
-- **Parameters**: None
-- **Return Value**: A `std::string` representing the token in a readable format.
+- **Parameters**: None.
+- **Return Value**: A `std::string` representing the stringified version of the `Token`.
 
 ### Edge Cases
 
-1. **Empty Token Value**: If the token's value is empty, the function will still produce a valid string representation in the form `[line:col []]`.
-2. **Special Characters in Value**: Special characters in the token's value are handled correctly by `std::ostringstream`, which ensures they are properly escaped or displayed.
+1. **Empty Token Values**: If the `value` attribute of the `Token` is an empty string, the function will still correctly format the output as `[line:col []]`.
+2. **Special Characters in Value**: The function handles special characters gracefully by inserting them directly into the string without any additional escaping or formatting.
 
-### Interactions With Other Components
+### Interactions with Other Components
 
-The `toString` function interacts primarily with the `Token` class itself, accessing its private members such as `line`, `col`, and `value`. These values are then used to construct a descriptive string. Additionally, the function may be called by other parts of the compiler, such as the lexer or parser, to generate debug information or error messages.
+The `toString` function interacts with the following components:
 
-Here is the implementation of the `toString` function:
+- **Line Number (`line`)**: It retrieves the line number where the token was encountered during parsing.
+- **Column Number (`col`)**: It fetches the column number within that line where the token starts.
+- **Token Value (`value`)**: It accesses the actual value of the token, which could be a keyword, identifier, literal, etc., depending on the token type.
 
-```cpp
-#include <sstream>
-#include <iomanip>
+These values are then formatted using `std::ostringstream`, which constructs a string stream to hold the formatted output. The formatted string is returned by the function.
 
-std::string Token::toString() const {
-    std::ostringstream oss;
-    oss << "[" << std::setw(3) << std::setfill('0') << line << ":"
-        << std::setw(3) << std::setfill('0') << col << " "
-        << "\"" << value << "\"]";
-    return oss.str();
-}
-```
+### Why It Works This Way
 
-In this implementation:
-- `std::setw(3)` and `std::setfill('0')` ensure that the line and column numbers are always three digits wide, padding with zeros if necessary.
-- The value is enclosed in double quotes to handle special characters gracefully.
-
-This function provides a concise yet informative string representation of a token, enhancing the readability and usability of diagnostic outputs in the Quantum Language compiler.
+This implementation ensures that each token can be easily identified and debugged by providing context about its location in the source code and its content. By encapsulating these details within a single string, the `toString` function facilitates logging, error reporting, and general debugging processes in the compiler. The use of `std::ostringstream` allows for efficient string construction and manipulation, making the function both readable and performant.
