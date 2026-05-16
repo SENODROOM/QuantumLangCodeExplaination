@@ -4,40 +4,77 @@ The `compileFor` function in the Quantum Language compiler is responsible for co
 
 ## What It Does
 
-The `compileFor` function processes a `for` loop statement, which typically iterates over an iterable object such as a list or array. The function performs several key steps:
-- Compiles the iterable expression.
-- Creates an iterator using the `Op::MAKE_ITER` opcode.
-- Declares and initializes a local variable to hold the current element of the iterable.
-- Optionally declares another local variable to hold a secondary index (e.g., for range-based loops).
-- Compiles the body of the loop.
-- Patches any continue jumps within the loop.
-- Ends the inner scope by popping the loop variable(s), but keeping the iterator on the stack.
-- Jumps back to the beginning of the loop to iterate again.
-- Finally, patches the exit jump to handle the case when the iterator is exhausted.
+The `compileFor` function processes a `for` loop statement and generates the corresponding bytecode instructions. The loop typically iterates over an iterable object, assigning each element to a loop variable. Optionally, another variable can be assigned the index of the current element during each iteration.
+
+Here’s a step-by-step breakdown of what the function does:
+
+1. **Compile Iterable**: The function first compiles the expression representing the iterable object using `compileExpr(*s.iterable)`. This prepares the iterable for iteration.
+
+2. **Create Iterator**: An iterator is created from the iterable using the `Op::MAKE_ITER` opcode. This opcode pushes the iterator onto the stack.
+
+3. **Outer Scope Setup**:
+   - A new scope is started to hold the iterator as a hidden local variable (`__iter__`). This scope ensures that the iterator persists across multiple loop iterations.
+   - The iterator variable is declared and defined using `declareLocal("__iter__", line)` and `emit(Op::DEFINE_LOCAL, iterSlot, line)`, respectively. The slot number where the iterator is stored is tracked in `iterSlot`.
+
+4. **Begin Loop**:
+   - The start position of the loop is recorded using `int loopStart = static_cast<int>(chunk().code.size());`.
+   - The loop is initialized using `beginLoop(loopStart);`.
+
+5. **Loop Exit Condition**:
+   - The `Op::FOR_ITER` opcode is emitted to check if the iterator has been exhausted. If not, the next element is pushed onto the stack.
+   - A jump instruction is emitted to mark the point where the loop should exit if the iterator is exhausted. The position of this jump is stored in `exitJump`.
+
+6. **Inner Scope Setup**:
+   - Another new scope is started to hold the loop variable(s). This scope will be exited after each iteration.
+   - The loop variable is declared and defined using `declareLocal(s.var, line)` and `emit(Op::DEFINE_LOCAL, varSlot, line)`, respectively. The slot number where the loop variable is stored is tracked in `varSlot`.
+
+7. **Optional Index Variable**:
+   - If an optional second variable (`s.var2`) is specified, additional bytecode instructions are generated to assign the index of the current element to this variable.
+   - This involves popping the current element from the stack, pushing the index (either 0 or 1), and storing it in the second variable.
+
+8. **Body Compilation**:
+   - The body of the loop is compiled using `compileNode(*s.body);`. This part of the code is executed repeatedly for each element in the iterable.
+
+9. **Continue Jumps Patching**:
+   - After compiling the loop body, any continue jumps within the loop are patched to ensure they jump back to the correct position in the loop.
+
+10. **End Inner Scope**:
+    - The inner scope is ended using `endScope(line);`, which pops the loop variable(s) but leaves the iterator on the stack.
+
+11. **Loop Continuation**:
+    - The `Op::LOOP` opcode is emitted to create a loop that continues back to the beginning of the loop body until the iterator is exhausted.
+
+12. **Patch Exit Jump**:
+    - Finally, the exit jump is patched to ensure it correctly jumps out of the loop once the iterator is exhausted.
+
+13. **End Outer Scope**:
+    - The outer scope is ended using `endScope(line);`, which pops the iterator from the stack.
 
 ## Why It Works This Way
 
-This approach allows the `for` loop to be effectively compiled into bytecode while maintaining the necessary state across iterations. By declaring the iterator in the outer scope, it remains accessible throughout the loop, even after the loop variables have been popped. This design ensures that the iterator can be properly managed and patched for both continue and exit conditions.
+This approach ensures that the iterator remains accessible throughout the loop iterations, allowing it to be used for cleanup or other purposes outside the loop. By separating the outer and inner scopes, the function can manage the lifetime of the iterator and loop variables effectively.
+
+Additionally, the use of `Op::FOR_ITER` and `Op::LOOP` opcodes allows for efficient iteration over the quantum states represented by the iterable. These opcodes are specifically designed to work well with quantum data structures and operations.
 
 ## Parameters/Return Value
 
-### Parameters
-- `s`: A reference to a `ForStatement` object representing the `for` loop to be compiled.
-
-### Return Value
-- None. The function directly modifies the bytecode chunk being compiled.
+- **Parameters**:
+  - `s`: A reference to the `ForStatement` object representing the `for` loop to be compiled.
+  
+- **Return Value**:
+  - None. The function directly modifies the bytecode chunk through calls to `emit` and `emitJump`.
 
 ## Edge Cases
 
-- **Empty Iterable**: If the iterable expression evaluates to an empty object, the loop will not execute, and the bytecode will simply skip to the end of the loop.
-- **Non-Iterable Types**: If the iterable expression evaluates to a non-iterable type, the compilation process will raise an error because the `Op::MAKE_ITER` opcode cannot operate on such types.
-- **Continue Jumps**: Any `continue` statements within the loop body will be patched to jump back to the beginning of the loop, allowing the iteration to continue with the next element.
+- **Empty Iterable**: If the iterable is empty, the loop will not execute, and the program flow will proceed directly to the code following the loop.
+- **Non-Iterable Object**: If the expression provided as the iterable does not evaluate to an iterable object, the compilation process will fail with an appropriate error message.
+- **Index Variable Out of Range**: If the optional index variable exceeds the range of the iterable, the behavior is undefined, and the program may crash or produce incorrect results.
 
 ## Interactions With Other Components
 
-- **Expression Compilation**: The `compileExpr` function is used to compile the iterable expression.
-- **Opcode Emission**: Various opcodes (`Op::MAKE_ITER`, `Op::FOR_ITER`, `Op::LOOP`) are emitted to represent different operations within the loop.
-- **Scope Management**: The `beginScope` and `endScope` functions manage the local variable scopes, ensuring that the loop variables are declared and popped appropriately.
-- **Jump Patching**: The `emitJump` and `patchJump` functions are used to handle branching logic within the loop, including continue and exit conditions.
+- **Expression Compiler (`compileExpr`)**: This component is used to compile the iterable expression before the loop starts.
+- **Bytecode Chunk (`chunk()`)**: This component manages the generation and storage of bytecode instructions. Functions like `emit`, `emitJump`, `patch`, `beginScope`, `endScope`, and `beginLoop` interact with this component to build the loop structure.
+- **Symbol Table (`current_->locals`)**: This component keeps track of the local variables declared within the current scope. The function uses it to manage the slots for the iterator and loop variables.
+- **Error Handling**: The function includes mechanisms for handling errors related to non-iterable objects and other potential issues during compilation.
 
-By carefully managing these interactions, the `compileFor` function ensures that the `for` loop is correctly compiled into bytecode, facilitating its execution within the quantum computing environment.
+Overall,
