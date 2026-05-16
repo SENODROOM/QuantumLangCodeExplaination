@@ -2,34 +2,41 @@
 
 ## Overview
 
-The `emitStore` function is a key component in the Quantum Language compiler's core functionality. It generates bytecode instructions to store values into variables or fields. This function ensures that the appropriate type of storage instruction is emitted based on whether the variable is local, upvalue, or global.
+The `emitStore` function is a crucial part of the Quantum Language compiler's core functionality. Its primary role is to generate bytecode instructions for storing values into variables or fields. The function determines whether the variable is local, upvalue, or global and emits the corresponding storage opcode.
 
-## Parameters/Return Value
+## Parameters
 
-- **Parameters**:
-  - `name`: A string representing the name of the variable or field where the value should be stored.
-  - `line`: An integer indicating the source code line number at which the store operation occurs.
+- `const std::string &name`: The name of the variable or field where the value should be stored.
+- `int line`: The source code line number at which the store operation occurs, used for debugging purposes.
 
-- **Return Value**: None
+## Return Value
+
+This function does not explicitly return any value; instead, it directly modifies the bytecode stream by calling the `emit` function.
 
 ## How it Works
 
-The `emitStore` function first checks if the variable name provided is `"this"`. If so, it resolves it to `"self"` since `"this"` is an alias for `"self"` in all methods. Then, it attempts to resolve the variable as a local variable using the `resolveLocal` function. If successful, it emits a `STORE_LOCAL` bytecode instruction followed by the local slot index and the source code line number.
+1. **Alias Handling**: If the provided `name` is `"this"`, it is aliased as `"self"` since `"this"` is a common convention in many programming languages to refer to the current object instance.
 
-If resolving the variable as a local fails (`resolveLocal` returns `-1`), the function then tries to resolve it as an upvalue using the `resolveUpvalue` function. If successful, it emits a `STORE_UPVALUE` bytecode instruction followed by the upvalue index and the source code line number.
+2. **Local Variable Check**:
+   - The function attempts to resolve the `name` as a local variable using the `resolveLocal` method on the `current_` scope.
+   - If successful (`local != -1`), it emits a `STORE_LOCAL` bytecode instruction followed by the index of the local variable and the source code line number.
 
-If both local and upvalue resolution fail, the function assumes the variable is global and emits a `STORE_GLOBAL` bytecode instruction. The global variable name is added to the compiler's symbol table using the `addStr` function, and its index is used along with the source code line number in the bytecode instruction.
+3. **Upvalue Check**:
+   - If the `name` cannot be resolved as a local variable, the function checks if it can be resolved as an upvalue using the `resolveUpvalue` method on the `current_` scope.
+   - If successful (`uv != -1`), it emits a `STORE_UPVALUE` bytecode instruction followed by the index of the upvalue and the source code line number.
+
+4. **Global Variable Check**:
+   - If the `name` still cannot be resolved as either a local or upvalue, it is considered a global variable.
+   - The function adds the string representation of the `name` to the string pool using the `addStr` method and emits a `STORE_GLOBAL` bytecode instruction followed by the index of the global variable and the source code line number.
 
 ## Edge Cases
 
-- **Local Variable Resolution Failure**: If the variable cannot be resolved as a local, the function will not emit a `STORE_LOCAL` instruction but will proceed to check for upvalue resolution.
-- **Upvalue Resolution Failure**: If the variable cannot be resolved as an upvalue, the function will not emit a `STORE_UPVALUE` instruction but will proceed to emit a `STORE_GLOBAL` instruction.
-- **Global Variable Name Conflict**: If there is a conflict in the global symbol table due to multiple declarations of the same variable name, the `addStr` function may handle it appropriately, depending on the compiler's design.
+- **Name Resolution Failure**: If the `name` cannot be resolved as a local, upvalue, or global variable, the function will throw an error indicating that the variable is undefined.
 
 ## Interactions with Other Components
 
-- **Symbol Table**: The `addStr` function interacts with the compiler's symbol table to ensure that global variable names are unique and correctly indexed.
-- **Bytecode Emission**: The `emit` function is responsible for generating the actual bytecode instructions based on the type of storage required (local, upvalue, or global).
-- **Scope Management**: The `resolveLocal` and `resolveUpvalue` functions interact with the scope management system to determine the correct slot or upvalue index for storing the variable.
+- **Scope Management**: The `resolveLocal` and `resolveUpvalue` functions interact with the current scope to determine the location of the variable being stored.
+- **String Pooling**: The `addStr` function interacts with the string pool to ensure efficient storage of variable names.
+- **Bytecode Emission**: The `emit` function is responsible for appending the generated bytecode instructions to the output buffer.
 
-By handling different types of storage scenarios, the `emitStore` function plays a vital role in ensuring efficient and accurate bytecode generation during the compilation process of the Quantum Language.
+By handling different types of variable storage efficiently, `emitStore` contributes to the overall performance and correctness of the compiled Quantum Language programs.
