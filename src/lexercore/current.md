@@ -2,23 +2,46 @@
 
 ## Overview
 
-The `current` function is a critical component of the LexerCore class in the Quantum Language compiler. This function retrieves the character currently pointed to by the `pos` cursor within the source code string `src`. If the cursor has reached or surpassed the end of the string, the function returns the null character (`'\0'`) to indicate that there are no more characters to process.
+The `current` function is an essential method of the LexerCore class in the Quantum Language compiler. It fetches the character at the position indicated by the `pos` cursor within the source code string `src`. If the cursor has reached or surpassed the end of the string, the function returns the null character (`'\0'`). This ensures that the lexer can safely access characters without causing out-of-bounds errors.
 
-### Parameters and Return Value
+## Parameters
 
-- **Parameters**:
-  - `pos`: The current position in the source code string `src`.
+- **None**
 
-- **Return Value**:
-  - Returns the character at the specified position `pos`.
-  - If `pos` is greater than or equal to the size of the source code string `src`, returns the null character (`'\0'`).
+## Return Value
 
-### Edge Cases
+- **char**: The character at the current position of the `pos` cursor. Returns `'\0'` if the cursor is past the end of the source code string.
 
-1. **Position Beyond String Length**: When `pos` equals or exceeds the length of the source code string `src`, the function returns `'\0'`. This prevents out-of-bounds access and ensures that the lexer can handle the end of input gracefully without crashing.
+## Edge Cases
 
-2. **Empty Source Code**: If the source code string `src` is empty, calling `current(0)` will return `'\0'`, indicating that there are no characters available for processing.
+1. **Empty String**: If the source code string `src` is empty, calling `current()` will return `'\0'`.
+2. **Cursor Beyond End**: When the `pos` cursor exceeds the length of the source code string, `current()` returns `'\0'`, preventing any potential runtime errors due to accessing invalid memory locations.
 
-### Interactions with Other Components
+## Interactions with Other Components
 
-The `current` function interacts closely with the LexerCore's state management and parsing logic. It is used extensively during the lexical analysis phase to read individual characters from the source code, which are then processed further to identify tokens and build the abstract syntax tree (AST). By providing a safe way to access characters, even when the cursor reaches the end of the string, the `current` function facilitates the robust operation of the lexer throughout the compilation process.
+The `current` function interacts closely with the LexerCore's state management and tokenization process. It is used internally to check the next character in the source code during lexical analysis. For example, when determining whether a sequence of characters forms a keyword or an identifier, the lexer uses `current()` to look ahead at subsequent characters.
+
+Here’s how it might be used in a typical scenario:
+
+```cpp
+// Example usage within LexerCore::nextToken()
+if (isalpha(current())) {
+    // Start of an identifier or keyword
+    std::string token;
+    while (isalnum(current()) || current() == '_') {
+        token += current();
+        advance();  // Move to the next character
+    }
+    // Check if the token is a keyword
+    if (isKeyword(token)) {
+        return Token(TokenType::KEYWORD, token);
+    } else {
+        return Token(TokenType::IDENTIFIER, token);
+    }
+} else {
+    // Handle other types of tokens or errors
+    return Token(TokenType::ERROR, "Unexpected character");
+}
+```
+
+In this example, `current()` is used to determine if the first character of a potential token is alphabetic, which indicates the start of either an identifier or a keyword. The function continues to collect characters until it encounters a non-alphanumeric character, then checks if the collected token matches any known keywords. This demonstrates the function's role in driving the lexer's decision-making process based on the current character in the input stream.
