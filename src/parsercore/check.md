@@ -1,34 +1,34 @@
 # `check` Function
 
 ## Purpose
-The `check` function is an essential utility within the Quantum Language compiler's parsing process. Its primary purpose is to verify whether the current token in the parser's token stream matches a specified token type. This validation helps ensure that the sequence of tokens adheres to the expected syntax rules during parsing.
+The `check` function serves as a crucial utility within the Quantum Language compiler's parsing process. Its main objective is to validate whether the current token in the parser's token stream corresponds to a specified token type. This verification aids in ensuring that the sequence of tokens adheres to the expected syntax and structure of the language.
 
 ## Parameters
-- `t`: The token type to be checked against the current token in the parser's token stream.
+- `t`: A constant reference to a `TokenType` object representing the token type to be checked against the current token.
 
 ## Return Value
-- Returns `true` if the current token's type matches the specified token type (`t`).
-- Returns `false` if the current token's type does not match the specified token type (`t`).
+- Returns a boolean value indicating whether the current token's type matches the specified token type (`true`) or not (`false`).
 
 ## Edge Cases
-1. **Empty Token Stream**: If the parser's token stream is empty and there is no current token, calling `check` will likely result in undefined behavior or an exception, depending on how the parser is implemented.
-2. **Token Type Mismatch**: When the current token's type does not match the specified token type (`t`), the function returns `false`, indicating a mismatch.
-3. **End of File (EOF)**: If the parser reaches the end of the file and there are no more tokens to check, attempting to call `check` might lead to accessing memory out of bounds or other errors, again depending on the parser's implementation.
+1. **Empty Token Stream**: If the token stream is empty (i.e., `pos` exceeds the bounds of the token array), calling `check` will result in undefined behavior because it attempts to access an element outside the valid range.
+2. **Invalid Token Type**: Passing an invalid `TokenType` object to `check` can lead to incorrect comparisons and potentially false negatives or positives.
 
 ## Interactions with Other Components
-- **Lexer**: The `check` function relies on the lexer to provide the sequence of tokens. It accesses the current token at position `pos` in the token stream.
-- **Parser State**: The function uses the parser's current state to determine which token is being checked. This includes keeping track of the position `pos` in the token stream.
-- **Error Handling**: While not explicitly shown in the provided code snippet, the `check` function is often used in conjunction with error handling mechanisms. If a token type mismatch is detected, the parser may raise an error or attempt to recover from the unexpected token.
+- **Token Stream Management**: The `check` function relies on the `tokens` array and the `pos` variable, which are part of the parser's state. These variables manage the current position within the token stream and store the tokens themselves.
+- **Parsing Logic**: During the parsing phase, the `check` function is frequently invoked to determine if the next token meets certain syntactic requirements before proceeding with further parsing actions such as token consumption or error handling.
+- **Error Reporting**: When `check` returns `false`, it often indicates a mismatch between the expected token type and the actual token encountered. This information is used to report errors or trigger recovery mechanisms in the parser.
 
 ## Implementation Details
-The implementation of the `check` function is straightforward:
 ```cpp
-{ return tokens[pos].type == t; }
+bool ParserCore::check(const TokenType& t) {
+    return tokens[pos].type == t;
+}
 ```
-This line of code checks if the type of the token at the current position `pos` in the token stream (`tokens`) matches the specified token type (`t`). If they match, the function returns `true`; otherwise, it returns `false`.
+This implementation directly compares the type of the token at the current position (`pos`) in the `tokens` array with the provided `TokenType` object `t`. It returns `true` if they match, otherwise `false`.
 
 ### Why It Works This Way
-- **Direct Comparison**: By directly comparing the type of the current token with the specified token type, the `check` function provides a quick and efficient way to validate the token sequence without needing additional logic.
-- **Simplicity**: This approach keeps the `check` function simple and easy to understand, making it a reliable component in the parser's toolkit.
+- **Direct Comparison**: By comparing the types directly, the function ensures that there is no unnecessary overhead or complexity involved in determining if the current token is of the expected type.
+- **Efficiency**: Since the comparison is straightforward, the function executes quickly without requiring additional processing steps like token lookahead or conversion.
+- **Clarity**: The implementation clearly shows the relationship between the current token and the expected token type, making it easy to understand and maintain.
 
-In summary, the `check` function is a fundamental tool in the Quantum Language compiler's parsing system, ensuring that the correct sequence of tokens is processed according to the language's grammar rules. Its simplicity and direct comparison make it an effective choice for validating token types in the parsing process.
+In summary, the `check` function is vital for maintaining the integrity and correctness of the quantum language parsing process by validating token types against the expected syntax. Its direct and efficient approach makes it a fundamental building block for robust parsing logic.
