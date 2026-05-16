@@ -2,69 +2,52 @@
 
 ## Role in Compiler Pipeline
 
-The `Serializer.cpp` file is an integral part of the Quantum Language compiler's backend, responsible for serializing and deserializing quantum values. This functionality is crucial for storing intermediate results persistently, transmitting them between different stages of the compilation process, or even across systems. Serialization and deserialization ensure that complex data structures can be accurately converted to and from a byte stream, maintaining their integrity throughout the compilation lifecycle.
+The `Serializer.cpp` file plays a critical role in the Quantum Language compiler's backend by handling the serialization and deserialization of quantum values. This functionality ensures that intermediate results can be stored persistently, transmitted between different stages of the compilation process, or shared across systems. Serialization and deserialization are essential for maintaining state during complex operations and for enabling distributed computing environments.
 
 ## Key Design Decisions and Why
 
-### Value Type Enumeration
+### Data Type Handling
 
-A key design decision in `Serializer.cpp` is the use of an enumeration (`ValueType`) to represent different types of quantum values. This allows for a clear and unambiguous way to identify the type of each value during both serialization and deserialization processes. By using a fixed-size integer representation for these types, we ensure efficient storage and retrieval without compromising on readability or performance.
+To support various quantum data types such as nil, boolean, number, string, array, and closure, the `Serializer.cpp` file uses an enumeration (`ValueType`) to identify the type of each value being serialized. This approach allows for a clear and unambiguous representation of different data types within the binary format.
 
-### Template-Based Raw Data Handling
+### Template Functions for Raw Data
 
-Templates are employed to handle raw data writing and reading operations. The `writeRaw<T>` and `readRaw<T>` functions template on the type `T`, enabling the compiler to generate optimized code for various data types. This approach eliminates the need for explicit casting and reduces runtime overhead, making the serialization and deserialization processes faster and more efficient.
+Template functions `writeRaw` and `readRaw` are used to handle the low-level serialization and deserialization of raw data types. These functions ensure efficient and type-safe manipulation of memory, reducing the risk of errors and improving performance.
 
 ### String Serialization
 
-For strings, the `writeString` function writes the length of the string followed by the actual characters. During deserialization, the `readString` function reads the length and then extracts the corresponding number of characters from the data stream. This method ensures that strings are serialized with minimal padding and efficiently reconstructed upon deserialization.
+The `writeString` function serializes strings by first writing their length followed by the actual string data. This method prevents buffer overflows and ensures that strings can be accurately reconstructed during deserialization.
 
-### Recursive Serialization for Complex Types
+### Value Serialization
 
-Complex types such as arrays and closures require recursive serialization. The `writeValue` function handles these cases by recursively calling itself for each element in the array or closure. Similarly, during deserialization, the `readValue` function checks the type and uses recursion to reconstruct nested structures. This design choice ensures that all components of a complex value are correctly serialized and deserialized, preserving the structure and relationships within the data.
+The `writeValue` function handles the serialization of complex quantum values like arrays and closures. It recursively serializes nested values, ensuring that all components of a quantum value are correctly persisted.
+
+### Error Handling
+
+Error handling is implemented using exceptions. The `writeRaw` and `readRaw` functions throw exceptions if they encounter unexpected data sizes or formats, preventing silent failures and allowing for easier debugging.
 
 ## Major Classes/Functions Overview
 
-### Serializer Class
-
-- **Purpose**: Manages the serialization and deserialization of quantum values.
-- **Key Functions**:
-  - `writeRaw`: Writes raw binary data to the output buffer.
-  - `readRaw`: Reads raw binary data from the input buffer.
-  - `writeString`: Serializes a string by writing its length followed by the characters.
-  - `readString`: Deserializes a string by reading its length and characters.
-  - `writeValue`: Recursively serializes a quantum value based on its type.
-  - `readValue`: Recursively deserializes a quantum value based on its type.
-
-### ValueType Enumerations
-
-- **Purpose**: Defines the possible types of quantum values that can be serialized or deserialized.
-- **Values**:
-  - `VAL_NIL`
-  - `VAL_BOOL`
-  - `VAL_NUMBER`
-  - `VAL_STRING`
-  - `VAL_ARRAY`
-  - `VAL_CLOSURE`
-
-### writeChunk Function
-
-- **Purpose**: Writes a chunk of bytecode to the output buffer.
-- **Parameters**:
-  - `std::vector<uint8_t>& out`: Output buffer where the chunk will be written.
-  - `const Chunk* chunk`: Pointer to the chunk of bytecode to be serialized.
+- **Serializer Class**: Contains methods for serializing and deserializing quantum values.
+  - `writeRaw`: Writes a raw data type to the output vector.
+  - `readRaw`: Reads a raw data type from the input vector.
+  - `writeString`: Serializes a string by writing its length followed by the data.
+  - `readString`: Deserializes a string by reading its length and data.
+  - `writeValue`: Recursively serializes a quantum value, including nested arrays and closures.
+  - `readValue`: Recursively deserializes a quantum value, reconstructing nested structures.
 
 ## Tradeoffs
 
 ### Memory Efficiency vs. Readability
 
-Using templates for raw data handling offers significant memory efficiency by avoiding unnecessary casting and reducing runtime overhead. However, it may sacrifice some readability compared to explicitly typed functions, especially for beginners.
+While template functions provide high memory efficiency and type safety, they may sacrifice some readability and maintainability compared to specialized functions for each data type. However, the use of templates allows for more flexible and generic code, which can be beneficial in larger projects with many data types.
 
-### Performance vs. Flexibility
+### Error Handling Overhead
 
-Recursive serialization provides flexibility in handling complex data structures but may introduce additional overhead due to function calls and stack usage. Optimized iterative approaches could potentially offer better performance, but they would complicate the implementation significantly.
+Exception-based error handling adds overhead to the serialization process. In scenarios where performance is critical, alternative approaches like returning error codes might be considered. However, exceptions offer a cleaner and more intuitive way to handle errors, making the code easier to understand and debug.
 
-### Space Usage vs. Time Complexity
+### Complexity of Nested Structures
 
-Storing the length of strings before their content minimizes space usage but increases time complexity slightly during both serialization and deserialization. Alternative methods, such as null-terminated strings, might reduce time complexity but increase space usage.
+Handling nested structures like arrays and closures requires additional complexity in both serialization and deserialization logic. While this complexity is necessary for supporting these data types, it can also make the implementation harder to manage and test.
 
-Overall, the design choices made in `Serializer.cpp` balance memory efficiency, performance, and flexibility, ensuring robust and scalable serialization capabilities for the Quantum Language compiler.
+Overall, the `Serializer.cpp` file provides robust support for quantum value serialization and deserialization, ensuring that intermediate results can be effectively managed throughout the compilation process. Its design decisions balance memory efficiency, type safety, and ease of use, making it a valuable component of the Quantum Language compiler's backend.
