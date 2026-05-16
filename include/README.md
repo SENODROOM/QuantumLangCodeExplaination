@@ -1,65 +1,51 @@
-# QuantumLanguage Compiler - Serializer.h
+# QuantumLanguage Compiler - Token.h
 
 ## Overview
 
-The `include/Serializer.h` header file is integral to the QuantumLanguage compiler, focusing on the serialization and deserialization processes of chunks of quantum code. This component ensures that compiled programs can be efficiently stored and transmitted while maintaining their integrity during reconstruction.
+The `include/Token.h` header file is a crucial component of the QuantumLanguage compiler, focusing on the representation and management of tokens within the source code. Tokens serve as the basic units of input processed by the compiler, forming the syntax tree upon which semantic analysis and code generation are based.
 
 ## Role in Compiler Pipeline
 
-### Serialization Process
-1. **Compilation**: The compiler compiles high-level quantum language code into intermediate representation (IR).
-2. **Serialization**: The IR is then serialized into a binary format using the functions defined in `Serializer.h`. This step involves converting the IR structure into a sequence of bytes that can be easily stored or transmitted.
-3. **Storage/Transmission**: The serialized data is saved to disk or sent over a network.
+In the QuantumLanguage compiler's pipeline, `Token.h` plays a pivotal role during the lexical analysis phase. This phase involves converting raw source code into a sequence of tokens, each carrying information about its type, value, and location within the source file. These tokens are then passed to the parser, which constructs the abstract syntax tree (AST). The AST serves as the foundation for further stages of compilation, including semantic analysis, optimization, and code generation.
 
-### Deserialization Process
-1. **Retrieval/Reception**: When the program needs to be executed, the serialized data is retrieved from storage or received through a network connection.
-2. **Deserialization**: The `deserialize` function converts the binary data back into the original IR structure.
-3. **Execution**: The deserialized IR is passed to the virtual machine (`Vm.h`) for execution.
+## Key Design Decisions and Why
 
-## Key Design Decisions and WHY
+1. **TokenType Enum**: The `TokenType` enum defines all possible token types, covering literals, identifiers, keywords, operators, delimiters, special cases like indentation and EOF, and unknown tokens. Each token type is carefully chosen to accurately reflect the syntactic elements of the language.
 
-### Binary Format Choice
-- **Binary vs Text**: Choosing a binary format over text reduces the overhead associated with parsing and writing strings, making the process faster and more space-efficient.
-- **Why Binary?**: Binary formats allow for direct manipulation of memory, which is crucial for performance in low-level operations like quantum computing.
+2. **Token Struct**: The `Token` struct encapsulates the properties of a token, including its type, value, line number, and column position. This design allows for easy tracking and manipulation of tokens throughout the compilation process.
 
-### Template Functions for Raw Data Handling
-- **Generic Type Support**: Template functions `writeRaw` and `readRaw` provide generic support for serializing and deserializing any type of raw data.
-- **Why Templates?**: Templates enable the same code to handle different types without sacrificing performance or readability.
+3. **String Value Storage**: Storing token values as strings provides flexibility and ensures that the compiler can handle various data types without requiring additional storage mechanisms.
 
-### Efficient String Handling
-- **Custom String Serialization**: Instead of using standard string serialization methods, custom implementations (`writeString`, `readString`) optimize for common string lengths and reduce padding.
-- **Why Custom Implementation?**: Custom handling minimizes the amount of data written and read, improving overall efficiency.
+4. **Location Information**: Including line and column numbers helps in diagnosing errors and providing precise feedback to the user, making debugging easier and more effective.
 
 ## Major Classes/Functions Overview
 
-### Serializer Class
-- **Purpose**: Manages the serialization and deserialization of quantum code chunks.
-- **Public Methods**:
-  - `serialize(std::shared_ptr<Chunk> chunk)`: Converts a quantum code chunk into a binary vector.
-  - `deserialize(const std::vector<uint8_t>& data)`: Reconstructs a quantum code chunk from a binary vector.
+### `Token` Struct
 
-### Private Helper Functions
-- **writeChunk**: Writes a quantum code chunk to a binary output stream.
-- **readChunk**: Reads a quantum code chunk from a binary input stream.
-- **writeValue**: Serializes a quantum value to a binary output stream.
-- **readValue**: Deserializes a quantum value from a binary input stream.
-- **writeString**: Serializes a string to a binary output stream.
-- **readString**: Deserializes a string from a binary input stream.
-- **writeRaw<T>**: Generic function to serialize any raw data type to a binary output stream.
-- **readRaw<T>**: Generic function to deserialize any raw data type from a binary input stream.
+- **Purpose**: Represents a single token in the source code.
+- **Properties**:
+  - `type`: The type of the token (e.g., `NUMBER`, `IDENTIFIER`).
+  - `value`: The string value of the token.
+  - `line`: The line number where the token appears in the source code.
+  - `col`: The column number where the token starts in the source code.
+- **Methods**:
+  - `toString() const`: Returns a string representation of the token, useful for debugging and logging purposes.
+
+### `TokenType` Enum
+
+- **Purpose**: Defines all valid token types in the QuantumLanguage.
+- **Values**:
+  - Literals (`NUMBER`, `STRING`, `TEMPLATE_STRING`, `BOOL_TRUE`, `BOOL_FALSE`, `NIL`).
+  - Identifiers and Keywords (`LET`, `CONST`, `FN`, `DEF`, `FUNCTION`, `CLASS`, `EXTENDS`, `NEW`, `THIS`, `SUPER`, `RETURN`, `IF`, `ELSE`, `ELIF`, `WHILE`, `FOR`, `IN`, `OF`, `BREAK`, `CONTINUE`, `RAISE`, `TRY`, `EXCEPT`, `FINALLY`, `AS`, `PRINT`, `INPUT`, `COUT`, `CIN`, `FROM`, `IMPORT`).
+  - C/C++ Style Type Keywords (`TYPE_INT`, `TYPE_FLOAT`, etc.).
+  - Operators (`PLUS`, `MINUS`, `STAR`, etc.).
+  - Delimiters (`LPAREN`, `RPAREN`, etc.).
+  - Special Cases (`INDENT`, `DEDENT`, `EOF_TOKEN`, `UNKNOWN`).
 
 ## Tradeoffs
 
-### Space Efficiency vs Readability
-- **Space Efficiency**: Binary formats are generally more compact than text formats, reducing storage requirements.
-- **Readability**: Text formats are easier to read and debug, but they consume more space.
+- **Flexibility vs. Complexity**: By using a single `std::string` to store token values, the implementation remains simple but may require additional parsing logic for different data types.
+- **Memory Usage**: Storing token values as strings can lead to increased memory usage compared to storing them directly in their respective data types.
+- **Error Handling**: Providing detailed location information (line and column numbers) enhances error handling capabilities, but adds complexity to token processing.
 
-### Performance vs Complexity
-- **Performance**: Direct memory manipulation in binary formats leads to better performance.
-- **Complexity**: Implementing binary serialization and deserialization requires more complex code compared to text-based approaches.
-
-### Flexibility vs Specificity
-- **Flexibility**: Generic template functions offer flexibility in handling various data types.
-- **Specificity**: Custom string handling may limit flexibility but improves performance for specific use cases.
-
-Overall, the `Serializer.h` file plays a critical role in the QuantumLanguage compiler's ability to store and transmit quantum code efficiently. Its design choices balance performance, space efficiency, and flexibility, making it well-suited for the demands of quantum computing environments.
+Overall, the `Token.h` header file is a fundamental building block of the QuantumLanguage compiler, enabling efficient and accurate lexical analysis and serving as the basis for subsequent stages of compilation. Its design choices balance simplicity with functionality, making it well-suited for the needs of a modern programming language compiler.
