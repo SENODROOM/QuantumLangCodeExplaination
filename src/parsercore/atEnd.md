@@ -2,25 +2,67 @@
 
 ## Overview
 
-The `atEnd` function is an essential utility method within the Quantum Language compiler's parser core located at `src/parser/ParserCore.cpp`. This function serves to determine whether the current position in the token stream has reached the end of file (EOF). The primary purpose of this function is to facilitate control flow and decision-making during parsing operations, ensuring that the parser knows when to terminate or proceed accordingly.
+The `atEnd` function is an essential utility method within the Quantum Language compiler's parser core located at `src/parser/ParserCore.cpp`. This function serves to determine whether the current position in the token stream has reached the end of the file (EOF). It plays a critical role in controlling the flow of parsing operations and ensuring that the parser knows when there are no more tokens to process.
 
-### Parameters/Return Value
+## Parameters
 
-- **Parameters**: None
-- **Return Value**: A boolean indicating whether the current token position corresponds to the EOF token. If the current token type is `TokenType::EOF_TOKEN`, the function returns `true`; otherwise, it returns `false`.
+- None
 
-### How It Works
+## Return Value
 
-The `atEnd` function operates by checking the type of the token at the current position (`pos`) in the token stream. If the token type matches `TokenType::EOF_TOKEN`, which signifies the end of the file, the function returns `true`. Conversely, if the token type is any other valid token type, the function returns `false`. This straightforward comparison allows the parser to efficiently determine its termination condition based on the input source.
+- Returns `true` if the current position (`pos`) in the token stream points to an EOF token.
+- Returns `false` otherwise.
 
-### Edge Cases
+## Edge Cases
 
-1. **Empty Token Stream**: If the token stream is empty (i.e., there are no tokens), calling `atEnd()` will still return `true` because there is no token to compare against `TokenType::EOF_TOKEN`.
-2. **Misplaced EOF Token**: In some rare scenarios, the token stream might contain an EOF token before all expected tokens have been parsed. In such cases, `atEnd()` will correctly identify the premature EOF and allow the parser to handle it appropriately.
-3. **Dynamic Token Streams**: While not common in static parsers like those used in compilers, if the token stream can change dynamically (e.g., due to external input or modifications), `atEnd()` should be called periodically to ensure the parser remains aware of the updated state.
+1. **Empty Token Stream**: If the token stream is empty (i.e., `tokens.size() == 0`), calling `atEnd()` will always return `true`, as there are no tokens to process.
+2. **Invalid Position**: If the position (`pos`) is out of bounds (i.e., `pos >= tokens.size()`), calling `atEnd()` will result in undefined behavior because it attempts to access an element beyond the last index of the token stream.
 
-### Interactions with Other Components
+## How It Works
 
-The `atEnd()` function interacts closely with the parser's main loop and error handling mechanisms. During normal parsing, the function is called repeatedly until it returns `true`, signaling the parser to stop processing further tokens. If `atEnd()` returns `true` unexpectedly (e.g., due to a misplaced EOF token), the parser may trigger appropriate error handling procedures to diagnose and correct the issue.
+The `atEnd` function checks the type of the token at the current position (`pos`). If the type of the token is `TokenType::EOF_TOKEN`, it means that the end of the file has been reached, and the function returns `true`. Otherwise, it returns `false`.
 
-In summary, the `atEnd` function plays a critical role in managing the termination condition of the parser, ensuring efficient and accurate parsing of quantum language files. Its simplicity and direct interaction with the token stream make it a fundamental component of the compiler's architecture.
+Here’s how the code snippet works:
+
+```cpp
+{ return tokens[pos].type == TokenType::EOF_TOKEN; }
+```
+
+- `tokens`: A vector containing all the tokens parsed from the source code.
+- `pos`: The current position in the token stream being processed.
+- `TokenType::EOF_TOKEN`: An enumeration representing the end-of-file token type.
+
+By comparing the type of the token at the current position with `TokenType::EOF_TOKEN`, the function effectively determines whether the parser has reached the end of the input.
+
+## Interactions with Other Components
+
+The `atEnd` function interacts closely with the parser's main loop, which uses it to decide when to stop processing tokens. Here’s a simplified example of how it might be used in the parser:
+
+```cpp
+while (!parser.atEnd()) {
+    // Process each token
+    Token currentToken = parser.getCurrentToken();
+    // Perform actions based on the current token type
+    switch (currentToken.type) {
+        case TokenType::IDENTIFIER:
+            // Handle identifier token
+            break;
+        case TokenType::KEYWORD:
+            // Handle keyword token
+            break;
+        // ... other cases ...
+        default:
+            // Handle unexpected token
+            break;
+    }
+    // Move to the next token
+    parser.advanceToNextToken();
+}
+// End of file reached
+```
+
+In this example, the parser repeatedly calls `atEnd()` to check if it has reached the end of the token stream. If not, it processes the current token and advances to the next one until the end of the file is reached.
+
+## Conclusion
+
+The `atEnd` function is a fundamental part of the Quantum Language compiler's parser core, providing a straightforward mechanism to detect the end of the token stream. Its implementation ensures that the parser can gracefully handle the completion of input without attempting to process invalid or non-existent tokens. Understanding its functionality and usage is crucial for anyone working on extending or modifying the parser in the Quantum Language compiler.
