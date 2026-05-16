@@ -1,42 +1,34 @@
 # `match` Function
 
-The `match` function is an integral component of the parser within the Quantum Language compiler. Its primary role is to verify whether the current token being processed in the input stream aligns with a given token type. If the tokens match, the function proceeds to consume the token, thereby advancing the parsing process; conversely, if they do not match, the function returns `false`.
+The `match` function is a crucial method within the parser framework of the Quantum Language compiler. It serves as a fundamental building block for parsing operations, ensuring that the sequence of tokens encountered during compilation matches the expected syntax and structure of the language.
 
-## Parameters and Return Value
+## What It Does
+
+The primary purpose of the `match` function is to check if the current token being processed in the input stream is of a specified token type. If the tokens align, it consumes the current token and returns `true`. Otherwise, it returns `false`.
+
+## Why It Works This Way
+
+This design ensures that the parser can accurately follow the grammar rules defined for the Quantum Language. By checking the current token against the expected type, the parser can make informed decisions about how to proceed with the compilation process. Consuming the matched token allows the parser to move forward to the next token in the input stream, maintaining the correct order of processing.
+
+## Parameters/Return Value
 
 - **Parameters**:
-  - `t`: The target token type that the parser should attempt to match against the current token in the input stream.
+  - `t`: The token type to be checked against the current token in the input stream.
 
 - **Return Value**:
-  - Returns `true` if the current token matches the specified token type (`t`). Upon a successful match, the token is consumed, moving the parser forward.
-  - Returns `false` if the current token does not match the specified token type (`t`). In such cases, the token remains unprocessed, allowing the parser to handle subsequent tokens or report errors accordingly.
-
-## How It Works
-
-The `match` function operates through two main steps:
-
-1. **Check Token Type**: It invokes the `check` method, passing the target token type `t`. This method evaluates whether the current token in the input stream corresponds to the specified token type.
-
-2. **Consume Token**: If the `check` method confirms a match, the function then calls the `consume` method. This method removes the current token from the input stream, effectively advancing the parser to the next token.
-
-If either step fails—i.e., if the current token does not match the target type—the function simply returns `false`, leaving the token intact for further processing.
+  - Returns `true` if the current token matches the specified token type and has been consumed.
+  - Returns `false` if the tokens do not match or if there is no current token available.
 
 ## Edge Cases
 
-- **Empty Input Stream**: If the input stream is empty when the `match` function is called, the `check` method will likely fail, resulting in a `false` return value without attempting to consume any token.
-  
-- **Token Mismatch**: When the current token does not match the specified token type, the function correctly returns `false`, preventing premature consumption of the wrong token.
+1. **End of Input**: When the end of the input stream is reached, attempting to call `match` will result in a failure since there is no current token to compare.
+2. **Token Mismatch**: If the current token does not match the expected token type, the function will simply return `false`, allowing the parser to handle the error appropriately.
+3. **Empty Token Type**: Passing an empty token type to the `match` function may lead to unexpected behavior, as it could potentially match any token.
 
-- **End-of-Stream**: If the end of the input stream is reached during the matching process, the `check` method might behave differently depending on how the parser handles the end condition. Ideally, the `match` function should gracefully handle such scenarios without causing errors.
+## Interactions With Other Components
 
-## Interactions with Other Components
+- **Check Function**: The `match` function relies on the `check` method to determine if the current token matches the specified token type. The `check` method should be implemented to provide accurate token comparisons based on their type and content.
+- **Consume Function**: Upon successful matching, the `consume` method is called to remove the current token from the input stream, preparing the parser for the next token.
+- **Error Handling**: The `match` function interacts with the broader error handling mechanism of the compiler. If a mismatch occurs, the parser may trigger appropriate error messages or take corrective actions to continue the compilation process.
 
-The `match` function interacts closely with several other components within the parser:
-
-- **Lexer**: The lexer generates the sequence of tokens that the parser processes. The `match` function relies on the lexer to provide the current token and advance the stream as needed.
-
-- **Error Handling**: Upon encountering a mismatch, the `match` function allows the parser to report errors appropriately. This interaction ensures that syntax errors can be identified and handled efficiently.
-
-- **State Management**: The parser maintains its state throughout the parsing process, including the position in the input stream. The `match` function contributes to this state management by advancing the stream only upon successful token matching.
-
-In summary, the `match` function is a fundamental utility in the Quantum Language compiler's parser, ensuring accurate token matching and proper state advancement. By carefully managing token types and interactions with other components, it facilitates robust error handling and efficient parsing of the input language.
+In summary, the `match` function plays a vital role in the Quantum Language compiler's parsing phase, facilitating accurate token comparison and consumption to ensure syntactic correctness during compilation.
