@@ -1,31 +1,29 @@
 # CompilerCore
 
-The `compilercore` component is a crucial module in the Quantum Language compiler, designed to manage the essential aspects of compiling quantum programs. It handles tasks like scope management, resolving local variables, and emitting executable bytecode. This component acts as the central hub for processing quantum nodes and expressions, ensuring they are accurately parsed and transformed.
+The `CompilerCore` component is a fundamental module within the Quantum Language compiler, responsible for managing core aspects of compiling quantum programs. This includes handling scope management, variable resolution, and bytecode emission. The component serves as the central hub for processing quantum nodes and expressions, ensuring their accurate parsing and transformation into executable bytecode.
 
 ## Directory Structure
 
-This directory includes several key files and functions that work together to achieve the core compilation tasks:
+This directory contains several documented functions and files that work together to achieve the compilation process:
 
-- **compile**: The main entry point for initiating the compilation process.
-- **beginScope** and **endScope**: Functions used to manage the creation and termination of lexical scopes within the program.
-- **resolveLocal**: Resolves references to local variables within their respective scopes.
-- **addUpvalue** and **resolveUpvalue**: Manage upvalues, which are variables from outer scopes that need to be accessed within inner scopes.
-- **declareLocal**: Declares new local variables within a scope.
-- **emitLoad** and **emitStore**: Emit bytecode instructions for loading and storing values in local variables.
-- **beginLoop**, **emitBreak**, **emitContinue**, and **endLoop**: Handle loop constructs, including breaking out of loops and continuing to the next iteration.
-- **compileNode** and **visit**: Core functions for visiting and compiling individual nodes in the quantum abstract syntax tree (AST).
-- **compileBlock** and **compileExpr**: Specialized functions for compiling blocks of statements and individual expressions, respectively.
+- **compile**: The main entry point for initiating the compilation of a quantum program.
+- **beginScope** and **endScope**: Functions used to manage the beginning and end of variable scopes.
+- **resolveLocal**: Resolves local variables within the current scope.
+- **addUpvalue** and **resolveUpvalue**: Manage upvalues and resolve them during the compilation process.
+- **declareLocal**: Declares a new local variable within the current scope.
+- **emitLoad** and **emitStore**: Emit bytecode instructions for loading and storing values.
+- **beginLoop**, **emitBreak**, **emitContinue**, and **endLoop**: Handle loop structures and emit corresponding bytecode instructions.
+- **compileNode** and **visit**: Recursively compile quantum nodes and visit different types of expressions or statements.
+- **compileBlock**: Compiles a block of quantum code, including multiple statements.
+- **compileExpr**: Compiles individual quantum expressions.
+- **visit**: A visitor pattern implementation for traversing and processing quantum nodes.
 
 ## Overall Flow
 
 1. **Initialization**: The `compile` function initializes the compilation process, setting up necessary data structures and preparing the environment.
-2. **Scope Management**: As the compiler processes different parts of the AST, it uses `beginScope` and `endScope` to manage the creation and destruction of lexical scopes.
-3. **Variable Resolution**: For each node or expression, the compiler resolves references to local variables using `resolveLocal`. If an upvalue is required, it manages them through `addUpvalue` and `resolveUpvalue`.
-4. **Code Emission**: The compiler emits bytecode instructions using functions like `emitLoad` and `emitStore`. Loop constructs are handled using `beginLoop`, `emitBreak`, `emitContinue`, and `endLoop`.
-5. **Node Compilation**: Individual nodes are visited and compiled using the `visit` function. Blocks of statements are processed by `compileBlock`, and expressions are evaluated by `compileExpr`.
+2. **Scope Management**: As the compiler processes quantum nodes, it uses `beginScope` and `endScope` to manage variable scopes. Local variables are declared using `declareLocal`, and upvalues are managed with `addUpvalue` and `resolveUpvalue`.
+3. **Expression Compilation**: Individual quantum expressions are compiled using `compileExpr`. The `visit` method is employed to traverse and process various expression types.
+4. **Bytecode Emission**: During the compilation, the compiler emits bytecode instructions using `emitLoad`, `emitStore`, `beginLoop`, `emitBreak`, `emitContinue`, and `endLoop`. These instructions form the executable representation of the quantum program.
+5. **Finalization**: After all quantum nodes have been processed, the `compile` function finalizes the compilation, ensuring that all resources are properly released and the resulting bytecode is ready for execution.
 
-By following this structured approach, `CompilerCore` ensures that quantum programs are compiled efficiently and accurately, producing executable bytecode that can be executed on a quantum processor.
-
----
-
-Feel free to update or expand upon this README based on your specific needs and additional details about the `compilercore` component.
+By leveraging these components, the Quantum Language compiler efficiently manages the complexities of quantum programming, producing high-quality executable bytecode that can be run on quantum hardware or emulators.
