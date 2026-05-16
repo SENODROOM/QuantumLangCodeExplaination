@@ -1,42 +1,52 @@
 # `compileFunctionDecl` Function
 
-The `compileFunctionDecl` function is an essential part of the Quantum Language compiler, responsible for transforming a function declaration into executable bytecode. This conversion ensures that the function can be invoked correctly within the program's scope.
+## Overview
 
-## What It Does
+The `compileFunctionDecl` function is a crucial component of the Quantum Language compiler, tasked with converting a function declaration into executable bytecode. This transformation facilitates the correct invocation of functions within the program's scope.
 
-The primary task of `compileFunctionDecl` is to:
-- Compile the function body into bytecode using the `compileFunction` method.
-- Create a `Closure` object encapsulating the compiled function bytecode and any upvalues.
-- Emit bytecode instructions to load the constant representing the closure and define the function or closure in the appropriate scope.
+## Parameters and Return Value
 
-## Why It Works This Way
+- **Parameters**:
+  - `s.name`: A string representing the name of the function to be compiled.
+  - `s.params`: A vector of strings representing the names of the function parameters.
+  - `s.paramIsRef`: A boolean indicating whether each parameter is passed by reference.
+  - `s.defaultArgs`: An optional vector of default argument values for the function.
+  - `s.body.get()`: A pointer to the body of the function, which contains the statements to be executed.
+  - `line`: The line number in the source code where the function declaration occurs.
 
-This approach works because it leverages closures to handle references to outer variables, which is crucial in quantum programming where functions may need to access state from their enclosing scopes. By creating a closure, the function retains its lexical environment even when executed outside that environment.
+- **Return Value**: None. The function directly emits bytecode instructions to the current compilation context.
 
-The use of `Closure` also allows the function to be defined either globally or locally based on the current scope depth. This flexibility is necessary to support both top-level function declarations and nested function definitions.
+## How It Works
 
-## Parameters/Return Value
+1. **Compilation of Function Body**:
+   - The function body (`s.body`) is compiled using the `compileFunction` method, resulting in a `FunctionChunk` object (`fnChunk`). This chunk encapsulates the bytecode generated from the function's body.
 
-### Parameters
-- `s`: A reference to a `FunctionDeclaration` struct containing details about the function to be compiled, such as its name, parameters, default arguments, and body.
-- `line`: An integer representing the source code line number where the function declaration occurs.
+2. **Creating Closure Template**:
+   - A `Closure` template is created using the `std::make_shared` function, passing the `fnChunk` as its parameter. This closure will hold the function's bytecode and any upvalues it might need.
 
-### Return Value
-- The function does not explicitly return a value but emits bytecode instructions to the compiler's output buffer (`emitBuffer`).
+3. **Loading Constant**:
+   - The `emit` function is used to load a constant onto the stack. The constant is the `Closure` template created in the previous step. This is done using the `Op::LOAD_CONST` opcode and the index obtained from `addConst`.
 
-## Edge Cases
+4. **Making Function or Closure**:
+   - Depending on whether the `fnChunk` has upvalues (`fnChunk->upvalueCount > 0`), the `emit` function uses either the `Op::MAKE_CLOSURE` or `Op::MAKE_FUNCTION` opcode to create the function or closure. The second argument to `emit` is set to `0`, indicating that there are no additional arguments required for these opcodes.
 
-1. **Upvalues**: If the function has upvalues (i.e., it refers to variables from its enclosing scope), the `Op::MAKE_CLOSURE` instruction is emitted instead of `Op::MAKE_FUNCTION`. This ensures that the function captures the correct values from its lexical environment.
-2. **Scope Depth**: When compiling at global scope (`current_->scopeDepth == 0`), the function is defined globally using `Op::DEFINE_GLOBAL`. At local scope, the function is first resolved to check if it already exists in the current locals table. If it does and matches the current scope depth, it is stored locally and then popped from the stack. Otherwise, it is declared as a new local variable using `declareLocal`, and then defined using `Op::DEFINE_LOCAL`.
+5. **Global vs Local Declaration**:
+   - If the current scope depth is `0` (`current_->scopeDepth == 0`), the function is declared globally using the `Op::DEFINE_GLOBAL` opcode. The function name is added to the constants table using `addStr`.
+   - If the current scope depth is not `0`, the function attempts to resolve whether the function already exists in the local scope at the same depth using the `resolveLocal` method. If found, it stores the function in the local slot and pops it from the stack. Otherwise, it declares the function locally using the `declareLocal` method and defines it in the local scope using the `Op::DEFINE_LOCAL` opcode.
 
-## Interactions With Other Components
+6. **Edge Cases**:
+   - **Parameter Types**: The function handles both regular and reference parameters, ensuring that the appropriate handling is applied during the compilation process.
+   - **Default Arguments**: If default arguments are provided, they are included in the function's definition, allowing for flexible function calls.
+   - **Scope Management**: The function manages the scope depth effectively, distinguishing between global and local declarations based on the current scope depth.
 
-- **`compileFunction` Method**: This method is called to compile the function body into bytecode. It takes the function's name, parameters, parameter types, default arguments, and body statement.
+## Interactions with Other Components
+
+- **Constants Table**: The `addConst` function interacts with the constants table to store the `Closure` template as a constant, making it available for use in subsequent bytecode instructions.
   
-- **`Closure` Class**: A `Closure` object is created to encapsulate the compiled function bytecode along with any upvalues. This object represents the function in the bytecode format.
+- **Locals Table**: The `resolveLocal` and `declareLocal` methods interact with the locals table to manage local variables and their slots within the current scope.
 
-- **Bytecode Emission**: Instructions are emitted using the `emit` function, which adds bytecode operations to the compiler's output buffer. These operations include loading constants, making closures/functions, defining globals/locals, and storing/updating local variables.
+- **Bytecode Emission**: The `emit` function is used throughout the process to generate and emit bytecode instructions into the current compilation context.
 
-- **Scope Management**: The function interacts with the scope management system through `current_`, which points to the current compilation context. This includes checking and updating the scope depth, resolving local variables, and declaring new ones.
+- **Scope Depth Tracking**: The `current_->scopeDepth` variable tracks the depth of the current scope, influencing decisions about whether a function should be defined globally or locally.
 
-In summary, `compileFunctionDecl` is a critical function in the Quantum Language compiler that handles the transformation of function declarations into executable bytecode, supporting closures and proper scoping rules.
+This comprehensive approach ensures that function declarations are accurately transformed into executable bytecode, maintaining the integrity and functionality of the quantum program being compiled.

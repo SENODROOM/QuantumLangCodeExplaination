@@ -2,37 +2,42 @@
 
 ## Overview
 
-The `peek` function is a crucial utility method within the LexerCore class of the Quantum Language compiler. Its primary purpose is to allow developers to examine characters at a specified position in the source code without changing the lexer's current state or advancing its position. This functionality is vital for lookahead operations during lexical analysis, enabling the lexer to make informed decisions based on upcoming tokens.
+The `peek` function is an essential utility method within the LexerCore class of the Quantum Language compiler. It allows developers to inspect characters at a specified position in the source code without altering the lexer's current state or advancing its cursor. This functionality is particularly useful during the lexical analysis phase when determining token types and boundaries.
 
 ## Parameters
 
-- **offset**: An integer representing the number of positions ahead in the source code that you want to inspect. The default value is 0, which means that the function will return the character at the current lexer position.
+- **pos**: The current position of the lexer in the source code.
+- **offset**: An integer representing the number of positions ahead from the current position that you want to peek at. If `offset` is 0, it returns the character at the current position.
 
 ## Return Value
 
-The `peek` function returns a single character (`char`) from the source code. If the specified position (`pos + offset`) is within the bounds of the source code, it returns the character at that position. Otherwise, it returns the null character (`'\0'`). This behavior ensures that the function can safely be used even when attempting to access characters beyond the end of the source code.
+The function returns the character located at the position `pos + offset`. If the calculated position exceeds the bounds of the source code (`src.size()`), it returns the null character (`'\0'`). This ensures that the lexer can safely access characters beyond the end of the input stream without causing runtime errors.
 
 ## Edge Cases
 
-1. **Offset Greater than Source Code Length**: When the provided offset exceeds the length of the source code, the function returns the null character (`'\0'`). This prevents out-of-bounds errors and allows the lexer to handle unexpected input gracefully.
-   
-2. **Negative Offset**: A negative offset is treated as an attempt to look behind the current position. In such cases, the function also returns the null character (`'\0'`). This is because the lexer's design typically assumes a forward-only approach to tokenization, and looking behind would require significant changes to the lexer's internal state management.
+1. **Offset Greater than Source Size**: When `offset` is greater than the size of the source code, the function correctly returns `'\0'`, indicating the end of the input stream.
+2. **Negative Offset**: A negative offset would result in accessing characters before the start of the source code, which could lead to undefined behavior. However, since the function checks if the calculated position is less than the source size, it effectively handles negative offsets gracefully by returning `'\0'`.
 
 ## Interactions with Other Components
 
-The `peek` function interacts closely with the LexerCore class, specifically with its member variables:
-- **src**: A string representing the entire source code being analyzed.
-- **pos**: An index indicating the current position within the source code where the lexer is focused.
+The `peek` function interacts closely with the LexerCore's internal state, specifically the `src` string which holds the entire source code. By allowing developers to look ahead at characters without modifying the lexer's position, it facilitates more complex parsing logic where multiple tokens need to be considered simultaneously.
 
-By using the `peek` function, other parts of the compiler can perform lookahead operations without disrupting the lexer's progress. For example, a parser might use `peek` to check whether the next few characters form a valid keyword before deciding how to proceed with parsing.
-
-Here is a brief overview of how the `peek` function is implemented:
+Here’s how it might be used in the context of a lexer:
 
 ```cpp
-char peek(size_t offset = 0) const {
-    size_t p = pos + offset; // Calculate the position to peek
-    return p < src.size() ? src[p] : '\0'; // Return the character at the calculated position or null character if out of bounds
+char currentChar = lexer.peek(0); // Get the current character
+if (currentChar == 'a') {
+    char nextChar = lexer.peek(1); // Look ahead one character
+    if (nextChar == 'b') {
+        // Handle "ab" token
+    } else {
+        // Handle single "a" token
+    }
+} else {
+    // Handle other tokens
 }
 ```
 
-In summary, the `peek` function serves as a safe and efficient way to inspect characters in the source code without affecting the lexer's state. Its implementation ensures robustness against various edge cases, making it a valuable tool for the Quantum Language compiler's lexical analysis process.
+In this example, the lexer uses `peek` to check both the current and the next character without advancing its position, enabling it to correctly identify and process multi-character tokens like `"ab"`.
+
+Overall, the `peek` function plays a vital role in the Quantum Language compiler by providing a safe and efficient way to inspect characters in the source code, thereby supporting robust lexical analysis.

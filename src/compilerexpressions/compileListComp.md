@@ -1,68 +1,55 @@
 # `compileListComp`
 
-The `compileListComp` method in the Quantum Language compiler's source file `src/compiler/CompilerExpressions.cpp` is responsible for compiling list comprehensions into executable bytecode. List comprehensions provide a concise way to create lists based on existing iterable objects and conditions. The method ensures that each element of the iterable satisfies the condition before being added to the resulting list.
+The `compileListComp` method in the Quantum Language compiler's source file `src/compiler/CompilerExpressions.cpp` is responsible for compiling list comprehensions into executable bytecode. List comprehensions provide a concise way to create lists based on existing iterable objects and conditions.
+
+## What It Does
+
+Given a list comprehension expression `e`, `compileListComp` generates bytecode that iterates over the iterable object, applies any conditions specified, and collects the results into a new array. The resulting array is then returned as the output of the list comprehension.
+
+## Why It Works This Way
+
+This implementation follows a structured approach to handle list comprehensions:
+
+1. **Initialization**: A new `CompilerState` named `<listcomp>` is created to encapsulate the state during the compilation of the list comprehension. This ensures that local variables declared within the list comprehension do not interfere with those outside.
+
+2. **Result Array Creation**: An empty array is created using the `Op::MAKE_ARRAY` instruction. This array will store the elements that pass the condition.
+
+3. **Iterable Handling**: The iterable part of the list comprehension is compiled first. An iterator is created using the `Op::MAKE_ITER` instruction, which allows for efficient iteration over the iterable.
+
+4. **Iteration Loop**: A loop is set up to iterate over each element in the iterable. The loop starts at the position where the array creation instruction was emitted.
+
+5. **Condition Checking**: If a condition is provided in the list comprehension, it is compiled before the main expression. If the condition evaluates to false, the loop continues without adding the current element to the result array.
+
+6. **Expression Compilation**: Regardless of whether a condition exists, the main expression is always compiled. If a condition is present, the result of the expression is only added to the array if the condition passes.
+
+7. **Pushing Results to Array**: After compiling the expression, it is pushed onto the result array using the `Op::GET_MEMBER` and `Op::CALL` instructions to call the `push` method on the array.
+
+8. **Loop Continuation**: Any continue jumps from nested loops are patched to ensure proper control flow within the list comprehension.
+
+9. **Finalization**: The loop is ended, and the final result array is loaded and returned using the `Op::RETURN` instruction.
 
 ## Parameters/Return Value
 
-- **Parameters**: 
-  - `e`: A reference to an `Expression` object representing the list comprehension to be compiled.
-  
+- **Parameters**:
+  - `e`: A reference to the `ListComprehensionExpr` object representing the list comprehension to be compiled.
+
 - **Return Value**:
-  - None. The method compiles the list comprehension directly into the bytecode stream managed by the compiler.
-
-## How It Works
-
-### Step-by-Step Breakdown
-
-1. **Initialization**:
-   - A new `CompilerState` object named `fnState` is created with the name "<listcomp>" and marked as a function.
-   - The previous state (`prev`) is saved, and the current state is set to `fnState`.
-
-2. **Scope Management**:
-   - A new scope is initiated using `beginScope()`.
-   - A local variable named `__result__` is declared to store the final list, and its index is defined using `emit(Op::DEFINE_LOCAL)`.
-
-3. **Iterating Over Iterable**:
-   - Another new scope is started to handle the iteration process.
-   - The iterable expression is compiled using `compileExpr(*e.iterable)`.
-   - An iterator is created using `emit(Op::MAKE_ITER)` and stored in a local variable named `__iter__`, whose index is also defined.
-
-4. **Loop Setup**:
-   - The start of the loop is recorded using `int loopStart = static_cast<int>(chunk().code.size());`.
-   - A loop is initiated using `beginLoop(loopStart)`.
-   - A jump instruction is emitted to check if there are more elements in the iterator using `emitJump(Op::FOR_ITER, line)`. The position of this jump is stored in `exitJump`.
-
-5. **Variable Declaration and Expression Compilation**:
-   - Inside the loop, another new scope is started.
-   - Each variable in the list comprehension (`e.vars`) is declared and its index is defined.
-   - If a condition exists (`e.condition`), both the condition and the expression are compiled.
-     - The condition is checked using `emitJump(Op::JUMP_IF_FALSE, line)`. If the condition is false, the loop continues without adding the current element.
-     - The expression is evaluated, and if it passes the condition, it is pushed onto the `__result__` list using the `pushToResult()` lambda function.
-   - If no condition exists, only the expression is compiled, and it is pushed onto the `__result__` list.
-
-6. **Handling Loop Continuations**:
-   - After the loop body, any continue jumps are patched to ensure they correctly point back to the beginning of the loop.
-
-7. **Ending Scope and Loop**:
-   - The innermost scope is ended using `endScope(line)`.
-   - The loop is terminated using `emit(Op::LOOP, ...)` and the jump at `exitJump` is patched.
-   - The outer scopes are ended using `endScope(line)` twice.
-
-8. **Finalization**:
-   - The `__result__` list is loaded into the stack using `emitLoad(resultName, line)`.
-   - The method returns control to the caller using `emit(Op::RETURN, 0, line)` and `emit(Op::RETURN_NIL, 0, line)`.
+  - None. The method directly emits bytecode to the current chunk.
 
 ## Edge Cases
 
-- **Empty Iterable**: If the iterable part of the list comprehension evaluates to an empty collection, the loop will not execute, and an empty list will be returned.
-- **No Condition**: When no condition is specified, every element from the iterable is included in the result list.
-- **Condition Failure**: If any element fails the condition, it is skipped, and the next element is processed.
+- **Empty Iterable**: If the iterable part of the list comprehension is empty, the resulting array will also be empty, and the method will return immediately after creating the array.
+  
+- **No Condition**: If there is no condition in the list comprehension, all elements of the iterable will be included in the result array.
 
-## Interactions with Other Components
+- **Nested Loops**: The method handles nested loops correctly by patching continue jumps and ensuring that the outer loop exits properly when the inner loop completes.
 
-- **CompilerState**: The method uses `CompilerState` to manage the scope and variables within the list comprehension.
-- **Chunk**: Bytecode instructions are emitted into the `Chunk` object, which represents a sequence of bytecode operations.
-- **Op Codes**: Various op codes such as `MAKE_ARRAY`, `MAKE_ITER`, `FOR_ITER`, `JUMP_IF_FALSE`, `CALL`, etc., are used to generate the appropriate bytecode instructions for list comprehension logic.
-- **Emit Functions**: Helper functions like `emit()`, `declareLocal()`, `emitJump()`, `patchJump()`, etc., are used to simplify the emission of bytecode instructions.
+## Interactions With Other Components
 
-This comprehensive approach ensures that list comprehensions are compiled efficiently and accurately, leveraging the existing infrastructure of the Quantum Language compiler.
+- **CompilerState**: The method uses a temporary `CompilerState` (`<listcomp>`) to manage local variables and scope specifically for the list comprehension. This state is restored after the list comprehension is compiled.
+
+- **Chunk**: Bytecode is emitted into the current `Chunk`. The method manages the code generation process by emitting various opcodes such as `Op::MAKE_ARRAY`, `Op::MAKE_ITER`, `Op::FOR_ITER`, etc., and updating the chunk accordingly.
+
+- **Emit Functions**: Various helper functions like `emit`, `emitLoad`, `declareLocal`, `emitJump`, `patchJump`, `beginScope`, `endScope`, `beginLoop`, `endLoop`, etc., are used to generate specific bytecode instructions and manage the control flow.
+
+Overall, `compileListComp` effectively translates the abstract syntax tree (AST) representation of a list comprehension into low-level bytecode, making it possible for the Quantum Language runtime to execute the comprehension efficiently.

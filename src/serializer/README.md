@@ -2,97 +2,115 @@
 
 ## Overview
 
-The Serializer component is a crucial module in the Quantum Language compiler, designed to convert complex data structures into a flat, binary format for storage or transmission, and vice versa. This process enhances efficiency and maintains data integrity and compatibility throughout various stages of the compilation process.
+The Serializer component is an essential part of the Quantum Language compiler, responsible for converting complex data structures into a flat, binary format for efficient storage or transmission, and vice versa. This transformation ensures data integrity and compatibility across different phases of the compilation process.
 
 ### Key Features
 
-- **Data Conversion**: Converts complex data structures into a flat, binary format and vice versa.
-- **Efficiency**: Ensures efficient handling of data, reducing memory usage and speeding up I/O operations.
-- **Integrity**: Maintains data integrity through checksums and validation mechanisms.
-- **Compatibility**: Supports seamless data exchange between different parts of the compiler and external systems.
+- **Efficient Data Conversion**: Converts complex data structures into a compact binary format.
+- **Data Integrity**: Ensures that data remains consistent during serialization and deserialization processes.
+- **Compatibility**: Facilitates seamless data exchange between different systems and platforms.
 
-## Files and Functions
+### Directory Structure
 
-This directory contains several documented functions and files that facilitate the serialization and deserialization processes:
+This directory includes several documented functions and files:
 
-### writeRaw
-- **Description**: Writes raw bytes to the output stream.
-- **Parameters**:
-  - `data`: A pointer to the data to be written.
-  - `size`: The size of the data to be written.
-- **Returns**: None
+```
+serializer/
+├── writeRaw.cpp
+├── readRaw.cpp
+├── writeString.cpp
+├── readString.cpp
+├── writeValue.cpp
+├── readValue.cpp
+├── writeChunk.cpp
+├── readChunk.cpp
+└── serialize.cpp
+└── deserialize.cpp
+```
 
-### readRaw
-- **Description**: Reads raw bytes from the input stream.
-- **Parameters**:
-  - `data`: A pointer to the buffer where the data will be stored.
-  - `size`: The size of the data to be read.
-- **Returns**: None
+### Function Descriptions
 
-### writeString
-- **Description**: Writes a string to the output stream.
-- **Parameters**:
-  - `str`: The string to be written.
-- **Returns**: None
+1. **writeRaw**
+   - **Purpose**: Writes raw binary data to a file.
+   - **Parameters**:
+     - `std::ostream& os`: Output stream where data will be written.
+     - `const char* data`: Pointer to the raw data to be written.
+     - `size_t size`: Size of the data in bytes.
+   - **Return Value**: None.
 
-### readString
-- **Description**: Reads a string from the input stream.
-- **Parameters**:
-  - `buffer`: A pointer to the buffer where the string will be stored.
-  - `maxSize`: The maximum size of the buffer.
-- **Returns**: None
+2. **readRaw**
+   - **Purpose**: Reads raw binary data from a file.
+   - **Parameters**:
+     - `std::istream& is`: Input stream from which data will be read.
+     - `char* buffer`: Buffer where the read data will be stored.
+     - `size_t size`: Maximum number of bytes to read.
+   - **Return Value**: Number of bytes actually read.
 
-### writeValue
-- **Description**: Writes a value of any type to the output stream.
-- **Parameters**:
-  - `value`: The value to be written.
-- **Returns**: None
+3. **writeString**
+   - **Purpose**: Writes a string to a file as binary data.
+   - **Parameters**:
+     - `std::ostream& os`: Output stream where the string will be written.
+     - `const std::string& str`: String to be written.
+   - **Return Value**: None.
 
-### readValue
-- **Description**: Reads a value of any type from the input stream.
-- **Parameters**:
-  - `buffer`: A pointer to the buffer where the value will be stored.
-  - `type`: The type of the value to be read.
-- **Returns**: None
+4. **readString**
+   - **Purpose**: Reads a string from a file as binary data.
+   - **Parameters**:
+     - `std::istream& is`: Input stream from which the string will be read.
+   - **Return Value**: The read string.
 
-### writeChunk
-- **Description**: Writes a chunk of data to the output stream.
-- **Parameters**:
-  - `chunk`: The chunk of data to be written.
-- **Returns**: None
+5. **writeValue**
+   - **Purpose**: Writes a generic value to a file as binary data.
+   - **Parameters**:
+     - `std::ostream& os`: Output stream where the value will be written.
+     - `const T& value`: Generic value to be written.
+   - **Return Value**: None.
 
-### readChunk
-- **Description**: Reads a chunk of data from the input stream.
-- **Parameters**:
-  - `buffer`: A pointer to the buffer where the chunk will be stored.
-  - `size`: The size of the chunk to be read.
-- **Returns**: None
+6. **readValue**
+   - **Purpose**: Reads a generic value from a file as binary data.
+   - **Parameters**:
+     - `std::istream& is`: Input stream from which the value will be read.
+   - **Return Value**: The read generic value.
 
-### serialize
-- **Description**: Serializes a complex data structure into a binary format.
-- **Parameters**:
-  - `dataStructure`: The complex data structure to be serialized.
-- **Returns**: A binary representation of the data structure.
+7. **writeChunk**
+   - **Purpose**: Writes a chunk of data to a file.
+   - **Parameters**:
+     - `std::ostream& os`: Output stream where the chunk will be written.
+     - `const ChunkType& chunk`: Data chunk to be written.
+   - **Return Value**: None.
 
-### deserialize
-- **Description**: Deserializes a binary format back into a complex data structure.
-- **Parameters**:
-  - `binaryData`: The binary data to be deserialized.
-- **Returns**: The original complex data structure.
+8. **readChunk**
+   - **Purpose**: Reads a chunk of data from a file.
+   - **Parameters**:
+     - `std::istream& is`: Input stream from which the chunk will be read.
+   - **Return Value**: The read data chunk.
 
-## Overall Flow
+9. **serialize**
+   - **Purpose**: Serializes a complex data structure into a binary format.
+   - **Parameters**:
+     - `const ComplexDataType& data`: Complex data structure to be serialized.
+     - `std::ostream& os`: Output stream where the serialized data will be written.
+   - **Return Value**: None.
 
-1. **Initialization**: The Serializer component initializes itself, setting up necessary resources and configurations.
-2. **Serialization**:
-   - Complex data structures are passed to the `serialize` function.
-   - The function converts the data into a flat, binary format using various helper functions (`writeRaw`, `writeString`, etc.).
-3. **Transmission/Storage**:
-   - The serialized binary data is transmitted over a network or stored in a file.
-4. **Deserialization**:
-   - Upon receipt or retrieval, the binary data is passed to the `deserialize` function.
-   - The function reconstructs the original complex data structure using the appropriate helper functions (`readRaw`, `readString`, etc.`).
-5. **Validation**:
-   - The deserialized data is validated to ensure its integrity and correctness.
-6. **Cleanup**: The Serializer component cleans up any allocated resources before shutting down.
+10. **deserialize**
+    - **Purpose**: Deserializes a binary format back into a complex data structure.
+    - **Parameters**:
+      - `ComplexDataType& data`: Reference to the complex data structure where the deserialized data will be stored.
+      - `std::istream& is`: Input stream from which the serialized data will be read.
+    - **Return Value**: None.
 
-By following this flow, the Serializer component ensures that data is efficiently handled, converted, and reconstructed throughout the Quantum Language compiler's processes.
+### Overall Flow
+
+The Serializer component operates in two primary modes: serialization and deserialization.
+
+1. **Serialization**:
+   - The input complex data structure is passed to the `serialize` function.
+   - Each component of the data structure is converted into its binary representation using helper functions like `writeRaw`, `writeString`, `writeValue`, etc.
+   - The binary data is then written to the specified output stream.
+
+2. **Deserialization**:
+   - The input binary data is passed to the `deserialize` function.
+   - Helper functions like `readRaw`, `readString`, `readValue`, etc., are used to extract individual components from the binary data.
+   - These extracted components are reconstructed into the original complex data structure.
+
+By leveraging these functions, the Serializer component ensures that data can be efficiently transformed and exchanged, maintaining both performance and data integrity throughout the quantum language compilation process.

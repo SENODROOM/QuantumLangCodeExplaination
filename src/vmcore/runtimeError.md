@@ -2,32 +2,43 @@
 
 ## Overview
 
-The `runtimeError` function is a crucial component of the Quantum Language compiler's virtual machine (VM) core, found in `src/vm/VmCore.cpp`. This function is designed to manage and propagate runtime errors that occur during the execution of quantum programs. By throwing a `RuntimeError` exception, it ensures that any issues encountered can be caught and handled appropriately higher up in the call stack.
+The `runtimeError` function is an essential part of the Quantum Language compiler's virtual machine (VM) core, located in `src/vm/VmCore.cpp`. Its primary role is to handle and propagate runtime errors encountered during the execution of quantum programs. By throwing a `RuntimeError`, this function ensures that any issues that arise during program execution are immediately recognized and addressed, thereby maintaining the integrity and reliability of the VM.
 
-### Why It Works This Way
+## Parameters
 
-The function throws a `RuntimeError` exception because exceptions provide a robust mechanism for handling errors in C++. Throwing an exception allows the caller to catch and respond to the error, making the code more modular and easier to maintain. Additionally, exceptions help in propagating the error upwards until it reaches a point where it can be effectively handled or logged.
+- **msg**: A string representing the error message that describes the nature of the runtime error. This parameter provides clarity on what went wrong during the execution of the quantum program.
+- **line**: An integer indicating the line number in the source code where the runtime error occurred. This parameter helps in pinpointing the exact location of the error, making debugging easier and more efficient.
 
-## Parameters/Return Value
+## Return Value
 
-- **Parameters**:
-  - `msg`: A string message describing the error that occurred.
-  - `line`: An integer representing the line number in the source code where the error was detected.
-
-- **Return Value**: None. The function directly throws a `RuntimeError`, which means control will not return to the calling function after this method is invoked.
+This function does not return any value; instead, it throws a `RuntimeError` exception. The exception contains both the error message (`msg`) and the line number (`line`) where the error was detected.
 
 ## Edge Cases
 
-1. **Empty Message**: If an empty string is passed as the `msg` parameter, the function will still throw a `RuntimeError` with an empty message. This might lead to confusion when debugging since there won't be any descriptive information about the error.
-
-2. **Negative Line Number**: Passing a negative value for the `line` parameter could indicate a bug in the compiler itself or a misinterpretation of the source code. However, the function simply accepts the negative value without validation, which might lead to unexpected behavior or crashes if the line number is used improperly elsewhere in the code.
-
-3. **Memory Allocation Failure**: Although not directly related to the `runtimeError` function, it's worth noting that exceptions can also be thrown due to memory allocation failures. In such cases, the `runtimeError` function would be called to handle the error gracefully.
+1. **Empty Message**: If an empty string is passed as the `msg` parameter, the function will still throw a `RuntimeError`. However, the error message will be considered generic or unspecified.
+2. **Negative Line Number**: Passing a negative value for the `line` parameter will also result in a `RuntimeError` being thrown. Negative line numbers do not make sense in the context of source code lines, so they are treated as invalid input.
 
 ## Interactions with Other Components
 
-The `runtimeError` function interacts closely with the exception handling mechanisms provided by C++. When an exception is thrown using the `throw` keyword, the control flow immediately exits the current function and moves to the nearest matching `catch` block. This interaction is essential for ensuring that errors are propagated correctly throughout the program.
+The `runtimeError` function interacts closely with various components of the Quantum Language compiler:
 
-Additionally, the `runtimeError` function might interact with logging systems or user interfaces, depending on how the exception is caught and handled. For instance, a `catch` block might log the error message and line number before terminating the program or displaying an error dialog to the user.
+1. **Virtual Machine Core**: When a runtime error occurs, the `runtimeError` function is called within the VM core. It then throws a `RuntimeError` exception, which can be caught and handled at higher levels of the VM.
+2. **Error Handling Mechanism**: The function relies on the existing error handling mechanism provided by the Quantum Language compiler. Upon throwing a `RuntimeError`, the exception propagates up the call stack, allowing the compiler to respond appropriately based on how errors are configured and managed within the system.
+3. **Source Code Parsing**: The `line` parameter passed to the `runtimeError` function is typically obtained from the source code parsing process. This ensures that the error message includes accurate information about the location of the error in the original source code, facilitating effective debugging.
 
-In summary, the `runtimeError` function plays a vital role in managing runtime errors within the Quantum Language compiler's VM core. By throwing a `RuntimeError` exception, it provides a structured way to handle errors and ensures that they are propagated correctly through the program.
+## Implementation Details
+
+Here is the implementation of the `runtimeError` function:
+
+```cpp
+void VmCore::runtimeError(const std::string& msg, int line)
+{
+    throw RuntimeError(msg, line);
+}
+```
+
+In this implementation:
+- The function takes two parameters: `msg` (the error message) and `line` (the line number).
+- It directly throws a `RuntimeError` object constructed with the provided `msg` and `line`.
+
+By using the `throw` statement, the `runtimeError` function effectively communicates the error to the calling environment, ensuring that appropriate actions are taken to address the issue. This approach aligns with good software engineering practices, promoting robustness and maintainability through clear and explicit error handling.

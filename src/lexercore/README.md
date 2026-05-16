@@ -1,101 +1,58 @@
 # LexerCore Component of the Quantum Language Compiler
 
-The `lexercore` component is a fundamental module in the Quantum Language (QL) compiler responsible for converting source code into a sequence of tokens. These tokens are essential for the parser to generate an abstract syntax tree (AST). This README provides an overview of the primary functionalities and their relationships within the component.
-
 ## Overview
 
-The `lexercore` component includes several key functions that work together to tokenize the input source code:
+The `lexercore` component is a crucial module in the Quantum Language (QL) compiler that converts source code into a sequence of tokens. These tokens serve as the foundation for the parser, which then constructs an abstract syntax tree (AST). The primary goal of `lexercore` is to accurately identify and categorize the lexical elements in the input source code, ensuring that the subsequent parsing process can proceed without errors.
 
-1. **current**: Returns the current token being processed.
-2. **peek**: Looks ahead at the next token without advancing the lexer.
-3. **advance**: Advances the lexer to the next token.
+## Key Functionalities
+
+1. **current**: Retrieves the current token from the token stream.
+2. **peek**: Looks ahead at the next token in the stream without advancing the position.
+3. **advance**: Moves to the next token in the stream.
 4. **skipWhitespace**: Skips over any whitespace characters in the source code.
-5. **skipComment**: Skips over single-line comments starting with `//`.
-6. **skipBlockComment**: Skips over multi-line comments enclosed between `/*` and `*/`.
-7. **readNumber**: Reads a numeric literal from the source code.
-
-These functions collaborate to ensure that the lexer accurately identifies and categorizes different elements of the source code, such as keywords, identifiers, literals, and operators.
+5. **skipComment**: Skips over single-line comments in the source code.
+6. **skipBlockComment**: Skips over multi-line block comments in the source code.
+7. **readNumber**: Reads a numeric literal from the source code and returns it as a token.
 
 ## File Structure
 
-- **lexer.h**: Contains declarations for all public functions and classes used by the lexer.
-- **lexer.cpp**: Implements the functionality declared in `lexer.h`.
-
-## Functionality Details
-
-### current
-
-**Purpose**: Returns the current token being processed.
-
-**Usage**:
-```cpp
-Token currentToken = lexer.current();
-```
-
-### peek
-
-**Purpose**: Looks ahead at the next token without advancing the lexer.
-
-**Usage**:
-```cpp
-Token nextToken = lexer.peek();
-```
-
-### advance
-
-**Purpose**: Advances the lexer to the next token.
-
-**Usage**:
-```cpp
-lexer.advance();
-```
-
-### skipWhitespace
-
-**Purpose**: Skips over any whitespace characters in the source code.
-
-**Usage**:
-```cpp
-lexer.skipWhitespace();
-```
-
-### skipComment
-
-**Purpose**: Skips over single-line comments starting with `//`.
-
-**Usage**:
-```cpp
-lexer.skipComment();
-```
-
-### skipBlockComment
-
-**Purpose**: Skips over multi-line comments enclosed between `/*` and `*/`.
-
-**Usage**:
-```cpp
-lexer.skipBlockComment();
-```
-
-### readNumber
-
-**Purpose**: Reads a numeric literal from the source code.
-
-**Usage**:
-```cpp
-Token numberToken = lexer.readNumber();
-```
+- **LexerCore.h**: Header file containing declarations of all public functions and classes related to the lexer core.
+- **LexerCore.cpp**: Source file implementing the functionality declared in `LexerCore.h`.
 
 ## Overall Flow
 
-1. The lexer initializes with the source code.
-2. It skips over any leading whitespace using `skipWhitespace()`.
-3. If it encounters a comment (`//` or `/* */`), it skips the comment using `skipComment()` or `skipBlockComment()`, respectively.
-4. For each character in the source code, the lexer determines its type (e.g., keyword, identifier, literal).
-5. If a numeric literal is detected, it reads the entire number using `readNumber()`.
-6. The lexer advances to the next token using `advance()` after processing each element.
-7. This process continues until the end of the source code is reached.
+The typical workflow within the `lexercore` component involves the following steps:
 
-By following this flow, the `lexercore` component ensures that the source code is accurately converted into a stream of tokens, which can then be used for further parsing and semantic analysis.
+1. **Initialization**: The lexer starts by reading the first character from the input source code.
+2. **Tokenization**: It processes the input character by character, identifying and classifying them into different token types such as keywords, identifiers, literals, etc.
+3. **Skip Whitespace/Comments**: If the lexer encounters whitespace or comments, it skips them appropriately using the `skipWhitespace`, `skipComment`, and `skipBlockComment` functions.
+4. **Read Numeric Literals**: For numeric literals, the `readNumber` function is invoked to extract the entire number and return it as a token.
+5. **Generate Tokens**: As valid tokens are identified, they are generated and added to the token stream.
+6. **Advance Position**: After processing each character, the lexer advances its position in the source code using the `advance` function.
+7. **Return Current Token**: Finally, the lexer retrieves and returns the current token using the `current` function.
 
-For more detailed information on each function, refer to the individual function documentation within `lexer.h`.
+## Usage Example
+
+Here's a simple example demonstrating how to use the `lexercore` component:
+
+```cpp
+#include "LexerCore.h"
+
+int main() {
+    std::string sourceCode = "qubit q0; measure q0;";
+    LexerCore lexer(sourceCode);
+
+    while (!lexer.isAtEnd()) {
+        Token token = lexer.advance();
+        std::cout << token.toString() << std::endl;
+    }
+
+    return 0;
+}
+```
+
+In this example, the `LexerCore` object is initialized with a string representing the source code. The lexer then iterates through each token in the source code, printing out its details until the end of the input is reached.
+
+## Conclusion
+
+The `lexercore` component plays a vital role in the Quantum Language compiler by breaking down the source code into manageable tokens. Its robust implementation ensures accurate lexical analysis, enabling the parser to build a reliable AST. By understanding and utilizing the provided functions, developers can effectively integrate and extend the lexer core to support additional features and languages.

@@ -2,36 +2,45 @@
 
 ## Role in Compiler Pipeline
 
-The `VmDictMethods.cpp` file plays a crucial role in the Quantum Language compiler's virtual machine (VM) component. It provides implementations for various methods that operate on dictionary objects (`Dict`). These methods enable dictionary manipulation and retrieval operations within the quantum programming environment. By encapsulating these functionalities in this single file, the VM can efficiently handle dictionary-related tasks without requiring additional code elsewhere in the compiler.
+The `VmDictMethods.cpp` file is an essential part of the Quantum Language compiler's virtual machine (VM) component. Its primary function is to provide implementations for various methods that operate on dictionary objects (`Dict`). These methods facilitate dictionary manipulation and retrieval operations within the quantum programming environment. By encapsulating these functionalities, the VM ensures efficient handling of dictionaries during execution.
 
 ## Key Design Decisions and Why
 
-One of the key design decisions in `VmDictMethods.cpp` is the use of polymorphism through the `QuantumValue` class. This approach allows the methods to be called on any object that inherits from `QuantumValue`, ensuring flexibility and reusability across different types of quantum data structures. The decision to implement these methods directly within the VM rather than in user-defined scripts enhances performance and reduces overhead during execution.
+### Encapsulation of Dictionary Methods
 
-Another critical design choice is the handling of exceptions using custom error types (`TypeError`). This ensures that errors related to dictionary method calls are caught and handled appropriately, providing clear feedback to the programmer about what went wrong.
+Encapsulating dictionary methods within `VmDictMethods.cpp` allows for a clean separation of concerns between the VM core logic and dictionary-specific functionality. This approach enhances maintainability and scalability of the codebase.
+
+### Use of Shared Pointers
+
+Utilizing shared pointers (`std::shared_ptr`) for managing dictionary objects ensures proper memory management and prevents memory leaks. The use of smart pointers simplifies the process of reference counting and automatic deallocation.
+
+### Exception Handling
+
+Implementing exception handling through the `TypeError` class helps in providing clear error messages when unsupported methods are invoked on dictionary objects. This improves debugging and user experience.
 
 ## Major Classes/Functions Overview
 
 ### `VM::callDictMethod`
-This function serves as the entry point for calling dictionary methods. It takes three parameters:
-- A shared pointer to a `Dict` object (`dict`) representing the dictionary on which the method will be executed.
-- A string (`m`) specifying the name of the method to call.
-- A vector of `QuantumValue` objects (`args`) containing the arguments passed to the method.
 
-The function checks the method name against predefined cases and executes the corresponding functionality. For example, if the method name is `"keys"`, it retrieves all keys from the dictionary and returns them as an array.
+This function serves as the entry point for invoking dictionary methods. It takes three parameters:
+- A shared pointer to the `Dict` object.
+- A string representing the method name.
+- A vector of `QuantumValue` arguments for the method.
 
-### Error Handling
-Custom error types, such as `TypeError`, are used to handle exceptions related to invalid method calls or incorrect argument types. This ensures that the compiler can respond gracefully to errors and provide meaningful error messages to the programmer.
+Based on the method name provided, the function performs specific actions such as retrieving keys, values, items, checking for existence, getting or setting values, deleting entries, clearing the dictionary, or returning its size.
 
 ## Tradeoffs
 
-### Performance vs. Flexibility
-By implementing dictionary methods directly within the VM, we achieve better performance compared to having these methods defined in user scripts. However, this approach sacrifices some flexibility, as new methods cannot be added easily without modifying the core VM code.
-
 ### Memory Management
-Using `std::shared_ptr` for managing dictionary objects helps in reducing memory leaks and improving overall memory management. However, it may introduce some overhead due to reference counting.
+
+Using shared pointers introduces overhead associated with reference counting. However, this tradeoff is necessary for ensuring robust memory management and preventing potential memory leaks.
 
 ### Error Reporting
-While custom error types provide clear and specific error reporting, they may also increase the complexity of error handling logic within the compiler. Balancing between detailed error messages and maintainable code is a challenge.
 
-In conclusion, `VmDictMethods.cpp` is a vital component of the Quantum Language compiler's VM, offering essential dictionary manipulation capabilities with robust error handling and efficient performance.
+While exception handling provides clear error reporting, it may introduce performance overhead compared to simple conditional checks. Balancing comprehensive error handling with performance considerations is an ongoing challenge.
+
+### Code Complexity
+
+Encapsulating dictionary methods within separate files can increase the overall complexity of the project. However, this complexity is mitigated by clear separation of concerns and well-defined interfaces.
+
+In summary, the `VmDictMethods.cpp` file is a vital component of the Quantum Language compiler's VM, responsible for providing essential dictionary methods. Through careful design choices and implementation, it ensures efficient and robust dictionary handling within the quantum programming environment.

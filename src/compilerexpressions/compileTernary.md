@@ -1,52 +1,49 @@
-## `compileTernary`
+# `compileTernary`
 
-The `compileTernary` function is essential for compiling ternary expressions within the Quantum Language compiler. Ternary expressions allow for conditional evaluation, where a value is selected based on whether a specified condition is true or false. This function ensures that such expressions are correctly translated into executable bytecode.
+The `compileTernary` function plays a crucial role in the Quantum Language compiler by handling the compilation of ternary expressions. Ternary expressions provide a compact way to perform conditional evaluations, selecting one of two values based on whether a specified condition is true or false. This function ensures that the ternary expression is correctly translated into machine code instructions, maintaining the intended logic and flow control.
 
-### Parameters and Return Value
+## Parameters/Return Value
 
-- **Parameters**: 
-  - `e`: A reference to a `TernaryExpression` object representing the ternary expression to be compiled.
+- **Parameters**:
+  - `e`: A reference to a `TernaryExpression` object representing the ternary expression to be compiled. The `TernaryExpression` contains three main parts: the condition, the expression to evaluate when the condition is true (`thenExpr`), and the expression to evaluate when the condition is false (`elseExpr`).
 
 - **Return Value**:
-  - None. The function directly modifies the bytecode stream generated during compilation.
+  - None. The function directly modifies the output stream by emitting appropriate machine code instructions.
 
-### How It Works
+## How It Works
 
-1. **Condition Compilation**: 
-   - The function first compiles the condition part of the ternary expression using `compileExpr(*e.condition)`. This step evaluates the condition and prepares the necessary bytecode to jump based on its result.
+1. **Condition Compilation**: The function first compiles the condition part of the ternary expression using `compileExpr(*e.condition)`. This step evaluates the condition and sets up the necessary state for subsequent jumps.
 
-2. **False Jump Setup**:
-   - After compiling the condition, an unconditional jump (`Op::JUMP_IF_FALSE`) is emitted to skip the "then" block if the condition is false. The position of this jump is stored in `elseJump`.
+2. **False Jump Emission**: After evaluating the condition, the function emits an unconditional jump instruction (`Op::JUMP_IF_FALSE`) to skip the `thenExpr` block if the condition is false. The position of this jump is recorded in `elseJump`.
 
-3. **Then Block Compilation**:
-   - The function then compiles the "then" block of the ternary expression using `compileExpr(*e.thenExpr)`. If the condition is true, execution will proceed here.
+3. **Pop Operation**: The function then pops any unused values from the stack using `emit(Op::POP, 0, line)`, ensuring that the stack remains clean before proceeding with the next expression.
 
-4. **End Jump Setup**:
-   - An unconditional jump (`Op::JUMP`) is emitted after the "then" block to ensure that execution continues past the "else" block regardless of the condition's outcome. The position of this jump is stored in `endJump`.
+4. **True Expression Compilation**: If the condition is true, the function compiles the `thenExpr` block using `compileExpr(*e.thenExpr)`.
 
-5. **Patch False Jump**:
-   - The `patchJump(elseJump)` function is called to update the jump instruction at `elseJump` with the correct target address. This ensures that if the condition is false, the program jumps to the "else" block.
+5. **End Jump Emission**: Following the compilation of the `thenExpr`, another unconditional jump instruction (`Op::JUMP`) is emitted to skip over the `elseExpr` block. The position of this jump is recorded in `endJump`.
 
-6. **Else Block Compilation**:
-   - The function compiles the "else" block of the ternary expression using `compileExpr(*e.elseExpr)`. This block executes if the condition is false.
+6. **Patch False Jump**: The function patches the jump emitted at `elseJump` using `patchJump(elseJump)`. This operation adjusts the jump target to point to the beginning of the `elseExpr` block, effectively redirecting execution if the condition was false.
 
-7. **Patch End Jump**:
-   - Finally, `patchJump(endJump)` updates the jump instruction at `endJump` to point to the next instruction after the ternary expression. This prevents any unintended jumps beyond the ternary construct.
+7. **Pop Operation**: Another pop operation is performed to remove any values left on the stack after the `thenExpr` has been evaluated.
 
-### Edge Cases
+8. **False Expression Compilation**: If the condition was false, the function compiles the `elseExpr` block using `compileExpr(*e.elseExpr)`.
 
-- **Empty Condition**: If the condition itself is empty or not properly formed, the function should handle it gracefully, possibly throwing an error or generating a default behavior.
-  
-- **Complex Expressions**: The function must be able to handle complex expressions nested within the condition, "then," and "else" blocks without causing errors.
+9. **Patch End Jump**: Finally, the function patches the jump emitted at `endJump` using `patchJump(endJump)`. This operation ensures that the program continues executing after the ternary expression has been fully evaluated.
 
-- **Type Mismatch**: Ensure that the types returned by the "then" and "else" blocks match. If they do not, type casting or conversion mechanisms should be invoked.
+## Edge Cases
 
-### Interactions with Other Components
+- **Empty Condition**: If the condition part of the ternary expression is empty, the function should handle this gracefully without causing errors. In such cases, the `thenExpr` would always be executed regardless of the condition's truthiness.
 
-- **Bytecode Emission**: The `emit` function is used to generate bytecode instructions. It interacts closely with the `Op` enum which defines various operation codes.
+- **Nested Ternary Expressions**: The function must be able to handle nested ternary expressions correctly. Proper scoping and state management are required to ensure that each ternary expression operates independently of others.
 
-- **Jump Patching**: The `patchJump` function modifies existing jump instructions to change their targets. This interaction is crucial for maintaining control flow integrity in the compiled code.
+- **Side Effects**: Both the `thenExpr` and `elseExpr` may have side effects. The function should carefully manage these side effects to avoid unintended behavior during compilation.
 
-- **Error Handling**: The function may interact with error handling mechanisms to report issues related to malformed ternary expressions or incompatible types.
+## Interactions with Other Components
 
-By carefully managing these steps, the `compileTernary` function ensures that ternary expressions are accurately compiled into bytecode, facilitating efficient execution in the Quantum Language environment.
+- **Instruction Emitter**: The `compileTernary` function interacts closely with the instruction emitter component, which handles the actual generation of machine code instructions. Functions like `emitJump`, `emit`, and `patchJump` are used extensively to construct the correct sequence of instructions.
+
+- **Symbol Table**: The function might also interact with the symbol table to resolve variables and functions used within the ternary expression. This ensures that all references are correctly handled and that the compiler can generate valid machine code.
+
+- **Error Handling**: During the compilation process, the function should integrate with the error handling mechanism to report any issues encountered during the compilation of the ternary expression. This includes syntax errors, type mismatches, and other potential problems.
+
+By understanding how `compileTernary` functions, developers can better grasp the inner workings of the Quantum Language compiler and make informed decisions about extending or modifying its functionality to support additional features or optimizations.

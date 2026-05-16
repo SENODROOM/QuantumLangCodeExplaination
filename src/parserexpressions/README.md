@@ -1,46 +1,53 @@
 # ParserExpressions
 
-The `ParserExpressions` component is a crucial part of the Quantum Language compiler, responsible for parsing and interpreting expressions within quantum programs. This module includes a variety of functions designed to handle different types of operators and expressions, ensuring precise syntax and semantic comprehension during the execution of quantum code.
+The `ParserExpressions` component is an essential part of the Quantum Language compiler, tasked with parsing and interpreting expressions found within quantum programs. This module encompasses a diverse array of functions tailored to manage various operator and expression types, thereby guaranteeing accurate syntax and semantic understanding as quantum code executes.
 
 ## Overview
 
-The `ParserExpressions` component operates as a central hub for expression parsing in the Quantum Language compiler. It consists of several functions that cater to various arithmetic, logical, and bitwise operations. These functions work together seamlessly to provide a comprehensive solution for parsing complex quantum expressions.
+The `ParserExpressions` component serves as the core engine for evaluating quantum expressions. It processes input strings representing quantum operations and translates them into executable instructions. The component operates in conjunction with other modules such as `Lexer`, `SymbolTable`, and `Optimizer`.
 
-### Key Functions
+### Flowchart
 
-- **parseAssignment**: Parses assignment statements, such as `qubit = 0`.
-- **parseOr**: Handles the logical OR operation (`||`).
-- **parseAnd**: Manages the logical AND operation (`&&`).
-- **parseBitwise**: Processes bitwise operations like AND (`&`), OR (`|`), XOR (`^`), NOT (`~`), left shift (`<<`), and right shift (`>>`).
-- **parseEquality**: Interprets equality checks using `==` and inequality checks using `!=`.
-- **parseComparison**: Evaluates comparison operations including greater than (`>`), less than (`<`), greater than or equal to (`>=`), and less than or equal to (`<=`).
-- **parseShift**: Parses shift operations (`<<` and `>>`).
-- **parseAddSub**: Handles addition and subtraction operations (`+` and `-`).
-- **parseMulDiv**: Processes multiplication and division operations (`*` and `/`).
+```
+Input String -> Lexer -> Tokens -> ParserExpressions -> AST -> Optimizer -> Executable Code
+```
+
+1. **Lexer**: Converts the input string into tokens based on language grammar rules.
+2. **Tokens**: A sequence of token objects representing individual elements of the input string.
+3. **ParserExpressions**: Parses the tokens to construct an Abstract Syntax Tree (AST) that represents the structure of the quantum expression.
+4. **AST**: A tree-like representation of the parsed quantum expression, facilitating further processing and optimization.
+5. **Optimizer**: Refines the AST to enhance performance and efficiency.
+6. **Executable Code**: Translated AST into optimized quantum code ready for execution.
+
+## Functions/Files
+
+- **parseAssignment**: Handles assignment expressions like `a = b`.
+- **parseOr**: Processes logical OR operations (`||`).
+- **parseAnd**: Manages logical AND operations (`&&`).
+- **parseBitwise**: Interprets bitwise operations like `&`, `|`, `^`, `~`, `<<`, and `>>`.
+- **parseEquality**: Evaluates equality checks using `==` and `!=`.
+- **parseComparison**: Performs comparison operations such as `<`, `<=`, `>`, and `>=`.
+- **parseShift**: Handles shift operations (`<<` and `>>`).
+- **parseAddSub**: Processes addition and subtraction operations (`+` and `-`).
+- **parseMulDiv**: Manages multiplication and division operations (`*` and `/`).
 - **parsePower**: Interprets power operations (`**`).
+- **parseUnary**: Handles unary operations like `!`, `-`, `+`, `~`, `++`, and `--`.
 
-### Directory Structure
+Each function is meticulously designed to parse specific types of expressions and ensure they adhere to the Quantum Language's syntax and semantics.
 
+## Usage
+
+To utilize the `ParserExpressions` component, include it in your project and call the appropriate function based on the type of expression you wish to parse:
+
+```cpp
+#include "ParserExpressions.h"
+
+int main() {
+    std::string input = "a = b + c";
+    ASTNode* ast = parseAssignment(input);
+    // Further processing...
+    return 0;
+}
 ```
-parserexpressions/
-├── include/
-│   ├── parserexpressions.hpp
-│   └── ...
-└── src/
-    ├── parserexpressions.cpp
-    └── ...
-```
 
-### Files
-
-- **include/parserexpressions.hpp**: Contains declarations for all public functions and classes related to expression parsing.
-- **src/parserexpressions.cpp**: Implements the logic for all the declared functions, providing detailed handling of various quantum expressions.
-
-### Overall Flow
-
-1. **Tokenization**: The input quantum program is first tokenized into individual tokens.
-2. **Parsing**: Each token is passed through the appropriate function in the `ParserExpressions` component based on its type (e.g., arithmetic operator, bitwise operator).
-3. **Interpretation**: The parsed expressions are then interpreted to execute the corresponding quantum operations.
-4. **Error Handling**: Throughout the process, error handling mechanisms ensure that any incorrect syntax or semantic issues are caught and reported appropriately.
-
-By leveraging the `ParserExpressions` component, the Quantum Language compiler can effectively parse and execute a wide range of quantum expressions, facilitating the development and testing of advanced quantum algorithms.
+By leveraging the `ParserExpressions` component, developers can effectively parse and interpret quantum expressions, enabling the creation of robust and efficient quantum programs.

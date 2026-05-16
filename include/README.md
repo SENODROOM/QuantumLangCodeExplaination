@@ -2,76 +2,68 @@
 
 ## Overview
 
-The `include/Vm.h` header file forms an essential part of the QuantumLanguage compiler, primarily responsible for defining the virtual machine (VM) that executes compiled code. The VM manages execution contexts, handles exceptions, and maintains the runtime environment, ensuring efficient and accurate execution of the program.
+The `include/Vm.h` header file is a crucial component of the QuantumLanguage compiler, focusing on defining the virtual machine (VM) that executes compiled code. This VM plays a pivotal role in managing execution contexts, handling exceptions, and maintaining the runtime environment, thereby ensuring efficient and accurate execution of the program.
 
 ## Role in Compiler Pipeline
 
-The VM operates as a central component within the compiler's execution phase. It takes the output from the compilation process, which consists of bytecode instructions stored in chunks, and interprets them to produce the desired results. The VM is integral to the overall flow of the compiler, facilitating the transition from source code to executable programs.
+The VM acts as the heart of the QuantumLanguage interpreter, taking the output from the bytecode generation phase and executing it. It bridges the gap between the compiled code and the host environment, providing necessary functionalities such as memory management, function calling, and error handling.
 
 ### Key Design Decisions and Why
 
-1. **Separation of Concerns**: By encapsulating the VM logic within its own header file, the design ensures that the core components of the compiler remain modular and manageable. This separation allows developers to focus on specific aspects of the compiler without being overwhelmed by complex interactions.
+1. **Separation of Concerns**: By encapsulating the VM logic within its own class, the design ensures that the core components of the interpreter remain isolated from other parts of the compiler, enhancing maintainability and scalability.
 
-2. **Efficient Memory Management**: Utilizing smart pointers (`std::shared_ptr`) for managing memory associated with closures, upvalues, and other dynamic data structures helps prevent memory leaks and reduces the overhead of manual memory management.
+2. **Runtime Environment Management**: The VM maintains a runtime environment including the value stack, call frames, and exception handlers. This design allows for dynamic changes during execution, accommodating features like recursion and exception handling.
 
-3. **Exception Handling**: The inclusion of an exception handler mechanism enables the VM to gracefully manage errors during execution. This feature is critical for maintaining robustness and reliability in the compiler's output.
+3. **Efficient Memory Management**: Using smart pointers (`std::shared_ptr`, `std::unique_ptr`) for managing memory helps prevent memory leaks and dangling references, ensuring robustness and performance.
 
-4. **Runtime Environment**: The VM maintains a runtime environment that includes a value stack, call frames, and a list of open upvalues. These elements provide the necessary context for executing functions and handling local variables efficiently.
+4. **Flexibility with Upvalues**: The VM supports upvalues, which are used to capture local variables from enclosing functions. This feature enables closures and provides flexibility in managing variable lifetimes.
 
 ## Major Classes/Functions Overview
 
 ### Upvalue
-
-- **Purpose**: Represents a heap cell for captured variables, used in closures to maintain references to outer function variables even after the outer function has returned.
+- **Purpose**: Represents a heap cell for captured variables, allowing them to be accessed even after they have left the stack scope.
 - **Key Features**:
   - `cell`: A shared pointer to the live value.
-  - `closed`: Storage for the value after it leaves the stack.
+  - `closed`: Storage for the value after it has been captured.
 
 ### Closure
-
-- **Purpose**: Encapsulates a chunk of bytecode along with any upvalues it needs to access variables from enclosing scopes.
+- **Purpose**: Encapsulates a chunk of bytecode along with its upvalues and name.
 - **Key Features**:
   - `chunk`: Shared pointer to the bytecode chunk.
   - `upvalues`: Vector of shared pointers to upvalues.
-  - `name`: Name of the closure, typically derived from the chunk's name.
+  - `name`: Name associated with the closure, typically the function name.
 
 ### CallFrame
-
-- **Purpose**: Stores information about a function call, including the closure being executed, the instruction pointer, and the base index for local variables on the value stack.
+- **Purpose**: Manages the execution context for each function call, storing information about the current function's closure, instruction pointer, and stack base.
 - **Key Features**:
-  - `closure`: Shared pointer to the closure being called.
-  - `ip`: Instruction pointer indicating the current position in the bytecode.
-  - `stackBase`: Index on the value stack where local variables begin.
+  - `closure`: Shared pointer to the current function's closure.
+  - `ip`: Instruction pointer indicating the next bytecode instruction to execute.
+  - `stackBase`: Index marking the beginning of local variables on the value stack.
 
 ### ExceptionHandler
-
 - **Purpose**: Defines how the VM should handle exceptions, including the target IP to jump to and the depths of the call stack and value stack to unwind and restore.
 - **Key Features**:
   - `catchIp`: Target IP for exception handling.
-  - `frameDepth`: Depth of the call stack to unwind upon exception.
+  - `frameDepth`: Depth of call frames to unwind upon exception.
   - `stackDepth`: Depth of the value stack to restore upon exception.
 
 ### VM Class
-
-- **Overview**: Manages the execution of bytecode, providing methods to run chunks, handle exceptions, and manipulate the runtime environment.
-- **Key Functions**:
+- **Overview**: The main class representing the virtual machine, responsible for running chunks of bytecode, managing the runtime environment, and handling exceptions.
+- **Key Methods**:
   - `run(std::shared_ptr<Chunk> chunk)`: Executes a top-level script represented by a chunk of bytecode.
-  - `registerNatives()`: Registers native functions that can be invoked from the bytecode.
-  - `runFrame(size_t stopDepth = 0)`: Runs a single call frame until a specified stop depth is reached.
-  - `push(QuantumValue v)`, `pop()`, `peek(int offset = 0)`: Manage the value stack, allowing values to be pushed onto, popped from, or peeked at.
+  - `registerNatives()`: Registers native functions that can be called from the bytecode.
+  - `runFrame(size_t stopDepth = 0)`: Runs the current call frame until a specified stop depth or completion.
+  - `push(QuantumValue v)`, `pop()`, `peek(int offset = 0)`: Manage the value stack, pushing values onto it, popping values off it, and peeking at values without removing them.
+  - `callValue(QuantumValue callee, int argCount, int line)`, `callClosure(std::shared_ptr<Closure> closure, int argCount, int line)`, `callNativeFn(std::shared_ptr<QuantumNative> fn, int argCount, int line)`, `callClass(std::shared_ptr<QuantumClass> klass, int argCount, int line)`, `callBuiltinMethod(...)`: Handle different types of function calls, including native functions, closures, and built-in methods.
 
 ## Tradeoffs
 
-### Performance vs. Memory Usage
+1. **Memory Overhead**: Using smart pointers introduces some overhead compared to raw pointers, but enhances safety and reduces manual memory management errors.
 
-- **Performance**: Using smart pointers for memory management can introduce some overhead compared to raw pointers. However, this tradeoff is justified by the benefits of automatic memory deallocation and reduced risk of memory leaks.
-  
-- **Memory Usage**: Smart pointers ensure that memory is only freed when it is no longer needed, which can lead to higher memory usage compared to manual memory management. This tradeoff is mitigated by careful design and optimization techniques.
+2. **Complexity**: The separation of concerns into multiple classes increases complexity, making the codebase harder to understand and maintain. However, it also improves modularity and reusability.
 
-### Simplicity vs. Complexity
+3. **Performance**: While the use of smart pointers adds some overhead, the overall design aims to provide a flexible and safe runtime environment, which can lead to better performance through improved error handling and easier debugging.
 
-- **Simplicity**: Keeping the VM logic separate from other parts of the compiler simplifies the codebase and makes it easier to understand and maintain.
-  
-- **Complexity**: While the separation improves simplicity, it also adds complexity due to the need for proper synchronization and communication between different parts of the compiler.
+4. **Resource Usage**: Managing resources explicitly via call frames and upvalues requires careful handling to avoid resource leaks or premature deallocation, impacting both memory usage and performance.
 
-In conclusion, the `Vm.h` header file plays a pivotal role in the QuantumLanguage compiler by defining the virtual machine that executes compiled code. Its design choices, such as using smart pointers for memory management and incorporating an exception handler, balance performance, memory usage, and simplicity, contributing to the overall efficiency and reliability of the compiler.
+By understanding these aspects, developers can effectively utilize the VM class and related structures to build powerful and reliable interpreters for QuantumLanguage.

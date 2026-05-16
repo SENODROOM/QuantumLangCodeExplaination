@@ -2,38 +2,36 @@
 
 ## Overview
 
-The `parseArrayLiteral` function is an essential part of the Quantum Language Compiler's parser module, responsible for interpreting and converting array literals from the source code into Abstract Syntax Tree (AST) nodes. This function can process both traditional array literals and list comprehensions, providing flexibility in how arrays are defined within the language.
+The `parseArrayLiteral` function is a crucial component of the Quantum Language Compiler's parser module, designed to interpret and convert array literals from the source code into Abstract Syntax Tree (AST) nodes. This function effectively handles both regular array literals and list comprehensions, ensuring that the syntax is correctly parsed and represented in the AST.
 
 ### Why It Works This Way
 
-The design of `parseArrayLiteral` allows for the differentiation between regular array literals and list comprehensions by examining the syntax immediately following the opening bracket `[`. If the next token is `for`, the function assumes that a list comprehension is being parsed. Otherwise, it processes a regular array literal. This approach ensures that the parser can correctly identify and handle different types of array definitions without ambiguity.
+The design of `parseArrayLiteral` allows for flexible parsing of arrays by checking for different tokens such as `[`, `]`, `for`, `in`, `of`, and `if`. This approach ensures that the function can handle various forms of array literals without requiring additional parsing logic elsewhere in the compiler.
 
-## Parameters and Return Value
+## Parameters/Return Value
 
 - **Parameters**:
-  - None explicitly listed as parameters; however, the function relies on global state such as the current token (`current()`) and methods like `expect`, `consume`, and `skipNewlines`.
+  - None explicitly listed in the provided snippet; however, based on typical parser implementations, it likely takes a reference to the lexer or token stream (`current()`) to determine the next token type and advance through the input.
 
 - **Return Value**:
-  - Returns a unique pointer to an `ASTNode` containing either an `ArrayLiteral` or a `ListComp` depending on whether the input represents a traditional array or a list comprehension.
+  - Returns a unique pointer to an `ASTNode` representing the parsed array literal or list comprehension. The node contains either an `ArrayLiteral` object (for regular arrays) or a `ListComp` object (for list comprehensions).
 
 ## Edge Cases
 
-1. **Empty Array**: The function handles empty arrays gracefully by checking if the next token is `]` after `[`. If so, it returns an `ArrayLiteral` node with no elements.
+1. **Empty Array Literal**: If the parser encounters an empty array literal (`[]`), it correctly returns an `ASTNode` containing an `ArrayLiteral` object with no elements.
    
-2. **List Comprehension Without Condition**: A list comprehension can be defined without a filtering condition. In such cases, the function parses the expressions and variables but skips the condition check.
+2. **Regular Array Literals**: The function parses regular array literals by repeatedly calling `parseExpr()` until a closing bracket (`]`) is encountered. Each parsed expression is added to the `ArrayLiteral` object's `elements`.
 
-3. **Tuple Unpacking in List Comprehension**: The function supports tuple unpacking in list comprehensions, allowing multiple variables to be assigned values from each iteration of the iterable.
+3. **List Comprehensions**: For list comprehensions, the function supports multiple variables in the loop (`for k, v in ...`). It also allows optional filtering conditions (`if condition`). If these features are not used, the function falls back to parsing a regular array literal.
 
-4. **Syntax Errors**: If the expected tokens are not found during parsing, the function throws a `ParseError` indicating the issue and its location in the source code.
+4. **Syntax Errors**: The function includes error handling to ensure that required tokens (`[`, `]`, `for`, `in`, etc.) are present at the correct positions. If any expected token is missing, it throws a `ParseError` indicating the issue.
 
 ## Interactions with Other Components
 
-- **Tokenizer**: The function uses the tokenizer to retrieve and examine the current token (`current()`). It also consumes tokens using `consume()` when they match expected patterns.
+- **Lexer**: The function relies on the lexer to provide the next token in the input stream. This interaction is critical for determining the structure of the array literal being parsed.
 
-- **Expression Parser**: For both traditional array literals and list comprehensions, the function calls `parseExpr()` to parse individual expressions within the array. This method is likely defined elsewhere in the parser module and is responsible for handling various expression types.
+- **Abstract Syntax Tree (AST)**: The parsed array literal or list comprehension is encapsulated within an `ASTNode`. This node is then used by subsequent phases of the compiler (e.g., semantic analysis, code generation) to understand the structure and semantics of the program.
 
-- **Error Handling**: The function includes error handling mechanisms to manage unexpected tokens. When a required token is not found, it throws a `ParseError` with details about the missing token and its position.
+- **Error Handling**: The function integrates with the error handling mechanism of the compiler. In case of syntax errors, it throws exceptions that are caught and handled by higher-level components, providing feedback to the user about the nature and location of the error.
 
-- **Skip Newlines**: To maintain consistency in parsing across lines, the function uses `skipNewlines()` to ignore any newline characters encountered during the parsing process.
-
-Overall, `parseArrayLiteral` plays a critical role in the Quantum Language Compiler's ability to accurately interpret and convert array literals from source code into a structured format suitable for further compilation steps. Its flexible design and robust error handling make it well-suited for handling complex array definitions in the language.
+Overall, `parseArrayLiteral` plays a vital role in accurately parsing array literals and list comprehensions, contributing to the robustness and correctness of the compiled quantum programs.

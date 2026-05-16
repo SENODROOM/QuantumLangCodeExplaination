@@ -1,44 +1,31 @@
 # vmdictmethods
 
-The `vmdictmethods` component is an integral part of the Quantum Language (QL) compiler, designed to handle and optimize operations on dictionary objects within the QL framework. This component ensures that dictionary-related functionalities are executed efficiently and seamlessly.
+The `vmdictmethods` component is an essential part of the Quantum Language (QL) compiler, dedicated to handling and optimizing operations on dictionary objects within the QL framework. This component guarantees efficient and seamless execution of dictionary-related functionalities.
 
 ## Overview
 
-Dictionaries in the QL language serve as fundamental data structures for storing and retrieving key-value pairs. The `vmdictmethods` component plays a pivotal role in managing these dictionaries by providing optimized implementations of various dictionary methods. These methods include insertion, deletion, lookup, and iteration, among others.
+Dictionaries in the QL language act as foundational data structures for managing and retrieving key-value pairs. The `vmdictmethods` component processes these dictionaries, enabling various operations such as insertion, deletion, and lookup. By optimizing these operations, the component enhances the performance of the entire QL compiler.
 
 ### Key Features
 
-- **Efficient Dictionary Operations**: Optimized methods for common dictionary operations, enhancing performance.
+- **Efficient Dictionary Operations**: Optimizes common dictionary operations like insertions, deletions, and lookups.
 - **Seamless Integration**: Ensures smooth integration of dictionary methods into the broader QL compiler architecture.
-- **Error Handling**: Robust error handling mechanisms to manage exceptions during dictionary operations.
+- **Function Documentation**: Provides detailed documentation for all functions related to dictionary operations.
 
-### Files and Functions
+## Directory Structure
 
-The `vmdictmethods` component consists of several files and functions that work together to provide comprehensive dictionary management capabilities. Below is an overview of the main components:
+This directory includes the following files:
 
-#### callDictMethod
+- `callDictMethod.cpp`: Contains the implementation of the `callDictMethod` function, which handles the invocation of dictionary methods.
+- `README.md`: This file provides an overview of the `vmdictmethods` component and its functionality.
 
-The `callDictMethod` function is central to the `vmdictmethods` component. It handles the invocation of various dictionary methods based on the method name provided. This function ensures that the correct method implementation is called and manages any necessary parameters and return values.
+## Flow
 
-```cpp
-// Example usage of callDictMethod
-void exampleUsage() {
-    std::string methodName = "insert";
-    std::map<std::string, int> dict;
-    std::string key = "exampleKey";
-    int value = 42;
+1. **Input Parsing**: The QL compiler parses the input code to identify dictionary operations.
+2. **Dictionary Method Invocation**: The `callDictMethod` function is invoked to process these operations.
+3. **Optimization**: The `vmdictmethods` component optimizes the dictionary operations based on their complexity and usage patterns.
+4. **Output Generation**: The optimized dictionary operations are then used to generate the final compiled output.
 
-    callDictMethod(dict, methodName, key, value);
-}
-```
+By following this flow, the `vmdictmethods` component ensures that dictionary operations are handled efficiently, contributing to the overall performance of the QL compiler.
 
-### Overall Flow
-
-1. **Initialization**: The `vmdictmethods` component initializes the necessary resources required for dictionary management.
-2. **Method Invocation**: When a dictionary method is invoked, the `callDictMethod` function determines which method implementation should be used based on the method name.
-3. **Parameter Handling**: The function processes any parameters passed to the method, ensuring they are correctly formatted and validated.
-4. **Execution**: The selected method implementation is executed, performing the desired operation on the dictionary.
-5. **Return Value Management**: After execution, the function manages the return value, if applicable, ensuring it is returned to the caller in a consistent manner.
-6. **Cleanup**: Finally, the component cleans up any temporary resources or state changes made during the method execution.
-
-By following this structured approach, the `vmdictmethods` component ensures that all dictionary operations are handled efficiently and effectively, contributing to the overall robustness and performance of the Quantum Language compiler.
+For more detailed information on each function and its implementation, refer to the individual documentation files within this directory.

@@ -1,33 +1,33 @@
 # parseReturnStmt
 
 ## Purpose
-The `parseReturnStmt` function is responsible for parsing a return statement in the Quantum Language compiler's parser. It constructs an abstract syntax tree (AST) node representing the return statement and any associated expressions. The main goal is to ensure that the return statement is correctly parsed and that the resulting AST accurately reflects the structure of the code.
+The `parseReturnStmt` function is designed to parse a return statement within the Quantum Language compiler's parser. Its primary role is to construct an abstract syntax tree (AST) node that accurately represents the return statement and any associated expressions. This ensures that the compiler can correctly interpret and process the return statement during compilation.
 
-## Parameters
-- None
-
-## Return Value
-- An `ASTNodePtr` object pointing to the newly created AST node representing the return statement.
+## Parameters/Return Value
+- **Parameters**: None
+- **Return Value**: An `ASTNodePtr` object representing the parsed return statement. If there is no expression following the `return` keyword, the returned node will contain a `nullptr`.
 
 ## How It Works
-1. **Initialization**: The function starts by recording the current line number (`ln`) using the `current().line` method.
-2. **Expression Parsing**: If the next token is not a newline, semicolon, or end of file, the function attempts to parse an expression using the `parseExpr()` method. This expression represents the value being returned.
-3. **Tuple Handling**: If the next token after the expression is a comma, indicating a tuple return, the function enters a loop to handle multiple elements:
-   - A `TupleLiteral` object is initialized to store the elements of the tuple.
-   - The first element of the tuple is added to the `tup.elements` vector.
-   - The function then continues to parse additional expressions separated by commas until it encounters a newline, semicolon, or reaches the end of the file.
-4. **Whitespace Consumption**: After parsing the return value(s), the function consumes any trailing newlines or semicolons using a loop that checks for these tokens and calls the `consume()` method.
-5. **Return Statement Node Creation**: Finally, the function creates an `ASTNode` object containing a `ReturnStmt` with the parsed value(s) and returns it.
+1. **Initialization**: The function begins by storing the current line number (`ln`) using `current().line`.
+2. **Expression Parsing**: 
+   - If the next token is not a newline, semicolon, or end of file, the function attempts to parse an expression using `parseExpr()`. This expression could be a single value or part of a tuple.
+3. **Tuple Handling**:
+   - If the next token is a comma (`TokenType::COMMA`), indicating a tuple return, the function enters a loop to parse additional elements of the tuple.
+   - Each element is added to a `TupleLiteral` object, which is then moved into an `ASTNode` object.
+4. **Whitespace Consumption**:
+   - After parsing the expression(s), the function consumes any trailing newlines or semicolons until it reaches the end of the statement.
+5. **Return Statement Construction**:
+   - Finally, the function creates an `ASTNode` containing a `ReturnStmt` object, which holds the parsed expression(s). This node is returned as the result of the function.
 
 ## Edge Cases
-- **Empty Return Statement**: If there is no expression following the `return` keyword, the function will simply create a `ReturnStmt` without a value.
-- **Single Expression Return**: If only one expression follows the `return` keyword, it is treated as a single-element tuple.
-- **Multiple Expressions Return**: If multiple expressions follow the `return` keyword, they are collected into a tuple.
-- **Trailing Whitespace**: Any trailing newlines or semicolons after the return statement are consumed to maintain consistent parsing behavior.
+- **Empty Return Statement**: If the return statement does not include an expression (e.g., `return;`), the function returns a node with a `nullptr` for the expression.
+- **Single Expression**: If the return statement contains only one expression (e.g., `return x;`), the function parses and returns that expression directly.
+- **Tuple Expressions**: If the return statement includes multiple expressions separated by commas (e.g., `return a, b, c;`), the function correctly handles them as a tuple literal.
+- **Trailing Whitespace**: The function ignores any trailing newlines or semicolons after the return expression, ensuring that the AST remains clean and consistent.
 
-## Interactions With Other Components
-- **Tokenizer**: The `current()` and `consume()` methods rely on the tokenizer to provide the next token and advance through the input stream, respectively.
-- **Error Handling**: While not explicitly shown in the provided code snippet, the tokenizer and parser should be equipped with error handling mechanisms to manage unexpected tokens or malformed statements gracefully.
-- **Abstract Syntax Tree (AST)**: The function interacts with the AST by creating nodes for the return statement and its associated values. These nodes are used throughout the compilation process to represent the syntactic structure of the code.
+## Interactions with Other Components
+- **Tokenizer**: The function uses tokens provided by the tokenizer to determine the structure of the return statement.
+- **Error Handling**: While not explicitly shown in the code snippet, the function likely interacts with error handling mechanisms to report issues such as missing expressions or unexpected tokens.
+- **Scope Management**: The function may interact with scope management to ensure that variables referenced in the return statement are valid and accessible within their respective scopes.
 
-This function ensures that return statements are correctly parsed and represented in the AST, facilitating further processing during the compilation phase.
+By carefully parsing return statements and constructing appropriate AST nodes, `parseReturnStmt` plays a crucial role in the Quantum Language compiler's ability to accurately represent and compile quantum programs.

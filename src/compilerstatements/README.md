@@ -1,93 +1,83 @@
 # compilerstatements
 
-The `compilerstatements` component is a vital part of the Quantum Language (QL) compiler, designed to parse and compile various quantum statements. This component ensures accurate interpretation and transformation of quantum code into executable instructions for quantum hardware.
+The `compilerstatements` component is a crucial module within the Quantum Language (QL) compiler, responsible for parsing and compiling various quantum statements. This component ensures that quantum code is accurately interpreted and transformed into executable instructions for quantum hardware.
 
 ## Overview
 
-The `compilerstatements` component handles the compilation of fundamental quantum constructs such as variable declarations, function definitions, class structures, conditional statements, loops, returns, prints, inputs, exception handling, and identifiers. Each construct is parsed and compiled according to its specific rules and semantics, ensuring compatibility with quantum hardware.
+The `compilerstatements` component processes different types of quantum statements such as variable declarations, function definitions, class definitions, conditional statements, loops, returns, prints, inputs, try-except blocks, raises, and identifiers. It plays a pivotal role in the compilation process by converting high-level quantum constructs into low-level machine instructions.
 
-### Key Files and Functions
+### File Structure
 
-1. **compileVarDecl**: Compiles variable declarations in quantum code.
-2. **compileFunctionDecl**: Compiles function declarations, including their bodies.
-3. **compileClassDecl**: Compiles class declarations, defining quantum objects and their methods.
-4. **compileIf**: Compiles conditional statements (`if`, `elif`, `else`).
-5. **compileWhile**: Compiles while loops.
-6. **compileFor**: Compiles for loops.
-7. **compileReturn**: Compiles return statements.
-8. **compilePrint**: Compiles print statements for debugging purposes.
-9. **compileInput**: Compiles input statements to receive data from users or external sources.
-10. **compileTry**: Compiles try-except blocks for error handling.
-11. **compileRaise**: Compiles raise statements to throw exceptions.
-12. **compileIdentifier**: Compiles identifier references, managing scope and resolution.
+- **compileVarDecl.cpp**: Handles the compilation of variable declarations.
+- **compileFunctionDecl.cpp**: Manages the compilation of function definitions.
+- **compileClassDecl.cpp**: Processes the compilation of class declarations.
+- **compileIf.cpp**: Compiles conditional statements (`if`, `elif`, `else`).
+- **compileWhile.cpp**: Translates while loops into executable instructions.
+- **compileFor.cpp**: Converts for loops into appropriate machine code.
+- **compileReturn.cpp**: Handles the compilation of return statements.
+- **compilePrint.cpp**: Compiles print statements to output operations.
+- **compileInput.cpp**: Translates input statements to capture user data.
+- **compileTry.cpp**: Processes try-except blocks for error handling.
+- **compileRaise.cpp**: Compiles raise statements to handle exceptions.
+- **compileIdentifier.cpp**: Manages the compilation of identifier references.
 
-These functions work together to form a comprehensive system for compiling quantum statements, ensuring that the resulting code is both syntactically correct and semantically meaningful.
-
-## Directory Structure
+## Flow Diagram
 
 ```
-compilerstatements/
-├── include/
-│   ├── compilerstatements.h
-│   └── ...
-├── src/
-│   ├── compileVarDecl.cpp
-│   ├── compileFunctionDecl.cpp
-│   ├── compileClassDecl.cpp
-│   ├── compileIf.cpp
-│   ├── compileWhile.cpp
-│   ├── compileFor.cpp
-│   ├── compileReturn.cpp
-│   ├── compilePrint.cpp
-│   ├── compileInput.cpp
-│   ├── compileTry.cpp
-│   ├── compileRaise.cpp
-│   └── compileIdentifier.cpp
-└── tests/
-    ├── testCompileVarDecl.cpp
-    ├── testCompileFunctionDecl.cpp
-    ├── testCompileClassDecl.cpp
-    ├── testCompileIf.cpp
-    ├── testCompileWhile.cpp
-    ├── testCompileFor.cpp
-    ├── testCompileReturn.cpp
-    ├── testCompilePrint.cpp
-    ├── testCompileInput.cpp
-    ├── testCompileTry.cpp
-    ├── testCompileRaise.cpp
-    └── testCompileIdentifier.cpp
++-------------------+
+|   Parse Statement   |
++---------+---------+
+          |
+          v
++---------+---------+
+|  Analyze Statement  |
++---------+---------+
+          |
+          v
++---------+---------+
+| Compile Statement   |
++---------+---------+
+          |
+          v
++---------+---------+
+| Generate Code     |
++-------------------+
 ```
 
-- **include/**: Contains header files for public interfaces.
-- **src/**: Source code implementation of the compiler statements.
-- **tests/**: Unit tests to verify the correctness of the compiler statements.
+1. **Parse Statement**: The parser reads the quantum source code and breaks it down into individual statements.
+2. **Analyze Statement**: Each statement is analyzed to understand its structure and semantics.
+3. **Compile Statement**: Based on the analysis, the compiler translates the statement into intermediate or target code.
+4. **Generate Code**: The final step involves generating machine-executable code from the compiled statements.
 
 ## Usage
 
-To use the `compilerstatements` component, you need to include the appropriate header file and call the relevant function with the quantum statement you want to compile. For example:
+To use the `compilerstatements` component, include the necessary header files and call the relevant functions based on the type of quantum statement you need to compile. For example:
 
 ```cpp
 #include "compilerstatements/compileVarDecl.h"
+#include "compilerstatements/compileFunctionDecl.h"
 
-int main() {
-    // Example quantum statement
-    std::string stmt = "qubit q;";
+// Example usage
+void compileQuantumCode() {
+    // Parse and analyze the quantum statement
+    QuantumStatement stmt = parseAndAnalyze("var qubit q = Qubit();");
 
     // Compile the statement
-    compileVarDecl(stmt);
+    IntermediateCode icode = compileStatement(stmt);
 
-    return 0;
+    // Generate machine-executable code
+    MachineCode mcode = generateMachineCode(icode);
 }
 ```
 
 ## Contributing
 
-Contributions to the `compilerstatements` component are welcome! If you find any issues or have suggestions for improvements, please open an issue on the [GitHub repository](https://github.com/QuantumLanguage/compilerstatements). Pull requests are also encouraged.
+Contributions to the `compilerstatements` component are welcome! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request on our GitHub repository.
 
 ## License
 
-The `compilerstatements` component is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+The `compilerstatements` component is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ---
 
-This README provides a clear overview of the `compilerstatements` component, detailing its purpose, key functionalities, and structure. It also includes guidance on usage and contribution, ensuring that developers can effectively utilize and enhance this critical part of the Quantum Language compiler.
+Feel free to update the README.md with additional information or formatting as needed.

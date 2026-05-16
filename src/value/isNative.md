@@ -1,26 +1,47 @@
 # isNative Function Explanation
 
-The `isNative()` function is a member method of the `QuantumValue` class within the Quantum Language compiler's source code located at `src/Value.cpp`. This function is designed to ascertain whether the current instance of `QuantumValue` encapsulates a native quantum operation or data type.
+The `isNative()` function is a member method of the `QuantumValue` class in the Quantum Language compiler's source code (`src/Value.cpp`). This function determines whether the current instance of `QuantumValue` holds a native quantum object.
 
 ## What It Does
 
-The `isNative()` function checks if the `data` member variable of the `QuantumValue` class holds an object of type `std::shared_ptr<QuantumNative>`. If it does, the function returns `true`, indicating that the `QuantumValue` represents a native quantum element. Otherwise, it returns `false`.
+The `isNative()` function checks if the `data` member variable of the `QuantumValue` class contains a `std::shared_ptr<QuantumNative>`. If it does, the function returns `true`, indicating that the `QuantumValue` instance represents a native quantum object. Otherwise, it returns `false`.
 
 ## Why It Works This Way
 
-This implementation leverages C++'s `std::holds_alternative` function template from the `<variant>` header. The `data` member variable in the `QuantumValue` class is likely defined as a `std::variant` or similar container that can hold different types of quantum data and operations. By using `std::holds_alternative`, the `isNative()` function can directly check if the currently held alternative is of the specified type (`std::shared_ptr<QuantumNative>`). This approach ensures type safety and avoids manual type casting, which could lead to runtime errors.
+This implementation leverages `std::holds_alternative` from the `<variant>` header to check the type of the `data` member. The `data` member is expected to be a variant capable of holding different types of quantum objects, including native ones. By using `std::holds_alternative`, the function can safely determine the exact type stored in the variant without attempting to access or modify its contents directly.
 
-## Parameters/Return Value
+## Parameters and Return Value
 
 - **Parameters**: None
-- **Return Value**: A boolean value (`true` if the `QuantumValue` contains a native quantum element; `false` otherwise)
+  - The function does not take any parameters.
+
+- **Return Type**: `bool`
+  - The function returns a boolean value indicating whether the `QuantumValue` instance holds a native quantum object.
 
 ## Edge Cases
 
-1. **Empty Variant**: If the `data` variant is empty (i.e., no value has been set), calling `std::holds_alternative` will result in undefined behavior. However, since the `isNative()` function should only be called on instances where `data` is expected to have a valid value, this scenario is not typically encountered.
-2. **Different Types**: If the `data` variant holds an alternative of a different type than `std::shared_ptr<QuantumNative>`, `std::holds_alternative` will return `false`.
-3. **Multiple Native Elements**: Since `std::shared_ptr` allows multiple shared ownership of the same object, the `isNative()` function can correctly identify if any part of the `data` variant holds a native quantum element, even if there are multiple such elements.
+1. **Empty Variant**: If the `data` member is an empty variant, the function will return `false`.
+2. **Non-Native Types**: If the `data` member holds a type other than `std::shared_ptr<QuantumNative>`, the function will return `false`.
+3. **Null Pointer**: If the `data` member holds a null pointer (`nullptr`) wrapped in a `std::shared_ptr`, the function will still return `true` because it is considered a valid native quantum object reference.
 
 ## Interactions With Other Components
 
-The `isNative()` function interacts primarily with the `QuantumValue` class itself and its `data` member variable. It may also interact with the `QuantumNative` class, depending on how the `std::shared_ptr<QuantumNative>` is used within the `QuantumValue` class. For example, if the `isNative()` function returns `true`, it might trigger additional processing related to native quantum operations or data handling within the compiler.
+The `isNative()` function interacts with the `QuantumValue` class, which is responsible for managing various types of quantum objects. It is used internally within the compiler to differentiate between native and non-native quantum values during compilation processes, such as optimization and execution planning.
+
+Here is a brief snippet illustrating how `isNative()` might be used within the `QuantumValue` class:
+
+```cpp
+class QuantumValue {
+public:
+    // ... other members ...
+
+    bool isNative() const {
+        return std::holds_alternative<std::shared_ptr<QuantumNative>>(data);
+    }
+
+private:
+    std::variant<std::shared_ptr<QuantumNative>, /* other types */> data;
+};
+```
+
+In summary, the `isNative()` function provides a straightforward and safe mechanism for identifying native quantum objects within instances of the `QuantumValue` class. Its use enhances the functionality and robustness of the Quantum Language compiler by allowing precise handling of different quantum object types.

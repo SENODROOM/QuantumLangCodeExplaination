@@ -2,48 +2,44 @@
 
 ## Role in Compiler Pipeline
 
-The `LexerCore.cpp` file is a crucial component of the Quantum Language compiler's pipeline. Its primary responsibility is to convert the source code into a sequence of tokens, which serve as the foundation for further processing by the parser to generate an abstract syntax tree (AST). The lexer ensures that the source code is accurately parsed and that any errors or invalid characters are properly flagged.
+The `LexerCore.cpp` file plays a critical role in the Quantum Language compiler's pipeline. It converts the source code into a sequence of tokens, forming the basis for subsequent parsing into an Abstract Syntax Tree (AST). This process involves recognizing and categorizing various elements of the language, such as keywords, identifiers, literals, operators, and punctuation marks, ensuring accurate translation for the parser.
 
 ## Key Design Decisions and Why
 
 ### Tokenization Rules
 
-The lexer uses a set of rules to identify different types of tokens such as identifiers, literals, operators, and keywords. These rules are implemented using functions like `current()`, `peek(int offset)`, and `advance()` to navigate through the source code efficiently.
-
-### Handling Whitespace and Comments
-
-To maintain readability and avoid unnecessary complexity during parsing, the lexer includes functionality to skip whitespace and comments. This is achieved with `skipWhitespace()`, `skipComment()`, and `skipBlockComment()` methods, ensuring that these elements do not interfere with the tokenization process.
+- **Character Classification**: The file uses character classification functions (`std::isspace`, `std::isdigit`, etc.) to identify different types of characters in the source code.
+- **Keyword Mapping**: A predefined map (`keywords`) associates specific strings with their corresponding token types, enabling efficient keyword recognition.
+- **State Machine Approach**: The lexer employs a state machine to handle complex scenarios like multi-character operators, string literals, and comments, ensuring robustness and flexibility.
 
 ### Error Handling
 
-Effective error handling is essential for identifying issues in the source code early. The lexer throws exceptions when encountering unrecognized characters or malformed tokens, providing clear feedback on what went wrong and where.
+- **Exception Propagation**: Errors encountered during tokenization are propagated using exceptions, providing clear insights into issues within the source code.
+- **Custom Error Messages**: The file includes custom error messages tailored to specific lexical errors, enhancing readability and maintainability.
 
 ## Major Classes/Functions Overview
 
 ### Lexer Class
 
-- **Constructor**: Initializes the lexer with the source code string.
-- **current()**: Returns the character at the current position.
-- **peek(int offset)**: Returns the character at the specified offset relative to the current position.
-- **advance()**: Advances the current position to the next character and updates line and column numbers accordingly.
-- **skipWhitespace()**: Skips all whitespace characters until a non-whitespace character is encountered.
-- **skipComment()**: Skips single-line comments starting with `//`.
-- **skipBlockComment()**: Skips multi-line comments enclosed within `/* */`.
+- **Constructor**: Initializes the lexer with the source code and sets up initial positions and line/column tracking.
+- **Public Methods**:
+  - `tokenize()`: Main method to tokenize the input source code.
+  - `nextToken()`: Retrieves the next token from the source code.
+  - `error(std::string msg)`: Throws a custom exception with the provided message, indicating a lexical error.
 
-### Keywords Map
+### Private Helper Functions
 
-A constant unordered map named `keywords` stores common quantum language keywords and their corresponding token types. This allows for quick lookup and classification of keyword tokens during the lexing phase.
+- `current()`: Returns the current character being processed.
+- `peek(int offset)`: Looks ahead at the specified number of characters without advancing the position.
+- `advance()`: Advances the position to the next character and updates line/column information.
+- `skipWhitespace()`: Skips over any whitespace characters in the source code.
+- `skipComment()`: Skips over single-line comments starting with `//`.
+- `skipBlockComment()`: Skips over block comments enclosed between `/*` and `*/`.
 
 ## Tradeoffs
 
-### Complexity vs. Readability
+- **Performance vs. Complexity**: While the use of a state machine allows for handling complex cases efficiently, it also increases the complexity of the implementation. Balancing these aspects is crucial for maintaining both performance and maintainability.
+- **Flexibility vs. Standardization**: Providing aliases for certain keywords (e.g., `self` for `this` in Quantum) offers flexibility but may complicate standardization efforts. Careful consideration must be given to ensure consistency across different programming languages.
+- **Readability vs. Efficiency**: Custom error messages improve readability but might slightly impact efficiency. Finding an optimal balance is essential for overall usability.
 
-While the lexer provides robust functionality for tokenizing complex source code, maintaining high readability and simplicity is also important. By carefully designing the tokenization rules and implementing straightforward logic, the lexer achieves a balance between performance and ease of maintenance.
-
-### Error Reporting Precision
-
-The lexer aims to provide precise error reporting by throwing exceptions with detailed information about the error location and nature. However, this requires additional overhead during the lexing process, which can impact performance slightly. Balancing thorough error reporting with efficient execution is a key challenge addressed in the design.
-
-### Flexibility vs. Consistency
-
-The lexer supports various programming styles and conventions, including those found in C++, JavaScript, and Python. While this flexibility enhances the compiler's usability across different languages, it also increases the complexity of the implementation. Ensuring consistent behavior across diverse languages while accommodating unique features remains a significant design consideration.
+This comprehensive approach to tokenization ensures that the Quantum Language compiler can accurately parse and understand its source code, laying the groundwork for more sophisticated compilation processes.

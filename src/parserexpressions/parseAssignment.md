@@ -1,33 +1,38 @@
-# `parseAssignment`
+### `parseAssignment`
 
-## Purpose
+#### Purpose
 
-The `parseAssignment` function is designed to parse assignment expressions within the Quantum Language compiler. This function handles various types of assignments, including Python-style and JavaScript/C-style ternary operators, ensuring that the syntax is correctly interpreted and converted into Abstract Syntax Tree (AST) nodes.
+The `parseAssignment` function is responsible for parsing assignment expressions within the Quantum Language compiler. It supports both Python-style and JavaScript/C-style ternary operators, ensuring correct syntax handling.
 
-## Parameters
+#### Parameters
 
-- None explicitly listed in the provided code snippet; however, based on typical parser implementations, it likely takes parameters such as:
-  - `tokens`: A reference to a vector of tokens representing the source code being parsed.
-  - `pos`: An iterator or index indicating the current position in the token stream.
+- None explicitly mentioned in the provided code snippet.
 
-## Return Value
+#### Return Value
 
-- The function returns a unique pointer to an `ASTNode`, which represents the parsed assignment expression. Depending on whether a ternary operator was encountered, the returned AST node could either be a simple assignment (`AssignExpr`) or a ternary conditional expression (`TernaryExpr`).
+- Returns a unique pointer to an `ASTNode` representing the parsed assignment expression.
+- In case of a Python-style ternary operator (`expr IF condition ELSE other_expr`), it returns a `TernaryExpr` node containing the condition, the true branch (`expr`), and the false branch (`other_expr`).
+- For a JavaScript/C-style ternary operator (`condition ? thenExpr : elseExpr`), it returns a `ConditionalExpr` node containing the condition, the true branch (`thenExpr`), and the false branch (`elseExpr`).
 
-## Edge Cases
+#### Edge Cases
 
-- **Python-style Ternary Operator**: When encountering a Python-style ternary operator (`expr IF condition ELSE other_expr`), the function must ensure that the structure is correct and that the `else` keyword appears before any closing brackets, parentheses, or newlines. If these conditions are not met, the function may misinterpret the code as a list comprehension filter instead of a ternary expression.
-  
-- **JavaScript/C-style Ternary Operator**: For JavaScript/C-style ternary operators (`condition ? thenExpr : elseExpr`), the function checks for the presence of the question mark (`?`) followed by the colon (`:`). It then parses the `thenExpr` and `elseExpr`. If the structure is incorrect, the function raises an error.
+- The function must handle cases where the ternary operator might be part of a larger expression or statement, such as being nested inside another conditional or arithmetic operation.
+- It should correctly identify and separate the true and false branches of the ternary operator, even when they contain multiple sub-expressions.
+- The function needs to differentiate between Python-style ternary operators and list comprehension filters, which use similar syntax but require different handling.
 
-## Interactions with Other Components
+#### Interactions with Other Components
 
-- **Tokenizer**: The function relies on the tokenizer to provide a sequence of tokens that represent the source code. Each token contains information about its type and value.
+- **Tokenizer**: The `parseAssignment` function relies on the tokenizer to provide the sequence of tokens for parsing. It uses functions like `current()`, `consume()`, and `expect()` to interact with the tokenizer.
+- **Expression Parsing**: Inside the function, it calls `parseOr()` to parse the left-hand side of the assignment. Depending on whether a ternary operator is detected, it further parses the right-hand side using either `parseAssignment()` for Python-style ternaries or `parseExpr()` followed by `parseListComp()` for JavaScript/C-style ternaries.
+- **Error Handling**: The function includes error handling mechanisms to ensure that the syntax of the ternary operator is correct. It checks for expected tokens like `TokenType::ELSE` and throws errors if these tokens are missing or misplaced.
 
-- **Error Handling**: The function uses helper functions like `expect` to handle errors gracefully. If expected tokens are not found, it throws exceptions or generates appropriate error messages.
+#### Implementation Details
 
-- **AST Construction**: Upon successful parsing, the function constructs an AST node using the parsed elements. This node can then be used by subsequent stages of the compiler for further processing, such as semantic analysis, optimization, and code generation.
+1. **Line Number Tracking**: The function starts by tracking the current line number using `current().line`.
+2. **Parsing Left-Hand Side**: It begins by calling `parseOr()` to parse the left-hand side of the assignment, which could be any valid expression.
+3. **Python Ternary Detection**: If the next token is `TokenType::IF`, it enters a lookahead mechanism to determine if the following structure is indeed a Python-style ternary operator. This involves checking for matching parentheses, brackets, or braces to ensure the presence of an `ELSE` keyword before a closing delimiter.
+4. **Handling Python Ternary**: If a `TokenType::ELSE` is found during the lookahead, it consumes the `IF` token, parses the condition, expects the `ELSE` keyword, and then recursively parses the false branch. It constructs a `TernaryExpr` node with these elements.
+5. **JavaScript/C Ternary Detection**: If the next token is `TokenType::QUESTION`, it assumes a JavaScript/C-style ternary operator. It consumes the `?` token, parses the true branch (`thenExpr`), expects the `:` token, and finally parses the false branch (`elseExpr`). It constructs a `ConditionalExpr` node with these elements.
+6. **Fallback Mechanism**: If neither a Python-style nor a JavaScript/C-style ternary operator is detected, it simply returns the parsed left-hand side expression without constructing a ternary node.
 
-- **Recursive Parsing**: The function calls itself recursively when dealing with nested ternary expressions. This allows it to handle complex assignment structures accurately.
-
-In summary, the `parseAssignment` function is crucial for interpreting assignment expressions in the Quantum Language compiler. It ensures that both Python-style and JavaScript/C-style ternary operators are correctly parsed and represented in the AST, facilitating further compilation steps.
+This implementation ensures that the `parseAssignment` function can accurately parse complex assignment expressions involving ternary operators, providing robust support for both Python and JavaScript-like syntaxes within the Quantum Language compiler.

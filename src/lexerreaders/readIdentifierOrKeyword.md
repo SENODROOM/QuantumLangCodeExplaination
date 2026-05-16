@@ -2,36 +2,40 @@
 
 The `readIdentifierOrKeyword` function is designed to identify and process identifiers and keywords in the source code of the Quantum Language being compiled. This function plays a crucial role in the lexer phase of the compiler, where it converts raw text into meaningful tokens that can be further processed by the parser.
 
-## What It Does
+## What it Does
 
-The function reads characters from the input source code until it encounters a non-alphanumeric character or an underscore (`_`). If the sequence of characters forms a valid identifier or keyword, it returns a corresponding token. Additionally, it handles special prefixes for raw strings (`r"..."`, `r'...'`) and formatted string literals (`f"..."`, `f'...'`).
+The primary purpose of `readIdentifierOrKeyword` is to recognize and categorize words in the source code as either identifiers or keywords. An identifier typically refers to a variable name, function name, or any other user-defined name, whereas a keyword is a reserved word with special significance in the language syntax.
 
-## Why It Works This Way
+## Why it Works This Way
 
-This approach ensures that all valid identifiers and keywords are correctly recognized and classified. By iterating through the characters and checking their type, the function can differentiate between identifiers, keywords, and special string literals. The handling of raw and formatted string literals allows for accurate parsing of these constructs, which may contain embedded expressions or escape sequences.
+This function operates by iterating through the characters in the source code starting from the current position (`pos`). It checks if each character is alphanumeric or an underscore, which are valid characters for identifiers. If such characters are found, they are appended to a temporary string (`id`). Once a non-alphanumeric or non-underscore character is encountered, the function stops reading and processes the identified token.
+
+Additionally, the function handles two specific types of strings:
+1. **Raw Strings**: These are prefixed with 'r' or 'R', followed by a quotation mark ('"' or "'"). The function reads characters until it encounters the matching quotation mark, skipping any escape sequences.
+2. **Formatted Strings (f-strings)**: These are prefixed with 'f' or 'F', followed by a quotation mark. The function reads characters until it encounters the matching quotation mark. Inside formatted strings, curly braces `{}` are treated specially to denote expressions that should be evaluated at runtime.
 
 ## Parameters/Return Value
 
-- **Parameters**:
-  - None explicitly mentioned in the provided code snippet, but it likely takes the following implicit parameters:
-    - `src`: A reference to the source code string being lexed.
-    - `pos`: A reference to the current position in the source code string.
-    - `line`: The current line number in the source code.
-    - `col`: The current column number in the source code.
+### Parameters
+- None directly specified in the provided snippet; however, implicit parameters include:
+  - `src`: A reference to the source code string being lexed.
+  - `pos`: The current position in the source code string.
+  - `line`: The current line number in the source code.
+  - `col`: The current column number in the source code.
 
-- **Return Value**:
-  - Returns a `Token` object representing the identified identifier, keyword, or string literal. The token includes its type, value, starting line, and starting column.
+### Return Value
+- Returns a `Token` object representing the identified identifier, keyword, or string. The type of token depends on whether the input was an identifier, keyword, or one of the handled string types.
 
 ## Edge Cases
 
-- **Empty Identifier**: If the first character encountered is not alphanumeric or an underscore, the function should return a token indicating the end of an identifier or keyword.
-- **Raw String Literal**: If the function encounters a raw string literal prefix (`r"..."`, `r'...'`) followed by a matching quote, it should correctly handle the literal without interpreting escape sequences.
-- **Formatted String Literal**: If the function encounters a formatted string literal prefix (`f"..."`, `f'...'`) followed by a matching quote, it should convert `{expr}` parts to `${expr}` before re-lexing as a template literal.
+- **Empty Identifier**: If the first character is not alphanumeric or an underscore, the function returns an empty identifier token.
+- **String Literal**: If the input starts with a quotation mark but does not match the expected format for a raw or formatted string, the function treats it as a regular string literal.
+- **End of Source Code**: If the end of the source code is reached before identifying a complete token, the function returns the partially identified token up to that point.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Lexer Phase**: This function is integral to the lexer phase, converting raw text into tokens that represent the structure of the source code.
-- **Parser Phase**: Tokens returned by `readIdentifierOrKeyword` are used by the parser to construct the abstract syntax tree (AST) of the program.
-- **Error Handling**: The function implicitly interacts with error handling mechanisms within the compiler to report invalid identifiers or syntax errors related to string literals.
+- **Lexer Class**: `readIdentifierOrKeyword` is part of the Lexer class, which is responsible for breaking down the source code into individual tokens.
+- **Parser Class**: Tokens produced by `readIdentifierOrKeyword` are consumed by the Parser class to construct the abstract syntax tree (AST) of the program.
+- **Error Handling**: While not explicitly shown in the snippet, this function likely interacts with error handling mechanisms to report issues such as unterminated strings or invalid characters within identifiers.
 
-Overall, the `readIdentifierOrKeyword` function is essential for accurately parsing identifiers, keywords, and special string literals in the Quantum Language source code, ensuring that the subsequent phases of the compiler can work with well-formed tokens.
+In summary, `readIdentifierOrKeyword` is essential for accurately parsing identifiers and keywords in the Quantum Language, ensuring that subsequent phases of compilation can proceed correctly. Its ability to handle different types of strings adds flexibility to the language's syntax, making it more powerful and expressive.

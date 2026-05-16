@@ -2,51 +2,31 @@
 
 ## Overview
 
-The `parseExprStmt` function is a critical component of the Quantum Language compiler's parser module, responsible for parsing expressions that can optionally be followed by semicolons or newlines. This function constructs an Abstract Syntax Tree (AST) node representing an expression statement. The primary purpose of this function is to handle both single and multiple expressions in a comma-separated list within a single statement.
+The `parseExprStmt` function is a crucial component of the Quantum Language compiler's parser module, responsible for parsing expressions that may be followed by semicolons or newlines. This function constructs an Abstract Syntax Tree (AST) node representing an expression statement. The primary purpose of this function is to handle both single and multiple expressions separated by commas, ensuring they are correctly parsed into an AST structure.
 
-## Parameters
+### Why It Works This Way
 
-- None
+The function works in a way that allows it to handle both simple and complex expressions within a single statement. By checking for the presence of a comma token (`TokenType::COMMA`), it can determine whether the statement contains multiple expressions. If a comma is found, the function parses each expression sequentially and groups them into a `BlockStmt`, which represents a block of statements. This approach ensures that all expressions are evaluated in the correct order, mimicking the behavior of a C-style comma expression.
 
-## Return Value
+### Parameters/Return Value
 
-- Returns a unique pointer to an ASTNode containing an ExprStmt object. If the parsed expression is part of a larger comma-separated list, it returns a unique pointer to a BlockStmt containing all the parsed expressions.
+- **Parameters**:
+  - None explicitly listed; however, it relies on global state managed by the parser, such as the current token being processed.
 
-## Edge Cases
+- **Return Value**:
+  - Returns a unique pointer to an `ASTNode` containing either a single `ExprStmt` or a `BlockStmt` depending on whether multiple expressions were encountered.
 
-1. **Single Expression**: When the input consists of a single expression followed by a semicolon or newline, the function correctly parses the expression into an ExprStmt and returns it.
-2. **Multiple Expressions**: In cases where multiple expressions are separated by commas, the function processes them sequentially, creating a BlockStmt to hold all the expressions. Each expression is wrapped in its own ExprStmt node.
-3. **Empty Statement**: If the input is just a semicolon or newline without any preceding expression, the function skips these tokens and returns an empty ExprStmt node.
+### Edge Cases
 
-## Interactions with Other Components
+1. **Single Expression**: When the input consists of a single expression without any commas, the function simply returns an `ExprStmt` node wrapping the parsed expression.
+2. **Multiple Expressions Separated by Commas**: If multiple expressions are separated by commas, the function correctly parses each expression and groups them into a `BlockStmt`. Each expression is wrapped in its own `ExprStmt`.
+3. **Trailing Commas**: The function handles trailing commas gracefully by breaking out of the loop when encountering a newline, semicolon, or end of file.
+4. **Empty Statements**: The function consumes any trailing semicolons or newlines after the expression, effectively handling empty statements.
 
-- **Tokenizer**: The function relies on the tokenizer to retrieve the current token (`current()`) and advance through the tokens using methods like `consume()` and `skipNewlines()`.
-- **Expression Parser**: Within the function, it calls `parseExpr()` to parse individual expressions. This method is assumed to be defined elsewhere in the parser module.
-- **Block Construction**: If multiple expressions are found, they are grouped into a BlockStmt, which allows for sequential execution of these expressions within the same statement context.
+### Interactions With Other Components
 
-## Detailed Explanation
+- **Tokenizer**: The function interacts with the tokenizer to retrieve the current token and move to the next one during parsing.
+- **Error Handling**: While not explicitly shown in the code snippet, the function likely integrates with the error handling mechanism of the compiler to report syntax errors appropriately.
+- **AST Construction**: The function constructs nodes in the AST based on the parsed expressions and their positions in the source code. These nodes include `ExprStmt` and potentially `BlockStmt`.
 
-### Parsing Single Expression
-
-When `parseExprStmt` encounters a single expression, it proceeds as follows:
-
-1. Retrieves the line number of the current token using `current().line`.
-2. Calls `parseExpr()` to parse the expression and stores the result in the `expr` variable.
-3. Checks for optional trailing semicolons or newlines using `check(TokenType::SEMICOLON)` or `check(TokenType::NEWLINE)`. If found, it consumes them using `consume()`.
-4. Constructs an ASTNode containing an ExprStmt with the parsed expression and the line number, then returns it.
-
-### Handling Comma-Separated Expressions
-
-For inputs containing multiple expressions separated by commas, the function behaves differently:
-
-1. Again retrieves the line number of the first expression.
-2. Parses the first expression using `parseExpr()` and stores it in `expr`.
-3. Checks if the next token is a comma (`TokenType::COMMA`). If so, it enters a loop:
-   - Initializes a `BlockStmt` to hold the expressions.
-   - Adds the initial expression wrapped in an ExprStmt to the block.
-   - Continues to parse subsequent expressions until a non-comma token is encountered (semicolon, newline, or end of file).
-   - For each parsed expression, it retrieves the line number, wraps it in an ExprStmt, and adds it to the block.
-4. After exiting the loop, it continues to consume optional trailing semicolons or newlines.
-5. Finally, it returns a unique pointer to the constructed `BlockStmt`.
-
-This approach ensures that the parser can handle complex statements involving multiple operations in a single line, which is common in quantum programming languages due to their nature of performing multiple operations simultaneously.
+By understanding how `parseExprStmt` functions, developers can better grasp the overall structure and flow of the Quantum Language compiler's parsing process, particularly in handling complex expressions and managing the resulting AST.
