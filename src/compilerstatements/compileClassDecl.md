@@ -1,106 +1,46 @@
 # `compileClassDecl` Function
 
 ## Purpose
-The `compileClassDecl` function in the Quantum Language compiler is responsible for compiling class declarations into bytecode. This process involves several key steps:
-
-1. **Creating the Class Object**: It loads the class name as a constant and creates a new class object using the `Op::MAKE_CLASS` opcode.
-2. **Handling Class Inheritance**: If the class has a base class specified, it loads the base class and applies inheritance using the `Op::INHERIT` opcode.
-3. **Defining Methods Within the Class**: It iterates through the members of the class (fields and methods) and binds them to the class object. For fields, it initializes them and binds them as methods. For nested classes, it recursively compiles the nested class and binds its methods to the current class.
+The `compileClassDecl` function in the Quantum Language compiler is responsible for compiling class declarations into bytecode. This process involves creating the class object, handling inheritance, binding fields and methods, and ensuring proper method resolution during runtime.
 
 ## Parameters
-- `s`: A reference to an `ASTNode` representing the class declaration.
-- `line`: An integer representing the line number where the class declaration occurs.
+- `s`: A reference to an `ASTNode` representing the class declaration to be compiled. This node contains information about the class's name, base class, fields, and methods.
+- `line`: An integer representing the line number of the current source code where the class declaration occurs. This is used for emitting bytecode operations that include line numbers for debugging purposes.
 
 ## Return Value
-This function does not explicitly return a value. Instead, it emits bytecode instructions that define the class and its members.
+This function does not explicitly return a value. Instead, it performs in-place compilation of the class declaration into bytecode using the provided `emit` function.
 
 ## Edge Cases
-- **Empty Base Class**: If the class does not have a base class specified (`s.base.empty()`), the `Op::INHERIT` opcode will not be emitted.
-- **Nested Classes Without Methods**: If a nested class does not contain any methods, the recursive call to `compileClassDecl` will still occur but will not emit any additional bytecode for those nested classes.
-- **Fields Without Initializers**: If a field does not have an initializer, `Op::LOAD_NIL` will be emitted to initialize it.
+1. **Empty Base Class**: If the class has no base class specified (`s.base.empty()`), the function will still create the class object without inheriting from any other class.
+2. **Inheritance**: If the class inherits from another class (`!s.base.empty()`), the function compiles the base class first and then sets up inheritance.
+3. **Fields and Methods**: The function handles different types of members within the class:
+   - Nested classes: Recursively compiles nested classes and binds them as methods.
+   - Variables: Compiles variable initializers or assigns default values (`nil`) and binds them as methods.
+   - Expressions: Handles assignment expressions and binds their targets as methods.
+
+## How It Works
+1. **Creating the Class Object**:
+   - The function starts by loading the class name as a constant using `Op::LOAD_CONST`.
+   - It then creates a new class object using `Op::MAKE_CLASS`.
+
+2. **Handling Inheritance**:
+   - If the class has a base class, the function compiles the base class first using `emitLoad`.
+   - It then sets up inheritance using `Op::INHERIT`, which allows the new class to inherit properties and methods from its base class.
+
+3. **Binding Fields and Methods**:
+   - The function iterates over each member in the class declaration (`s.fields` and `s.methods`).
+   - For each field or method, it checks the type of member and compiles accordingly:
+     - **Nested Classes**: Recursively compiles nested classes and binds them as methods using `Op::BIND_METHOD`.
+     - **Variables**: Compiles variable initializers or assigns default values (`nil`) and binds them as methods.
+     - **Expressions**: Handles assignment expressions and binds their targets as methods.
+
+4. **Ensuring Proper Method Resolution**:
+   - During the compilation of methods, the function prepends "self" as the first parameter to ensure that the instance is always accessible as the first local variable.
+   - This is crucial because the virtual machine (VM) expects the instance to be passed as the first argument when calling methods.
 
 ## Interactions with Other Components
-- **Constant Pool Management**: The function uses `addConst` and `addStr` functions to manage constants and strings in the constant pool, ensuring efficient storage and retrieval of class names and values.
-- **Bytecode Emission**: It interacts with the bytecode emission system through the `emit` function, which inserts opcodes into the bytecode stream.
-- **Recursive Compilation**: When encountering nested classes, `compileClassDecl` calls itself recursively to handle the nested class's compilation.
+- **AST Parsing**: The `compileClassDecl` function relies on the Abstract Syntax Tree (AST) parsing component to correctly identify and categorize class members such as fields and methods.
+- **Bytecode Emission**: The function interacts directly with the bytecode emission component through the `emit` function, which inserts bytecode instructions into the output stream.
+- **Symbol Table Management**: While not explicitly shown in the snippet, the function likely uses a symbol table to manage class names, field names, and method bindings, ensuring that they are correctly referenced and resolved during compilation.
 
-## Detailed Explanation
-### Step-by-Step Breakdown
-
-1. **Create Class Object**:
-   ```cpp
-   emit(Op::LOAD_CONST, addConst(QuantumValue(s.name)), line);
-   emit(Op::MAKE_CLASS, 0, line);
-   ```
-   - `Op::LOAD_CONST` loads the class name as a constant onto the stack.
-   - `Op::MAKE_CLASS` creates a new class object based on the loaded constant.
-
-2. **Handle Class Inheritance**:
-   ```cpp
-   if (!s.base.empty())
-   {
-       emitLoad(s.base, line);
-       emit(Op::INHERIT, 0, line);
-   }
-   ```
-   - If the class has a base class (`!s.base.empty()`), it loads the base class using `emitLoad`.
-   - `Op::INHERIT` then applies inheritance to the newly created class object.
-
-3. **Define Methods Within the Class**:
-   ```cpp
-   auto bindClassField = [&](ASTNodePtr &member)
-   {
-       if (member->is<ClassDecl>())
-       {
-           auto &nested = member->as<ClassDecl>();
-           compileClassDecl(nested, member->line);
-           emitLoad(nested.name, member->line);
-           emit(Op::BIND_METHOD, addStr(nested.name), member->line);
-           return true;
-       }
-       if (member->is<VarDecl>())
-       {
-           auto &field = member->as<VarDecl>();
-           if (field.initializer)
-               compileExpr(*field.initializer);
-           else
-               emit(Op::LOAD_NIL, 0, member->line);
-           emit(Op::BIND_METHOD, addStr(field.name), member->line);
-           return true;
-       }
-       if (member->is<ExprStmt>() &&
-           member->as<ExprStmt>().expr &&
-           member->as<ExprStmt>().expr->is<AssignExpr>())
-       {
-           auto &assign = member->as<ExprStmt>().expr->as<AssignExpr>();
-           if (assign.target->is<Identifier>())
-           {
-               compileExpr(*assign.value);
-               emit(Op::BIND_METHOD, addStr(assign.target->as<Identifier>().name), member->line);
-               return true;
-           }
-       }
-       return false;
-   };
-   ```
-   - `bindClassField` is a lambda function that processes each member of the class.
-   - If the member is another class declaration (`ClassDecl`), it recursively compiles the nested class and binds its methods to the current class.
-   - If the member is a variable declaration (`VarDecl`), it compiles the initializer or assigns `nil` if there is no initializer, and then binds the variable as a method.
-   - If the member is an expression statement containing an assignment expression (`AssignExpr`), it compiles the right-hand side of the assignment and binds the left-hand side identifier as a method.
-
-4. **Iterate Through Fields and Methods**:
-   ```cpp
-   for (auto &field : s.fields)
-       bindClassField(field);
-
-   for (auto &method : s.methods)
-   {
-       if (bindClassField(method))
-           continue;
-       if (!method->is<FunctionDecl>())
-           continue;
-       auto &fd = method->as<FunctionDecl>();
-   ```
-   - The function iterates through all fields and methods defined in the class declaration.
-   - For each field or method, it calls `bindClassField`. If `bindClassField` returns `true`, it means the member was successfully bound, and the loop continues to the next member.
-   - If `bindClassField` returns `
+By following these steps, the `compileClassDecl` function ensures that class declarations are accurately translated into bytecode, facilitating efficient execution and proper method resolution in the Quantum Language virtual machine.
