@@ -1,50 +1,79 @@
 # callNativeFn
 
-The `callNativeFn` function is an essential method in the Quantum Language compiler's Virtual Machine (VM) core (`VmCore.cpp`). This function enables the execution of native functions within the quantum computation environment, thereby facilitating the integration of classical operations with quantum algorithms. It is a fundamental component that bridges the gap between high-level quantum programming constructs and low-level system capabilities.
+## Overview
 
-## What it Does
+The `callNativeFn` function is a crucial component of the Quantum Language compiler's Virtual Machine (VM) core, located in `src/vm/VmCore.cpp`. This function facilitates the execution of native functions within the quantum computation environment, enabling seamless integration between quantum and classical operations.
 
-The primary purpose of `callNativeFn` is to invoke a native function specified by a pointer `fn`. The function takes arguments from the VM's operand stack, executes the native function, and then pushes the result back onto the stack. This process ensures seamless interaction between quantum and classical operations, allowing developers to leverage both paradigms effectively.
+## Purpose
 
-## Why it Works this Way
+The primary purpose of `callNativeFn` is to allow the VM to invoke external native functions that perform tasks not directly supported by the quantum language itself. These native functions can include system calls, mathematical computations, or any other functionality that requires classical processing power.
 
-1. **Argument Handling**: 
-   - The function first extracts the required number of arguments (`argCount`) from the top of the operand stack into a local vector `args`.
-   - This approach allows for efficient management of arguments, ensuring they are correctly ordered and accessible when passed to the native function.
+## Parameters
 
-2. **Stack Management**:
-   - After extracting the arguments, the function removes them from the stack using a loop.
-   - This step is critical as it prepares the stack for the next operation after the native function call.
+- `fn`: A pointer to a `NativeFunction` object representing the native function to be executed. The `NativeFunction` class encapsulates the necessary information about the function, such as its name, arguments, and return type.
+- `argCount`: An integer indicating the number of arguments passed to the native function. This parameter ensures that the correct number of values are popped from the stack before invoking the function.
 
-3. **Exception Handling**:
-   - The function includes robust exception handling to manage errors gracefully.
-   - If a `QuantumError` occurs during the execution of the native function, it is rethrown immediately.
-   - For any standard exceptions (`std::exception`), it throws a custom `RuntimeError`, providing additional context about the error location (`line`).
-   - This comprehensive error handling ensures that any issues encountered during the native function call are properly reported and can be addressed by the developer.
+## Return Value
 
-4. **Result Pushing**:
-   - Finally, the function pushes the result of the native function call back onto the stack.
-   - Using `std::move`, the result is efficiently transferred without unnecessary copying, optimizing performance.
-
-## Parameters/Return Value
-
-- **Parameters**:
-  - `fn`: A pointer to the native function to be invoked.
-  - `argCount`: The number of arguments expected by the native function.
-
-- **Return Value**:
-  - None. The function modifies the state of the VM directly by pushing the result onto the stack.
+The function returns void. However, it modifies the state of the virtual machine by pushing the result of the native function onto the stack.
 
 ## Edge Cases
 
-- **Empty Stack**: If the stack has fewer elements than `argCount`, the function will throw a runtime error indicating insufficient arguments.
-- **Invalid Function Pointer**: If `fn` is a null or invalid pointer, attempting to dereference it will lead to undefined behavior.
-- **Large Argument Count**: While the current implementation uses dynamic memory allocation, very large argument counts could potentially lead to performance degradation due to increased memory usage and overhead.
+1. **Empty Stack**: If the stack has fewer elements than specified by `argCount`, `callNativeFn` will throw a `RuntimeError` because there are insufficient arguments to invoke the native function.
+2. **Exception Handling**: If the native function throws a `QuantumError`, `callNativeFn` rethrows it unchanged. For other exceptions derived from `std::exception`, `callNativeFn` catches them and throws a `RuntimeError` with the exception message and the current line number.
 
 ## Interactions with Other Components
 
-- **Operand Stack**: `callNativeFn` interacts with the VM's operand stack to retrieve arguments and store results. It assumes that the stack contains at least `argCount` elements before the function is called.
-- **Error Reporting**: The function relies on error reporting mechanisms provided by the compiler to handle exceptions and provide meaningful error messages to the developer.
-- **Execution Context**: During the execution of the native function, the VM may need to maintain certain execution contexts, such as the current program counter or quantum register states, which are managed by other parts of the VM core.
+- **Stack Management**: `callNativeFn` interacts closely with the stack management mechanisms of the VM. It pops the required number of arguments from the stack and then pushes the result back onto the stack after the function execution.
+- **Error Propagation**: In case of errors during the execution of the native function, `callNativeFn` handles error propagation by throwing appropriate exceptions. This ensures that errors are correctly managed and propagated up the call stack, allowing the compiler to handle them appropriately.
+- **Function Invocation**: `callNativeFn` invokes the actual native function through the `fn->fn(args)` call. This interaction relies on the implementation details of the `NativeFunction` class, which is responsible for managing the function's execution context and handling any necessary conversions between quantum and classical data types.
 
-In summary, `callNativeFn` is a vital function in the Quantum Language compiler's VM core, designed to facilitate the invocation of native functions while managing arguments, stack, and exceptions effectively. Its design ensures smooth integration between quantum and classical operations, enhancing the flexibility and power of quantum computing applications.
+## Detailed Implementation
+
+Here's a detailed breakdown of how `callNativeFn` operates:
+
+1. **Argument Collection**:
+   ```cpp
+   std::vector<QuantumValue> args;
+   args.reserve(argCount);
+   for (int i = 0; i < argCount; ++i)
+       args.push_back(stack_[stack_.size() - argCount + i]);
+   ```
+   - The function first collects the required number of arguments from the top of the stack into a vector called `args`.
+   - It reserves space in the vector based on `argCount` to optimize memory allocation.
+   - Arguments are popped from the stack in reverse order to maintain their original sequence when passed to the native function.
+
+2. **Stack Cleanup**:
+   ```cpp
+   for (int i = 0; i < argCount; ++i)
+       stack_.pop_back();
+   ```
+   - After collecting all arguments, the function cleans up the stack by removing these arguments. This step ensures that the stack remains consistent and only contains relevant values after the function invocation.
+
+3. **Function Execution**:
+   ```cpp
+   QuantumValue result;
+   try
+   {
+       result = fn->fn(args);
+   }
+   catch (QuantumError &)
+   {
+       throw;
+   }
+   catch (std::exception &e)
+   {
+       throw RuntimeError(e.what(), line);
+   }
+   ```
+   - The function attempts to execute the native function using `fn->fn(args)`. The result of this execution is stored in a `QuantumValue` object.
+   - If the native function throws a `QuantumError`, `callNativeFn` rethrows it immediately, preserving the error context.
+   - For any other exceptions derived from `std::exception`, `callNativeFn` catches them and throws a `RuntimeError` with the exception message and the current line number. This ensures that all exceptions are handled consistently and provide meaningful error messages.
+
+4. **Result Pushing**:
+   ```cpp
+   push(std::move(result));
+   ```
+   - Finally, the function pushes the result of the native function back onto the stack. Using `std::move` optimizes the transfer of ownership, ensuring efficient resource management.
+
+By providing this comprehensive overview of `callNativeFn`, we ensure that developers understand its role, behavior, and interactions within the Quantum Language compiler's architecture.
