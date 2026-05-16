@@ -1,71 +1,74 @@
 # Value Component of the Quantum Language Compiler
 
-The Value component is a crucial module in the Quantum Language (QL) compiler, designed to handle and manage various types of values within the quantum programming environment. This component facilitates efficient conversion, access, and manipulation of these values, ensuring seamless integration into the broader compiler architecture.
+The Value component is an essential module in the Quantum Language (QL) compiler, responsible for handling and managing different types of values within the quantum programming environment. This component ensures efficient conversion, access, and manipulation of these values, facilitating their seamless integration into the broader compiler architecture.
 
 ## Overview
 
-The Value component primarily focuses on encapsulating and providing operations for different data types used in quantum programs. It includes functionalities such as checking truthiness, converting values to strings, retrieving type names, defining variables, accessing and modifying cell and field values, and identifying native types.
+The Value component provides a comprehensive set of functionalities to work with quantum values. It includes methods for checking truthiness, converting values to strings, getting and setting field values, and determining if a value is native or not. The component is structured to support both fundamental and complex data types, making it versatile for various quantum programming tasks.
 
-## Files and Functions
+### Key Features
 
-### isTruthy
-- **Purpose**: Determines whether a given value is considered "truthy" in the quantum programming context.
-- **Usage**: `bool isTruthy(const Value& val);`
+- **Value Conversion**: Functions like `toString` allow for easy conversion of quantum values to human-readable string representations.
+- **Truthiness Check**: The `isTruthy` function determines whether a given quantum value evaluates to true or false.
+- **Type Information**: `typeName` returns the type name of a quantum value, aiding in debugging and runtime checks.
+- **Variable Management**: Methods such as `define`, `defineRef`, `get`, and `set` facilitate the creation, retrieval, and modification of quantum variables.
+- **Field Access**: The `getCell` and `getField` functions enable access to specific fields within composite quantum values, while `setField` allows for updating these fields.
+- **Native Value Handling**: `isNative` checks if a value is represented natively by the compiler, and `asNative` converts a quantum value to its native representation when possible.
 
-### toString
-- **Purpose**: Converts a value to its string representation.
-- **Usage**: `std::string toString(const Value& val);`
+## Directory Structure
 
-### typeName
-- **Purpose**: Retrieves the name of the type associated with a value.
-- **Usage**: `std::string typeName(const Value& val);`
+This directory contains several documented functions and classes related to the Value component:
 
-### define
-- **Purpose**: Defines a new variable or constant with a specified type and initial value.
-- **Usage**: `void define(const std::string& name, const Type& type, const Value& initialValue);`
+- **isTruthy.cpp**: Contains the implementation of the `isTruthy` function.
+- **toString.cpp**: Implements the `toString` method for converting quantum values to strings.
+- **typeName.cpp**: Provides the `typeName` function to retrieve the type name of a quantum value.
+- **variableManagement.cpp**: Includes functions for defining, retrieving, and setting quantum variables (`define`, `defineRef`, `get`, `set`).
+- **fieldAccess.cpp**: Offers methods for accessing and modifying fields within quantum values (`getCell`, `getField`, `setField`).
+- **nativeHandling.cpp**: Handles operations related to native quantum values (`isNative`, `asNative`).
 
-### defineRef
-- **Purpose**: Defines a reference to an existing variable or constant.
-- **Usage**: `void defineRef(const std::string& name, const std::string& refName);`
+## Usage Example
 
-### get
-- **Purpose**: Retrieves the value of a variable or constant by name.
-- **Usage**: `Value get(const std::string& name);`
+Here's a simple example demonstrating how to use some of the key features of the Value component:
 
-### set
-- **Purpose**: Sets the value of a variable or constant by name.
-- **Usage**: `void set(const std::string& name, const Value& newValue);`
+```cpp
+#include "value.h"
 
-### has
-- **Purpose**: Checks if a variable or constant exists by name.
-- **Usage**: `bool has(const std::string& name);`
+int main() {
+    // Define a quantum variable
+    QuantumValue* var = define("myVar", 42);
 
-### getCell
-- **Purpose**: Retrieves the value of a specific cell within a composite value.
-- **Usage**: `Value getCell(const Value& compositeVal, size_t index);`
+    // Convert the variable to a string
+    std::string str = toString(var);
+    std::cout << "String representation: " << str << std::endl;
 
-### getField
-- **Purpose**: Retrieves the value of a specific field within a composite value.
-- **Usage**: `Value getField(const Value& compositeVal, const std::string& fieldName);`
+    // Check if the variable is truthy
+    bool isTrue = isTruthy(var);
+    std::cout << "Is truthy: " << (isTrue ? "true" : "false") << std::endl;
 
-### setField
-- **Purpose**: Sets the value of a specific field within a composite value.
-- **Usage**: `void setField(Value& compositeVal, const std::string& fieldName, const Value& newValue);`
+    // Get the type name of the variable
+    std::string typeName = typeName(var);
+    std::cout << "Type name: " << typeName << std::endl;
 
-### isNative
-- **Purpose**: Determines if a value is a native type supported by the Quantum Language.
-- **Usage**: `bool isNative(const Value& val);`
+    // Set a new value for the variable
+    set(var, 100);
+    str = toString(var);
+    std::cout << "Updated string representation: " << str << std::endl;
 
-### asNative
-- **Purpose**: Converts a value to its native type representation.
-- **Usage**: `NativeType asNative(const Value& val);`
+    // Clean up
+    delete var;
 
-## Overall Flow
+    return 0;
+}
+```
 
-1. **Initialization**: The Value component initializes itself with necessary data structures to store and manage values efficiently.
-2. **Variable Definition**: Variables or constants are defined using the `define` and `defineRef` functions, associating them with their respective types and initial values.
-3. **Value Access and Modification**: Values can be accessed and modified using the `get`, `set`, `getCell`, `getField`, and `setField` functions.
-4. **Type Handling**: The component handles type conversions and checks using the `toString`, `typeName`, and `isNative` functions.
-5. **Finalization**: When the compilation process is complete, the Value component finalizes any resources it may have allocated during operation.
+## Contributing
 
-By leveraging the Value component, the Quantum Language compiler ensures robust and efficient management of values, enabling developers to create complex quantum programs with ease.
+Contributions to the Value component are welcome! If you find any issues or have suggestions for improvements, please open an issue on our GitHub repository. We also encourage pull requests to help enhance the functionality and performance of the component.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+Feel free to update the README as needed to reflect any additional changes or improvements made to the Value component.
