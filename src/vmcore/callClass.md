@@ -1,91 +1,49 @@
 # `callClass` Function
 
 ## Purpose
-The `callClass` function in the Quantum Language compiler is responsible for creating an instance of a class and optionally calling its initialization method (`__init__`, `init`, or `constructor`). This function plays a crucial role in object-oriented programming within the compiler.
+The `callClass` function in the Quantum Language compiler is responsible for creating an instance of a class and optionally calling its initialization method (`__init__`, `init`, or `constructor`). This function plays a crucial role in object-oriented programming within the compiler's virtual machine (VM).
 
 ## Parameters
-- `klass`: A shared pointer to the `Class` object representing the class to be instantiated.
-- `argCount`: The number of arguments passed to the class constructor during instantiation.
-- `line`: The source code line number where the class instantiation occurs, used for error reporting and debugging.
+- `klass`: A shared pointer to the class definition from which the instance will be created.
+- `argCount`: The number of arguments passed to the class constructor or initialization method.
+- `line`: The source code line number where the class instantiation occurs, used for error reporting and debugging purposes.
 
 ## Return Value
-This function does not explicitly return a value but modifies the internal state of the compiler's virtual machine (VM) through side effects on the `stack_`.
+This function does not explicitly return a value. Instead, it modifies the VM's stack and environment to reflect the creation of a new class instance.
 
-## Detailed Explanation
-### Step-by-Step Breakdown
-1. **Create Instance**:
-   ```cpp
-   auto inst = std::make_shared<QuantumInstance>();
-   inst->klass = klass;
-   inst->env = std::make_shared<Environment>(globals);
-   ```
-   - An instance of `QuantumInstance` is created using `std::make_shared`.
-   - The `klass` member of the `QuantumInstance` is set to the provided class object.
-   - An environment (`Environment`) is initialized with global variables and assigned to the `env` member of the `QuantumInstance`. This environment will hold the instance's local variables and bindings.
+## How It Works
+1. **Create Instance**: 
+   - The function starts by creating a new `QuantumInstance` using `std::make_shared`. This instance represents the object being created.
+   - The `klass` attribute of the instance is set to the provided class definition.
+   - An `Environment` is created for the instance, initialized with global variables (`globals`), and assigned to the `env` attribute of the instance.
 
 2. **Find Initialization Method**:
-   ```cpp
-   auto *k = klass.get();
-   std::shared_ptr<Closure> initFn;
-   while (k)
-   {
-       for (const char *initName : {"__init__", "init", "constructor"})
-       {
-           auto it = k->methods.find(initName);
-           if (it != k->methods.end())
-           {
-               initFn = it->second;
-               break;
-           }
-       }
-       if (initFn)
-           break;
-       k = k->base.get();
-   }
-   ```
-   - The function iterates up the inheritance chain starting from the provided class `klass`.
-   - For each class in the chain, it checks for the presence of any of the three initialization methods (`__init__`, `init`, `constructor`).
-   - If one of these methods is found, it is stored in `initFn` and the search stops.
+   - The function then searches for the initialization method (`__init__`, `init`, or `constructor`) in the class hierarchy starting from the provided class (`klass`).
+   - It iterates through each base class until it finds a method that matches one of these names. If found, it assigns the corresponding closure to `initFn`.
 
-3. **Prepare Stack for Instance**:
-   ```cpp
-   QuantumValue instVal(inst);
-   ```
-   - A `QuantumValue` is created to represent the new instance, encapsulating the `QuantumInstance` shared pointer.
+3. **Handle Initialization Method**:
+   - If an initialization method is found (`initFn` is not null), the function proceeds as follows:
+     - It calculates the index of the caller on the stack (`calleeIndex`).
+     - Inserts the instance value at the position right after the caller on the stack.
+     - Records the pending instance along with the current frame index in `pendingInstances_`.
+     - Calls the closure associated with the initialization method using `callClosure`, passing the instance and all arguments.
+     - The function returns immediately after handling the initialization method.
 
-4. **Call Initialization Method**:
-   ```cpp
-   if (initFn)
-   {
-       size_t calleeIndex = stack_.size() - argCount - 1;
-       stack_.insert(stack_.begin() + calleeIndex + 1, instVal);
-       pendingInstances_.push_back({instVal, frames_.size()});
-       callClosure(initFn, argCount + 1, line);
-       return;
-   }
-   ```
-   - If an initialization method was found (`initFn` is not null), the function prepares the stack to invoke this method.
-   - It inserts the new instance into the stack at the appropriate position.
-   - The new instance is also added to the `pendingInstances_` list to track when its initialization is complete.
-   - The `callClosure` function is then called to execute the initialization method, passing the instance and the argument count plus one (for the instance itself).
-
-5. **Handle No Initialization Method**:
-   ```cpp
-   size_t calleeIndex = stack_.size() - argCount - 1;
-   stack_[calleeIndex] = instVal;
-   for (int i = 0; i < argCount; ++i)
-       stack_.pop_back();
-   ```
-   - If no initialization method is found, the new instance is simply placed onto the stack at the correct position.
-   - The arguments that were pushed onto the stack during the function call are removed, leaving only the instance.
+4. **No Initialization Method**:
+   - If no initialization method is found, the function handles the creation of the instance without invoking any special methods:
+     - Calculates the index of the caller on the stack (`calleeIndex`).
+     - Replaces the caller's entry on the stack with the instance value.
+     - Removes the remaining arguments from the stack since they were not needed for initialization.
 
 ## Edge Cases
-- **No Initialization Method**: If none of the specified initialization methods (`__init__`, `init`, `constructor`) exist in the class hierarchy, the function behaves as if the class has no explicit constructor. This means the instance is created without invoking any initialization logic.
-- **Inheritance Chain**: The function correctly handles classes with multiple levels of inheritance, searching for the initialization method in each base class until it is found or the top-level class is reached.
+- **Class Without Initialization Method**: If the class does not have any of the specified initialization methods (`__init__`, `init`, `constructor`), the function simply creates the instance without calling any method.
+- **Inheritance Chain**: The function correctly traverses the inheritance chain to find the appropriate initialization method, ensuring polymorphism is handled properly.
+- **Empty Stack Arguments**: If there are fewer arguments than expected (`argCount`), the function may lead to undefined behavior or runtime errors, depending on how the rest of the VM handles such situations.
 
-## Interactions with Other Components
-- **Environment Management**: The `Environment` associated with the instance holds all local variables and bindings for the instance, allowing them to be accessed and modified during runtime.
-- **Stack Operations**: The function manipulates the VM's stack to push and pop values, ensuring that the new instance and its arguments are properly managed during the execution of the program.
-- **Error Handling**: Although not shown in the snippet, the function likely interacts with error handling mechanisms to report issues such as missing initialization methods or incorrect argument counts.
+## Interactions With Other Components
+- **Virtual Machine Core (`VmCore`)**: The `callClass` function interacts directly with the VM core to manage the stack and environment. It uses the `stack_` member variable to insert and replace values.
+- **Class Definition (`klass`)**: The function relies on the class definition to locate the initialization method. It accesses the `methods` map of the class to find matching method names.
+- **Environment Management**: The `Environment` class is utilized to create a scoped environment for the new instance, initialized with global variables.
+- **Pending Instances (`pendingInstances_`)**: When an initialization method is called, the function records the pending instance along with the current frame index. This information can be used later during garbage collection or other VM operations.
 
-This function is essential for supporting object-oriented features in the Quantum Language, enabling developers to create instances of classes and initialize them with custom constructors or default behaviors.
+By carefully managing the stack, environment, and class hierarchy, the `callClass` function ensures that class instances are created and initialized correctly, supporting robust object-oriented programming capabilities within the Quantum Language compiler.
