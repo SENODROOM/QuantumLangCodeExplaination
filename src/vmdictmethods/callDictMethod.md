@@ -2,47 +2,50 @@
 
 ## Purpose
 
-The `callDictMethod` function in the Quantum Language compiler's virtual machine (VM) handles various methods that can be invoked on a dictionary object. These methods include retrieving keys, values, items, checking for the presence of keys, getting and setting key-value pairs, deleting keys, clearing the dictionary, and determining its size.
+The `callDictMethod` function in the Quantum Language compiler's virtual machine (VM) is designed to handle various methods that can be invoked on a dictionary object. These methods include retrieving keys, values, items, checking for the presence of keys, getting and setting key-value pairs, deleting entries, clearing the entire dictionary, and determining its size.
 
-## Parameters
+## Implementation Details
 
-- `dict`: A shared pointer to a dictionary object (`std::shared_ptr<Dictionary>`).
-- `m`: A string representing the method name to be called.
-- `args`: A vector of `QuantumValue` objects containing the arguments passed to the method.
+### Parameters
+- `m`: A string representing the name of the method to be called.
+- `args`: A vector of `QuantumValue` objects representing the arguments passed to the method.
 
-## Return Value
+### Return Value
+- Returns a `QuantumValue` object containing the result of the method call or an error if the method is not recognized.
 
-- Returns a `QuantumValue` object, which can represent any data type supported by the Quantum Language compiler, including arrays, dictionaries, strings, numbers, etc.
+### How It Works
 
-## How It Works
+The function uses a series of conditional checks to determine which method was requested based on the input string `m`. Depending on the method, it performs the following actions:
 
-### Method Handling
+1. **Keys Method**: If `m` is `"keys"`, the function iterates over all keys in the dictionary and returns them as an array of `QuantumValue` objects.
+   
+2. **Values Method**: If `m` is `"values"`, the function iterates over all values in the dictionary and returns them as an array of `QuantumValue` objects.
+   
+3. **Items/Entries Method**: If `m` is either `"items"` or `"entries"`, the function iterates over all key-value pairs in the dictionary. For each pair, it creates a nested array containing the key and the value, then pushes this nested array into an outer array. Finally, it returns the outer array as a `QuantumValue`.
+   
+4. **Has/Contains/HasOwnProperty Methods**: If `m` matches any of these strings, the function checks whether the first argument (`args[0]`) exists as a key in the dictionary. It returns a boolean `QuantumValue` indicating the presence of the key.
+   
+5. **Get Method**: If `m` is `"get"`, the function retrieves the value associated with the first argument (`args[0]`). If the key is found, it returns the corresponding value; otherwise, it returns the second argument if provided, or an empty `QuantumValue` if not.
+   
+6. **Set Method**: If `m` is `"set"`, the function updates the value associated with the first argument (`args[0]`) to the second argument (`args[1]`). If both arguments are provided, it sets the new value and returns the updated dictionary as a `QuantumValue`; otherwise, it throws an error.
+   
+7. **Delete Method**: If `m` is `"delete"`, the function removes the entry associated with the first argument (`args[0]`) from the dictionary. If the key exists, it erases the entry and returns a `QuantumValue` with the boolean `true`; otherwise, it returns `true` without making any changes.
+   
+8. **Clear Method**: If `m` is `"clear"`, the function removes all entries from the dictionary. It clears the dictionary and returns an empty `QuantumValue`.
+   
+9. **Size/Length Method**: If `m` is either `"size"` or `"length"`, the function returns the number of entries in the dictionary as a double `QuantumValue`.
 
-The function uses a series of conditional statements to determine which method to execute based on the input method name (`m`). Each case corresponds to a specific dictionary method:
+If none of the above conditions match, the function throws a `TypeError` indicating that the dictionary has no such method.
 
-- **Keys**: Retrieves all keys from the dictionary and returns them as an array of `QuantumValue`.
-- **Values**: Retrieves all values from the dictionary and returns them as an array of `QuantumValue`.
-- **Items/Entries**: Retrieves all key-value pairs from the dictionary and returns them as an array of arrays, where each inner array contains a key and its corresponding value.
-- **Has/Contains/HasOwnProperty**: Checks if the dictionary contains a specified key. If no arguments are provided, it returns `false`. Otherwise, it returns `true` if the key exists, and `false` otherwise.
-- **Get**: Retrieves the value associated with a specified key. If the key does not exist, it returns the second argument if provided; otherwise, it returns an empty `QuantumValue`.
-- **Set**: Sets or updates the value associated with a specified key. The first argument is the key, and the second argument is the new value. It returns the updated dictionary.
-- **Delete**: Deletes a specified key from the dictionary. If the key does not exist, it simply does nothing. It returns `true` indicating the operation was successful.
-- **Clear**: Clears all key-value pairs from the dictionary. It returns an empty `QuantumValue`.
-- **Size/Length**: Returns the number of key-value pairs in the dictionary as a double.
+## Edge Cases
 
-### Edge Cases
+- **Empty Dictionary**: When calling methods like `"keys"`, `"values"`, `"items"`, or `"entries"` on an empty dictionary, the function will return an empty array.
+- **Non-existent Key**: When calling `"get"` or `"has"` with a non-existent key, the function will return the default value or `false`, respectively.
+- **Incorrect Number of Arguments**: When calling `"set"`, `"get"`, or `"delete"` with insufficient arguments, the function will throw an error.
+- **Invalid Method Name**: If an unrecognized method name is provided, the function will throw a `TypeError`.
 
-- When calling `get`, if the key does not exist and no default value is provided, the function returns an empty `QuantumValue`.
-- When calling `has`, `contains`, or `hasOwnProperty` without any arguments, the function returns `false`.
-- Calling `delete` or `set` with invalid arguments will not modify the dictionary but may still return a valid result.
-- Attempting to call a non-existent method results in a `TypeError`.
+## Interactions with Other Components
 
-## Interactions With Other Components
+The `callDictMethod` function interacts with the `Dictionary` class and the `Array` class within the VM. The `Dictionary` class provides the underlying data structure for storing key-value pairs, while the `Array` class is used to create arrays of keys, values, and key-value pairs. The function also utilizes the `QuantumValue` class to represent the results and arguments, ensuring consistency across different parts of the VM.
 
-The `callDictMethod` function interacts with several other components of the Quantum Language compiler's VM:
-
-- **Dictionary Class**: The function operates directly on instances of the `Dictionary` class, using its member functions like `count`, `find`, and `erase`.
-- **Array Class**: For methods that return arrays (like `keys`, `values`, and `items`), the function creates instances of the `Array` class to store the results.
-- **QuantumValue Class**: All operations involving keys, values, and results use the `QuantumValue` class, which acts as a container for different data types.
-
-This function ensures that dictionary operations are handled efficiently and correctly, providing a robust interface for interacting with dictionary objects within the Quantum Language compiler's VM.
+In summary, the `callDictMethod` function serves as a versatile interface for performing common operations on dictionary objects within the Quantum Language compiler's VM, handling various scenarios and providing appropriate results or errors.
