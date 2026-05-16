@@ -1,31 +1,48 @@
 # `endScope` Function
 
 ## Purpose
-The `endScope` function is crucial for managing the end of a scope within the Quantum Language compiler. It ensures that the scope depth is decremented correctly and handles the cleanup of local variables that have gone out of scope.
+The `endScope` function is essential for managing the end of a scope within the Quantum Language compiler. Its primary responsibility is to decrement the scope depth and handle the cleanup of local variables that have fallen out of scope. This ensures that resources are properly released and that the state of the compiler remains consistent and predictable.
 
 ## Parameters
-- None
+- **None**: The `endScope` function does not take any parameters.
 
 ## Return Value
-- None
+- **None**: The function does not return any value.
 
-## Detailed Explanation
-### What it Does
-When called, the `endScope` function performs two main tasks:
-1. **Decrement Scope Depth**: It decreases the `scopeDepth` counter of the current scope context (`current_`). This reflects that one level of scope has ended.
-2. **Cleanup Local Variables**: It iterates through the list of local variables (`locals`) associated with the current scope. For each variable that was declared within the now-ended scope, it either emits an `Op::CLOSE_UPVALUE` or an `Op::POP` operation based on whether the variable was captured by any enclosing scopes.
+## How It Works
+When a scope in the Quantum Language ends, the `endScope` function is called to perform necessary cleanup and adjustments. Here’s how it operates:
 
-### Why it Works This Way
-- **Scope Management**: By decrementing the `scopeDepth`, the function accurately tracks how many nested scopes are currently active, which is essential for maintaining correct stack states during execution.
-- **Variable Cleanup**: The cleanup of local variables ensures that memory used by these variables is properly released when they go out of scope. If a variable is captured by an enclosing scope, emitting an `Op::CLOSE_UPVALUE` allows the variable to be closed over, ensuring its value persists even after the original scope has ended. Otherwise, an `Op::POP` operation simply removes the variable from the stack.
+1. **Decrement Scope Depth**:
+   ```cpp
+   current_->scopeDepth--;
+   ```
+   - This line decreases the `scopeDepth` counter of the current compilation context (`current_`). The `scopeDepth` indicates the nesting level of scopes currently being processed. Decrementing it signifies the end of the current scope.
 
-### Edge Cases
-- **Empty Locals List**: If there are no local variables in the current scope, the function will not perform any operations, as the loop condition will fail immediately.
-- **Nested Scopes**: When dealing with nested scopes, the function only cleans up variables that were declared within the most recent scope that has just ended. Variables from outer scopes remain unaffected until their respective scopes are also ended.
+2. **Cleanup Local Variables**:
+   ```cpp
+   while (!current_->locals.empty() &&
+          current_->locals.back().depth > current_->scopeDepth)
+   {
+       if (current_->locals.back().isCaptured)
+           emit(Op::CLOSE_UPVALUE, 0, line);
+       else
+           emit(Op::POP, 0, line);
+       current_->locals.pop_back();
+   }
+   ```
+   - This loop iterates through the list of local variables (`locals`) stored in the current compilation context until it finds a variable whose `depth` is less than or equal to the updated `scopeDepth`.
+   - If a local variable has been captured (i.e., its value needs to be preserved across multiple scopes), the function emits an `Op::CLOSE_UPVALUE` instruction. This operation closes the upvalue associated with the variable, ensuring that its value can still be accessed even after the outer scope has ended.
+   - For non-captured local variables, the function emits an `Op::POP` instruction. This pops the variable off the stack, effectively freeing up the memory used by it since it is no longer accessible in the current scope.
+   - After emitting the appropriate instruction, the local variable is removed from the `locals` list using `pop_back()`.
 
-### Interactions with Other Components
-- **Scope Context**: The function interacts closely with the `ScopeContext` object stored in `current_`. This object contains information about the current scope, including its depth and a list of local variables.
-- **Emission of Operations**: The function uses the `emit` method to generate bytecode instructions. These instructions are responsible for managing the stack state and handling captured variables.
-- **Error Handling**: Although not explicitly shown in the provided code snippet, the function likely includes error handling mechanisms to ensure that the scope management remains robust even in the presence of unexpected conditions.
+## Edge Cases
+- **Empty Locals List**: If there are no local variables in the current scope when `endScope` is called, the function simply decrements the `scopeDepth`. This scenario typically occurs at the global level where there are no nested scopes.
+- **Multiple Captured Variables**: If multiple local variables are captured within a single scope, each will trigger an `Op::CLOSE_UPVALUE` instruction as they fall out of scope. This ensures that all captured values are properly managed and closed.
+- **Non-Capturable Variables**: Non-captured local variables are handled efficiently by the `Op::POP` instruction, which minimizes overhead and ensures that only necessary resources are freed.
 
-In summary, the `endScope` function plays a vital role in maintaining the integrity of the scope structure during compilation, ensuring proper resource management and correct execution flow.
+## Interactions with Other Components
+- **Compilation Context**: The `endScope` function interacts closely with the `current_` compilation context object, which holds information about the current scope, including its depth and list of local variables.
+- **Instruction Emission**: The function uses the `emit` method to generate bytecode instructions. These instructions are critical for the execution engine to understand how to manage the stack and upvalues during runtime.
+- **Error Handling**: While not explicitly shown in the provided code snippet, the `endScope` function should integrate with error handling mechanisms to ensure that any issues related to scope management are caught and reported appropriately.
+
+In summary, the `endScope` function plays a vital role in managing the lifecycle of scopes within the Quantum Language compiler. By correctly decrementing the scope depth and cleaning up local variables, it helps maintain the integrity of the compiler's state and ensures efficient resource management during program execution.
