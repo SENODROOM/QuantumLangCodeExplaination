@@ -2,55 +2,52 @@
 
 ## Overview
 
-The `src/compiler/CompilerExpressions.cpp` file is a critical component of the QuantumLanguage compiler, responsible for compiling expressions into intermediate representation (IR) instructions that can be executed on the virtual machine (`Vm`). This module handles both binary and unary operations, as well as assignment statements, ensuring that the resulting IR accurately reflects the semantics of the original source code.
+The `src/compiler/CompilerExpressions.cpp` file is a vital part of the QuantumLanguage compiler, focusing on the compilation of expressions into Intermediate Representation (IR) instructions suitable for execution on the Virtual Machine (`Vm`). This module manages both binary and unary operations, as well as assignment statements, ensuring efficient and accurate compilation of quantum language expressions.
 
 ### Role in Compiler Pipeline
 
-This module operates within the broader context of the QuantumLanguage compiler's pipeline. It follows the parsing phase where expressions are represented as abstract syntax trees (ASTs). The primary responsibilities include:
-- Converting AST nodes representing binary and unary operations into corresponding IR instructions.
-- Handling assignment expressions to generate appropriate IR for variable updates.
+This module operates within the compiler's expression handling phase. It takes parsed expressions and converts them into IR instructions that can be executed by the Vm. The output of this module serves as input to subsequent phases such as optimization and code generation.
 
 ### Key Design Decisions and Why
 
-#### Binary Operations
+1. **Binary Operations Handling**: 
+   - The module uses a switch-like structure (`std::unordered_map`) to map binary operators to their corresponding IR operations. This approach enhances readability and maintainability by centralizing operator mappings in one place.
+   
+2. **Conditional Compilation**:
+   - For conditional operators like `and`, `or`, and `??`, the module emits jump instructions based on the evaluation of the left operand. If the condition is met, it jumps to the right operand; otherwise, it continues with the next instruction. This ensures that only necessary parts of the expression are compiled, optimizing performance.
 
-The module uses a `std::unordered_map` named `opMap` to map string representations of binary operators to their corresponding IR operations. This approach allows for efficient lookup and ensures that the compiler can handle a wide range of binary operations without extensive conditional logic.
+3. **Assignment Statements**:
+   - The module supports both simple assignments (`=`) and compound assignments (`+=`, `-=`). For compound assignments, it normalizes the operator and performs the appropriate sequence of IR instructions. This allows for a unified handling of different types of assignments.
 
-For example, the `compileBinary` function checks if the operator is one of the logical AND or OR operations (`and`, `&&`, `or`, `||`, `??`). If so, it compiles the left operand and emits a jump instruction based on the result. For other operators like arithmetic operations (`+`, `-`, `*`, etc.), it directly maps the operator to its IR counterpart using the `opMap`.
-
-#### Unary Operations
-
-Similarly, unary operations are handled using another `std::unordered_map` named `cops`. This map associates string representations of unary operators with their respective IR operations. The `compileUnary` function uses this map to determine the correct IR operation for each unary expression.
-
-For instance, the module supports negation (`-`) and logical NOT (`!`), among others. Each supported unary operation has a direct mapping to an IR instruction, allowing the compiler to efficiently generate the necessary IR.
-
-#### Assignment Statements
-
-Assignment statements are compiled to update variables with new values. The `compileAssign` function handles both simple assignments (`=`) and compound assignments (`+=`, `-=`, etc.). It normalizes the operator to ensure consistent handling and then generates the appropriate IR instructions.
-
-For compound assignments, the function first compiles the right-hand side expression and then performs the specified operation with the current value of the variable. The result is stored back into the variable.
+4. **Error Handling**:
+   - The module includes robust error handling mechanisms to manage unknown operators. If an unrecognized operator is encountered, it throws a runtime exception, preventing the compiler from proceeding with incorrect or incomplete code.
 
 ### Major Classes/Functions Overview
 
-#### Compiler Class
+1. **`Compiler::compileBinary(BinaryExpr &e, int line)`**:
+   - Compiles binary expressions into IR instructions.
+   - Handles logical operators (`and`, `or`, `??`), comparison operators, arithmetic operators, and bitwise operators.
+   - Uses a `std::unordered_map` to map operators to their corresponding IR operations.
 
-The `Compiler` class contains methods for compiling different types of expressions. These include:
-- `compileBinary`: Compiles binary expressions.
-- `compileUnary`: Compiles unary expressions.
-- `compileAssign`: Compiles assignment expressions.
+2. **`Compiler::compileUnary(UnaryExpr &e, int line)`**:
+   - Compiles unary expressions into IR instructions.
+   - Supports negation (`-`), logical not (`!`, `not`), bitwise not (`~`), increment (`++`), and decrement (`--`).
+   - Emits the appropriate IR operation based on the unary operator.
 
-These functions work together to convert the AST into IR instructions, which are then executed by the virtual machine.
-
-#### Expression Types
-
-The module defines several types of expressions such as `BinaryExpr`, `UnaryExpr`, and `AssignExpr`. Each type represents a specific kind of expression in the source code.
-
-- **BinaryExpr**: Represents binary operations like addition, subtraction, and logical AND.
-- **UnaryExpr**: Represents unary operations like negation and bitwise NOT.
-- **AssignExpr**: Represents assignment statements, including simple and compound assignments.
+3. **`Compiler::compileAssign(AssignExpr &e, int line)`**:
+   - Compiles assignment expressions into IR instructions.
+   - Handles both simple and compound assignments.
+   - Normalizes compound operators and performs the necessary sequence of IR instructions.
 
 ### Tradeoffs
 
-While the use of `std::unordered_map` provides efficient lookups for operators, it does require additional memory to store the mappings. Additionally, the module relies on exception handling (`throw std::runtime_error`) to manage cases where unsupported operators are encountered. This approach simplifies error handling but may impact performance in scenarios with frequent errors.
+1. **Readability vs. Performance**:
+   - Using a `std::unordered_map` for operator mapping improves readability but may slightly impact performance due to hash lookups.
 
-Overall, the `src/compiler/CompilerExpressions.cpp` file plays a vital role in the QuantumLanguage compiler by converting expressions into executable IR instructions. Its design choices balance efficiency, flexibility, and simplicity, making it a robust foundation for further development and optimization.
+2. **Flexibility vs. Complexity**:
+   - Supporting both simple and compound assignments adds flexibility but increases the complexity of the codebase.
+
+3. **Error Handling vs. Robustness**:
+   - Throwing exceptions for unknown operators provides robustness but can lead to less user-friendly error messages compared to returning error codes.
+
+Overall, the `src/compiler/CompilerExpressions.cpp` file plays a crucial role in the QuantumLanguage compiler by efficiently converting expressions into executable IR instructions. Its design decisions balance readability, performance, flexibility, and robustness, making it a well-engineered component of the compiler.
