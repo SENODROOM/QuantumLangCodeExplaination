@@ -1,87 +1,143 @@
 # vmcore
 
-The `vmcore` component is a crucial module within the Quantum Language compiler, responsible for executing bytecode and managing runtime operations efficiently. This directory includes several well-documented functions and files that work together to maintain the virtual machine's state and ensure smooth execution.
+The `vmcore` component is a critical module within the Quantum Language compiler, designed to execute bytecode and manage runtime operations efficiently. This directory houses several well-documented functions and files that collaborate seamlessly to maintain the virtual machine's state and ensure smooth execution.
 
 ## Overview
 
-The `vmcore` component handles the fundamental aspects of the virtual machine, including running bytecode, pushing and popping values from the stack, managing runtime errors, converting values to numbers, comparing values, and executing binary and unary operations. It also manages upvalues, closures, native function calls, class methods, and built-in method invocations.
+The `vmcore` component is at the heart of the Quantum Language interpreter, handling the essential tasks of executing instructions, managing values on the stack, and resolving runtime errors. It consists of a series of functions that perform specific operations necessary for the virtual machine to function correctly.
 
 ### Key Functions
 
-- **run**: The primary function that drives the execution of the virtual machine.
-- **push**: Adds a value to the stack.
-- **pop**: Removes a value from the stack.
-- **runtimeError**: Handles runtime errors and halts the execution.
-- **toNumber**: Converts a value to a number.
+- **run**: Initiates the execution of the bytecode in the virtual machine.
+- **push**: Adds a value to the top of the stack.
+- **pop**: Removes the top value from the stack.
+- **runtimeError**: Handles and reports runtime errors encountered during execution.
+- **toNumber**: Converts a value to a number type.
 - **valuesEqual**: Compares two values for equality.
 - **execBinary**: Executes binary operations like addition or multiplication.
 - **execUnary**: Executes unary operations like negation or increment.
-- **captureUpvalue**: Captures upvalues in closure creation.
-- **closeUpvalues**: Closes upvalues when a function returns.
-- **callValue**: Calls a function or method using a value.
-- **callClosure**: Calls a function using a closure.
-- **callNativeFn**: Invokes a native function.
-- **callClass**: Calls a constructor for a class.
-- **callBuiltinMethod**: Invokes a built-in method on an object.
+- **captureUpvalue**: Captures upvalues (local variables from enclosing functions) into closures.
+- **closeUpvalues**: Closes upvalues when a function exits.
+- **callValue**: Calls a function using a value as its reference.
+- **callClosure**: Calls a closure, which is a function bundled with an environment.
+- **callNativeFn**: Invokes a native function implemented in C++.
+- **callClass**: Instantiates and calls methods on a class.
+- **callBuiltinMethod**: Calls built-in methods provided by the language.
 
-### Directory Structure
+### File Structure
 
+The `vmcore` directory is organized as follows:
+
+- **vmcore.h**: Header file containing declarations for all public functions and data structures used by the `vmcore` component.
+- **vmcore.cpp**: Source file implementing the core functionality of the `vmcore` component.
+- **stack.h** and **stack.cpp**: Files defining the stack data structure used by the virtual machine.
+- **error.h** and **error.cpp**: Files handling error reporting and management.
+- **types.h** and **types.cpp**: Files defining various data types and their conversions.
+- **operations.h** and **operations.cpp**: Files implementing binary and unary operations.
+- **closures.h** and **closures.cpp**: Files managing upvalues and closures.
+- **calls.h** and **calls.cpp**: Files handling function calls, both native and user-defined.
+- **classes.h** and **classes.cpp**: Files supporting object-oriented programming features like classes and method calls.
+
+## Flow Diagram
+
+```plaintext
++-------------------+
+|      run()        |
++---------+---------+
+          |
+          v
++---------+---------+
+|     push()      |
++---------+---------+
+          |
+          v
++---------+---------+
+|     pop()       |
++---------+---------+
+          |
+          v
++---------+---------+
+|  runtimeError()   |
++---------+---------+
+          |
+          v
++---------+---------+
+|    toNumber()     |
++---------+---------+
+          |
+          v
++---------+---------+
+| valuesEqual()   |
++---------+---------+
+          |
+          v
++---------+---------+
+| execBinary()    |
++---------+---------+
+          |
+          v
++---------+---------+
+|  execUnary()    |
++---------+---------+
+          |
+          v
++---------+---------+
+| captureUpvalue()|
++---------+---------+
+          |
+          v
++---------+---------+
+| closeUpvalues() |
++---------+---------+
+          |
+          v
++---------+---------+
+|  callValue()    |
++---------+---------+
+          |
+          v
++---------+---------+
+| callClosure()   |
++---------+---------+
+          |
+          v
++---------+---------+
+| callNativeFn()  |
++---------+---------+
+          |
+          v
++---------+---------+
+|    callClass()    |
++---------+---------+
+          |
+          v
++---------+---------+
+| callBuiltinMethod()|
++-------------------+
 ```
-vmcore/
-├── bytecode.cpp
-│   ├── run.cpp
-│   └── ...
-├── stack.cpp
-│   ├── push.cpp
-│   ├── pop.cpp
-│   └── ...
-├── error.cpp
-│   ├── runtimeError.cpp
-│   └── ...
-├── conversion.cpp
-│   ├── toNumber.cpp
-│   └── ...
-├── comparison.cpp
-│   ├── valuesEqual.cpp
-│   └── ...
-├── operations.cpp
-│   ├── execBinary.cpp
-│   ├── execUnary.cpp
-│   └── ...
-├── upvalues.cpp
-│   ├── captureUpvalue.cpp
-│   ├── closeUpvalues.cpp
-│   └── ...
-├── call.cpp
-│   ├── callValue.cpp
-│   ├── callClosure.cpp
-│   ├── callNativeFn.cpp
-│   ├── callClass.cpp
-│   └── callBuiltinMethod.cpp
-└── ...
+
+## Usage
+
+To use the `vmcore` component, include the `vmcore.h` header file in your source code and link against the corresponding library. Below is a simple example demonstrating how to initialize and run the virtual machine:
+
+```cpp
+#include "vmcore.h"
+
+int main() {
+    VM* vm = createVM();
+    loadBytecode(vm, "example.qb");
+    run(vm);
+    destroyVM(vm);
+    return 0;
+}
 ```
 
-## How Files Relate to Each Other
+For more detailed information on each function and its usage, refer to the individual `.h` and `.cpp` files within the `vmcore` directory.
 
-1. **bytecode.cpp**: Contains the implementation of the `run` function, which orchestrates the execution of bytecode.
-2. **stack.cpp**: Implements the stack operations (`push`, `pop`) used during the execution of bytecode.
-3. **error.cpp**: Manages runtime errors through the `runtimeError` function.
-4. **conversion.cpp**: Provides functionality to convert values to numbers using the `toNumber` function.
-5. **comparison.cpp**: Includes the `valuesEqual` function for comparing values.
-6. **operations.cpp**: Houses the implementations of binary (`execBinary`) and unary (`execUnary`) operations.
-7. **upvalues.cpp**: Manages upvalues with `captureUpvalue` and `closeUpvalues`.
-8. **call.cpp**: Contains various functions related to calling values, closures, native functions, classes, and built-in methods.
+## Contributing
 
-## Overall Flow
+Contributions to the `vmcore` component are welcome! If you encounter any issues or have suggestions for improvements, please open an issue or submit a pull request on the [Quantum Language GitHub repository](https://github.com/quantum-lang/compiler).
 
-1. **Initialization**: The virtual machine initializes its state, including setting up the stack and loading bytecode.
-2. **Bytecode Execution**: The `run` function reads and executes bytecode instructions one by one.
-3. **Stack Operations**: During execution, values are pushed onto and popped from the stack as required by the bytecode instructions.
-4. **Error Handling**: If a runtime error occurs, it is caught and handled by the `runtimeError` function.
-5. **Value Conversion**: Values need to be converted to numbers for certain operations, which is done using the `toNumber` function.
-6. **Comparison**: Values are compared for equality using the `valuesEqual` function.
-7. **Operations**: Binary and unary operations are executed based on the bytecode instructions, utilizing the `execBinary` and `execUnary` functions.
-8. **Upvalue Management**: Upvalues are captured and closed appropriately during function calls and returns, managed by `captureUpvalue` and `closeUpvalues`.
-9. **Function Calls**: Various types of function calls (value, closure, native, class, built-in) are handled by their respective functions in the `call.cpp` file.
+---
 
-By understanding and maintaining these components, developers can effectively extend and debug the Quantum Language compiler's virtual machine.
+This README provides a comprehensive overview of the `vmcore` component, detailing its purpose, key functions, and file structure. The flow diagram offers a visual representation of how these components interact, and the usage example demonstrates basic integration into a project.
