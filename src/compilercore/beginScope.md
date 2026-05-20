@@ -2,46 +2,38 @@
 
 ## Overview
 
-The `beginScope` function is a key component of the Quantum Language compiler, located within the `CompilerCore.cpp` file. It is designed to increment the scope depth of the currently active compilation unit. This function is essential for managing the nested structure of code blocks and ensuring that variables declared within these blocks are properly isolated and accessible.
+The `beginScope` function is a crucial method in the Quantum Language compiler, found within the `CompilerCore.cpp` file. Its primary purpose is to increase the scope depth of the currently active compilation unit. This function plays a vital role in managing the hierarchical structure of code blocks and variables, ensuring that each block operates within its designated scope.
 
-## Parameters
+## Parameters/Return Value
 
-- None
+- **Parameters**: None
+- **Return Value**: None
 
-## Return Value
-
-- None
+The `beginScope` function does not accept any parameters nor return any value. It simply increments the scope depth counter associated with the current compilation unit.
 
 ## Edge Cases
 
-1. **Initial Scope Depth**: If the initial scope depth is zero, calling `beginScope` will set the scope depth to one.
-2. **Nested Scopes**: Each call to `beginScope` increases the scope depth by one, allowing for multiple levels of nested scopes.
-3. **Empty Compilation Unit**: If there is no active compilation unit (i.e., `current_` is `nullptr`), calling `beginScope` will have no effect.
+1. **Initial Scope Depth**: If the initial scope depth is zero or negative, calling `beginScope` will result in an incremented scope depth. For example, if the initial scope depth is -1, after calling `beginScope`, the new scope depth will be 0.
+2. **Nested Scopes**: The function can be called multiple times to create nested scopes. Each call increases the scope depth by one, allowing for proper management of variable lifetimes and visibility.
+3. **Empty Compilation Unit**: If there is no active compilation unit when `beginScope` is called, the behavior is undefined. In practice, this should not occur as the compiler ensures that a compilation unit exists before invoking this function.
 
 ## Interactions with Other Components
 
-The `beginScope` function interacts closely with the `CompilationUnit` class, which represents the current compilation context. The `current_` pointer points to the active `CompilationUnit`. When `beginScope` is called, it increments the `scopeDepth` member variable of the `CompilationUnit`, effectively creating a new scope level.
+- **Scope Management**: The `beginScope` function interacts closely with the scope management system in the compiler. It updates the scope depth counter, which is used to track the nesting level of code blocks.
+- **Variable Declarations**: When a new variable is declared within a scope, the `beginScope` function helps in distinguishing between local and global variables. Variables declared after a call to `beginScope` are considered local to that scope.
+- **Error Handling**: The function may indirectly interact with error handling mechanisms. For instance, if an attempt is made to access a variable outside its valid scope, the compiler might use the scope depth information to report an error.
 
-This interaction ensures that each scope has its own namespace, preventing name clashes between variables declared at different levels of nesting. Additionally, the `endScope` function, which decrements the scope depth, is used to close out the current scope when necessary.
-
-Here's a brief overview of how `beginScope` might be used within the compiler:
+Here is a simplified version of how `beginScope` might be implemented:
 
 ```cpp
-// Example usage within the compiler
-void CompilerCore::compileBlock(Block* block) {
-    // Begin a new scope before entering the block
-    beginScope();
-
-    // Compile each statement within the block
-    for (Statement* stmt : block->statements) {
-        compileStatement(stmt);
-    }
-
-    // End the scope after exiting the block
-    endScope();
+void CompilerCore::beginScope() {
+    // Increment the scope depth of the current compilation unit
+    current_->scopeDepth++;
 }
 ```
 
-In this example, `beginScope` is called at the beginning of compiling a block, and `endScope` is called at the end. This ensures that any variables declared within the block are properly scoped and do not affect variables outside the block.
+In this implementation:
+- `current_` refers to the currently active compilation unit.
+- `scopeDepth` is a member variable of the compilation unit that keeps track of its scope depth.
 
-Overall, the `beginScope` function is a fundamental building block for managing the scope hierarchy in the Quantum Language compiler, facilitating proper variable isolation and accessibility across different parts of the codebase.
+By incrementing `scopeDepth`, the function effectively marks the beginning of a new scope, facilitating the correct management of variables and their visibility throughout the compilation process.
