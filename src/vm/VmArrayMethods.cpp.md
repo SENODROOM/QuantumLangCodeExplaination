@@ -2,82 +2,40 @@
 
 ## Overview
 
-`VmArrayMethods.cpp` is an essential part of the Quantum Language compiler's virtual machine (VM) subsystem, dedicated to providing comprehensive array manipulation capabilities. This file encompasses core operations such as `push`, `pop`, `shift`, `unshift`, `reverse`, `sort`, `join`, `includes`, `contains`, and `indexOf`. These methods enable dynamic array handling within the VM, facilitating complex data manipulations required during compilation and execution phases.
+`VmArrayMethods.cpp` is a critical component of the Quantum Language compiler's virtual machine (VM) subsystem, focusing on providing robust array manipulation functionalities. It includes essential methods like `push`, `pop`, `shift`, `unshift`, `reverse`, `sort`, `join`, `includes`, `contains`, and `indexOf`.
 
-## Role in Compiler Pipeline
+### Role in Compiler Pipeline
 
-The primary role of `VmArrayMethods.cpp` is to extend the functionality of arrays within the Quantum Language environment. By implementing these methods, it ensures that developers can perform various array operations directly from their code, enhancing productivity and efficiency. The methods are invoked through the VM's interpreter, allowing seamless integration into the overall compilation process.
+This file plays a pivotal role in the compiler's execution phase, where it handles dynamic array operations at runtime. The VM relies on these methods to perform various tasks efficiently, ensuring that arrays can be manipulated seamlessly during program execution.
 
-## Key Design Decisions and Why
+### Key Design Decisions and Why
 
-### Dynamic Method Dispatch
+- **Dynamic Typing**: The implementation supports both numeric and string elements, making it versatile for different use cases.
+- **Exception Handling**: Robust error handling is implemented for methods like `pop` and `indexOf`, ensuring safe operation even with invalid indices or empty arrays.
+- **In-place Operations**: Many methods operate directly on the array without creating new instances, optimizing memory usage.
+- **Flexibility in Arguments**: Methods like `join` and `indexOf` allow optional arguments, enhancing their usability across various scenarios.
 
-Each method is dispatched dynamically based on the operation requested. This approach allows for flexibility and scalability, accommodating different types of array elements and custom sorting criteria.
+### Major Classes/Functions Overview
 
-### Exception Handling
+#### Class: `Array`
+- Represents a dynamic array data structure used extensively throughout the compiler.
+- Provides basic functionalities like adding, removing, and accessing elements.
 
-Exception handling is implemented for critical operations like `pop` and `indexOf`, ensuring robustness against errors such as popping from an empty array or accessing an invalid index. This prevents runtime crashes and provides clear error messages to the developer.
+#### Functions:
+- `push`: Adds an element to the end of the array.
+- `pop`: Removes and returns the last element of the array. Throws an exception if the array is empty.
+- `shift`: Removes and returns the first element of the array. Returns `undefined` if the array is empty.
+- `unshift`: Adds an element to the beginning of the array and returns the new length of the array.
+- `reverse`: Reverses the order of elements in the array in place.
+- `sort`: Sorts the array based on element type (numeric or string). Uses a custom comparator to handle both types.
+- `join`: Concatenates all elements of the array into a single string, separated by a specified delimiter (default is comma).
+- `includes`/`contains`: Checks if the array contains a specific value, returning a boolean result.
+- `indexOf`: Returns the first index at which a given value can be found in the array, or `-1` if not present.
 
-### Trade-offs
+### Tradeoffs
 
-#### Memory Efficiency vs. Performance
+- **Memory Usage**: In-place operations reduce memory overhead but may require additional logic to manage edge cases.
+- **Performance**: Sorting and reversing operations have higher time complexity compared to simpler manipulations, potentially impacting performance in large-scale applications.
+- **Complexity**: Supporting multiple data types and flexible argument handling adds complexity to the codebase, requiring thorough testing and maintenance.
 
-Some operations, like `sort`, involve significant memory usage due to the creation of temporary storage for sorting algorithms. However, this trade-off is justified by the improved performance and reliability of sorted data structures.
-
-#### Readability vs. Complexity
-
-While some methods, like `join`, offer straightforward implementations, others, such as `sort`, require more complex logic to handle both numeric and string comparisons. Balancing readability with complexity ensures maintainable and efficient code.
-
-## Major Classes/Functions Overview
-
-### `class Array`
-
-Represents the quantum array type, inheriting from the base `QuantumValue` class. It encapsulates a vector of `QuantumValue` objects, providing methods to manipulate the array dynamically.
-
-### `QuantumValue VM::callArrayMethod(std::shared_ptr<Array> arr, const std::string &m, std::vector<QuantumValue> args)`
-
-This function serves as the entry point for calling array methods. It takes a shared pointer to an array, the method name, and a vector of arguments. Based on the method name, it invokes the corresponding implementation, handling exceptions and returning the result as a `QuantumValue`.
-
-### `void Array::push_back(const QuantumValue &value)`
-
-Adds an element to the end of the array. If no value is provided, it appends an empty `QuantumValue`.
-
-### `QuantumValue Array::pop(int idx)`
-
-Removes and returns an element at the specified index. Throws a runtime error if the index is out of bounds.
-
-### `double Array::size()`
-
-Returns the number of elements in the array as a double.
-
-### `QuantumValue Array::shift()`
-
-Removes the first element from the array and returns it. Returns an empty `QuantumValue` if the array is empty.
-
-### `void Array::unshift(const QuantumValue &value)`
-
-Inserts an element at the beginning of the array.
-
-### `void Array::reverse()`
-
-Reverses the order of elements in the array.
-
-### `void Array::sort()`
-
-Sorts the elements in the array. Uses a custom comparator that handles both numeric and string values.
-
-### `std::string Array::join(const std::string &separator)`
-
-Concatenates all elements in the array into a single string, separated by the provided separator.
-
-### `bool Array::includes(const QuantumValue &value)`
-
-Checks if the array contains the specified value. Returns true if found, false otherwise.
-
-### `double Array::indexOf(const QuantumValue &value)`
-
-Finds the index of the specified value in the array. Returns -1 if not found.
-
-## Conclusion
-
-`VmArrayMethods.cpp` plays a pivotal role in enabling powerful array operations within the Quantum Language compiler's VM subsystem. Through its well-designed functions and exception handling, it enhances the language's usability and robustness, making it easier for developers to work with dynamic data structures efficiently.
+Overall, `VmArrayMethods.cpp` is a well-designed module that enhances the VM's functionality, enabling efficient and dynamic array management within the Quantum Language compiler.
