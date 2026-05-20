@@ -2,39 +2,35 @@
 
 ## Overview
 
-The `compileLambda` function is responsible for compiling a lambda expression in the Quantum Language compiler. A lambda expression is an anonymous function that can be defined and used within another function or block of code. This function generates bytecode to represent the lambda function and its environment.
+The `compileLambda` function compiles a lambda expression in the Quantum Language compiler. Lambda expressions are anonymous functions that can be defined and used within another function or block of code. This function generates bytecode to represent the lambda function, including its parameters, body, and default arguments.
 
 ### Why It Works This Way
 
-The current implementation of `compileLambda` follows these steps:
+The function works by first creating a chunk of bytecode (`fnChunk`) using the `compileFunction` method, which handles the compilation of the lambda's body. The `noRef` vector indicates whether each parameter should be passed by reference. Since lambda expressions are typically used where they need to capture variables from their enclosing scope, we assume all parameters are not referenced directly within the lambda.
 
-1. **Initialization**: Creates a vector `noRef` to keep track of whether each parameter should be referenced or not.
-2. **Compilation**: Calls `compileFunction` to generate bytecode for the lambda function itself. The function name is set to "lambda" and includes the parameters, default arguments, and body of the lambda.
-3. **Closure Creation**: Constructs a shared pointer to a `Closure` object using the generated function bytecode.
-4. **Constant Loading**: Loads the constant representing the closure into the bytecode stream.
-5. **Function/Maker Closure**: Depending on whether the closure has upvalues (i.e., references to variables from outer scopes), emits either `Op::MAKE_CLOSURE` or `Op::MAKE_FUNCTION`.
+Next, a `Closure` object is created to encapsulate the compiled function chunk. This `Closure` object will hold any upvalues (variables captured from the enclosing scope) that the lambda might use. If there are upvalues, the `Op::MAKE_CLOSURE` opcode is emitted; otherwise, `Op::MAKE_FUNCTION` is used.
 
-This approach ensures that the lambda function is correctly compiled and encapsulates any necessary environment, allowing it to be used as expected within the Quantum Language program.
+Finally, the bytecode for loading a constant (the `Closure` object) onto the stack and making the function (or closure) is emitted.
 
-## Parameters/Return Value
+### Parameters/Return Value
 
 - **Parameters**:
-  - `e`: An expression containing the details of the lambda, including its parameters, default arguments, and body.
-  - `line`: The line number where the lambda expression appears in the source code.
+  - `e`: An `Expression` object representing the lambda expression to be compiled.
+  - `line`: An integer indicating the line number in the source code where the lambda is located.
 
-- **Return Value**:
-  - No explicit return value; instead, it modifies the bytecode stream directly through calls to `emit`.
+- **Return Value**: 
+  - The function does not explicitly return a value but emits bytecode instructions to the current context.
 
-## Edge Cases
+### Edge Cases
 
-1. **Empty Lambda Body**: If the lambda's body is empty, the `compileFunction` call will still handle it gracefully, resulting in an empty function chunk.
-2. **Default Arguments**: Default arguments are passed along with the parameters during the compilation process. If a parameter has a default value, it will be included in the bytecode generation.
-3. **Upvalues**: When a lambda captures variables from its enclosing scope, the `closureTpl` will include those variables as upvalues. The `Op::MAKE_CLOSURE` instruction is emitted when there are upvalues to properly create a closure.
+1. **No Upvalues**: If the lambda does not capture any variables from its enclosing scope, only `Op::MAKE_FUNCTION` is emitted, as closures are unnecessary.
+2. **Default Arguments**: Default arguments are handled during the compilation of the function body. The `defaultArgs` parameter is used to pass these arguments to the `compileFunction` method.
+3. **Parameter References**: By default, all parameters are assumed not to be referenced within the lambda. If this assumption is incorrect, the `noRef` vector would need to be adjusted accordingly.
 
-## Interactions With Other Components
+### Interactions With Other Components
 
-- **Bytecode Generation**: `compileLambda` interacts with the bytecode generator to produce the appropriate instructions for the lambda function.
-- **Symbol Table**: During the compilation of the lambda's body, the symbol table might be updated to reflect the local scope of the lambda.
-- **Error Handling**: Any errors encountered during the compilation of the lambda's body are handled appropriately by the compiler's error reporting mechanisms.
+- **Bytecode Emission**: The `emit` function is called multiple times to generate bytecode instructions. These include loading constants, making functions or closures, and handling upvalues.
+- **Function Compilation**: The `compileFunction` method is invoked to compile the lambda's body into a bytecode chunk. This method takes care of parsing, analyzing, and generating bytecode for the function's statements.
+- **Closure Object**: The `Closure` class is utilized to create an object that holds the compiled function and any upvalues. This object is then converted into a quantum value and loaded onto the stack as a constant.
 
-Overall, `compileLambda` plays a crucial role in ensuring that lambda expressions are correctly compiled and integrated into the Quantum Language program's execution flow.
+This function is crucial for supporting higher-order functions and capturing variables in lambda expressions, enabling more flexible and powerful programming constructs in the Quantum Language.
