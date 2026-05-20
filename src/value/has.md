@@ -2,34 +2,67 @@
 
 ## Overview
 
-The `has` function is a member method of the `Value` class in the Quantum Language compiler's source file `src/Value.cpp`. This function checks whether a variable named `name` exists within the current scope or any of its parent scopes.
+The `has` function is a member method of the `Value` class located in the Quantum Language compiler's source file `src/Value.cpp`. This function determines whether a variable named `name` is present within the current scope or any of its parent scopes.
 
 ## What It Does
 
-The `has` function determines if a variable with a specified name (`name`) is present in the current scope managed by the `Value` object. If the variable is found in the current scope, the function returns `true`. If not, it recursively calls the `has` method on the parent scope (`parent`). If the variable is still not found after checking all parent scopes, the function returns `false`.
+The `has` function performs a lookup to check if a variable with the specified name (`name`) exists in the `vars` map, which represents the variables defined in the current scope. If the variable is found in the current scope, the function returns `true`.
 
-This functionality is crucial for managing variable visibility and scoping rules in the Quantum Language compiler. By allowing variables to be checked across multiple scopes, the compiler can ensure that references to variables are correctly resolved during compilation.
+If the variable is not found in the current scope, the function checks if there is a parent scope by examining the `parent` pointer. If a parent scope exists, it recursively calls the `has` function on the parent scope to search for the variable. If the variable is found in any parent scope, the function returns `true`.
+
+If neither the current scope nor any parent scope contains the variable, the function returns `false`.
+
+### Example Usage
+
+Here's an example demonstrating how the `has` function might be used:
+
+```cpp
+#include "Value.h"
+
+int main() {
+    Value currentScope;
+    currentScope.vars["x"] = 42;
+
+    Value parentScope;
+    parentScope.vars["y"] = 99;
+
+    currentScope.parent = &parentScope;
+
+    // Check if 'x' exists in the current scope or any parent scopes
+    bool xExists = currentScope.has("x"); // Returns true
+    bool yExists = currentScope.has("y"); // Returns true
+    bool zExists = currentScope.has("z"); // Returns false
+
+    return 0;
+}
+```
+
+In this example:
+- The variable `x` is defined in the current scope and is accessible through the `has` function.
+- The variable `y` is defined in the parent scope and is also accessible through the `has` function.
+- The variable `z` is not defined in either the current scope or the parent scope, so the `has` function returns `false`.
+
+## Why It Works This Way
+
+The `has` function works by leveraging the hierarchical nature of scopes in the Quantum Language compiler. By checking both the current scope and its parent scopes, the function ensures that all possible variable definitions are considered. This approach allows for a flexible and dynamic variable lookup mechanism, accommodating nested scopes and variable shadowing.
+
+### Edge Cases
+
+1. **Empty Scope**: If the current scope has no variables defined (`vars` map is empty) and there is no parent scope (`parent` pointer is `nullptr`), the function will correctly return `false`.
+2. **Variable Shadowing**: If a variable with the same name is defined in both the current scope and a parent scope, the function will return `true` for the first occurrence encountered during the lookup process.
 
 ## Parameters/Return Value
 
-- **Parameters**: 
-  - `name`: A string representing the name of the variable to check for existence.
+### Parameters
 
-- **Return Value**:
-  - Returns a boolean value indicating whether the variable `name` exists in the current scope or any of its parent scopes.
+- `const std::string& name`: A constant reference to the string representing the name of the variable to look up.
 
-## Edge Cases
+### Return Value
 
-1. **Empty Scope**: If the current scope (`this`) does not contain any variables and there is no parent scope (`parent == nullptr`), the function will return `false`.
-2. **Variable Not Found**: If the variable `name` is not found in the current scope or any of its parent scopes, the function will eventually return `false`.
-3. **Recursive Parent Scopes**: The function will continue to call itself on parent scopes until either the variable is found or all parent scopes have been checked.
+- `bool`: Returns `true` if the variable exists in the current scope or any of its parent scopes; otherwise, returns `false`.
 
 ## Interactions With Other Components
 
-The `has` function interacts with several components within the Quantum Language compiler:
+The `has` function interacts with the `Value` class's `vars` map and `parent` pointer. The `vars` map stores the variables defined in the current scope, while the `parent` pointer points to the parent scope, allowing for recursive searches when necessary.
 
-1. **Scope Management**: The `Value` class represents a scope, which contains a set of variables (`vars`). The `has` function uses this set to quickly check if the variable exists in the current scope.
-2. **Parent Scopes**: Each `Value` object may have a parent scope (`parent`). The `has` function leverages this relationship to search for the variable in higher-level scopes if it is not found in the current one.
-3. **Symbol Table**: While not explicitly mentioned in the code snippet, the `has` function is part of a larger system that likely involves a symbol table to manage all variables and their scopes throughout the program.
-
-By leveraging these components, the `has` function provides a robust mechanism for resolving variable references in the Quantum Language compiler, ensuring that each reference is correctly associated with its intended variable definition.
+This function is crucial for resolving variable references in the Quantum Language compiler, ensuring that the correct variable definition is accessed based on the current scope context.

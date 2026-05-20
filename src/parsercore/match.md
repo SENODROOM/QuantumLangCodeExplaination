@@ -1,34 +1,47 @@
 # `match` Function
 
-The `match` function is a crucial method within the parser framework of the Quantum Language compiler. It serves as a fundamental building block for parsing operations, ensuring that the sequence of tokens encountered during compilation matches the expected syntax and structure of the language.
+The `match` function is an essential component within the parser framework of the Quantum Language compiler. This function plays a pivotal role in verifying whether the current token sequence aligns with the anticipated syntax and structure during the compilation process. 
 
-## What It Does
+## What it Does
 
-The primary purpose of the `match` function is to check if the current token being processed in the input stream is of a specified token type. If the tokens align, it consumes the current token and returns `true`. Otherwise, it returns `false`.
+The primary objective of the `match` function is to check if the next token in the input stream conforms to a specified pattern or rule. If the token matches, it consumes the token and proceeds; otherwise, it returns false.
 
-## Why It Works This Way
+## Why it Works this Way
 
-This design ensures that the parser can accurately follow the grammar rules defined for the Quantum Language. By checking the current token against the expected type, the parser can make informed decisions about how to proceed with the compilation process. Consuming the matched token allows the parser to move forward to the next token in the input stream, maintaining the correct order of processing.
+This design allows for a flexible and hierarchical approach to parsing. By encapsulating the logic for checking and consuming tokens, the `match` function simplifies the implementation of more complex parsing rules. It ensures that each rule can be broken down into smaller, manageable parts, making the codebase cleaner and easier to maintain.
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - `t`: The token type to be checked against the current token in the input stream.
+  - `t`: A reference to a token representing the expected pattern or rule.
 
 - **Return Value**:
-  - Returns `true` if the current token matches the specified token type and has been consumed.
-  - Returns `false` if the tokens do not match or if there is no current token available.
+  - Returns `true` if the current token matches the expected pattern, after which the token is consumed.
+  - Returns `false` if there is a mismatch between the current token and the expected pattern.
 
 ## Edge Cases
 
-1. **End of Input**: When the end of the input stream is reached, attempting to call `match` will result in a failure since there is no current token to compare.
-2. **Token Mismatch**: If the current token does not match the expected token type, the function will simply return `false`, allowing the parser to handle the error appropriately.
-3. **Empty Token Type**: Passing an empty token type to the `match` function may lead to unexpected behavior, as it could potentially match any token.
+1. **Empty Input Stream**: If the input stream is empty, calling `match` will result in undefined behavior since there is no token to check or consume.
+2. **Token Mismatch**: If the current token does not match the expected pattern, the function simply returns false without altering the state of the parser.
+3. **End of File (EOF)**: When encountering EOF, the `match` function should handle it gracefully, possibly returning false or indicating an error condition depending on the context.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Check Function**: The `match` function relies on the `check` method to determine if the current token matches the specified token type. The `check` method should be implemented to provide accurate token comparisons based on their type and content.
-- **Consume Function**: Upon successful matching, the `consume` method is called to remove the current token from the input stream, preparing the parser for the next token.
-- **Error Handling**: The `match` function interacts with the broader error handling mechanism of the compiler. If a mismatch occurs, the parser may trigger appropriate error messages or take corrective actions to continue the compilation process.
+The `match` function interacts closely with several other components within the parser:
 
-In summary, the `match` function plays a vital role in the Quantum Language compiler's parsing phase, facilitating accurate token comparison and consumption to ensure syntactic correctness during compilation.
+1. **Lexer**: The lexer generates tokens based on the input source code. These tokens are then passed to the parser for further processing.
+2. **Token Buffer**: The parser maintains a buffer of tokens to manage the lookahead and ensure correct parsing decisions.
+3. **Error Handling**: Upon detecting a mismatch, the `match` function may trigger error handling mechanisms to report syntax errors back to the user.
+
+Here's how these interactions play out in the provided code snippet:
+
+```cpp
+if (check(t)) // Checks if the current token matches the expected pattern 't'
+{
+    consume(); // Consumes the matched token
+    return true;
+}
+return false; // Returns false if there is a mismatch
+```
+
+In summary, the `match` function is a vital tool in the Quantum Language compiler's parser framework. Its straightforward implementation makes it easy to integrate into larger parsing structures while providing robust functionality for validating and advancing through token sequences.

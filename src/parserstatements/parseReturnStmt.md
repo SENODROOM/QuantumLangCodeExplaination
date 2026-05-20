@@ -1,33 +1,27 @@
 # parseReturnStmt
 
 ## Purpose
-The `parseReturnStmt` function is designed to parse a return statement within the Quantum Language compiler's parser. Its primary role is to construct an abstract syntax tree (AST) node that accurately represents the return statement and any associated expressions. This ensures that the compiler can correctly interpret and process the return statement during compilation.
+The `parseReturnStmt` function is designed to parse a return statement within the Quantum Language compiler's parser. Its primary role is to construct an abstract syntax tree (AST) node that accurately represents the return statement and any associated expressions. This ensures that the return statement can be correctly interpreted and executed during compilation.
 
-## Parameters/Return Value
-- **Parameters**: None
-- **Return Value**: An `ASTNodePtr` object representing the parsed return statement. If there is no expression following the `return` keyword, the returned node will contain a `nullptr`.
+## Parameters
+- None
+
+## Return Value
+- An `ASTNodePtr` representing the parsed return statement. If there is no expression following the `return` keyword, it returns an empty `ReturnStmt`.
 
 ## How It Works
-1. **Initialization**: The function begins by storing the current line number (`ln`) using `current().line`.
-2. **Expression Parsing**: 
-   - If the next token is not a newline, semicolon, or end of file, the function attempts to parse an expression using `parseExpr()`. This expression could be a single value or part of a tuple.
-3. **Tuple Handling**:
-   - If the next token is a comma (`TokenType::COMMA`), indicating a tuple return, the function enters a loop to parse additional elements of the tuple.
-   - Each element is added to a `TupleLiteral` object, which is then moved into an `ASTNode` object.
-4. **Whitespace Consumption**:
-   - After parsing the expression(s), the function consumes any trailing newlines or semicolons until it reaches the end of the statement.
-5. **Return Statement Construction**:
-   - Finally, the function creates an `ASTNode` containing a `ReturnStmt` object, which holds the parsed expression(s). This node is returned as the result of the function.
+1. **Initialization**: The function begins by storing the current line number (`ln`) where the return statement starts.
+2. **Expression Parsing**: It checks if the next token is not a newline, semicolon, or end of file. If so, it parses an expression using the `parseExpr()` method and assigns it to `val`.
+3. **Tuple Handling**: If the next token after parsing the expression is a comma, indicating a tuple return, it enters a loop to parse additional expressions until a comma is no longer found or the end of the statement is reached. Each parsed expression is added to a `TupleLiteral` object.
+4. **Completion**: After parsing all expressions, including those in a tuple, it consumes any trailing newlines or semicolons using a while loop.
+5. **Return Statement Construction**: Finally, it constructs an `ASTNode` containing a `ReturnStmt` object, which holds the parsed expression(s). If no expression was parsed, it contains an empty `ReturnStmt`. The constructed `ASTNode` is then returned.
 
 ## Edge Cases
-- **Empty Return Statement**: If the return statement does not include an expression (e.g., `return;`), the function returns a node with a `nullptr` for the expression.
-- **Single Expression**: If the return statement contains only one expression (e.g., `return x;`), the function parses and returns that expression directly.
-- **Tuple Expressions**: If the return statement includes multiple expressions separated by commas (e.g., `return a, b, c;`), the function correctly handles them as a tuple literal.
-- **Trailing Whitespace**: The function ignores any trailing newlines or semicolons after the return expression, ensuring that the AST remains clean and consistent.
+- **Empty Return Statement**: If the return statement does not have an associated expression, the function will simply return an empty `ReturnStmt`.
+- **Trailing Newlines/Semicolons**: Any newlines or semicolons that follow the return statement are consumed to ensure proper parsing of subsequent statements.
+- **Tuple Returns**: Multiple values can be returned as a tuple, separated by commas. The function handles this by constructing a `TupleLiteral` with multiple elements.
 
-## Interactions with Other Components
-- **Tokenizer**: The function uses tokens provided by the tokenizer to determine the structure of the return statement.
-- **Error Handling**: While not explicitly shown in the code snippet, the function likely interacts with error handling mechanisms to report issues such as missing expressions or unexpected tokens.
-- **Scope Management**: The function may interact with scope management to ensure that variables referenced in the return statement are valid and accessible within their respective scopes.
-
-By carefully parsing return statements and constructing appropriate AST nodes, `parseReturnStmt` plays a crucial role in the Quantum Language compiler's ability to accurately represent and compile quantum programs.
+## Interactions With Other Components
+- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing.
+- **Error Handling**: While not explicitly shown in the code snippet, the function should interact with error handling mechanisms to manage unexpected tokens or malformed return statements gracefully.
+- **Abstract Syntax Tree (AST)**: The parsed return statement is integrated into the AST, allowing further analysis and transformation during the compilation process.

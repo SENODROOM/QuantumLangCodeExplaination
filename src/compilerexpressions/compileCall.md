@@ -1,45 +1,33 @@
-## `compileCall`
+# compileCall
 
-### Description
+## Description
 
-The `compileCall` function is a crucial component of the Quantum Language compiler, located in the `src/compiler/CompilerExpressions.cpp` file. Its primary responsibility is to handle the compilation of function calls within the language. This function ensures that the correct operations are emitted to the bytecode interpreter, taking into account various call patterns and handling arguments appropriately.
+The `compileCall` function is a critical component of the Quantum Language compiler, located in the `src/compiler/CompilerExpressions.cpp` file. Its primary responsibility is to handle the compilation of function calls within the language. This function ensures that arguments are correctly compiled and passed to the function being called, handling both normal arguments and those using spread or unpack syntax.
 
-### Parameters
+## Parameters/Return Value
 
-- `e`: An `ASTNode` representing the function call expression to be compiled.
+- **Parameters**:
+  - `e`: An ASTNode representing the function call expression to be compiled.
+  - `line`: The current line number in the source code, used for error reporting and debugging purposes.
 
-### Return Value
+- **Return Value**: None. The function compiles the given function call expression directly into bytecode instructions.
 
-This function does not explicitly return a value but instead emits bytecode instructions directly.
+## Edge Cases
 
-### Edge Cases
+1. **Normal Argument Compilation**: When the function call does not use spread or unpack syntax, each argument is compiled individually and then passed to the function.
+   
+2. **Spread Syntax Handling**: If the function call uses the spread (`...`) syntax, the function first loads a global variable `__call_spread__`, which is responsible for handling spread operations. It then compiles the callee and creates an empty array. For each argument, it checks if the argument is a spread argument. If so, it loads another global variable `__array_extend__` and extends the array with the values of the spread argument. Otherwise, it pushes the argument onto the array using `__listcomp_push__`. Finally, it calls the function with the array as its argument.
 
-1. **Spread Operator**: The function handles spread operators (`...`) and unpacking operators (`**`). When encountering these, it compiles the function call using a special mechanism that involves loading global functions like `__call_spread__`, `__array_extend__`, and `__listcomp_push__`.
+3. **Unpack Syntax Handling**: Similar to spread syntax, but specifically for tuple literals. The function handles each element of the tuple separately before passing them to the function.
 
-2. **Super Method Call**: There is a special case where the function call is made on a `SuperExpr`. In such scenarios, the function needs to handle method calls on the superclass, which requires additional logic to resolve the method correctly.
+4. **Super Method Calls**: There is a special case where the function call is made through a `SuperExpr`. In this scenario, the compiler needs to handle method calls on the parent class, which involves additional bytecode instructions to ensure correct context and inheritance.
 
-3. **Empty Arguments**: If the function call has no arguments, the function simply compiles the callee and emits a call operation without any additional steps.
+## Interactions with Other Components
 
-4. **Single Argument**: For single argument calls, the function compiles the argument and then the callee, followed by a call operation.
+- **ASTNode Compilation**: The function interacts with various types of ASTNodes such as `AssignExpr`, `TupleLiteral`, `UnaryExpr`, and `SuperExpr`. Each type is handled differently based on its structure and the operation it represents.
 
-5. **Multiple Arguments**: For multiple arguments, the function iterates through each argument, compiles it, and then compiles the callee. It finally emits a call operation with the appropriate number of arguments.
+- **Bytecode Emission**: The function emits bytecode instructions using the `emit` function. These instructions include loading global variables, creating arrays, pushing elements onto lists, and calling functions.
 
-### Interactions with Other Components
+- **Error Reporting**: While not explicitly shown in the provided snippet, the function likely integrates with the compiler's error reporting system to handle any issues that arise during the compilation process, such as invalid arguments or undefined functions.
 
-- **Bytecode Emission**: The function interacts closely with the bytecode emission system. It uses helper functions like `emit`, `Op::LOAD_GLOBAL`, `Op::MAKE_ARRAY`, etc., to generate the necessary bytecode instructions.
-
-- **Expression Compilation**: The function relies on the `compileExpr` method to compile individual expressions within the function call. This includes handling complex expressions like assignments and tuple literals.
-
-- **Scope Management**: During the compilation process, the function may interact with scope management components to ensure that variables and identifiers are resolved correctly within the current scope.
-
-### Implementation Details
-
-The function starts by defining a lambda `emitArgValues` that handles the compilation of individual arguments. Depending on whether an argument is an assignment or a tuple literal, it compiles the value accordingly and returns the count of elements involved.
-
-Next, the function checks if there is a spread operator (`...`) or unpacking operator (`**`) in the arguments. If so, it compiles the function call using a special mechanism involving global functions and array manipulation operations.
-
-For regular function calls without spread operators, the function compiles the callee and iterates through each argument, compiling them as well. Finally, it emits a call operation with the appropriate number of arguments.
-
-In the special case of calling a method on the superclass (`super.method(args)`), additional logic would need to be implemented to correctly resolve the method and its arguments within the inheritance hierarchy.
-
-Overall, the `compileCall` function plays a vital role in ensuring that function calls are correctly compiled and executed within the Quantum Language environment, handling various edge cases and interacting seamlessly with other components of the compiler.
+This comprehensive approach ensures that the Quantum Language compiler can handle complex function calls efficiently and accurately, supporting features like spread and unpack syntax while maintaining compatibility with traditional function calls.

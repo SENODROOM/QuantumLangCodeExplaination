@@ -1,42 +1,51 @@
 # `parseAnd` Function
 
 ## Purpose
-The `parseAnd` function is essential in the Quantum Language compiler's parser for managing expressions that involve both the logical AND (`&`) and bitwise AND (`&&`) operators. This function constructs an Abstract Syntax Tree (AST) node to represent these operations, ensuring correct parsing and semantic analysis of complex expressions.
+The `parseAnd` function is crucial in the Quantum Language compiler's parser for handling expressions involving both the logical AND (`&`) and bitwise AND (`&&`) operators. It constructs an Abstract Syntax Tree (AST) node to represent these operations.
 
 ## Parameters
-- None explicitly mentioned in the provided code snippet.
+- None directly specified in the function signature, but it implicitly relies on global variables such as `pos`, which represents the current position in the token stream.
 
 ## Return Value
-- Returns a unique pointer to an ASTNode representing the parsed expression involving logical and bitwise AND operations.
+- Returns a unique pointer to an `ASTNode` representing the parsed expression.
 
-## How It Works
-1. **Initial Parsing**: The function starts by calling `parseBitwise()` to parse the left-hand side (LHS) of the expression. This ensures that any bitwise operations are correctly handled before moving on to logical operations.
+## Detailed Explanation
+### Workflow
+1. **Initialization**: The function starts by calling `parseBitwise()` to parse the left-hand side of the AND expression. This initial call returns a unique pointer to an `ASTNode`.
 
-2. **Loop for Chained Operations**: 
-   - A loop begins where the function continuously checks for either the logical AND (`&`) or bitwise AND (`&&`) operator.
-   - If such an operator is found, the function consumes the token using `consume()`, which advances the parser's position past the operator.
-   - Depending on whether the consumed token was `TokenType::AND_AND` (bitwise AND) or `TokenType::AND` (logical AND), the corresponding string representation ("and" or "&&") is stored in `opStr`.
+2. **Loop for Additional AND Expressions**:
+   - A `while` loop is used to handle multiple consecutive AND operations.
+   - Inside the loop, `savedPos` is set to the current position in the token stream to allow for potential backtracking.
+   - `skipNewlines()` is called to ensure that any newlines between tokens are skipped over.
 
-3. **Parsing Right-Hand Side**: After consuming the operator token, another call to `parseBitwise()` is made to parse the right-hand side (RHS) of the expression.
+3. **Check for AND Tokens**:
+   - The function checks if the next token is either `TokenType::AND` or `TokenType::AND_AND`.
+   - If neither token is found, the loop breaks, indicating the end of the AND expression sequence.
 
-4. **Constructing AST Node**:
-   - An `ASTNode` is created with a `BinaryExpr` structure, containing the operator string, the LHS sub-expression, and the RHS sub-expression.
-   - The line number (`ln`) of the current token is used to accurately place the AST node within the source code context.
+4. **Consume AND Token**:
+   - If an AND token is found, it consumes the token using `consume()`. The consumed token is stored in `opToken`.
+   - Depending on whether the token type is `TokenType::AND_AND` or `TokenType::AND`, the string representation of the operator (`opStr`) is determined.
 
-5. **Updating Left Sub-Expression**: The newly constructed `ASTNode` becomes the new LHS for the next iteration of the loop, allowing for the chaining of multiple AND operations.
+5. **Skip Newlines Again**:
+   - After consuming the AND token, another call to `skipNewlines()` ensures that any newlines after the operator are ignored.
 
-6. **Exit Condition**: The loop exits when no more AND or bitwise AND operators are encountered, restoring the parser's position to the point just before the last consumed token.
+6. **Parse Right-Hand Side**:
+   - The function calls `parseBitwise()` again to parse the right-hand side of the current AND expression. This returns another unique pointer to an `ASTNode`.
 
-7. **Return Result**: Finally, the function returns the fully constructed AST node representing the entire expression involving chained AND operations.
+7. **Construct AST Node**:
+   - An `ASTNode` is constructed with a `BinaryExpr` containing the operator string (`opStr`), the left-hand side (`left`), and the right-hand side (`right`). The line number (`ln`) of the current token is also passed to maintain context.
+   - The newly constructed `ASTNode` becomes the new `left` for the next iteration of the loop, allowing for chaining of AND operations.
 
-## Edge Cases
-- **No Operators**: If there are no AND or bitwise AND operators in the expression, the function will simply return the result of the initial `parseBitwise()` call without constructing any additional nodes.
-- **Mixed Operators**: While the function primarily handles AND and bitwise AND operations, it should gracefully handle mixed sequences of these operators, although proper precedence rules should be implemented elsewhere in the compiler to ensure correct evaluation.
-- **Syntax Errors**: If the parser encounters unexpected tokens or syntax errors while trying to parse the LHS or RHS of an AND operation, it may throw exceptions or produce incorrect AST nodes.
+8. **Return Final AST Node**:
+   - Once the loop completes, the final `ASTNode` representing the entire AND expression sequence is returned.
 
-## Interactions with Other Components
-- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing.
-- **Error Handling**: Proper error handling mechanisms should be integrated into the function to manage syntax errors and other issues during parsing.
-- **Precedence Rules**: Although not explicitly defined in the provided code, the function should work in conjunction with other parts of the parser to respect the precedence rules of AND and bitwise AND operations, ensuring that they are evaluated correctly in complex expressions.
+### Edge Cases
+- **No AND Tokens**: If there are no `TokenType::AND` or `TokenType::AND_AND` tokens following the initial `parseBitwise()` call, the function will simply return the result of the first parsing without constructing any additional nodes.
+- **Mixed Types**: While the function primarily handles `TokenType::AND` and `TokenType::AND_AND`, it can be extended to support other types of binary operators by modifying the logic inside the loop.
 
-This detailed explanation covers the functionality, implementation, and potential interactions of the `parseAnd` function within the Quantum Language compiler's parser system.
+### Interactions with Other Components
+- **Tokenizer**: The function relies on the tokenizer to provide the correct sequence of tokens. It uses functions like `current()`, `consume()`, and `check()` to interact with the tokenizer.
+- **Abstract Syntax Tree (AST)**: The function constructs and manipulates `ASTNode` objects to build the AST. Each `ASTNode` represents a part of the parsed expression, and the `BinaryExpr` structure encapsulates the operator and its operands.
+- **Error Handling**: Although not explicitly shown in the provided code snippet, the function likely interacts with error handling mechanisms within the compiler to manage syntax errors related to AND expressions.
+
+This function effectively parses sequences of AND expressions, ensuring that the resulting AST accurately reflects the structure and intent of the source code.

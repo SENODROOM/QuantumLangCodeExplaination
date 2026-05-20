@@ -1,47 +1,48 @@
 # `parseImportStmt`
 
 ## Purpose
+The `parseImportStmt` function is designed to parse import statements in the Quantum Language source code. It constructs an `ImportStmt` object representing the parsed import statement and returns a unique pointer to an ASTNode containing this object.
 
-The `parseImportStmt` function is responsible for parsing import statements within the Quantum Language source code. Its primary goal is to construct an `ImportStmt` object that accurately represents the parsed import statement and then return a unique pointer to an ASTNode containing this `ImportStmt`.
+## Parameters
+- None explicitly listed; however, implicit parameters include:
+  - The parser's internal state, such as the current token being processed (`current()`).
+  - The type of import statement being parsed (`isFrom`).
 
-## Parameters/Return Value
-
-- **Parameters**:
-  - None explicitly listed in the provided code snippet, but it likely relies on global or passed state to determine the current token being processed.
-  
-- **Return Value**:
-  - Returns a `unique_ptr<ASTNode>` where the `ASTNode` contains an `ImportStmt` object representing the parsed import statement, along with the line number of the statement.
+## Return Value
+- Returns a unique pointer to an `ASTNode` object.
+  - The `ASTNode` contains an `ImportStmt` object.
+  - The line number where the import statement was found (`ln`).
 
 ## How It Works
+1. **Initialization**:
+   - The function starts by retrieving the current line number (`ln`) using `current().line`.
+   - An `ImportStmt` object named `stmt` is initialized to store the parsed information.
 
-The function parses both standard `import` statements and `from ... import` statements according to the Quantum Language syntax rules. Here's how it handles each type:
+2. **Parsing Based on Statement Type**:
+   - If the statement is of the form `from ... import ...`, indicated by `isFrom` being true:
+     - The function expects an `IDENTIFIER` token to represent the module name.
+     - After the module name, it expects an `IMPORT` token.
+     - It then enters a loop to parse individual items being imported:
+       - For each item, it expects an `IDENTIFIER` token representing the item name.
+       - Optionally, it checks for an `AS` keyword followed by another `IDENTIFIER` token to define an alias for the item.
+       - Each parsed item is added to the `imports` vector of the `ImportStmt` object.
+   - If the statement is of the form `import ...`, indicated by `isFrom` being false:
+     - The module field of the `ImportStmt` object is left empty since there is no base module.
+     - The function proceeds similarly to the `from ... import ...` case, but without expecting a module name before the import list.
 
-1. **Standard Import Statement (`import A as B, C`)**:
-   - Initializes an empty string for `module`, indicating that the items are being imported directly rather than from a sub-module.
-   - Iterates over each item to be imported using a loop.
-     - For each item, it expects an identifier which represents the name of the item to import.
-     - Optionally checks for an `as` keyword followed by another identifier to specify an alias for the imported item.
-     - Adds each item to the `imports` vector of the `ImportStmt` object.
+3. **Handling Whitespace**:
+   - The function consumes any trailing whitespace or newlines (`NEWLINE` or `SEMICOLON`) until it reaches valid syntax.
 
-2. **From Module Import Statement (`from module.sub import A, B`)**:
-   - Reads an identifier which represents the module name after the `from` keyword.
-   - Expects the `import` keyword following the module name.
-   - Iterates over each item to be imported using a loop, similar to the standard import case.
-     - Each item can optionally have an alias specified after the `as` keyword.
-     - Adds each item to the `imports` vector of the `ImportStmt` object.
-
-After parsing the import statement, the function consumes any trailing newline characters or semicolons until it reaches the end of the statement.
+4. **Creating and Returning the ASTNode**:
+   - An `ASTNode` is created with the `ImportStmt` object and the line number.
+   - This `ASTNode` is wrapped in a unique pointer and returned.
 
 ## Edge Cases
-
-- **Empty Import List**: If there are no items to import, the function will still create an `ImportStmt` object with an empty `imports` list.
-- **Missing Aliases**: The function allows for items to be imported without specifying aliases.
-- **Invalid Syntax**: If the syntax of the import statement is incorrect (e.g., missing keywords, unexpected tokens), the function will throw exceptions with appropriate error messages.
+- **Invalid Syntax**: If the input does not conform to expected import statement syntax (e.g., missing keywords, incorrect token types), the function will throw an error indicating the expected token.
+- **Empty Module Name**: When parsing `import ...`, the module field remains empty, which can be interpreted as importing directly from the global namespace.
+- **Multiple Aliases**: Multiple aliases can be defined for different items in the same import statement, separated by commas.
 
 ## Interactions With Other Components
-
-- **Tokenizer**: The function uses the tokenizer to retrieve the current token and advance through the tokens as it parses the import statement.
-- **Error Handling**: The function includes error handling mechanisms to ensure that the syntax of the import statement is correct. This involves checking for expected tokens and throwing exceptions when these expectations are not met.
-- **Abstract Syntax Tree (AST)**: After parsing the import statement, the function constructs an `ImportStmt` object and wraps it in an `ASTNode`. This `ASTNode` is then returned, potentially to be used by higher-level components of the compiler for further processing or analysis.
-
-Overall, the `parseImportStmt` function plays a crucial role in interpreting import declarations in the Quantum Language, ensuring that the necessary components are correctly identified and represented in the abstract syntax tree.
+- **Tokenizer**: The function relies on the tokenizer to provide tokens for parsing.
+- **Error Handling**: Errors during parsing are handled through calls to functions like `expect` and `consume`, which manage the parser's state and report errors appropriately.
+- **Abstract Syntax Tree (AST)**: The parsed `ImportStmt` object is used to create an `ASTNode`, which is part of the broader AST structure constructed by the parser. This node can then be used for further semantic analysis or code generation.

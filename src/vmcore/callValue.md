@@ -2,52 +2,48 @@
 
 ## Purpose
 
-The `callValue` function in the Quantum Language compiler is responsible for handling the invocation of various types of callable entities within the virtual machine environment. These entities include native functions, class methods, closures, and bound methods. The primary purpose of this function is to manage the execution context and delegate the actual call to the appropriate handler based on the type of the callable entity.
+The `callValue` function in the Quantum Language compiler is designed to handle the invocation of various types of callable entities within the virtual machine environment. These entities encompass native functions, class methods, closures, and bound methods. This function ensures that the correct method or function is called based on the type of the entity provided as input.
 
 ## Parameters
 
-- `callee`: A `Value` object representing the callable entity that needs to be invoked.
-- `argCount`: An integer indicating the number of arguments being passed to the callable entity.
-- `line`: An integer representing the line number where the call originates, used for error reporting.
+- `const Value& callee`: The entity to be invoked. It can be a dictionary, native function, class, closure, or bound method.
+- `size_t argCount`: The number of arguments being passed to the callable entity.
+- `int line`: The line number where the call originates, used for error reporting.
 
 ## Return Value
 
-This function does not explicitly return a value; instead, it modifies the state of the virtual machine's stack to reflect the result of the function call.
-
-## How It Works
-
-The `callValue` function first checks the type of the `callee` parameter using several conditional statements:
-
-1. **Dictionary Callable (`isDict()`)**:
-   - If the `callee` is a dictionary, the function looks for a key named `"__call__"`.
-   - If found, it replaces the `callee` with its corresponding value (which should be another callable) and recursively calls itself with the new `callee`, preserving the original argument count and line number.
-
-2. **Native Function Callable (`isNative()`)**:
-   - If the `callee` is a native function, the function directly invokes the `callNativeFn` method, passing the `callee`, `argCount`, and `line`.
-
-3. **Class Method Callable (`isClass()`)**:
-   - If the `callee` is a class method, the function invokes the `callClass` method, passing the `callee`, `argCount`, and `line`.
-
-4. **Closure Callable (`isFunction()`)**:
-   - If the `callee` is a closure, the function invokes the `callClosure` method, passing the `callee`, `argCount`, and `line`.
-
-5. **Bound Method Callable (`isBoundMethod()`)**:
-   - If the `callee` is a bound method, the function extracts the `self` object associated with the bound method.
-   - It then inserts the `self` object into the stack at the position just after the arguments.
-   - Finally, it invokes the `callClosure` method with the bound method's underlying closure, adjusting the argument count to account for the added `self` object.
-
-If none of these conditions match, the function throws a `TypeError`, indicating that the value cannot be called due to its type.
+This function does not explicitly return a value; instead, it modifies the state of the virtual machine through its operations on the stack.
 
 ## Edge Cases
 
-- **Empty Dictionary**: If the dictionary does not contain the `"__call__"` key, the function will proceed to check the next condition.
-- **Non-Callable Types**: When encountering non-callable types like integers or strings, the function will correctly identify them and throw an appropriate `TypeError`.
-- **Incorrect Argument Count**: If the number of arguments provided does not match the expected signature of the callable, the behavior depends on how the respective handlers (`callNativeFn`, `callClass`, `callClosure`) are implemented. Typically, they would either handle the mismatch gracefully or throw an exception.
+1. **Dictionary without `__call__` Method**: If the `callee` is a dictionary but does not contain an entry for `"__call__"`, the function will throw a `TypeError`.
+2. **Non-callable Entity**: If the `callee` is neither a dictionary, native function, class, closure, nor bound method, the function will also throw a `TypeError`.
 
-## Interactions With Other Components
+## How It Works
 
-- **Stack Management**: The `callValue` function interacts closely with the virtual machine's stack to manage the arguments and return values of the function call.
-- **Error Handling**: It leverages the `TypeError` exception to report errors related to invalid callable types, ensuring robust error management throughout the compilation process.
-- **Type Checking**: Before calling any handler, the function performs type checking to ensure that the `callee` is indeed of the expected type, preventing runtime errors caused by incorrect invocations.
+The `callValue` function operates by first checking the type of the `callee` using several conditional statements:
 
-In summary, the `callValue` function acts as a dispatcher, redirecting the call to the appropriate handler based on the type of the callable entity. This design ensures flexibility and extensibility, allowing the compiler to support different kinds of callable objects seamlessly.
+1. **Dictionary Check**:
+   - If `callee` is a dictionary, the function searches for the key `"__call__"` within the dictionary.
+   - If found, it replaces the `callee` in the stack with the corresponding value and then recursively calls itself with the updated `callee` and the original argument count.
+   
+2. **Native Function Check**:
+   - If `callee` is identified as a native function, the function directly invokes `callNativeFn` with the native function, argument count, and line number.
+   
+3. **Class Check**:
+   - If `callee` is a class, the function invokes `callClass` with the class, argument count, and line number.
+   
+4. **Function Check**:
+   - If `callee` is recognized as a closure, the function invokes `callClosure` with the closure, argument count, and line number.
+   
+5. **Bound Method Check**:
+   - If `callee` is a bound method, the function inserts the `self` object at the appropriate position in the stack and then recursively calls itself with the method's closure and an incremented argument count (to account for the `self` parameter).
+
+If none of these conditions are met, indicating that the `callee` is not a valid callable entity, the function throws a `TypeError`.
+
+## Interactions with Other Components
+
+- **Stack Management**: The function interacts closely with the stack (`stack_`) to manage the arguments and the callable entity during the invocation process.
+- **Error Handling**: It leverages the `throw` statement to handle errors related to invalid callable entities, ensuring robustness in the virtual machine.
+- **Type Checking**: By utilizing the `isDict()`, `isNative()`, `isClass()`, `isFunction()`, and `isBoundMethod()` methods, it performs type-specific checks and actions, demonstrating effective interaction with the type system.
+- **Recursive Calls**: In some cases, such as when dealing with dictionaries or bound methods, the function makes recursive calls to itself, showcasing how different parts of the compiler work together seamlessly.

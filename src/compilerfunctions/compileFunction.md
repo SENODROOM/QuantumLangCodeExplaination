@@ -2,39 +2,40 @@
 
 ## Overview
 
-The `compileFunction` function is a critical component within the Quantum Language compiler, specifically found in the `CompilerFunctions.cpp` file. Its primary role is to translate a function definition into a sequence of bytecode instructions that can be executed by the Quantum Virtual Machine (QVM). This process involves setting up the function's state, declaring local variables, and compiling the function body.
+The `compileFunction` function is a crucial component within the Quantum Language compiler, located in the `CompilerFunctions.cpp` file. Its primary role is to translate a function definition into a sequence of bytecode instructions that can be executed by the quantum virtual machine (QVM). This function ensures that each parameter and local variable is properly declared and managed during compilation, while also handling the body of the function and emitting appropriate return instructions.
 
 ### Why It Works This Way
 
-The function operates under several key principles:
+The function works by creating a new `CompilerState` object (`fnState`) specific to the function being compiled. This state includes information about the function's parameters, whether they are references, and the scope of local variables. By setting up these states, the function ensures that all necessary declarations are made before any code execution occurs.
 
-1. **Encapsulation**: Each function has its own scope, which allows for local variable declarations without affecting global or other function scopes.
-2. **Parameter Handling**: The function distinguishes between regular parameters and those that are arrays. For array parameters, it creates separate local variables for each element of the array.
-3. **Bytecode Emission**: By emitting bytecode instructions, the function ensures that the compiled code is executable on the QVM, adhering to its architecture and instruction set.
+The function then iterates over the list of parameters to handle any special syntax related to arrays or lists. If a parameter name starts and ends with square brackets (`[]`), it indicates that the parameter represents an array or list. The function processes this syntax by splitting the parameter name into individual elements and declaring them as separate local variables within the function.
 
-## Parameters/Return Value
+Finally, the function compiles the body of the function. If the body consists of multiple statements enclosed in a block (`BlockStmt`), the function calls `compileBlock` to handle the entire block. Otherwise, if the body is a single expression, the function compiles the expression and emits a `RETURN` instruction to ensure the function returns the correct value.
+
+If the function has no explicit body, the function emits a `RETURN_NIL` instruction to indicate that the function should return `nil`.
+
+### Parameters/Return Value
 
 - **Parameters**:
   - `name`: A string representing the name of the function being compiled.
   - `params`: A vector of strings representing the parameters of the function.
-  - `paramIsRef`: A vector of booleans indicating whether each parameter is passed by reference.
-  - `body`: A pointer to a statement representing the body of the function.
-  - `line`: An integer representing the line number where the function is defined, used for error reporting and debugging purposes.
+  - `paramIsRef`: A vector of booleans indicating whether each parameter is a reference.
+  - `body`: A pointer to a `Statement` object representing the body of the function.
+  - `line`: An integer representing the line number where the function definition appears in the source code.
 
 - **Return Value**:
-  - Returns a pointer to a `Chunk`, which represents the compiled bytecode of the function.
+  - Returns a pointer to a `Chunk` object representing the compiled bytecode of the function.
 
-## Edge Cases
+### Edge Cases
 
-1. **Empty Body**: If the function body is empty (`nullptr`), the function will still emit a `RETURN_NIL` instruction to ensure proper termination.
-2. **Non-Array Parameters**: Regular parameters are handled as usual, without any special processing.
-3. **Array Parameter Syntax**: Array parameters must be declared using square brackets `[ ]`. If a parameter is not in this format, it is treated as a regular parameter.
+- **Empty Body**: If the function has no explicit body, the function will automatically return `nil`.
+- **Single Expression Body**: If the function body consists of a single expression, the function will compile the expression and emit a `RETURN` instruction.
+- **Array/List Parameters**: The function handles parameters that represent arrays or lists by splitting the parameter names into individual elements and declaring them as separate local variables.
 
-## Interactions With Other Components
+### Interactions With Other Components
 
-- **CompilerState**: The function uses a `CompilerState` object to manage the state of the current compilation context, including the function's scope and chunk of bytecode.
-- **Scope Management**: The function begins and ends a new scope, ensuring that all local variables are properly declared and cleaned up after the function execution.
-- **Bytecode Emitters**: Functions like `emit` are called to generate bytecode instructions, which are added to the current function's chunk.
-- **Error Reporting**: While not explicitly shown in the provided snippet, the function likely interacts with an error reporting mechanism to handle syntax errors or issues during compilation.
+- **CompilerState**: The function interacts with the `CompilerState` class to manage the state of the function being compiled, including its parameters and local variables.
+- **Chunk**: The function creates a new `Chunk` object to store the compiled bytecode of the function.
+- **Op Codes**: The function uses various op codes (`Op::LOAD_LOCAL`, `Op::LOAD_CONST`, `Op::GET_INDEX`, etc.) to generate bytecode instructions for different operations such as loading local variables, accessing constants, and performing index operations on arrays or lists.
 
-This comprehensive approach ensures that the Quantum Language compiler can efficiently and accurately translate high-level function definitions into low-level bytecode, facilitating their execution on the QVM.
+This comprehensive approach ensures that the `compileFunction` method effectively translates high-level function definitions into low-level bytecode instructions, facilitating efficient execution on the QVM.

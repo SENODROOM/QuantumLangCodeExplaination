@@ -1,26 +1,32 @@
 # `parseInputStmt` Function
 
-The `parseInputStmt` function in the Quantum Language compiler's parser is responsible for handling various forms of input statements used in quantum programming. These forms include both C-style input using format strings and custom syntaxes such as prompts followed by target variables. The primary goal of this function is to correctly parse these input statements into an Abstract Syntax Tree (AST), which can then be further processed by the compiler.
+The `parseInputStmt` function in the Quantum Language compiler's parser is designed to handle different types of input statements encountered during the parsing process. These statements can be in the form of C-style input using format strings, or they can be custom syntaxes involving prompts and target variables. This function ensures that the input statements are correctly parsed into an abstract syntax tree (AST) node representing an input statement.
 
 ## What It Does
 
-The `parseInputStmt` function parses input statements based on their structure and constructs an appropriate AST node representing the input operation. It supports three main types of input statements:
+The primary role of the `parseInputStmt` function is to parse input statements and construct corresponding AST nodes. The function supports three main forms of input statements:
 
-1. **C-style Input**: `scanf("%d", &var)`
-2. **Prompted Input**: `input("prompt", var)`
-3. **Simple Input**: `input(var)`
-
-For each type, the function extracts the necessary information (such as the format string, prompt message, and target variable) and creates an `InputStmt` AST node containing this data.
+1. **C-style Input**: Using format strings similar to those in the C language.
+2. **Custom Syntax with Prompt**: A prompt followed by a target variable where data will be stored.
+3. **Custom Syntax without Prompt**: Only a target variable where data will be stored.
 
 ## Why It Works This Way
 
-The function works in this manner because it needs to accommodate different syntaxes that users might employ when writing quantum programs. By breaking down the parsing logic into conditional checks and consuming tokens accordingly, the function ensures that it can handle all valid input statement formats.
+### Handling Different Input Formats
 
-- **C-style Input Handling**: When encountering a format string (`TokenType::STRING`) followed by a comma and a target variable (`TokenType::IDENTIFIER`), the function recognizes this as a C-style input and constructs an `InputStmt` node with the provided format string and target variable.
+- **C-style Input (`scanf("%d", &var)`)**: When encountering a format string within parentheses, the function expects a comma followed by a target variable. If the comma is present, it constructs an AST node with the format string and the target variable. If the comma is absent, it assumes the entire input statement is just a prompt.
   
-- **Prompted Input Handling**: If the format string is followed by a comma but no target variable, the function assumes this is a prompted input and constructs an `InputStmt` node with the provided prompt message and an empty target variable.
+- **Custom Syntax with Prompt (`input("prompt", var)`)**: Similar to C-style input, but explicitly labeled as a custom syntax. The function checks for a string literal followed by a comma and then a target variable, constructing an AST node accordingly.
+
+- **Custom Syntax without Prompt (`input(var)`)**: In this case, the function directly parses the target variable without any additional prompt information.
+
+### Edge Cases
+
+- **Missing Comma**: If the expected comma is missing between the format string and the target variable, the function throws an error indicating the expected token.
   
-- **Simple Input Handling**: For simple input without any additional arguments, the function directly consumes the target variable and constructs an `InputStmt` node with an empty prompt message.
+- **Incorrect Token Types**: The function validates the token types at each step to ensure they match the expected syntax. For example, it expects a string literal when it encounters one, and a variable identifier when it needs one.
+
+- **Unmatched Parentheses**: The function ensures that all parentheses are properly matched. If a closing parenthesis is not found, it throws an error.
 
 ## Parameters/Return Value
 
@@ -30,22 +36,75 @@ The function works in this manner because it needs to accommodate different synt
 
 ### Return Value
 
-- An `ASTNodePtr` pointing to an `InputStmt` node. This node contains the parsed input statement details, including the target variable and any associated prompt message.
-
-## Edge Cases
-
-1. **Missing Comma**: If a C-style input statement is missing the comma between the format string and the target variable, the function will throw an error indicating "Expected variable name after ','".
-   
-2. **Extra Characters**: Any unexpected characters or misplaced tokens within the input statement will result in errors like "Expected ')'".
-
-3. **Empty Target Variable**: In cases where the input statement specifies a prompt but no target variable (e.g., `input("prompt")`), the function sets the target variable to an empty string.
-
-4. **Multiple Statements**: If multiple input statements are separated by newlines or semicolons, the function skips over these separators before returning the parsed `InputStmt` node.
+- `std::unique_ptr<ASTNode>`: Returns a unique pointer to an ASTNode representing the parsed input statement. The node contains two elements: the target variable and an optional prompt.
 
 ## Interactions With Other Components
 
-The `parseInputStmt` function interacts closely with other components of the parser, such as token checking and consumption functions (`check`, `consume`, `expect`). These helper functions enable the `parseInputStmt` to accurately identify and process the tokens forming the input statement.
+### Lexer
 
-Additionally, the function uses the `current()` method to retrieve the current token being processed and the `ln` variable to store the line number of the input statement. This information is crucial for constructing the AST node with accurate context.
+The `parseInputStmt` function relies on the lexer to tokenize the input source code. It uses the tokens produced by the lexer to determine the structure of the input statement being parsed.
 
-Overall, the `parseInputStmt` function plays a vital role in ensuring that input statements in the Quantum Language are correctly parsed and represented in the AST, facilitating subsequent compilation steps.
+### Parser State Management
+
+The function consumes tokens based on its expectations and updates the parser state accordingly. It handles newlines and semicolons to manage the flow of statements within the source code.
+
+### Error Handling
+
+The function includes error handling mechanisms to catch and report issues related to incorrect syntax or missing tokens. This helps maintain robustness and clarity in the parsed output.
+
+## Detailed Code Explanation
+
+Here’s a breakdown of how the function operates:
+
+```cpp
+int ln = current().line; // Get the current line number for error reporting
+std::string target;      // Variable to store the target variable name
+ASTNodePtr prompt;       // Pointer to store the prompt AST node
+
+if (check(TokenType::LPAREN)) // Check if the next token is '('
+{
+    consume(); // Consume the '(' token
+
+    if (check(TokenType::STRING)) // Check if the next token is a string literal
+    {
+        // First argument is a string: either a format string or a prompt
+        auto fmtTok = current(); // Store the current token (format string/prompt)
+        consume(); // Consume the string literal token
+
+        if (match(TokenType::COMMA)) // Check if the next token is ','
+        {
+            // scanf("%d", &var) or input("prompt", var)
+            prompt = std::make_unique<ASTNode>(StringLiteral{fmtTok.value}, ln); // Construct prompt AST node
+            if (check(TokenType::BIT_AND)) // Check if the next token is '&'
+                consume(); // Consume the '&' token (optional)
+
+            target = expect(TokenType::IDENTIFIER, "Expected variable name after ','").value; // Expect a variable name
+        }
+        else
+        {
+            // input("prompt") — prompt only, no target
+            prompt = std::make_unique<ASTNode>(StringLiteral{fmtTok.value}, ln); // Construct prompt AST node
+            target = ""; // No target variable
+        }
+    }
+    else
+    {
+        // input(&var) or input(var)
+        if (check(TokenType::BIT_AND)) // Check if the next token is '&'
+            consume(); // Consume the '&' token (optional)
+
+        target = expect(TokenType::IDENTIFIER, "Expected variable name").value; // Expect a variable name
+    }
+
+    expect(TokenType::RPAREN, "Expected ')'"); // Ensure the ')' token is present
+}
+
+// Skip any trailing newlines or semicolons
+while (check(TokenType::NEWLINE) || check(TokenType::SEMICOLON))
+    consume();
+
+// Return the constructed ASTNode representing the input statement
+return std::make_unique<ASTNode>(InputStmt{target, std::move(prompt)}, ln);
+```
+
+This function effectively parses the input statements, ensuring that they conform to the specified syntax rules. By constructing appropriate AST nodes, it facilitates further processing and analysis within the compiler.

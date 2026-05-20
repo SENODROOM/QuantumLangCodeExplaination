@@ -1,33 +1,22 @@
 # `isCTypeKeyword`
 
 ## Overview
-The `isCTypeKeyword` function checks whether a given token type corresponds to a keyword in the C programming language that denotes a data type. This function is essential during the parsing phase of the Quantum Language compiler, ensuring accurate identification and handling of data types within the source code.
+The `isCTypeKeyword` function determines if a specified token type represents a keyword in the C programming language that indicates a data type. This function plays a crucial role in the parsing stage of the Quantum Language compiler, aiding in the precise recognition and classification of data types within the source code.
 
 ## Parameters
-- `TokenType t`: The token type to be checked.
+- `t`: An enumeration value of type `TokenType`, representing the current token being analyzed.
 
 ## Return Value
-- `bool`: Returns `true` if the token type is a C data type keyword, otherwise returns `false`.
-
-## How It Works
-The function uses a `switch` statement to compare the input `TokenType` against known C data type keywords. If the token type matches any of these keywords, the function returns `true`. Otherwise, it returns `false`. This approach ensures that only valid C data type keywords are recognized, preventing potential errors or misinterpretations during the compilation process.
+- Returns `true` if the token type `t` corresponds to a C data type keyword.
+- Returns `false` if the token type `t` does not correspond to a C data type keyword.
 
 ## Edge Cases
-- **Unknown Token Type**: If the input token type is not one of the predefined C data type keywords, the function correctly returns `false`.
-- **Case Sensitivity**: Although C keywords are generally case-insensitive, the function assumes that the input token type is already in the correct format (e.g., `int`, `FLOAT`, etc.).
+- The function correctly identifies all standard C data type keywords such as `int`, `float`, `double`, etc., returning `true`.
+- For any token type that is not a C data type keyword, including identifiers or operators, the function returns `false`.
 
-## Interactions With Other Components
-- **Parsing Phase**: The `isCTypeKeyword` function is used extensively during the parsing phase to identify and categorize data type declarations in the source code.
-- **Symbol Table Management**: Once a data type is identified as a keyword, it can be used to populate the symbol table with appropriate data type information.
+## Interactions with Other Components
+- **Parsing Phase**: `isCTypeKeyword` is invoked during the lexical analysis phase of the parser. It helps in distinguishing between different tokens, particularly those that denote data types.
+- **Syntax Checking**: When a token is identified as a data type keyword using `isCTypeKeyword`, subsequent syntax checking can be performed to ensure proper usage within the context of the program.
+- **Symbol Table Management**: During symbol table construction, knowing which tokens represent data types allows for appropriate handling and categorization of variables and functions.
 
-Here's an example of how you might use this function in your code:
-
-```cpp
-if (isCTypeKeyword(t)) {
-    // Handle data type declaration
-} else {
-    // Handle other token types
-}
-```
-
-By leveraging the `isCTypeKeyword` function, the Quantum Language compiler can efficiently parse and manage data type declarations, ensuring that the resulting executable conforms to the C programming language standards.
+In summary, the `isCTypeKeyword` function ensures accurate data type recognition during the parsing phase, facilitating further stages of compilation by providing clear distinctions between various token types.

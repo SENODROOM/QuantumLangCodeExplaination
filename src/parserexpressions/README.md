@@ -1,53 +1,61 @@
 # ParserExpressions
 
-The `ParserExpressions` component is an essential part of the Quantum Language compiler, tasked with parsing and interpreting expressions found within quantum programs. This module encompasses a diverse array of functions tailored to manage various operator and expression types, thereby guaranteeing accurate syntax and semantic understanding as quantum code executes.
+The `ParserExpressions` component is a crucial module in the Quantum Language compiler, responsible for parsing and interpreting expressions within quantum programs. This component ensures that quantum code adheres to correct syntax and semantics during execution.
 
 ## Overview
 
-The `ParserExpressions` component serves as the core engine for evaluating quantum expressions. It processes input strings representing quantum operations and translates them into executable instructions. The component operates in conjunction with other modules such as `Lexer`, `SymbolTable`, and `Optimizer`.
+The `ParserExpressions` module includes several functions designed to handle different types of operators and expressions encountered in quantum programming. These functions collectively parse and evaluate expressions based on their complexity and type, providing a robust foundation for the compiler's ability to accurately interpret and execute quantum code.
 
-### Flowchart
+### Key Functions
 
-```
-Input String -> Lexer -> Tokens -> ParserExpressions -> AST -> Optimizer -> Executable Code
-```
-
-1. **Lexer**: Converts the input string into tokens based on language grammar rules.
-2. **Tokens**: A sequence of token objects representing individual elements of the input string.
-3. **ParserExpressions**: Parses the tokens to construct an Abstract Syntax Tree (AST) that represents the structure of the quantum expression.
-4. **AST**: A tree-like representation of the parsed quantum expression, facilitating further processing and optimization.
-5. **Optimizer**: Refines the AST to enhance performance and efficiency.
-6. **Executable Code**: Translated AST into optimized quantum code ready for execution.
-
-## Functions/Files
-
-- **parseAssignment**: Handles assignment expressions like `a = b`.
-- **parseOr**: Processes logical OR operations (`||`).
+- **parseAssignment**: Parses assignment operations, such as `=`, `+=`, `-=` etc.
+- **parseOr**: Handles logical OR operations (`||`).
 - **parseAnd**: Manages logical AND operations (`&&`).
-- **parseBitwise**: Interprets bitwise operations like `&`, `|`, `^`, `~`, `<<`, and `>>`.
-- **parseEquality**: Evaluates equality checks using `==` and `!=`.
-- **parseComparison**: Performs comparison operations such as `<`, `<=`, `>`, and `>=`.
-- **parseShift**: Handles shift operations (`<<` and `>>`).
-- **parseAddSub**: Processes addition and subtraction operations (`+` and `-`).
-- **parseMulDiv**: Manages multiplication and division operations (`*` and `/`).
+- **parseBitwise**: Interprets bitwise operations like `&`, `|`, `^`, `~`, `<<`, `>>`.
+- **parseEquality**: Processes equality checks using `==` and `!=`.
+- **parseComparison**: Evaluates comparison operations including `<`, `<=`, `>`, `>=`.
+- **parseShift**: Parses shift operations (`<<`, `>>`).
+- **parseAddSub**: Handles addition and subtraction operations (`+`, `-`).
+- **parseMulDiv**: Processes multiplication and division operations (`*`, `/`).
 - **parsePower**: Interprets power operations (`**`).
-- **parseUnary**: Handles unary operations like `!`, `-`, `+`, `~`, `++`, and `--`.
+- **parseUnary**: Manages unary operations like `+`, `-`, `!`, `~`.
 
-Each function is meticulously designed to parse specific types of expressions and ensure they adhere to the Quantum Language's syntax and semantics.
+## File Structure
+
+This directory contains the following files:
+
+- `parserexpressions.cpp`: Contains the implementation of all the key functions mentioned above.
+- `parserexpressions.h`: Defines the public interface for the `ParserExpressions` module, including function prototypes and necessary data structures.
 
 ## Usage
 
-To utilize the `ParserExpressions` component, include it in your project and call the appropriate function based on the type of expression you wish to parse:
+To use the `ParserExpressions` component, include the header file in your source code and call the appropriate function based on the expression you need to parse. Here’s a simple example demonstrating how to parse an assignment operation:
 
 ```cpp
-#include "ParserExpressions.h"
+#include "parserexpressions.h"
 
 int main() {
-    std::string input = "a = b + c";
-    ASTNode* ast = parseAssignment(input);
-    // Further processing...
+    std::string expression = "a = b + c";
+    ExpressionResult result = parseAssignment(expression);
+    if (result.success) {
+        // Handle successful parsing
+    } else {
+        // Handle parsing error
+    }
     return 0;
 }
 ```
 
-By leveraging the `ParserExpressions` component, developers can effectively parse and interpret quantum expressions, enabling the creation of robust and efficient quantum programs.
+In this example, `parseAssignment` is called with a string representing an assignment operation. The function returns an `ExpressionResult` object indicating whether the parsing was successful or not.
+
+## Flow
+
+1. **Input Parsing**: The input string representing the quantum expression is passed to one of the parser functions.
+2. **Tokenization**: The input string is tokenized into individual components (e.g., variables, operators).
+3. **Semantic Analysis**: Each token is analyzed semantically to determine its role in the expression.
+4. **Evaluation**: The parsed expression is evaluated according to the rules defined by the Quantum Language.
+5. **Output Result**: The result of the evaluation is returned, which can be used by higher-level components of the compiler.
+
+By leveraging the `ParserExpressions` component, developers can ensure that complex quantum expressions are accurately parsed and interpreted, enabling the efficient compilation and execution of quantum programs.
+
+For more detailed information on each function and its usage, refer to the respective documentation within the `parserexpressions.cpp` and `parserexpressions.h` files.

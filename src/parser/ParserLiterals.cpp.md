@@ -2,50 +2,51 @@
 
 ## Role in Compiler Pipeline
 
-`ParserLiterals.cpp` plays a critical role in the parser stage of the Quantum Language compiler. It is responsible for handling the parsing of various literal types, including numbers, strings, booleans, `nil`, identifiers (`this`), and memory allocations (`new`). The parser converts these literals into their corresponding Abstract Syntax Tree (AST) nodes, ensuring that they can be correctly interpreted during subsequent stages of compilation.
+`ParserLiterals.cpp` is an essential component of the Quantum Language compiler's parser stage. Its primary function is to handle the parsing of various literal types, such as numbers, strings, booleans, `nil`, identifiers (`this`), and memory allocations (`new`). This stage transforms these literals into their respective Abstract Syntax Tree (AST) nodes, facilitating further compilation steps.
 
-## Key Design Decisions and Why
+## Key Design Decisions and WHY
 
-1. **Handling Different Literal Types**: The parser must identify and convert different literal types into their respective AST nodes. This includes:
-   - Numbers: Both integer and floating-point values with optional suffixes like `f`, `F`, `l`, `L`, `d`, `D`, `u`, or `U`.
-   - Strings: Enclosed in double quotes.
-   - Booleans: Represented by `true` and `false`.
-   - `nil`: A special keyword indicating null or empty values.
-   - Identifiers (`this`): Used to refer to the current object instance.
-   - Memory Allocations (`new`): Used for dynamic memory management in quantum programs.
+### Handling Literal Types
+The parser distinguishes between different literal types based on their token type. For instance, it recognizes numbers, strings, booleans, and special values like `nil`. Each type is parsed using specific functions that convert the token value into its AST representation.
 
-2. **Flexibility in Type Specification**: To support both user-defined class names and built-in C++ type keywords (e.g., `int`, `char*`), the parser needs to differentiate between them. This ensures compatibility with existing C++ codebases while allowing for custom types in quantum programming.
+- **Numbers**: The parser checks if the number is hexadecimal or decimal and uses appropriate standard library functions (`std::stoull` for unsigned long long, `std::stod` for double) to convert the string representation into a numeric value. It also handles optional suffixes like `f`, `F`, `l`, `L`, `d`, `D`, `u`, and `U` which specify the floating-point format.
 
-3. **Array Allocation Handling**: The parser must correctly handle array allocations using the `new` keyword. This involves checking for square brackets `[ ]` and parsing the expression inside to determine the array size. Additionally, it should handle pointer-to-type arrays, treating them similarly to regular arrays at runtime.
+- **Strings**: Strings are straightforwardly converted from the token value to a `StringLiteral` node. The parser consumes the token and constructs the AST node with the string content.
 
-4. **Trade-offs Between Simplicity and Completeness**:
-   - **Simplicity**: The parser focuses on basic literal types and memory allocations, which are essential components of quantum programs.
-   - **Completeness**: While keeping the parser simple, it provides robust support for common literal types and memory management constructs, ensuring that the compiler can handle a wide range of input without compromising performance.
+- **Booleans**: Booleans (`true` and `false`) are directly mapped to `BoolLiteral` nodes. The parser consumes the token and creates the appropriate boolean literal.
+
+- **Nil**: The `nil` keyword is parsed into a `NilLiteral` node. This represents a null or undefined value in the AST.
+
+- **Identifiers (`this`)**: The identifier `this` is handled similarly to other identifiers but specifically maps to `"self"` in the AST. This simplifies the handling of object references within the language.
+
+- **Memory Allocations (`new`)**: The parser supports dynamic memory allocation using the `new` keyword. It can handle arrays (`new int[n]`) and objects (`new ClassName(args)`). The parser ensures that the allocated memory is correctly represented as a pointer in the AST.
+
+### Tradeoffs
+
+#### Complexity vs. Usability
+While adding support for more complex literal types like arrays and custom class instances increases the complexity of the parser, it enhances the usability of the Quantum Language by allowing developers to work with dynamic data structures easily.
+
+#### Error Handling
+The parser includes robust error handling mechanisms to manage unexpected input gracefully. For example, if the parser encounters an invalid type name after `new`, it throws a `ParseError` indicating the expected type. This helps in identifying issues early during the compilation process.
+
+#### Performance Considerations
+Handling different literal types efficiently requires careful consideration of performance. For instance, converting large numbers from string to numeric types should be done quickly without unnecessary overhead. Additionally, managing memory allocations and ensuring they are correctly represented in the AST can impact performance, especially when dealing with large arrays or complex objects.
 
 ## Major Classes/Functions Overview
 
 ### Class: Parser
-- **Role**: The main parser class that handles the overall parsing process.
-- **Functionality**:
-  - `parsePrimary()`: Parses primary expressions, including literals and memory allocations.
-  - `parseExpr()`: Parses expressions, including arithmetic operations and function calls.
-  - `parseArgList()`: Parses argument lists for functions and constructors.
+The `Parser` class is central to the parsing process. It contains methods to parse various components of the source code, including literals. The `parsePrimary` method is particularly important as it handles the parsing of primary expressions, which include literals.
 
-### Function: parsePrimary()
-- **Purpose**: Handles the parsing of primary expressions, focusing on literals and memory allocations.
-- **Implementation**:
-  - Checks the current token type and processes accordingly.
-  - Converts numeric literals into `NumberLiteral` nodes.
-  - Converts string literals into `StringLiteral` nodes.
-  - Converts boolean literals (`true` and `false`) into `BoolLiteral` nodes.
-  - Handles `nil` literals.
-  - Processes identifiers (`this`).
-  - Manages memory allocations (`new`), including handling array sizes and pointer qualifiers.
+### Function: parsePrimary
+This function is responsible for parsing primary expressions, which start with a literal. Depending on the token type, it calls specialized functions to parse each literal type:
 
-## Tradeoffs
+- **parseNumberLiteral**: Parses numeric literals, handling both decimal and hexadecimal formats.
+- **parseStringLiteral**: Converts string tokens into `StringLiteral` nodes.
+- **parseBoolLiteral**: Maps boolean tokens (`true` and `false`) to `BoolLiteral` nodes.
+- **parseNilLiteral**: Handles the `nil` keyword by creating a `NilLiteral` node.
+- **parseThisLiteral**: Transforms the `this` identifier into a `Identifier{"self"}` node.
+- **parseNewExpression**: Parses memory allocation expressions (`new`), supporting both array and object allocations.
 
-- **Performance vs. Complexity**: The parser is designed to be efficient and straightforward, avoiding unnecessary complexity that could impact performance.
-- **Compatibility vs. Customization**: While maintaining compatibility with existing C++ codebases, the parser also allows for custom types in quantum programming, providing flexibility but potentially increasing the learning curve for users.
-- **Memory Management vs. Ease of Use**: Array allocations are handled explicitly, which might seem more complex compared to automatic memory management in other languages. However, this approach ensures better control and predictability over memory usage in quantum programs.
+Each of these functions contributes to building a comprehensive and accurate AST, which is crucial for subsequent stages of the compiler.
 
-By carefully balancing these factors, `ParserLiterals.cpp` contributes significantly to the reliability and efficiency of the Quantum Language compiler.
+By understanding these roles and decisions, developers can better appreciate how `ParserLiterals.cpp` integrates into the broader quantum language compiler architecture, enhancing its functionality and reliability.

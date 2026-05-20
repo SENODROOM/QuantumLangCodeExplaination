@@ -1,58 +1,55 @@
 # `parseIfStmt` Function
 
 ## Purpose
-The `parseIfStmt` function in the Quantum Language compiler is designed to parse an `if` statement from the token stream and construct the corresponding Abstract Syntax Tree (AST). It supports both traditional `if` statements and the more modern `if-with-initializer` syntax introduced in C++17.
+The `parseIfStmt` function in the Quantum Language compiler is designed to parse an `if` statement from the token stream and construct the corresponding Abstract Syntax Tree (AST). It supports both traditional `if` statements and the more modern `if-with-initializer` syntax introduced in C++17. This function ensures that the parsed `if` statement adheres to the language's grammar rules and constructs a valid AST node representing the `if` statement.
 
 ## Parameters
-- **None**: The function operates directly on the global token stream and modifies its position as it parses.
+- **None**: The function does not take any explicit parameters. It operates directly on the global state of the parser, which includes the current position in the token stream (`pos`) and the list of tokens (`tokens`).
 
 ## Return Value
-- **ASTNodePtr**: A pointer to the root of the AST representing the parsed `if` statement.
-
-## How It Works
-The function begins by identifying the starting line number of the `if` statement using `current().line`. It then checks if the next tokens in the stream indicate the presence of an `if-with-initializer` syntax (`if (auto varName = expr)`).
-
-### Step-by-Step Parsing:
-1. **Check for Initializer**:
-   - The function first verifies if the current token is an opening parenthesis (`(`).
-   - It then checks if the next three tokens form the pattern `auto identifier = expression`.
-
-2. **Parse Initializer Expression**:
-   - If the pattern matches, the function consumes the tokens up to the assignment operator (`=`).
-   - It extracts the variable name (`varName`) and parses the initialization expression (`initExpr`).
-
-3. **Construct Variable Declaration Node**:
-   - After parsing the initializer, the function creates an AST node for the variable declaration using `VarDecl`.
-   - This node includes the variable name, the initialization expression, and the type specifier `"auto"`.
-
-4. **Parse Condition Expression**:
-   - The condition expression is constructed using the variable name extracted earlier, creating an `Identifier` node.
-
-5. **Parse Body or Statement**:
-   - The function then expects a colon (`:`) indicating the start of the body of the `if` statement.
-   - It skips any new lines and calls `parseBodyOrStatement()` to parse the body of the `if` block.
-
-6. **Handle Optional Else Clause**:
-   - If the next token is `else`, the function processes the optional `else` clause.
-   - It checks if the following token is `if`, which indicates a nested `if` statement within the `else` block.
-   - Depending on whether there's a nested `if` or not, it either recursively calls `parseIfStmt()` or parses another body or statement for the `else` block.
-
-7. **Construct Full If Statement Node**:
-   - Finally, the function constructs the full `if` statement node using `IfStmt`.
-   - This node contains the condition expression, the body of the `if` block, and the optional `else` branch.
-
-8. **Emit Code**:
-   - The constructed AST nodes represent the code structure of the `if` statement, including variable declarations and conditional logic.
+- **ASTNodePtr**: The function returns a pointer to an `ASTNode` object representing the parsed `if` statement. This node can be either a simple `IfStmt` or an `IfStmt` wrapped inside a `VarDecl` if the `if-with-initializer` syntax is used.
 
 ## Edge Cases
-- **Missing Parentheses**: If the parentheses around the condition are missing, the function will throw an error indicating the expected closing parenthesis.
-- **Misplaced Else**: If the `else` keyword is used without a preceding `if` statement, the function will raise an error.
-- **Nested Ifs**: The function correctly handles nested `if` statements within the `else` block, ensuring proper parsing and AST construction.
+- **Empty Else Clause**: If the `else` clause is empty, the function correctly handles it without throwing errors.
+- **Nested If Statements**: The function can handle nested `if` statements within the `else` block, recursively calling itself to parse each nested `if`.
+- **Misplaced Tokens**: If the tokens do not conform to the expected `if` statement structure, the function will throw appropriate exceptions indicating the error.
 
 ## Interactions with Other Components
-- **Token Stream Consumption**: The function consumes tokens from the global token stream as it progresses through the `if` statement.
-- **Error Handling**: Utilizes functions like `expect()` and `match()` to ensure correct syntax and handle errors gracefully.
-- **Body Parsing**: Relies on `parseBodyOrStatement()` to parse the body of the `if` block, which could be either a single statement or a compound statement.
-- **Abstract Syntax Tree Construction**: Constructs AST nodes using classes like `VarDecl` and `IfStmt`, which represent different parts of the `if` statement's structure.
+- **Token Stream Consumption**: The function consumes tokens from the global token stream as it progresses through the parsing process. This interaction is crucial for advancing the parser's state and ensuring that subsequent functions receive the correct sequence of tokens.
+- **Error Handling**: The function uses various helper methods like `expect`, `match`, and `consume` to check and enforce the grammar rules of the `if` statement. These methods interact with the token stream and provide feedback if the syntax is incorrect.
+- **Abstract Syntax Tree Construction**: The function constructs an `ASTNode` based on the parsed `if` statement. This involves creating nodes for variable declarations, condition expressions, and body statements. The constructed AST nodes are then returned to the caller, allowing further processing or code generation.
 
-This comprehensive approach ensures that the `if` statement is accurately parsed and represented in the AST, facilitating further compilation steps.
+## Implementation Details
+Here’s a breakdown of how the `parseIfStmt` function works:
+
+1. **Initialization**:
+   - The function starts by recording the current line number (`ln`) using `current().line`.
+
+2. **Check for `if-with-initializer` Syntax**:
+   - It checks if the next few tokens indicate the presence of the `if-with-initializer` syntax (`if (auto name = expr)`).
+   - If found, it proceeds to parse the initializer expression and the condition expression.
+
+3. **Parse Initializer Expression**:
+   - Consumes the opening parenthesis `(`.
+   - Consumes the keyword `auto`.
+   - Parses the variable name identifier.
+   - Consumes the assignment operator `=`.
+   - Parses the initialization expression (`expr`).
+   - Consumes the closing parenthesis `)`.
+
+4. **Parse Condition and Body**:
+   - Expects a colon `:` after the closing parenthesis.
+   - Skips any newlines to ensure proper alignment.
+   - Parses the body of the `if` statement or another `if` statement if the `else` part contains a nested `if`.
+
+5. **Handle Optional `else` Clause**:
+   - Checks if the next token is `else`. If so, it parses the optional `else` clause.
+   - If the `else` clause contains another `if`, it recursively calls `parseIfStmt()` to parse the nested `if`.
+   - Otherwise, it expects a colon `:` followed by the body of the `else` clause.
+
+6. **Construct AST Node**:
+   - If the `if-with-initializer` syntax was used, it constructs a `VarDecl` node containing the variable declaration and the initialization expression.
+   - Constructs an `IfStmt` node with the condition expression and the parsed bodies (then and else).
+   - Returns the constructed AST node.
+
+By following these steps, the `parseIfStmt` function effectively parses `if` statements in the Quantum Language compiler, supporting both traditional and modern syntax, and constructs a valid AST representation of the parsed statements.

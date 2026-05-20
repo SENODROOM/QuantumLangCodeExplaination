@@ -2,28 +2,34 @@
 
 ## Overview
 
-The `compileDict` function is responsible for compiling dictionary expressions in the Quantum Language compiler. It processes pairs of keys and values to construct a dictionary object. If the dictionary contains a spread operator (`...`), it uses special helper functions to merge dictionaries or set key-value pairs accordingly.
+The `compileDict` function is designed to handle the compilation of dictionary expressions within the Quantum Language compiler. This function iterates through each key-value pair in the dictionary expression and compiles them into individual dictionary entries. If the dictionary includes a spread operator (`...`), it utilizes specialized helper functions to merge dictionaries or set values dynamically.
 
-## Parameters/Return Value
+### Why It Works This Way
+
+- **Handling Spread Operator**: The presence of a spread operator requires a different approach than normal dictionary construction because it involves merging multiple dictionaries. By using helper functions like `__dict_merge__` and `__dict_set__`, the function can efficiently manage these operations without manually iterating through all elements.
+  
+- **Efficiency**: Using built-in helper functions optimizes performance by leveraging existing implementations that have been tested and optimized for such tasks.
+
+### Parameters/Return Value
 
 - **Parameters**:
-  - `e`: A reference to an expression object containing pairs of keys and values that need to be compiled into a dictionary.
-  - `line`: The current line number in the source code being processed.
+  - `e`: A reference to an `Expression` object representing the dictionary expression to be compiled. This object contains a list of key-value pairs.
+  - `line`: An integer representing the current line number in the source code, used for error reporting and debugging purposes.
 
-- **Return Value**: None. The function directly emits bytecode instructions to represent the dictionary construction.
+- **Return Value**: None. The function directly emits bytecode instructions to represent the dictionary.
 
-## Edge Cases
+### Edge Cases
 
-1. **Empty Dictionary**: If the dictionary is empty, the function will not emit any instructions.
-2. **Spread Operator**: When encountering a spread operator (`...`), the function handles merging dictionaries or setting key-value pairs differently compared to regular dictionary entries.
-3. **Null Keys**: If a pair's key is null, indicating a spread operator, the function calls a special helper function (`__dict_merge__`) to merge the dictionary represented by the value into the current dictionary being constructed.
+- **Empty Dictionary**: If the dictionary is empty, the function will not emit any instructions since there are no key-value pairs to process.
+  
+- **Null Keys**: When encountering a null key (`!k`), the function recognizes this as a signal to use the spread operator. It then calls the `__dict_merge__` helper function to merge dictionaries, effectively skipping the emission of individual key-value pairs.
 
-## Interactions with Other Components
+### Interactions With Other Components
 
-- **Bytecode Emission**: The function interacts with the bytecode emission mechanism by calling `emit()` to insert specific operations such as `Op::MAKE_DICT`, `Op::LOAD_GLOBAL`, `Op::SWAP`, `Op::CALL`, etc., which are used to construct and manipulate dictionary objects.
-- **Expression Compilation**: For each key-value pair, the function compiles the expressions using `compileExpr()`. This ensures that the keys and values are correctly evaluated before they are used to construct the dictionary.
-- **Helper Functions**: The function utilizes special helper functions like `__dict_merge__` and `__dict_set__` when dealing with spread operators and setting individual key-value pairs, respectively. These helper functions are defined elsewhere in the compiler and are crucial for handling complex dictionary operations efficiently.
+- **Bytecode Emission**: The function interacts with the bytecode emission system by calling `emit()` to insert various operations such as loading global variables, swapping stack items, and making dictionary objects.
+  
+- **Expression Compilation**: For each key and value in the dictionary, the function calls `compileExpr()` to recursively compile the sub-expressions. This ensures that complex expressions within the dictionary keys and values are correctly handled.
+  
+- **Helper Functions**: The function leverages external helper functions (`__dict_merge__` and `__dict_set__`) to perform specific operations related to dictionary manipulation. These functions are assumed to be defined elsewhere in the compiler's codebase and are responsible for handling the logic associated with the spread operator and setting dictionary values.
 
-## Why It Works This Way
-
-The current implementation of `compileDict` ensures that both simple and complex dictionary constructions are handled effectively. By checking for the presence of a spread operator and using appropriate helper functions, the function can dynamically handle different types of dictionary operations without requiring extensive conditional logic within the main loop. This approach simplifies the compilation process and improves maintainability. Additionally, the use of `Op::MAKE_DICT` allows for efficient dictionary creation, especially when dealing with large numbers of key-value pairs or nested dictionaries.
+This comprehensive approach allows the `compileDict` function to efficiently handle dictionary expressions, including those with spread operators, ensuring that the resulting bytecode accurately reflects the intended behavior of the original source code.

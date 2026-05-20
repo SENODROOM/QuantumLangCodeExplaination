@@ -1,67 +1,22 @@
 # `get` Function
 
 ## Overview
-The `get` function is a critical method within the Quantum Language compiler that retrieves the value of a variable specified by its name (`name`). This function facilitates access to variables within the current lexical scope and seamlessly navigates up the scope hierarchy if the variable is not found in the local scope.
+The `get` function is a crucial method in the Quantum Language compiler designed to retrieve the value of a variable identified by its name (`name`). This function ensures that variables can be accessed within their defined lexical scope and efficiently traverses up the scope hierarchy if necessary.
 
-## Parameters
-- `name`: A string representing the name of the variable whose value needs to be retrieved.
+### Parameters
+- **name**: A string representing the name of the variable whose value needs to be retrieved.
 
-## Return Value
-- The value associated with the variable specified by `name`. If the variable exists in the current scope or any parent scope, the corresponding value is returned.
-- Throws an exception of type `NameError` if the variable is undefined in both the current and parent scopes.
+### Return Value
+- The value associated with the variable named `name`. If the variable exists in the local scope, the function returns its value directly. If the variable is not found in the local scope but exists in an upper scope, the function recursively calls itself on the parent scope until the variable is found or the topmost scope is reached. If the variable is still undefined after checking all scopes, a `NameError` exception is thrown indicating that the variable is undefined.
 
-## Edge Cases
-- **Local Variable**: If the variable is defined locally within the current scope, the function returns its value immediately without checking parent scopes.
-- **Parent Scope**: If the variable is not found in the local scope but is defined in one of the parent scopes, the function recursively calls itself on the parent scope until the variable is found or all parent scopes have been checked.
-- **Undefined Variable**: If the variable is neither found in the local nor any parent scope, the function throws a `NameError` indicating that the variable is undefined.
+### Edge Cases
+1. **Local Variable**: If the variable is defined locally within the current scope, the function will immediately return its value without searching any higher scopes.
+2. **Parent Scope Variable**: If the variable is not found in the local scope but is defined in one of the parent scopes, the function will continue to search upwards until the variable is located.
+3. **Undefined Variable**: If the variable is neither defined in the local nor any parent scope, a `NameError` is thrown, signaling that the variable is undefined.
 
-## Interactions with Other Components
-- **Scope Management**: The `get` function interacts with the scope management system to keep track of variables defined in different scopes. It uses two main data structures:
-  - `cells`: A map that stores pointers to live values of variables. This is useful when a variable's value has been modified using the address-of operator (`&var`).
-  - `vars`: A map that stores the actual values of variables.
-- **Recursive Call**: When the variable is not found in the current scope, the function makes a recursive call to the `get` method of the parent scope. This ensures that the function can traverse the entire scope hierarchy to find the variable.
-- **Exception Handling**: If the variable is undefined after checking all scopes, the function throws a `NameError`, which is caught and handled appropriately by the caller. This helps maintain robust error handling throughout the compiler.
+### Interactions with Other Components
+- **Scope Management**: The `get` function interacts closely with the scope management system of the compiler. It uses two maps (`cells` and `vars`) to store variables at different levels of the scope hierarchy. These maps facilitate quick lookups of variable values within their respective scopes.
+- **Recursive Calls**: When the variable is not found in the current scope, the function makes recursive calls to its parent scope(s) using the `parent` pointer. This interaction allows the function to traverse up the scope chain and find the variable if it exists in a higher scope.
+- **Exception Handling**: The function includes exception handling to manage cases where a variable is not defined. By throwing a `NameError`, it informs the user about the undefined variable, which helps in debugging and error resolution during compilation.
 
-## Implementation Details
-Here is the implementation of the `get` function:
-
-```cpp
-{
-    // Check cells first: if a pointer has written through &var, cells holds the live value
-    auto cit = cells.find(name);
-    if (cit != cells.end())
-        return *cit->second;
-    
-    // Check local variables
-    auto it = vars.find(name);
-    if (it != vars.end())
-        return it->second;
-    
-    // Recursively check parent scope
-    if (parent)
-        return parent->get(name);
-    
-    // Throw an error if the variable is undefined
-    throw NameError("Undefined variable: '" + name + "'");
-}
-```
-
-### Explanation of Code
-1. **Check `cells` Map**:
-   - The function first checks if the variable is present in the `cells` map. This map contains pointers to live values of variables, which might have been modified using the address-of operator.
-   - If the variable is found in `cells`, the function dereferences the pointer and returns the value.
-
-2. **Check Local Variables**:
-   - If the variable is not found in `cells`, the function then checks the `vars` map, which contains the actual values of variables.
-   - If the variable is found in `vars`, the function returns its value.
-
-3. **Recursively Check Parent Scope**:
-   - If the variable is still not found in either `cells` or `vars`, the function checks if there is a parent scope.
-   - If a parent scope exists, the function makes a recursive call to the `get` method of the parent scope, passing the same `name`.
-   - This process continues until the variable is found or all parent scopes have been checked.
-
-4. **Throw `NameError`**:
-   - If the variable is undefined after checking all scopes, including the parent scopes, the function throws a `NameError` with a message indicating that the variable is undefined.
-   - This exception is typically caught and handled by higher-level parts of the compiler to provide meaningful error messages to the user.
-
-This implementation ensures that the `get` function can effectively retrieve variable values across multiple scopes, providing a comprehensive solution for accessing variables in the Quantum Language compiler.
+This comprehensive approach ensures that the `get` function provides efficient and accurate retrieval of variable values across different scopes, enhancing the functionality and reliability of the Quantum Language compiler.

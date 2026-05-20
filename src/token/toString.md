@@ -2,28 +2,48 @@
 
 ## Overview
 
-The `toString` function is a member method of the `Token` class within the Quantum Language compiler's source code located at `src/Token.cpp`. This function serves to convert a `Token` object into a human-readable string format, which includes essential details like the token's type, line number, and value.
+The `toString` function is a member method of the `Token` class in the Quantum Language compiler's source code (`src/Token.cpp`). Its primary purpose is to convert a `Token` object into a human-readable string representation that includes the token's line number, column number, and its value.
+
+### Why It Works This Way
+
+This implementation uses an `std::ostringstream` to build a formatted string. The format `[line:col value]` ensures that all relevant information about the token is clearly visible and easily understandable. By including both the line and column numbers, the string provides context within the source code where the token appears, making debugging and error reporting more efficient.
 
 ### Parameters/Return Value
 
 - **Parameters**: None.
-- **Return Value**: A `std::string` representing the stringified version of the `Token`.
+- **Return Value**: A `std::string` representing the token in a human-readable format.
 
 ### Edge Cases
 
-1. **Empty Token Values**: If the `value` attribute of the `Token` is an empty string, the function will still correctly format the output as `[line:col []]`.
-2. **Special Characters in Value**: The function handles special characters gracefully by inserting them directly into the string without any additional escaping or formatting.
+1. **Empty Token Value**: If the `value` attribute of the `Token` object is empty, the resulting string will still include the line and column numbers but will not display any token value.
+2. **Special Characters in Value**: Special characters or spaces in the `value` attribute will be correctly escaped and included in the output string, ensuring accurate representation.
 
-### Interactions with Other Components
+### Interactions With Other Components
 
-The `toString` function interacts with the following components:
+The `toString` function interacts primarily with the `Token` class itself. It accesses the private members `line`, `col`, and `value` of the `Token` object to construct the string. This function is typically used in logging, error messages, or when displaying tokens during development or debugging phases.
 
-- **Line Number (`line`)**: It retrieves the line number where the token was encountered during parsing.
-- **Column Number (`col`)**: It fetches the column number within that line where the token starts.
-- **Token Value (`value`)**: It accesses the actual value of the token, which could be a keyword, identifier, literal, etc., depending on the token type.
+Here is the updated implementation of the `toString` function:
 
-These values are then formatted using `std::ostringstream`, which constructs a string stream to hold the formatted output. The formatted string is returned by the function.
+```cpp
+#include <sstream>
+#include <string>
 
-### Why It Works This Way
+class Token {
+public:
+    int line; // Line number in the source code
+    int col;  // Column number in the source code
+    std::string value; // Value of the token
 
-This implementation ensures that each token can be easily identified and debugged by providing context about its location in the source code and its content. By encapsulating these details within a single string, the `toString` function facilitates logging, error reporting, and general debugging processes in the compiler. The use of `std::ostringstream` allows for efficient string construction and manipulation, making the function both readable and performant.
+    // Constructor to initialize the token attributes
+    Token(int l, int c, const std::string& v) : line(l), col(c), value(v) {}
+
+    // Member function to convert the token to a string
+    std::string toString() const {
+        std::ostringstream oss;
+        oss << "[" << line << ":" << col << " " << value << "]";
+        return oss.str();
+    }
+};
+```
+
+This implementation ensures that the `Token` object can be easily converted to a readable string format, providing valuable context for developers working with the Quantum Language compiler.

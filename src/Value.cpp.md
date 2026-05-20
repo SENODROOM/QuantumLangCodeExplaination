@@ -2,48 +2,70 @@
 
 ## Overview
 
-`Value.cpp` is a critical component of the Quantum Language compiler, responsible for managing and manipulating various data types during the compilation process. It centralizes these data types within the `QuantumValue` class and offers utility functions to handle them efficiently. This module plays a pivotal role in ensuring that data values are correctly interpreted and manipulated throughout the compiler's stages.
+`Value.cpp` is a crucial component of the Quantum Language compiler, responsible for managing and manipulating various data types during the compilation process. It centralizes these data types within the `QuantumValue` class and offers utility functions to handle them efficiently. This module plays a pivotal role in ensuring that all data types are correctly interpreted and manipulated throughout the compilation stages.
 
 ### Role in Compiler Pipeline
 
-The `Value.cpp` module operates at the heart of the compiler's data handling phase. It interacts with other modules such as `Vm.cpp` (the virtual machine) and `Error.cpp` (error management). By encapsulating data types within the `QuantumValue` class, it facilitates seamless data manipulation and ensures type safety across different stages of compilation.
+The `Value.cpp` module operates at the heart of the compiler's evaluation phase. It handles the creation, manipulation, and conversion of values between different data types. These operations are essential for evaluating expressions, calling functions, and managing state within the quantum program being compiled.
 
 ### Key Design Decisions and Why
 
-#### Use of `std::variant` for Data Types
+One of the primary design decisions in `Value.cpp` is the use of `std::variant` to represent different data types within a single `QuantumValue` object. This approach allows for type-safe storage and retrieval of various value types without the need for multiple inheritance or complex type-checking mechanisms. By leveraging `std::visit`, the module can efficiently perform operations on the contained value regardless of its specific type.
 
-One of the primary design decisions in `Value.cpp` is the use of `std::variant` to represent different data types (`QuantumNil`, `bool`, `double`, `std::string`, `std::shared_ptr<Array>`, etc.). This choice allows for a flexible and type-safe representation of data without the need for multiple inheritance or complex unions. By leveraging `std::visit`, the module can easily dispatch operations based on the actual type of the data stored.
-
-#### Overloading `isTruthy()` and `toString()`
-
-To ensure that data values behave predictably in conditional statements and string conversions, `Value.cpp` overloads the `isTruthy()` and `toString()` methods. These methods utilize `std::visit` to apply appropriate logic based on the data type. For example, `isTruthy()` returns `false` for `QuantumNil`, `true` for non-zero numbers, and so on. Similarly, `toString()` converts each data type to its string representation, handling special cases like integers and arrays appropriately.
+Another key decision is the implementation of the `isTruthy()` function. This function determines whether a given value is considered "truthy" in the context of the Quantum Language. The logic behind this function ensures that only meaningful values are considered as truthy, which is vital for controlling flow in conditional statements and loops.
 
 ### Major Classes/Functions Overview
 
-#### `QuantumValue` Class
+#### QuantumValue Class
 
-- **Purpose**: Represents a value in the Quantum Language, utilizing `std::variant` to store different data types.
-- **Key Methods**:
-  - `isTruthy()`: Determines whether a value is considered truthy in conditional contexts.
+- **Purpose**: Represents a value in the Quantum Language, encapsulating various data types such as integers, strings, arrays, dictionaries, closures, and native functions.
+- **Key Functions**:
+  - `isTruthy()`: Determines if the value is considered "truthy."
   - `toString()`: Converts the value to its string representation.
 
-#### Utility Functions
+#### Array Class
 
-- **`std::visit`**: Used extensively to dispatch operations based on the actual type of the data stored in `QuantumValue`.
-- **Type-Specific Conversions**: Functions like `convertToString(double)` and `convertToArray(std::vector<QuantumValue>)` provide specific implementations for converting data types to their string representations or array forms.
+- **Purpose**: Represents an array of values in the Quantum Language.
+- **Key Functions**:
+  - `isEmpty()`: Checks if the array is empty.
+  - `getSize()`: Returns the size of the array.
+  - `getElement(size_t index)`: Retrieves an element from the array based on its index.
+
+#### Dict Class
+
+- **Purpose**: Represents a dictionary of key-value pairs in the Quantum Language.
+- **Key Functions**:
+  - `containsKey(const std::string &key)`: Checks if the dictionary contains a specified key.
+  - `getValue(const std::string &key)`: Retrieves the value associated with a specified key.
+  - `setValue(const std::string &key, const QuantumValue &value)`: Sets the value for a specified key.
+
+#### Closure Class
+
+- **Purpose**: Represents a closure, which is a function along with its environment in the Quantum Language.
+- **Key Functions**:
+  - `getName()`: Returns the name of the closure.
+  - `getEnvironment()`: Retrieves the environment associated with the closure.
+  - `call(std::vector<QuantumValue> args)`: Invokes the closure with the provided arguments.
+
+#### NativeFunction Class
+
+- **Purpose**: Represents a native function, which is a function implemented in C++ rather than the Quantum Language itself.
+- **Key Functions**:
+  - `getName()`: Returns the name of the native function.
+  - `call(std::vector<QuantumValue> args)`: Invokes the native function with the provided arguments.
+
+#### Instance Class
+
+- **Purpose**: Represents an instance of a user-defined class in the Quantum Language.
+- **Key Functions**:
+  - `getClass()`: Retrieves the class associated with the instance.
+  - `getField(const std::string &fieldName)`: Retrieves the value of a field in the instance.
+  - `setField(const std::string &fieldName, const QuantumValue &value)`: Sets the value of a field in the instance.
 
 ### Tradeoffs
 
-#### Type Safety vs. Complexity
+While `std::variant` provides a flexible and type-safe way to manage different value types, it does come with some performance overhead compared to traditional unions or enums. However, this tradeoff is acceptable given the benefits of strong typing and easier maintenance.
 
-Using `std::variant` for data representation enhances type safety but introduces complexity in terms of code maintenance and performance overhead due to the need for runtime type checks.
+Additionally, the `isTruthy()` function must handle a wide range of cases to ensure accurate behavior in conditional statements. This complexity adds some runtime cost but is necessary for maintaining the language's semantics.
 
-#### Flexibility vs. Memory Usage
-
-The flexibility provided by `std::variant` allows for storing any data type, which can be advantageous for dynamic languages. However, this also means that memory usage may vary significantly depending on the data stored, potentially leading to higher memory consumption.
-
-#### Performance vs. Ease of Use
-
-While `std::visit` simplifies the implementation of type-specific logic, it can introduce performance overhead compared to traditional switch-case constructs. Additionally, the ease of adding new data types to the `QuantumValue` class comes at the cost of increased compile-time complexity.
-
-Overall, `Value.cpp` serves as a robust foundation for data management in the Quantum Language compiler, balancing type safety, flexibility, and performance considerations to support efficient and effective compilation processes.
+Overall, the `Value.cpp` module strikes a balance between flexibility, safety, and performance, making it a robust foundation for the Quantum Language compiler.

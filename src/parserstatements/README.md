@@ -1,39 +1,116 @@
 # ParserStatements Component of Quantum Language Compiler
 
-The `ParserStatements` component is an essential part of the Quantum Language compiler, responsible for parsing and interpreting various statement types within the quantum programming language. This component handles control structures such as loops and conditionals, expressions, variable declarations, and more, ensuring that the code written in the quantum language adheres to its syntax and semantics.
+The `ParserStatements` component is a crucial module in the Quantum Language compiler, designed to parse and interpret different statement types within the quantum programming language. This component manages control structures like loops and conditionals, expressions, variable declarations, and more, ensuring that the code written in the quantum language is correctly parsed and executed.
 
-## Directory Structure
+## Overview
 
-This directory contains several documented functions and files related to parsing statements:
+The `ParserStatements` component consists of several functions and classes that work together to handle various types of statements. Each function is responsible for parsing a specific type of statement, and they are called in sequence to process the entire body of code or individual statements.
 
-- `parseBodyOrStatement.cpp`: Parses either a block body or a single statement.
-- `parseVarDecl.cpp`: Parses variable declarations.
-- `parseIfStmt.cpp`: Parses conditional statements (`if`, `else`).
-- `parseWhileStmt.cpp`: Parses loop statements (`while`).
-- `parseReturnStmt.cpp`: Parses return statements.
-- `parsePrintStmt.cpp`: Parses print statements.
-- `parseInputStmt.cpp`: Parses input statements.
-- `parseCoutStmt.cpp`: Parses output statements using `cout`.
-- `parseCinStmt.cpp`: Parses input statements using `cin`.
-- `parseImportStmt.cpp`: Parses import statements to include external libraries.
-- `parseExprStmt.cpp`: Parses expression statements.
-- `parseExpr.cpp`: Parses individual expressions.
+## Files
+
+### `parserbodyorstatement.cpp`
+- **Function:** `parseBodyOrStatement`
+  - **Description:** Parses either a block of statements (`{ ... }`) or a single statement.
+  - **Dependencies:** `ParserBlock`, `ParserExpression`
+
+### `parservardecl.cpp`
+- **Function:** `parseVarDecl`
+  - **Description:** Parses a variable declaration statement.
+  - **Dependencies:** `ParserType`, `ParserIdentifier`
+
+### `parserifstmt.cpp`
+- **Function:** `parseIfStmt`
+  - **Description:** Parses an `if` statement.
+  - **Dependencies:** `ParserCondition`, `ParserBlock`
+
+### `parserwhilestmt.cpp`
+- **Function:** `parseWhileStmt`
+  - **Description:** Parses a `while` loop statement.
+  - **Dependencies:** `ParserCondition`, `ParserBlock`
+
+### `parserreturnstmt.cpp`
+- **Function:** `parseReturnStmt`
+  - **Description:** Parses a `return` statement.
+  - **Dependencies:** `ParserExpression`
+
+### `parserprintstmt.cpp`
+- **Function:** `parsePrintStmt`
+  - **Description:** Parses a `print` statement.
+  - **Dependencies:** `ParserExpression`
+
+### `parserinputstmt.cpp`
+- **Function:** `parseInputStmt`
+  - **Description:** Parses an `input` statement.
+  - **Dependencies:** `ParserVariable`
+
+### `parsercoutstmt.cpp`
+- **Function:** `parseCoutStmt`
+  - **Description:** Parses a `cout` statement.
+  - **Dependencies:** `ParserExpression`
+
+### `parsercinstmt.cpp`
+- **Function:** `parseCinStmt`
+  - **Description:** Parses a `cin` statement.
+  - **Dependencies:** `ParserVariable`
+
+### `parserimportstmt.cpp`
+- **Function:** `parseImportStmt`
+  - **Description:** Parses an `import` statement.
+  - **Dependencies:** `ParserModule`
+
+### `parserexprstmt.cpp`
+- **Function:** `parseExprStmt`
+  - **Description:** Parses an expression statement.
+  - **Dependencies:** `ParserExpression`
+
+### `parserexpr.cpp`
+- **Function:** `parseExpr`
+  - **Description:** Parses an expression.
+  - **Dependencies:** `ParserTerm`, `ParserFactor`
 
 ## Overall Flow
 
-1. **Initialization**: The parser initializes itself with the source code to be parsed.
-2. **Tokenization**: The source code is tokenized into meaningful units (tokens) which represent the smallest elements of the language.
-3. **Parsing Statements**:
-   - **Variable Declarations**: The parser looks for tokens indicating variable declarations and calls `parseVarDecl()` to handle them.
-   - **Conditional Statements**: For `if` and `else` constructs, it identifies the relevant tokens and invokes `parseIfStmt()`.
-   - **Loop Statements**: Similarly, it recognizes `while` loops and uses `parseWhileStmt()` to process them.
-   - **Control Flow**: It also parses `return` statements to manage function exits and `print/input` statements for debugging and user interaction.
-   - **Expressions**: Individual expressions are parsed using `parseExpr()`, and they can be part of larger statements handled by `parseExprStmt()`.
-4. **Error Handling**: Throughout the parsing process, error handling mechanisms ensure that any incorrect syntax is identified and reported appropriately.
-5. **Output**: Once all statements are successfully parsed, the component outputs the abstract syntax tree (AST) representing the structure of the code.
+1. **Initialization:** The parser starts by reading the input source code and initializing necessary data structures.
+2. **Parsing Statements:**
+   - For each token read from the source code, the parser checks the type of statement it represents.
+   - If a statement is recognized, the corresponding function in the `ParserStatements` component is called.
+3. **Handling Dependencies:**
+   - Each function may have dependencies on other functions or classes to complete its task.
+   - For example, `parseIfStmt` depends on `parseCondition` and `parseBlock`.
+4. **Building Abstract Syntax Tree (AST):**
+   - As each statement is parsed, it is converted into an AST node, which represents the structure of the program.
+5. **Error Handling:**
+   - The parser includes error handling mechanisms to identify and report syntax errors in the source code.
+6. **Finalization:**
+   - Once all statements are parsed and converted into AST nodes, the parser finalizes the compilation process by generating machine code or intermediate representation.
 
-By breaking down the parsing process into smaller, manageable components, `ParserStatements` facilitates a clear and organized approach to compiling quantum programs, making it easier to maintain and extend the compiler's functionality.
+## Usage
 
-## Documentation
+To use the `ParserStatements` component, include the appropriate header file and call the relevant parsing function based on the type of statement you want to parse. For example:
 
-Each file in this directory includes detailed documentation on the functions it contains, explaining their purpose, parameters, and return values. This documentation is crucial for developers working on the compiler to understand and modify the existing codebase effectively.
+```cpp
+#include "parserstatements.h"
+
+// Parse a single statement
+Statement* stmt = parseExprStmt(sourceCode);
+
+// Parse a block of statements
+Block* block = parseBodyOrStatement(sourceCode);
+```
+
+## Contributing
+
+Contributions to the `ParserStatements` component are welcome! Please follow the guidelines below to contribute effectively:
+
+1. **Fork the Repository:** Fork the Quantum Language compiler repository on GitHub.
+2. **Create a Branch:** Create a new branch for your feature or bug fix.
+3. **Make Changes:** Make the necessary changes to the codebase.
+4. **Commit Your Changes:** Commit your changes with a descriptive commit message.
+5. **Push to Your Branch:** Push your changes to your forked repository.
+6. **Open a Pull Request:** Open a pull request against the main repository, explaining the changes you made and why they are beneficial.
+
+By following these steps, you can help improve the `ParserStatements` component and make the Quantum Language compiler even better!
+
+---
+
+This README provides a comprehensive overview of the `ParserStatements` component, detailing its functionality, dependencies, and overall flow. It also outlines how to use the component and encourages contributions to enhance its capabilities.

@@ -6,35 +6,35 @@ The `readRaw` function is designed to deserialize raw binary data into a specifi
 
 ## Parameters
 
-- `data`: A constant reference to a `std::vector<uint8_t>` representing the buffer containing the serialized data.
-- `offset`: An integer representing the current position within the buffer from which data should be read.
+- `data`: A reference to a `std::vector<uint8_t>` containing the serialized binary data.
+- `offset`: An integer representing the current position within the `data` vector where reading should begin.
 
 ## Return Value
 
-- Returns an instance of type `T`, reconstructed from the raw binary data at the specified offset in the buffer.
+- Returns an instance of type `T`, which has been reconstructed from the binary data starting at the specified `offset`.
 
 ## How It Works
 
-The `readRaw` function operates by copying a block of memory from the input buffer into a new instance of type `T`. Here’s how it ensures correctness:
+The `readRaw` function operates by copying a block of memory from the `data` vector into a variable of type `T`. Here’s how it ensures this:
 
-1. **Bounds Checking**: Before attempting to copy any data, the function checks if the remaining bytes in the buffer (`data.size() - offset`) are sufficient to hold an instance of type `T`. If not, it throws a `std::runtime_error` indicating an unexpected end of file during deserialization. This prevents reading beyond the buffer's bounds, which could lead to undefined behavior or security vulnerabilities.
+1. **Bounds Checking**: Before proceeding with the copy operation, the function checks if there is enough data left in the `data` vector to accommodate the size of `T`. If not, it throws a `std::runtime_error` indicating an unexpected end of file during deserialization. This prevents potential buffer overflows or undefined behavior.
 
-2. **Memory Copying**: The function uses `std::memcpy` to copy the raw binary data from the buffer into the local variable `t`. `std::memcpy` is used because it performs a low-level memory copy operation, which is efficient and suitable for direct serialization and deserialization tasks.
+2. **Memory Copying**: The function uses `std::memcpy` to copy `sizeof(T)` bytes from the `data` vector, starting at the position indicated by `offset`, into the memory location of the variable `t`.
 
-3. **Offset Adjustment**: After successfully copying the data, the function increments the `offset` by the size of `T`. This adjustment ensures that subsequent calls to `readRaw` will start reading from the correct position in the buffer.
+3. **Offset Update**: After successfully copying the data, the function updates the `offset` by adding `sizeof(T)`. This ensures that subsequent calls to `readRaw` will start reading from the correct position in the `data` vector.
+
+4. **Return Instance**: Finally, the function returns the reconstructed instance of `T`.
 
 ## Edge Cases
 
-- **Buffer Overflow**: If the `offset` plus the size of `T` exceeds the buffer's size, the function throws an exception. This handles cases where the data being deserialized is incomplete or corrupted.
+- **Empty Data Vector**: If the `data` vector is empty, attempting to read any data will result in an immediate error due to the bounds check.
   
-- **Empty Buffer**: While not explicitly handled in the provided code snippet, in practice, calling `readRaw` on an empty buffer would likely result in a buffer overflow error due to the subtraction of `offset` from `data.size()`.
+- **Insufficient Data**: If the remaining data in the `data` vector is less than `sizeof(T)`, the function will throw an exception. This handles scenarios where the serialized data is incomplete or corrupted.
 
-## Interactions With Other Components
+- **Negative Offset**: Passing a negative `offset` will also lead to an error because the function expects a valid index within the `data` vector.
 
-- **Deserialization Process**: `readRaw` is typically called as part of a larger deserialization process. For example, when reconstructing a complex object from its serialized form, multiple calls to `readRaw` might be made to read different member variables of the object.
+## Interactions with Other Components
 
-- **Error Handling**: Since `readRaw` can throw exceptions, it interacts closely with error handling mechanisms in the rest of the application. Properly catching and responding to these exceptions is essential for maintaining robustness.
+The `readRaw` function interacts closely with the serialization framework, particularly with classes that implement serialization logic. These classes typically use `readRaw` to reconstruct their member variables from the serialized binary data. For example, when deserializing a complex object, each member might be read using `readRaw`, and then these members are used to initialize the object.
 
-- **Data Alignment**: Depending on the system architecture and the type `T`, there might be alignment issues that need to be considered. However, `std::memcpy` generally handles such details internally, making it suitable for most use cases without additional alignment considerations.
-
-In summary, the `readRaw` function provides a straightforward yet powerful mechanism for deserializing raw binary data into specific types, ensuring that data integrity and safety are maintained throughout the deserialization process.
+In summary, `readRaw` is a fundamental utility for deserializing binary data back into typed objects, providing both safety through bounds checking and efficiency through direct memory manipulation. Its interaction with other parts of the serialization system ensures that objects can be fully reconstructed from their serialized forms.

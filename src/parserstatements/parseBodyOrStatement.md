@@ -1,25 +1,31 @@
 # `parseBodyOrStatement` Function
 
 ## Overview
-The `parseBodyOrStatement` function is a critical component of the Quantum Language compiler's parser module. Its primary role is to determine whether the subsequent token in the source code signifies the beginning of a statement body or a solitary statement. This function is essential because it helps in distinguishing between control structures like loops and conditional statements that require bodies and simple expressions or commands that do not.
+The `parseBodyOrStatement` function is an essential part of the Quantum Language compiler's parser module. It evaluates the next token in the source code to decide whether the following content represents the start of a statement body or a single statement. This function plays a pivotal role in constructing the Abstract Syntax Tree (AST) accurately.
 
-### Why It Works This Way
-This function operates based on the type of the next token encountered during parsing. If the next token is a semicolon (`;`), it concludes that the current statement is complete and returns an AST node representing an empty block statement. This scenario typically occurs after a loop or condition without any executable code within its braces. Conversely, if the next token is either a left brace (`{`) or an indentation marker, indicating the start of a block, the function proceeds to parse the entire block using the `parseBlock()` method. If none of these conditions are met, the function assumes that the next token begins a new statement and parses it accordingly before wrapping it inside a block statement.
-
-## Parameters/Return Value
+## Parameters and Return Value
 - **Parameters**: None
-- **Return Value**: A unique pointer to an `ASTNode` object. The returned node can be one of two types:
-  - An `ASTNode` containing an empty `BlockStmt`, which represents a statement followed immediately by a semicolon.
-  - An `ASTNode` containing a `BlockStmt` populated with one or more parsed statements, indicating the start of a block.
+- **Return Type**: `std::unique_ptr<ASTNode>`
+  - Returns an ASTNode representing either a block statement or a single statement.
+
+## How It Works
+1. **Check for Empty Body**:
+   - The function first checks if the next token is a semicolon (`TokenType::SEMICOLON`). If so, it consumes the semicolon and returns an ASTNode containing an empty block statement (`BlockStmt{}`). This scenario typically occurs in control structures like `while` and `for` loops where the body might be intentionally left empty.
+   
+2. **Check for Block Start**:
+   - If the next token is not a semicolon but rather an opening brace (`TokenType::LBRACE`) or an indentation (`TokenType::INDENT`), the function proceeds to parse a block using the `parseBlock()` method. A block in quantum language is defined as a sequence of statements enclosed within curly braces `{}` or indented blocks.
+   
+3. **Single Statement**:
+   - If neither a semicolon nor an opening brace/indentation is found, the function assumes that the next token begins a single statement. It initializes a `BlockStmt` object and adds the parsed statement to its `statements` vector. Finally, it returns an ASTNode containing this block statement.
 
 ## Edge Cases
-1. **Empty Body After Control Structures**: When encountering control structures like `while` or `for` that lack a body, the function correctly identifies the semicolon as the end of the statement and returns an empty block.
-2. **Single Statement Without Semicolon**: If a single statement is encountered without a trailing semicolon, it is wrapped inside a block and returned.
-3. **Unexpected Token**: If an unexpected token is encountered, the function will handle it gracefully, ensuring that parsing continues without interruption.
+- **Empty Body**: When encountering a semicolon immediately after a control structure, indicating an intentionally empty body.
+- **Block Structure**: Handling both explicit `{}` blocks and implicitly defined indented blocks.
+- **Single Statement**: Parsing scenarios where only one statement exists without any enclosing block.
 
-## Interactions With Other Components
-- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing.
-- **Error Handling**: While not explicitly shown in the provided code snippet, the function interacts with error handling mechanisms to report syntax errors appropriately.
-- **Parsing Context**: The function maintains knowledge about the current parsing context, such as line numbers, to ensure accurate AST node creation.
+## Interactions with Other Components
+- **Tokenizer**: The function relies on the tokenizer to provide the current token being processed.
+- **Error Handling**: While not explicitly shown in the provided snippet, this function likely integrates with error handling mechanisms to manage unexpected tokens or syntax errors gracefully.
+- **AST Construction**: This function directly contributes to building the AST by creating nodes for different types of statements and blocks.
 
-By understanding how `parseBodyOrStatement` functions, developers gain insight into the decision-making process behind parsing quantum language constructs, enhancing their ability to debug and extend the compiler's functionality.
+This comprehensive approach ensures that the parser can correctly interpret various syntactic constructs in the Quantum Language, facilitating accurate compilation and execution of the code.

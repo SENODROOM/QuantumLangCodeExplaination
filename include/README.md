@@ -2,68 +2,95 @@
 
 ## Overview
 
-The `include/Vm.h` header file is a crucial component of the QuantumLanguage compiler, focusing on defining the virtual machine (VM) that executes compiled code. This VM plays a pivotal role in managing execution contexts, handling exceptions, and maintaining the runtime environment, thereby ensuring efficient and accurate execution of the program.
+The `include/Vm.h` header file is an essential part of the QuantumLanguage compiler, dedicated to defining the virtual machine (VM) responsible for executing compiled code. The VM manages execution contexts, handles exceptions, and maintains the runtime environment, ensuring efficient and accurate execution of the program.
 
 ## Role in Compiler Pipeline
 
-The VM acts as the heart of the QuantumLanguage interpreter, taking the output from the bytecode generation phase and executing it. It bridges the gap between the compiled code and the host environment, providing necessary functionalities such as memory management, function calling, and error handling.
+The VM acts as the final stage in the compiler pipeline, taking the output from the bytecode generation phase and running it. It interprets the bytecode instructions, interacts with the heap and stack, and manages function calls, local variables, and upvalues.
 
-### Key Design Decisions and Why
+## Key Design Decisions and Why
 
-1. **Separation of Concerns**: By encapsulating the VM logic within its own class, the design ensures that the core components of the interpreter remain isolated from other parts of the compiler, enhancing maintainability and scalability.
+1. **Stack-Based Architecture**: The VM uses a stack-based architecture for managing local variables and function arguments. This decision simplifies memory management and supports dynamic scoping.
 
-2. **Runtime Environment Management**: The VM maintains a runtime environment including the value stack, call frames, and exception handlers. This design allows for dynamic changes during execution, accommodating features like recursion and exception handling.
+2. **Heap-Allocated Values**: Variables that need to be captured or passed between functions are stored on the heap using shared pointers. This allows for garbage collection and ensures that values remain valid even when they leave the stack scope.
 
-3. **Efficient Memory Management**: Using smart pointers (`std::shared_ptr`, `std::unique_ptr`) for managing memory helps prevent memory leaks and dangling references, ensuring robustness and performance.
+3. **Exception Handling**: The VM includes a mechanism for handling exceptions through structured exception handlers. Each handler specifies the IP to jump to upon exception, the call-frame depth to unwind, and the value stack depth to restore, providing robust error management capabilities.
 
-4. **Flexibility with Upvalues**: The VM supports upvalues, which are used to capture local variables from enclosing functions. This feature enables closures and provides flexibility in managing variable lifetimes.
+4. **Open Upvalues List**: To support closures and upvalues, the VM maintains an open upvalues list. This list helps manage the lifecycle of upvalues, ensuring they are properly closed when their enclosing function exits.
 
 ## Major Classes/Functions Overview
 
 ### Upvalue
-- **Purpose**: Represents a heap cell for captured variables, allowing them to be accessed even after they have left the stack scope.
-- **Key Features**:
-  - `cell`: A shared pointer to the live value.
-  - `closed`: Storage for the value after it has been captured.
+- **Role**: Represents a captured variable that needs to be accessed from a nested function.
+- **Structure**:
+  ```cpp
+  struct Upvalue {
+      std::shared_ptr<QuantumValue> cell; // Points to the live value
+      QuantumValue closed;                // Storage after variable leaves stack
+
+      explicit Upvalue(std::shared_ptr<QuantumValue> c) : cell(c) {}
+
+      QuantumValue get() const { return *cell; }
+      void set(QuantumValue v) { *cell = std::move(v); }
+  };
+  ```
 
 ### Closure
-- **Purpose**: Encapsulates a chunk of bytecode along with its upvalues and name.
-- **Key Features**:
-  - `chunk`: Shared pointer to the bytecode chunk.
-  - `upvalues`: Vector of shared pointers to upvalues.
-  - `name`: Name associated with the closure, typically the function name.
+- **Role**: Encapsulates a chunk of bytecode along with its upvalues.
+- **Structure**:
+  ```cpp
+  struct Closure {
+      std::shared_ptr<Chunk> chunk;
+      std::vector<std::shared_ptr<Upvalue>> upvalues;
+      std::string name;
+
+      explicit Closure(std::shared_ptr<Chunk> c)
+          : chunk(std::move(c)), name(chunk->name) {}
+  };
+  ```
 
 ### CallFrame
-- **Purpose**: Manages the execution context for each function call, storing information about the current function's closure, instruction pointer, and stack base.
-- **Key Features**:
-  - `closure`: Shared pointer to the current function's closure.
-  - `ip`: Instruction pointer indicating the next bytecode instruction to execute.
-  - `stackBase`: Index marking the beginning of local variables on the value stack.
+- **Role**: Manages the context of a function call, including the closure, instruction pointer, and stack base.
+- **Structure**:
+  ```cpp
+  struct CallFrame {
+      std::shared_ptr<Closure> closure;
+      size_t ip;        // Instruction pointer
+      size_t stackBase; // Where locals start on the value stack
+  };
+  ```
 
 ### ExceptionHandler
-- **Purpose**: Defines how the VM should handle exceptions, including the target IP to jump to and the depths of the call stack and value stack to unwind and restore.
-- **Key Features**:
-  - `catchIp`: Target IP for exception handling.
-  - `frameDepth`: Depth of call frames to unwind upon exception.
-  - `stackDepth`: Depth of the value stack to restore upon exception.
+- **Role**: Defines how exceptions should be handled, including the target IP and stack depths to restore.
+- **Structure**:
+  ```cpp
+  struct ExceptionHandler {
+      int32_t catchIp;   // IP to jump to on exception
+      size_t frameDepth; // Call-frame depth to unwind to
+      size_t stackDepth; // Value stack depth to restore
+  };
+  ```
 
 ### VM Class
-- **Overview**: The main class representing the virtual machine, responsible for running chunks of bytecode, managing the runtime environment, and handling exceptions.
-- **Key Methods**:
-  - `run(std::shared_ptr<Chunk> chunk)`: Executes a top-level script represented by a chunk of bytecode.
-  - `registerNatives()`: Registers native functions that can be called from the bytecode.
-  - `runFrame(size_t stopDepth = 0)`: Runs the current call frame until a specified stop depth or completion.
-  - `push(QuantumValue v)`, `pop()`, `peek(int offset = 0)`: Manage the value stack, pushing values onto it, popping values off it, and peeking at values without removing them.
-  - `callValue(QuantumValue callee, int argCount, int line)`, `callClosure(std::shared_ptr<Closure> closure, int argCount, int line)`, `callNativeFn(std::shared_ptr<QuantumNative> fn, int argCount, int line)`, `callClass(std::shared_ptr<QuantumClass> klass, int argCount, int line)`, `callBuiltinMethod(...)`: Handle different types of function calls, including native functions, closures, and built-in methods.
+- **Overview**: The main class representing the Virtual Machine.
+- **Public Methods**:
+  - `run(std::shared_ptr<Chunk> chunk)`: Executes a compiled chunk (top-level script).
+  - `registerNatives()`: Registers native functions with the VM.
+  
+- **Private Members**:
+  - `stack_`: The value stack used for storing local variables and function arguments.
+  - `frames_`: A vector of call frames, each representing a function call.
+  - `handlers_`: A vector of exception handlers, managing exception propagation.
+  - `openUpvalues_`: A list of open upvalues for managing closure lifetimes.
+  - `stepCount_`: Counts the number of executed steps, limiting the runtime to prevent infinite loops.
+  - `pendingInstances_`: Stores instances that need to be instantiated during execution.
 
 ## Tradeoffs
 
-1. **Memory Overhead**: Using smart pointers introduces some overhead compared to raw pointers, but enhances safety and reduces manual memory management errors.
+1. **Memory Management**: Using shared pointers for heap-allocated values provides automatic garbage collection but may introduce overhead compared to manual memory management.
 
-2. **Complexity**: The separation of concerns into multiple classes increases complexity, making the codebase harder to understand and maintain. However, it also improves modularity and reusability.
+2. **Exception Handling**: Structured exception handling adds complexity but ensures robust error management and prevents crashes due to unhandled exceptions.
 
-3. **Performance**: While the use of smart pointers adds some overhead, the overall design aims to provide a flexible and safe runtime environment, which can lead to better performance through improved error handling and easier debugging.
+3. **Performance**: The stack-based architecture is generally fast but can lead to increased memory usage for deep recursion or large data structures.
 
-4. **Resource Usage**: Managing resources explicitly via call frames and upvalues requires careful handling to avoid resource leaks or premature deallocation, impacting both memory usage and performance.
-
-By understanding these aspects, developers can effectively utilize the VM class and related structures to build powerful and reliable interpreters for QuantumLanguage.
+By understanding these components and their roles within the QuantumLanguage compiler, developers can better appreciate the design choices made and how they contribute to the overall efficiency and reliability of the system.

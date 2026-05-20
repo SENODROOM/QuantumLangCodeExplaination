@@ -2,48 +2,33 @@
 
 ## Purpose
 
-The `writeRaw` function is essential in the Quantum Language compiler's serialization module. Its primary role is to insert the raw binary data of a specified variable into an output buffer. This function facilitates direct conversion of a variable's memory layout into a byte sequence, which can then be transmitted or stored as needed.
+The `writeRaw` function is crucial in the Quantum Language compiler's serialization module. It inserts the raw binary data of a specified variable into an output buffer, facilitating direct conversion of a variable's memory layout into bytes. This function is vital for ensuring that variables can be accurately serialized and deserialized across different platforms or systems.
 
 ## Parameters
 
-- **out**: A reference to a vector of bytes (`std::vector<uint8_t>`) where the serialized binary data will be appended.
-- **t**: The variable whose raw binary data needs to be written to the output buffer. The type of `t` determines how many bytes will be written.
+- **out**: A reference to a `std::vector<uint8_t>` where the raw binary data will be inserted.
+- **t**: The variable whose raw binary data needs to be written into the output buffer. The type of `t` determines how many bytes will be inserted into the buffer.
 
 ## Return Value
 
-This function does not return any value explicitly. Instead, it modifies the input parameter `out` by appending the raw binary data of `t`.
+This function does not return any value (`void`). Instead, it modifies the contents of the `out` vector by appending the raw binary data of the variable `t`.
+
+## How It Works
+
+The `writeRaw` function operates by first casting the address of the variable `t` to a pointer of type `const uint8_t*`. This allows us to access the raw bytes stored in the memory location of `t`. The function then uses the `insert` method of the `std::vector<uint8_t>` class to append these bytes to the end of the vector. The number of bytes appended is determined by the size of the type `T`, which is obtained using `sizeof(T)`.
+
+### Why It Works This Way
+
+This approach ensures that the memory layout of the variable `t` is preserved exactly as it would appear in memory. By directly accessing and copying the bytes, we avoid any potential issues related to type-specific serialization mechanisms, such as byte order or padding. This method provides a straightforward and efficient way to serialize variables without worrying about their internal representation.
 
 ## Edge Cases
 
-1. **Empty Buffer**: If the output buffer (`out`) is initially empty, calling `writeRaw` will simply append the binary data of `t`.
-2. **Type Mismatch**: Ensure that the type of `t` matches the expected type when deserializing. Writing raw data without proper alignment or understanding of the type can lead to incorrect values upon deserialization.
-3. **Large Data Types**: For variables of large sizes (e.g., arrays or structs), ensure that the output buffer has sufficient capacity before invoking `writeRaw`. Insufficient capacity might result in buffer overflow.
+1. **Empty Variable**: If `t` is an empty variable (e.g., an empty string or an array with zero elements), the function will simply insert zero bytes into the output buffer.
+2. **Large Variables**: For very large variables, the function may encounter performance issues due to the need to copy a significant amount of data. However, since the function is designed to work with any type, it should handle even large variables efficiently.
+3. **Non-Trivial Types**: The function handles non-trivial types (i.e., types that have constructors, destructors, or virtual functions) just like trivial types. Since it copies the raw bytes, it does not invoke any special member functions of the type.
 
-## Interactions with Other Components
+## Interactions With Other Components
 
-- **Serialization Module**: `writeRaw` is used within various serialization functions to convert complex data structures into a flat byte array. This byte array can then be transmitted over networks or stored in files.
-- **Deserialization Module**: Corresponding to `writeRaw`, there is a `readRaw` function that extracts the raw binary data from the input buffer and reconstructs the original variable.
+The `writeRaw` function interacts primarily with the serialization module of the Quantum Language compiler. It is used by various serialization functions to insert raw binary data into the output buffer. Additionally, it is used by deserialization functions to reconstruct variables from their binary representations. Together, these functions form a robust system for handling serialization and deserialization tasks within the compiler.
 
-## Implementation Details
-
-Here’s how `writeRaw` works:
-
-```cpp
-void writeRaw(std::vector<uint8_t>& out, T t) {
-    // Convert the address of 't' to a pointer of uint8_t
-    const uint8_t* ptr = reinterpret_cast<const uint8_t*>(&t);
-
-    // Append the binary data from 'ptr' to the end of 'out'
-    out.insert(out.end(), ptr, ptr + sizeof(T));
-}
-```
-
-### Explanation
-
-1. **Pointer Conversion**: 
-   - `reinterpret_cast<const uint8_t*>(&t)` converts the address of the variable `t` into a pointer to its raw binary data. This allows us to access each byte of the variable's memory layout.
-
-2. **Appending Data**:
-   - `out.insert(out.end(), ptr, ptr + sizeof(T))` inserts the bytes pointed to by `ptr` into the output buffer `out`. The number of bytes inserted is determined by `sizeof(T)`, ensuring that the entire binary representation of `t` is captured.
-
-By using `writeRaw`, the Quantum Language compiler efficiently serializes variables, enabling seamless transmission and storage of structured data. This function serves as a fundamental building block for more complex serialization operations.
+By providing a mechanism to insert raw binary data into the output buffer, the `writeRaw` function enables the compiler to perform accurate serialization and deserialization operations. This, in turn, facilitates the exchange of quantum programs between different systems or platforms, ensuring compatibility and interoperability.

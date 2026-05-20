@@ -1,74 +1,85 @@
 # Value Component of the Quantum Language Compiler
 
-The Value component is an essential module in the Quantum Language (QL) compiler, responsible for handling and managing different types of values within the quantum programming environment. This component ensures efficient conversion, access, and manipulation of these values, facilitating their seamless integration into the broader compiler architecture.
+The Value component is a critical module in the Quantum Language (QL) compiler, designed to handle and manage various types of values within the quantum programming environment. This component ensures efficient conversion, access, and manipulation of these values, enabling their smooth integration throughout the compiler architecture.
 
 ## Overview
 
-The Value component provides a comprehensive set of functionalities to work with quantum values. It includes methods for checking truthiness, converting values to strings, getting and setting field values, and determining if a value is native or not. The component is structured to support both fundamental and complex data types, making it versatile for various quantum programming tasks.
+The Value component comprises several key functionalities:
 
-### Key Features
+- **Value Conversion**: Efficiently converts values between different representations.
+- **Value Access**: Provides methods to retrieve and manipulate values stored in cells or fields.
+- **Type Management**: Manages and retrieves type information associated with values.
+- **Reference Handling**: Defines and manages references to values, ensuring proper memory management.
+- **Native Integration**: Facilitates interaction with native code and data structures.
 
-- **Value Conversion**: Functions like `toString` allow for easy conversion of quantum values to human-readable string representations.
-- **Truthiness Check**: The `isTruthy` function determines whether a given quantum value evaluates to true or false.
-- **Type Information**: `typeName` returns the type name of a quantum value, aiding in debugging and runtime checks.
-- **Variable Management**: Methods such as `define`, `defineRef`, `get`, and `set` facilitate the creation, retrieval, and modification of quantum variables.
-- **Field Access**: The `getCell` and `getField` functions enable access to specific fields within composite quantum values, while `setField` allows for updating these fields.
-- **Native Value Handling**: `isNative` checks if a value is represented natively by the compiler, and `asNative` converts a quantum value to its native representation when possible.
+These functionalities work together to form a robust system for handling values in the QL compiler.
 
-## Directory Structure
+## Files and Their Roles
 
-This directory contains several documented functions and classes related to the Value component:
+### `value.h`
+- **Header File**: Contains declarations for all public functions and classes related to the Value component.
+- **Dependencies**: Includes necessary headers for basic data types and utilities.
 
-- **isTruthy.cpp**: Contains the implementation of the `isTruthy` function.
-- **toString.cpp**: Implements the `toString` method for converting quantum values to strings.
-- **typeName.cpp**: Provides the `typeName` function to retrieve the type name of a quantum value.
-- **variableManagement.cpp**: Includes functions for defining, retrieving, and setting quantum variables (`define`, `defineRef`, `get`, `set`).
-- **fieldAccess.cpp**: Offers methods for accessing and modifying fields within quantum values (`getCell`, `getField`, `setField`).
-- **nativeHandling.cpp**: Handles operations related to native quantum values (`isNative`, `asNative`).
+### `value.cpp`
+- **Implementation File**: Contains the implementation details for all functions declared in `value.h`.
+- **Logic**: Implements the core logic for value conversion, access, and type management.
+
+### `reference.h`
+- **Header File**: Declares functions and classes specifically for reference handling within the Value component.
+- **Dependencies**: Includes `value.h` for base functionality.
+
+### `reference.cpp`
+- **Implementation File**: Implements the reference handling logic.
+- **Memory Management**: Ensures that references are managed correctly to prevent memory leaks.
+
+### `native_integration.h`
+- **Header File**: Declares functions and classes for integrating with native code and data structures.
+- **Dependencies**: Includes `value.h` for base functionality.
+
+### `native_integration.cpp`
+- **Implementation File**: Implements the native integration logic.
+- **Interoperability**: Facilitates communication between the QL compiler and external native systems.
+
+## Overall Flow
+
+1. **Initialization**: The Value component initializes itself, setting up any necessary data structures or configurations.
+2. **Value Creation**: When a new value needs to be created, it goes through the Value component's initialization process.
+3. **Type Management**: The Value component manages type information, allowing for easy retrieval and validation of value types.
+4. **Conversion**: Values are converted using the Value component's conversion functions, ensuring compatibility across different parts of the compiler.
+5. **Access and Manipulation**: Values are accessed and manipulated using the provided get/set functions, which interact with the underlying storage mechanisms.
+6. **Reference Handling**: References to values are defined and managed using the Reference component, ensuring proper memory management.
+7. **Native Integration**: The Value component integrates with native code and data structures using the Native Integration component, facilitating interoperability.
+
+By following this flow, the Value component ensures that all values within the QL compiler are handled efficiently and consistently, supporting the overall performance and reliability of the compiler.
 
 ## Usage Example
 
-Here's a simple example demonstrating how to use some of the key features of the Value component:
+Here's a simple example demonstrating how to use the Value component:
 
 ```cpp
 #include "value.h"
+#include "reference.h"
 
 int main() {
-    // Define a quantum variable
-    QuantumValue* var = define("myVar", 42);
+    // Create a new value
+    ValuePtr newValue = Value::create(42);
 
-    // Convert the variable to a string
-    std::string str = toString(var);
-    std::cout << "String representation: " << str << std::endl;
+    // Define a reference to the value
+    ReferencePtr ref = Reference::define(newValue);
 
-    // Check if the variable is truthy
-    bool isTrue = isTruthy(var);
-    std::cout << "Is truthy: " << (isTrue ? "true" : "false") << std::endl;
+    // Get the value from the reference
+    ValuePtr retrievedValue = ref->get();
 
-    // Get the type name of the variable
-    std::string typeName = typeName(var);
-    std::cout << "Type name: " << typeName << std::endl;
+    // Check if the value is truthy
+    bool isTrue = retrievedValue->isTruthy();
 
-    // Set a new value for the variable
-    set(var, 100);
-    str = toString(var);
-    std::cout << "Updated string representation: " << str << std::endl;
-
-    // Clean up
-    delete var;
+    // Convert the value to a string
+    std::string strValue = retrievedValue->toString();
 
     return 0;
 }
 ```
 
-## Contributing
+In this example, we create a new value, define a reference to it, retrieve the value, check its truthiness, and convert it to a string.
 
-Contributions to the Value component are welcome! If you find any issues or have suggestions for improvements, please open an issue on our GitHub repository. We also encourage pull requests to help enhance the functionality and performance of the component.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-Feel free to update the README as needed to reflect any additional changes or improvements made to the Value component.
+For more detailed usage and examples, refer to the individual function and class documentation provided in the `value.h` and `value.cpp` files.
