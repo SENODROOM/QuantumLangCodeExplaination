@@ -2,28 +2,32 @@
 
 ## Description
 
-The `parseVarDecl` function in the Quantum Language compiler's parser module (`src/parser/ParserStatements.cpp`) is designed to handle the parsing of variable declarations. This function supports both single and multiple variable declarations, allowing for optional type hints and initialization expressions. The primary purpose of this function is to construct an Abstract Syntax Tree (AST) node representing the variable declaration, which can then be used during further compilation stages.
+The `parseVarDecl` function in the Quantum Language compiler's parser module (`src/parser/ParserStatements.cpp`) is designed to handle the parsing of variable declarations. This function supports both single and multiple variable declarations, allowing for optional type hints and initializations.
 
-## Parameters/Return Value
+### Parameters
 
-- **Parameters**:
-  - None explicitly defined within the provided code snippet; however, it relies on global state such as the current token being processed and functions like `consume()` and `match()` to determine the next token to process.
-  
-- **Return Value**:
-  - An `ASTNodePtr` pointing to the newly constructed `VarDecl` or `BlockStmt` node representing the parsed variable declaration(s).
+- **None**: The function takes no explicit parameters.
 
-## Edge Cases
+### Return Value
 
-- **Single Variable Declaration**: When only one variable is declared, the function constructs a single `VarDecl` node.
-- **Multiple Variable Declarations**: When multiple variables are declared in a single statement, the function constructs a `BlockStmt` containing multiple `VarDecl` nodes.
-- **Missing Type Hint**: If a type hint is not specified, the function leaves the `typeHint` field empty in the `VarDecl` node.
-- **Missing Initialization Expression**: If an initialization expression is not specified, the function sets the `init` field to `nullptr` in the `VarDecl` node.
-- **Invalid Token Sequence**: If the sequence of tokens does not match the expected pattern for a variable declaration, the function throws a `ParseError`.
+- **ASTNodePtr**: A pointer to an abstract syntax tree node representing the parsed variable declaration(s).
 
-## Interactions with Other Components
+## Why It Works This Way
 
-- **Tokenizer**: The function uses the tokenizer to retrieve the current token and subsequent tokens in the source code. Tokens include identifiers, keywords, colons, assignment operators, commas, newlines, and semicolons.
-- **Expression Parser**: For multi-variable declarations, when an initialization expression is present, the function calls `parseExpr()` to parse the expression and construct an appropriate AST node for it.
-- **Error Handling**: The function includes error handling logic to manage unexpected token sequences or invalid syntax during parsing. If an error is detected, a `ParseError` is thrown with details about the expected and encountered tokens.
+The function works by first checking if the current token is either an identifier or a C-type keyword, which would indicate the start of a variable name. If not, it throws a `ParseError`. After successfully identifying the variable name, it looks for an optional colon followed by another identifier or C-type keyword to determine if a type hint is provided. If an assignment operator (`=`) is found, it parses the expression that follows as the initialization of the variable. For multi-variable declarations, it continues to parse subsequent variables until a comma is no longer present, and then consumes any trailing newlines or semicolons.
 
-Overall, the `parseVarDecl` function plays a crucial role in the Quantum Language compiler by accurately parsing variable declarations and constructing the corresponding AST nodes, ensuring that the subsequent compilation steps can proceed correctly.
+### Edge Cases
+
+- **Single Variable Declaration**: Handles cases where only one variable is declared.
+- **Multiple Variable Declarations**: Supports scenarios where multiple variables are declared on a single line separated by commas.
+- **Missing Type Hint**: Allows for variable declarations without specifying a type hint.
+- **Missing Initialization**: Permits variable declarations without providing an initial value.
+- **Syntax Errors**: Throws errors if the expected tokens are missing or incorrect.
+
+### Interactions With Other Components
+
+- **Tokenizer**: Uses the tokenizer to get the current token and advance through the input stream.
+- **Abstract Syntax Tree (AST)**: Constructs an ASTNode representing the variable declaration(s).
+- **Error Handling**: Utilizes the `ParseError` class to report syntax errors encountered during parsing.
+
+This function ensures that the parser can correctly interpret variable declarations in various forms, making it robust for different types of input.
