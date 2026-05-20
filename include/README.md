@@ -1,83 +1,59 @@
-# QuantumLanguage Compiler - Parser.h
+# QuantumLanguage Compiler - Serializer.h
 
 ## Overview
 
-The `include/Parser.h` header file is an essential part of the QuantumLanguage compiler, responsible for converting the input source code into an Abstract Syntax Tree (AST). The parser handles lexical analysis, grammar rules, and semantic checks to ensure that the source code adheres to the language's syntax and semantics. This process is critical for compiling QuantumLanguage programs efficiently and accurately.
+The `include/Serializer.h` header file is an essential part of the QuantumLanguage compiler, designed to handle the serialization and deserialization of chunks of quantum code. This functionality is critical for saving and loading compiled programs efficiently, allowing them to be executed or transferred between different environments without loss of integrity.
 
-## Role in Compiler Pipeline
+### Role in Compiler Pipeline
 
-The parser operates as the second stage in the compiler pipeline after lexical analysis. It takes a sequence of tokens produced by the lexer and constructs a structured representation of the source code in the form of an AST. The AST serves as the foundation for subsequent stages such as semantic analysis, optimization, and code generation.
+The serializer operates at various stages within the compiler pipeline:
 
-## Key Design Decisions and Why
+1. **Compilation**: After the compilation phase, where quantum code is transformed into executable chunks, these chunks need to be serialized for storage or transmission.
+2. **Storage**: Serialized chunks can be stored in files or databases, providing a persistent form of the program.
+3. **Execution**: When the program needs to be executed, the serialized chunks are deserialized back into executable form, ready to run on the virtual machine.
+4. **Transmission**: Serialized chunks can be transmitted over networks, enabling distributed computing scenarios.
 
-1. **Exception Handling**: The parser uses custom exception classes (`ParseError`) to handle errors during parsing. These exceptions store the line and column numbers where the error occurred, providing more precise error reporting.
+### Key Design Decisions and WHY
 
-2. **Precedence Parsing (Pratt Parsing)**: To manage operator precedence correctly, the parser employs Pratt parsing. This technique allows operators to be parsed based on their associativity and precedence levels, making it easier to handle complex expressions without ambiguity.
+#### 1. Use of Shared Pointers
+- **Why**: The use of shared pointers (`std::shared_ptr`) ensures that memory management is handled safely and efficiently. It allows multiple parts of the compiler to share ownership of the same chunk without causing premature deletion or memory leaks.
 
-3. **Recursive Descent Parsing**: The parser uses a recursive descent approach to implement the grammar rules. This method simplifies the implementation of the parser by breaking down the grammar into smaller, manageable functions, each corresponding to a production rule.
+#### 2. Template Functions for Raw Data Handling
+- **Why**: Templates provide a flexible and reusable way to handle raw data types. By using templates, the serializer can support any data type, making it highly adaptable to future changes or extensions in the quantum language.
 
-4. **Flexibility in Statement Parsing**: The parser distinguishes between blocks and single statements, allowing for flexible parsing depending on the context. This feature supports both brace-enclosed blocks and individual statements, enhancing the language's usability.
+#### 3. Efficient Serialization/Deserialization Algorithms
+- **Why**: Optimal algorithms for serialization and deserialization are chosen to minimize overhead and ensure fast processing times. This is particularly important given the potentially large size of quantum code chunks.
 
-## Major Classes/Functions Overview
+### Major Classes/Functions Overview
 
-### Parser Class
+#### Class: Serializer
+- **Purpose**: The `Serializer` class encapsulates the logic for converting quantum code chunks into a byte stream and vice versa.
+- **Public Methods**:
+  - `serialize(std::shared_ptr<Chunk> chunk)`: Converts a quantum code chunk into a byte vector.
+  - `deserialize(const std::vector<uint8_t>& data)`: Reconstructs a quantum code chunk from a byte vector.
 
-- **Constructor**: `explicit Parser(std::vector<Token> tokens)` - Initializes the parser with a vector of tokens.
-- **parse Method**: `ASTNodePtr parse()` - Parses the entire source code and returns the root node of the AST.
+#### Private Methods
+- **writeChunk(std::vector<uint8_t>& out, std::shared_ptr<Chunk> chunk)**: Writes the contents of a chunk to a byte vector.
+- **readChunk(const std::vector<uint8_t>& data, size_t& offset)**: Reads a chunk from a byte vector starting at a specified offset.
+- **writeValue(std::vector<uint8_t>& out, const QuantumValue& val)**: Writes a quantum value to a byte vector.
+- **readValue(const std::vector<uint8_t>& data, size_t& offset)**: Reads a quantum value from a byte vector starting at a specified offset.
+- **writeString(std::vector<uint8_t>& out, const std::string& s)**: Writes a string to a byte vector.
+- **readString(const std::vector<uint8_t>& data, size_t& offset)**: Reads a string from a byte vector starting at a specified offset.
+- **writeRaw<T>(std::vector<uint8_t>& out, const T& t)**: Writes a raw data type to a byte vector.
+- **readRaw<T>(const std::vector<uint8_t>& data, size_t& offset)**: Reads a raw data type from a byte vector starting at a specified offset.
 
-### Private Methods
+### Tradeoffs
 
-#### Token Helpers
+#### Memory Usage
+- **Pros**: Using shared pointers minimizes memory duplication and reduces overall memory usage.
+- **Cons**: There may be slight performance overhead due to reference counting.
 
-- **current Method**: `Token &current()` - Returns the current token being processed.
-- **peek Method**: `Token &peek(int offset = 1)` - Returns the token at the specified offset without advancing the parser position.
-- **consume Method**: `Token &consume()` - Advances the parser position and returns the consumed token.
-- **expect Method**: `Token &expect(TokenType t, const std::string &msg)` - Ensures the next token matches the expected type, throwing a `ParseError` if not.
-- **check Method**: `bool check(TokenType t) const` - Checks if the next token matches the given type.
-- **match Method**: `bool match(TokenType t)` - Consumes the next token if it matches the given type.
-- **atEnd Method**: `bool atEnd() const` - Determines if the parser has reached the end of the token stream.
-- **skipNewlines Method**: `void skipNewlines()` - Skips any newline characters encountered in the token stream.
+#### Flexibility vs. Complexity
+- **Pros**: Template functions offer high flexibility, supporting any data type.
+- **Cons**: Increased complexity in implementation and maintenance.
 
-#### Statement Parsing
+#### Speed vs. Storage Efficiency
+- **Pros**: Optimized algorithms balance speed and storage efficiency.
+- **Cons**: Potentially higher CPU usage during serialization/deserialization.
 
-- **parseStatement Method**: `ASTNodePtr parseStatement()` - Parses a single statement.
-- **parseBlock Method**: `ASTNodePtr parseBlock()` - Parses a block of statements enclosed in curly braces.
-- **parseBodyOrStatement Method**: `ASTNodePtr parseBodyOrStatement()` - Parses either a block or a single statement, supporting brace-optional syntax.
-
-#### Declaration Parsing
-
-- **parseVarDecl Method**: `ASTNodePtr parseVarDecl(bool isConst)` - Parses variable declarations, including constant declarations.
-- **parseFunctionDecl Method**: `ASTNodePtr parseFunctionDecl()` - Parses function declarations.
-- **parseClassDecl Method**: `ASTNodePtr parseClassDecl()` - Parses class declarations.
-
-#### Control Flow Statements
-
-- **parseIfStmt Method**: `ASTNodePtr parseIfStmt()` - Parses `if` statements.
-- **parseWhileStmt Method**: `ASTNodePtr parseWhileStmt()` - Parses `while` loops.
-- **parseForStmt Method**: `ASTNodePtr parseForStmt()` - Parses `for` loops.
-- **parseReturnStmt Method**: `ASTNodePtr parseReturnStmt()` - Parses return statements.
-- **parsePrintStmt Method**: `ASTNodePtr parsePrintStmt()` - Parses print statements.
-- **parseInputStmt Method**: `ASTNodePtr parseInputStmt()` - Parses input statements.
-
-#### I/O Operations
-
-- **parseCoutStmt Method**: `ASTNodePtr parseCoutStmt()` - Parses `cout` operations.
-- **parseCinStmt Method**: `ASTNodePtr parseCinStmt()` - Parses `cin` operations.
-
-#### Import Statements
-
-- **parseImportStmt Method**: `ASTNodePtr parseImportStmt(bool isFrom = false)` - Parses import statements, optionally supporting `from` syntax.
-
-#### Expression Parsing
-
-- **parseExpr Method**: `ASTNodePtr parseExpr()` - Parses expressions using Pratt parsing.
-- **parseAssignment Method**: `ASTNodePtr parseAssignment()` - Parses assignment expressions.
-- **parseOr Method**: `ASTNodePtr parseOr()` - Parses logical OR expressions.
-- **parseAnd Method**: `ASTNodePtr parseAnd()` - Parses logical AND expressions.
-- **parseBitwise Method**: `ASTNodePtr parseBitwise()` - Parses bitwise expressions.
-- **parseEquality Method**: `ASTNodePtr parseEquality()` - Parses equality expressions.
-- **parseComparison Method**: `ASTNodePtr parseComparison()` - Parses comparison expressions.
-- **parseShift Method**: `ASTNodePtr parseShift()` - Parses shift expressions.
-- **parseAddSub Method**: `ASTNodePtr parseAddSub()` - Parses addition and subtraction expressions.
-- **parseMulDiv Method**: `ASTNodePtr parseMulDiv()` - Parses multiplication and division expressions.
-- **parsePower Method**: `
+By carefully balancing these considerations, the `Serializer.h` header file provides a robust solution for handling quantum code serialization and deserialization, ensuring both efficiency and safety throughout the compiler's lifecycle.
