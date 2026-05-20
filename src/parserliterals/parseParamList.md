@@ -1,39 +1,42 @@
 # `parseParamList` Function
 
-The `parseParamList` function is essential for parsing parameter lists within the context of quantum language compilation. Its primary role is to interpret the syntax of function declarations and definitions, ensuring that the parameters are accurately identified and processed. This function plays a critical part in the semantic analysis phase of the compiler, where it validates the types and names of the parameters against the language specifications.
+The `parseParamList` function is crucial for parsing parameter lists within the context of quantum language compilation. This function ensures that the syntax of function declarations and definitions is correctly interpreted, identifying and processing each parameter accurately.
 
 ## What It Does
 
-The `parseParamList` function processes a sequence of tokens representing a parameter list enclosed in parentheses (`(` and `)`). It extracts each parameter's type and name, handling various styles of type declaration found in both C and C++ languages. The function also manages nested types and template arguments, ensuring that these constructs are parsed correctly.
+The `parseParamList` function processes a sequence of tokens representing a parameter list. It identifies individual parameters, their types, and any modifiers such as `const`. The function constructs a vector of strings where each string represents a parameter declaration.
 
 ## Why It Works This Way
 
-The function operates under the principle of lexical analysis and semantic validation. It iterates through the tokens, identifying patterns that correspond to valid parameter declarations. By consuming tokens based on their type, the function can distinguish between different styles of type specification (e.g., `const int`, `int*`, `std::string&`). Additionally, it handles complex types like pointers (`*`) and references (`&`) by skipping over them until it reaches the actual parameter name.
+This implementation follows a structured approach to handle different styles of parameter declarations found in both C++ and C languages:
 
-### Handling Nested Types and Template Arguments
+- **C++ Style**: Parameters are declared with the type first, followed by the identifier. For example, `const string name`.
+- **C Style**: Parameters are declared with the identifier first, followed by the type. For example, `int x`.
 
-To manage nested types and template arguments, the function uses a lookahead mechanism. It checks for specific token sequences (like `<` and `>` for templates) and adjusts its position accordingly. This ensures that the function can correctly identify and process even deeply nested types without getting confused by the syntax.
+To accommodate these differences, the function checks for the presence of keywords (`const`, `int`, `char`, etc.) and identifiers. It then skips any additional qualifiers like `*`, `&`, or nested `const` modifiers to identify the actual type name.
+
+Handling template arguments (like `unique_ptr<int[]>`, `shared_ptr<Foo>`) requires careful lookahead to ensure that the correct type is identified even when dealing with complex syntax structures.
 
 ## Parameters/Return Value
 
-- **Parameters**: 
-  - `void`: The function takes no explicit parameters; it relies on global state managed by the parser, such as the current token position and the list of tokens being parsed.
+### Parameters
 
-- **Return Value**:
-  - `std::vector<std::string>`: The function returns a vector containing the names of the parameters extracted from the token stream. Each element in the vector represents one parameter.
+- `void`: No explicit parameters are passed to this function.
+
+### Return Value
+
+- `std::vector<std::string>`: Returns a vector containing strings that represent each parameter declaration in the format `<type> <name>`.
 
 ## Edge Cases
 
-- **Empty Parameter List**: If the parameter list is empty (i.e., just two parentheses), the function should return an empty vector.
-  
-- **Invalid Syntax**: If the token stream contains invalid syntax (e.g., missing closing parenthesis, incorrect type keywords), the function should raise an appropriate error and stop parsing.
-
-- **Template Arguments**: The function must be able to handle template arguments gracefully, distinguishing them from regular type specifiers.
+- **Empty Parameter List**: If the parameter list is empty (i.e., only contains parentheses), the function should return an empty vector.
+- **Multiple Modifiers**: The function should correctly handle multiple modifiers applied to a single parameter, such as `const Entity *m`.
+- **Nested Template Arguments**: Complex types involving nested template arguments, like `unique_ptr<shared_ptr<int>>`, should be parsed correctly.
 
 ## Interactions With Other Components
 
-The `parseParamList` function interacts closely with the broader parsing infrastructure of the compiler. It leverages functions like `expect`, `consume`, and `check` to navigate through the token stream and validate syntax. These functions are typically defined in a separate header file, such as `src/parser/ParserUtils.h`.
+- **Tokenizer**: The `parseParamList` function relies on the tokenizer to provide a stream of tokens representing the source code.
+- **Error Handling**: The function uses error handling mechanisms provided by the tokenizer to report issues like missing closing parentheses or unexpected token sequences.
+- **Symbol Table**: After parsing the parameter list, the resulting vector can be used to populate a symbol table, which tracks variable names and their associated types during the compilation process.
 
-Additionally, the function may interact with other components during the semantic analysis phase, such as the symbol table or type checker, to ensure that the parsed parameters are consistent with the rest of the program.
-
-Overall, the `parseParamList` function is a vital component of the quantum language compiler, responsible for accurately parsing and validating parameter lists. Its robust implementation ensures that the compiler can handle a wide range of syntactic variations while maintaining correctness and reliability.
+By following this detailed approach, the `parseParamList` function ensures robust parsing of parameter lists across various programming styles and syntax complexities, facilitating accurate compilation and interpretation of quantum language programs.
