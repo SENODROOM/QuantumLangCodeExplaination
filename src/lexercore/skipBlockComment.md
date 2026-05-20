@@ -4,31 +4,32 @@ The `skipBlockComment` function is designed to handle the skipping of block comm
 
 ## What It Does
 
-This function consumes characters from the input source code stream (`src`) until it encounters the end of a block comment, which is marked by "*/". Once the end of the block comment is found, the function stops consuming characters and returns control back to the caller. If the function reaches the end of the file without encountering the closing "*/" of the block comment, it will silently reach EOF.
+This function consumes characters from the input source code stream (`src`) until it encounters the end of a block comment, which is denoted by "*/". If the end of the file (`EOF`) is reached without encountering "*/", the function simply returns, effectively ignoring any remaining characters as part of an unterminated comment.
 
 ## Why It Works This Way
 
-The function operates under the assumption that the lexer has already identified the start of a block comment by consuming the initial "/*". The purpose of `skipBlockComment` is to ensure that all characters within the block comment are skipped over, allowing the lexer to continue processing the rest of the source code after the comment ends. By checking for the sequence "*/", the function can accurately determine when the block comment has concluded, even if the comment spans multiple lines.
+The function operates under the assumption that block comments start with "/*" and end with "*/". By iterating through each character in the source code stream and checking for these sequences, the function can accurately identify and skip over block comments. The use of `advance()` allows the function to move forward one character at a time, ensuring that all characters within the block comment are consumed before returning.
 
 ## Parameters/Return Value
 
-- **Parameters**:
-  - `src`: A reference to the string containing the source code being processed.
-  - `pos`: A reference to an integer representing the current position in the source code string. This parameter is modified by the function as it advances through the source code.
+- **Parameters**: None
+  - The function takes no explicit parameters. It uses member variables or global state to access the current position in the source code stream (`pos`) and the current character being processed (`current()`).
 
-- **Return Value**: 
-  - The function does not explicitly return any value. However, upon reaching the end of the block comment or EOF, it modifies the `pos` parameter to reflect its new location in the source code.
+- **Return Value**: Void
+  - The function does not return any value. Its primary purpose is to modify the internal state of the lexer by advancing the position in the source code stream until the block comment is fully skipped.
 
 ## Edge Cases
 
-1. **Unterminated Block Comment**: If the function reaches the end of the file without finding the closing "*/" of the block comment, it will simply stop and return, effectively treating the unterminated comment as if it were terminated at EOF. This behavior ensures that the lexer does not get stuck in an infinite loop waiting for a non-existent closing delimiter.
+1. **Unterminated Block Comment**: If the source code ends without encountering "*/", the function will simply return, leaving the lexer in an undefined state regarding the presence of an unterminated comment. In practice, this situation should be handled gracefully by the parser, which may report an error or ignore the remainder of the input.
 
-2. **Nested Comments**: The function assumes that there are no nested block comments in the source code. If the source code contains nested comments, the behavior of the lexer may become unpredictable, as the function will only look for the first occurrence of "*/".
+2. **Nested Comments**: The function assumes that there are no nested block comments. If a nested comment is encountered, it will continue processing until the first "*/" sequence is found, potentially leading to incorrect parsing of subsequent parts of the source code.
 
-3. **Comments Ending on the Same Line**: If the block comment ends on the same line as the initial "/*", the function will still correctly identify the end of the comment and move past it.
+3. **Comments Within Strings**: The function does not account for comments that might appear within string literals. If a string contains "/*" or "*/", it will treat them as part of the string rather than as comment delimiters.
 
 ## Interactions With Other Components
 
-- **Lexer Core**: `skipBlockComment` is called by the Lexer Core whenever a block comment is encountered. The Lexer Core uses this function to ensure that all characters within the block comment are skipped before continuing with the lexical analysis of the remaining source code.
+- **Lexer Core**: The `skipBlockComment` function is typically called by the lexer core when it encounters a "/*" sequence, indicating the beginning of a block comment. After calling `skipBlockComment`, the lexer can proceed to tokenize the next valid token in the source code.
 
-- **Error Handling**: While `skipBlockComment` itself does not directly handle errors, it contributes indirectly to error handling by ensuring that the lexer does not proceed with invalid or incomplete tokens due to unterminated block comments. If such a situation arises, the lexer will naturally encounter EOF and terminate gracefully, preventing further parsing errors related to incomplete token sequences.
+- **Error Handling**: While the function itself does not handle errors directly, its behavior (silently reaching EOF) can contribute to error reporting in higher-level components like the parser. An unterminated block comment might lead to unexpected tokens or syntax errors later in the compilation process.
+
+In summary, the `skipBlockComment` function is essential for handling block comments in the Quantum Language compiler's lexical analysis phase. By consuming characters until the block comment is terminated, it ensures that the lexer can correctly parse the rest of the source code. However, care must be taken to handle edge cases such as unterminated comments and nested comments appropriately to maintain the integrity of the compilation process.
