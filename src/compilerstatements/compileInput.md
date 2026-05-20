@@ -1,58 +1,38 @@
 # `compileInput` Function
 
 ## Purpose
-The `compileInput` function is responsible for compiling input statements in the Quantum Language compiler. It handles loading the global variable `__input__`, optionally prompting the user for input, and then storing or discarding the result based on whether a target variable is specified.
+The `compileInput` function compiles input statements in the Quantum Language compiler. It loads the global variable `__input__`, optionally prompts the user for input, calls the prompt expression (if provided), and stores or discards the result based on whether a target variable is specified.
 
 ## Parameters
-- `s`: A reference to an `InputStatement` object that contains information about the input statement being compiled, such as the prompt expression and the target variable where the input should be stored.
+- `s`: A reference to an `InputStatement` object containing information about the input statement being compiled, such as the target variable and optional prompt expression.
 
 ## Return Value
-This function does not return any value (`void`). It performs operations internally to compile the input statement.
+This function does not return any value explicitly. Instead, it performs operations that modify the internal state of the compiler, including emitting bytecode instructions.
 
-## Detailed Explanation
-### Steps of Compilation
-1. **Load Global Variable**:
-   ```cpp
-   emit(Op::LOAD_GLOBAL, addStr("__input__"), line);
-   ```
-   - This step loads the global variable `__input__` into the stack. The `addStr` function ensures that the string `"__input__"` is added to the symbol table and its corresponding index is used in the operation.
+## Workflow
+1. **Load Global Variable**: The function begins by emitting a `LOAD_GLOBAL` operation to load the global variable `__input__`. This variable is assumed to be defined elsewhere in the codebase and represents the mechanism through which user input is handled.
 
-2. **Prompt User for Input**:
-   ```cpp
-   if (s.prompt)
-       compileExpr(*s.prompt);
-   else
-       emit(Op::LOAD_CONST, addStr(""), line);
-   ```
-   - If a prompt expression (`s.prompt`) is provided, the function calls `compileExpr` to compile this expression. This expression will likely generate code that prompts the user for input and returns the input value.
-   - If no prompt expression is provided, an empty string constant (`""`) is loaded onto the stack using `Op::LOAD_CONST`. This effectively means that no prompt will be shown to the user.
+2. **Prompt User (Optional)**:
+   - If the `prompt` member of the `InputStatement` object (`s.prompt`) is non-empty, indicating that a custom prompt expression is provided, the function compiles this prompt expression using `compileExpr(*s.prompt)`.
+   - If no custom prompt is provided (`s.prompt` is empty), the function emits a `LOAD_CONST` operation with an empty string (`""`) as the constant value. This serves as the default prompt when no explicit prompt is given.
 
-3. **Call the Input Function**:
-   ```cpp
-   emit(Op::CALL, 1, line);
-   ```
-   - After setting up the prompt, the function emits an `Op::CALL` instruction. This instruction calls the function at the top of the stack (which is `__input__`), passing one argument (the prompt). The result of this call, which is the user's input, is pushed onto the stack.
+3. **Call Prompt Expression**:
+   - After loading the global variable and the prompt expression (or default prompt), the function emits a `CALL` operation. This call effectively executes the prompt expression, which should return a string representing the user's input.
 
-4. **Store or Discard the Result**:
-   ```cpp
-   if (!s.target.empty())
-   {
-       emitStore(s.target, line);
-       emit(Op::POP, 0, line);
-   }
-   else
-       emit(Op::POP, 0, line);
-   ```
-   - If a target variable (`s.target`) is specified, the function emits an `emitStore` instruction to store the result of the input operation into this variable. The `emitStore` function takes care of the necessary operations to assign the value from the stack to the target variable.
-   - Regardless of whether a target variable is specified, the function always pops the result from the stack using `Op::POP`. This ensures that the stack remains clean after the input operation is completed.
+4. **Store or Discard Result**:
+   - If the `target` member of the `InputStatement` object (`!s.target.empty()`) is non-empty, indicating that the result of the input statement should be stored in a specific variable, the function emits a store operation using `emitStore(s.target, line)` to save the result into the target variable.
+   - Regardless of whether a target variable is specified, the function always emits a `POP` operation to discard the top item from the stack. This ensures that the stack remains clean after the input operation is completed.
 
 ## Edge Cases
-- **No Prompt**: When no prompt is provided, the function still compiles the input statement but uses an empty string as the default prompt.
-- **Empty Target Variable**: If the target variable is empty, the function simply discards the input result without storing it anywhere.
+- **Empty Target Variable**: If the `target` member of the `InputStatement` object is empty, the function will still execute the prompt expression but will immediately discard its result without storing it anywhere. This can be useful in scenarios where you only need to ensure that the user has been prompted for input, regardless of the actual input value.
+  
+- **Null Prompt Expression**: If the `prompt` member of the `InputStatement` object is null (indicating no custom prompt is provided), the function will use an empty string as the default prompt. This prevents runtime errors related to null dereferencing.
 
 ## Interactions with Other Components
-- **Symbol Table**: The `addStr` function interacts with the symbol table to manage the string `"__input__"`.
-- **Expression Compiler**: If a prompt expression is provided, the `compileExpr` function interacts with the expression compiler to generate code for evaluating this expression.
-- **Code Emission**: The `emit` function interacts with the code emission component to generate bytecode instructions for loading, calling, and storing values.
+- **Bytecode Emission**: The function interacts with the bytecode emission system by calling `emit()` multiple times to generate the necessary bytecode instructions. These instructions include loading global variables, constants, calling functions, and storing results.
+  
+- **Symbol Table Management**: While not directly shown in the provided snippet, the function likely uses the symbol table to manage the global variable `__input__` and any target variables specified in the input statement. The symbol table helps in resolving variable names to their corresponding memory locations.
 
-Overall, the `compileInput` function plays a crucial role in handling user input within the Quantum Language compiler, ensuring that the input is correctly processed and either stored in a specified variable or discarded as appropriate.
+- **Error Handling**: Although not explicitly covered in the provided snippet, the function may interact with error handling mechanisms within the compiler to handle situations where the input statement cannot be executed successfully (e.g., if the global variable `__input__` is not defined).
+
+By understanding how `compileInput` operates, developers can better grasp the flow of input handling within the Quantum Language compiler and make informed decisions when designing new features or modifying existing ones.
