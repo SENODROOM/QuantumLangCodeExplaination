@@ -1,28 +1,39 @@
 # `readNumber` Function
 
 ## Purpose
-The `readNumber` function is designed to parse numeric literals from the source code input of a quantum language compiler. It identifies both integers and floating-point numbers, including those in hexadecimal format. This function ensures that the numeric values are correctly identified and tokenized as `NUMBER`.
+The `readNumber` function is designed to parse numeric literals from the source code input of a quantum language compiler. It identifies both integers and floating-point numbers, including those in hexadecimal format. This function ensures that the numeric values are correctly recognized and returned as tokens.
 
 ## Parameters
-- None
+- `src`: A string representing the source code input being parsed.
+- `line`: An integer indicating the starting line number of the token being read.
+- `col`: An integer indicating the starting column number of the token being read.
 
 ## Return Value
-- Returns a `Token` object of type `NUMBER`, containing the parsed numeric literal as its lexeme, along with the starting line and column positions within the source code.
+The function returns a `Token` object of type `TokenType::NUMBER`, containing the numeric literal as its lexeme, along with the starting line and column numbers.
 
 ## How It Works
-The function operates by iterating through the source code string (`src`) starting from the current position (`pos`). It checks the first character to determine whether the number is in hexadecimal format or not:
+The `readNumber` function operates by iterating through the characters of the source code input (`src`) starting from the current position (`pos`). Here’s how it handles different types of numeric literals:
 
-1. **Hexadecimal Numbers**: If the first character is '0' and the next character is either 'x' or 'X', indicating a hexadecimal number, the function reads two characters ('0x') into the `num` string. It then continues to read subsequent characters until it encounters a non-hexadecimal digit. The resulting string is returned as a `NUMBER` token.
+1. **Hexadecimal Numbers**:
+   - If the current character is `'0'` and the next character is either `'x'` or `'X'`, it recognizes the beginning of a hexadecimal number.
+   - The function advances the position twice to skip over the initial `'0x'`.
+   - It then continues advancing until it encounters a non-hexadecimal digit (using `std::isxdigit(current())`).
 
-2. **Decimal Numbers**: For decimal numbers, the function enters a loop where it reads digits and possibly a decimal point ('.') into the `num` string. If a decimal point is encountered, the function checks if there is already a decimal point present in the `num`. If so, the loop breaks, as multiple decimal points are invalid. After reading all valid digits and the decimal point, the function strips any common C integer or float suffixes such as 'L', 'l', 'U', 'u', 'F', or 'f'. These suffixes are consumed but not added to the `num` string. Finally, the function returns a `NUMBER` token containing the parsed numeric literal.
+2. **Decimal Numbers**:
+   - For decimal numbers, the function checks if the current character is a digit or a period (`.`).
+   - If a period is encountered, it sets a flag (`hasDot`) to indicate that a floating-point number might be present.
+   - The function continues advancing until it encounters a non-digit or non-period character.
+
+3. **Integer/Float Suffixes**:
+   - After parsing the main numeric part, the function strips any trailing integer or float suffixes such as `'L'`, `'l'`, `'U'`, `'u'`, `'F'`, or `'f'`. These suffixes are common in C-style languages and do not affect the numeric value itself.
 
 ## Edge Cases
-- **Invalid Hexadecimal Format**: If the initial '0x' sequence is followed by non-hexadecimal digits, the function will stop reading at the first invalid digit and return the valid part as a `NUMBER` token.
-- **Multiple Decimal Points**: If a numeric literal contains more than one decimal point, the function will stop reading after the second decimal point and return the valid part up to that point as a `NUMBER` token.
-- **Suffix Stripping**: The function correctly handles various C-style suffixes for integers and floats, ensuring that they do not interfere with the numeric value being parsed.
+- **Empty Input**: If the input string is empty, the function will return an invalid token.
+- **Invalid Hexadecimal Format**: If the input starts with `'0x'` but contains non-hexadecimal digits after that, the function will stop at the first invalid digit.
+- **Trailing Suffixes**: Any trailing suffixes like `'LL'`, `'ULL'`, etc., will be ignored, ensuring only the numeric value is captured.
 
 ## Interactions With Other Components
-- **Lexer Core**: The `readNumber` function is part of the LexerCore class, which is responsible for breaking down the source code into tokens. It interacts with the Lexer's state variables like `line`, `col`, and `pos` to track the location of the numeric literal within the source code.
-- **Token Class**: The function creates and returns a `Token` object, which encapsulates the type of token (`NUMBER`), the lexeme (the parsed numeric literal), and the starting line and column positions. This token is then used by higher-level parsing components to construct the abstract syntax tree (AST).
+- **Lexer Core**: The `readNumber` function is part of the lexer core component responsible for breaking down the source code into individual tokens.
+- **Error Handling**: While not explicitly shown in the provided code snippet, the function should integrate with error handling mechanisms to report issues like invalid numeric formats or unexpected characters.
 
-This comprehensive approach ensures that the `readNumber` function can accurately parse a wide range of numeric literals from the source code, making it a crucial component of the lexer in a quantum language compiler.
+This function is crucial for accurately interpreting numeric literals in the source code, which can then be used by subsequent stages of the compiler for further processing.
