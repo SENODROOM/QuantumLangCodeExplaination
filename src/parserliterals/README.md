@@ -1,120 +1,58 @@
 # parserliterals
 
-The `parserliterals` component is a crucial module in the Quantum Language (QL) compiler designed to parse and interpret different literal types within the language's syntax. These literals include arrays, dictionaries, lambdas, arrow functions, argument lists, parameter lists, C type keywords, and C-type variable declarations.
+The `parserliterals` component is an essential module within the Quantum Language (QL) compiler that handles the parsing and interpretation of various literal types defined in the language's syntax. This includes array literals, dictionary literals, lambda expressions, arrow functions, argument lists, parameter lists, C type keywords, and C-type variable declarations.
 
 ## Overview
 
-The `parserliterals` component is responsible for breaking down the source code into meaningful data structures that represent the literals defined in the Quantum Language. Each function in this component handles a specific type of literal:
+The primary function of the `parserliterals` component is to accurately parse and convert these literal types into their corresponding internal data structures used by the compiler. The component consists of several helper functions and classes that work together to achieve this goal:
 
-- **parseArrayLiteral**: Parses array literals from the source code.
-- **parseDictLiteral**: Parses dictionary literals from the source code.
-- **parseLambda**: Parses lambda expressions from the source code.
-- **parseArrowFunction**: Parses arrow functions from the source code.
-- **parseArgList**: Parses argument lists from function calls or definitions.
-- **parseParamList**: Parses parameter lists from function definitions.
-- **isCTypeKeyword**: Determines whether a given token is a C type keyword.
-- **parseCTypeVarDecl**: Parses C-type variable declarations from the source code.
+- **parseArrayLiteral**: Parses an array literal from the input source code and constructs an internal representation of the array.
+- **parseArrowFunction**: Parses an arrow function definition and creates an internal representation of the function.
+- **parseArgList**: Parses a list of arguments from a function call or declaration and constructs an internal representation of these arguments.
+- **parseParamList**: Parses a list of parameters from a function declaration and constructs an internal representation of these parameters.
+- **isCTypeKeyword**: Determines whether a given token is a valid C type keyword.
+- **parseCTypeVarDecl**: Parses a C-type variable declaration and constructs an internal representation of the variable.
 
-These functions work together to ensure that all literal types are correctly identified and processed during the compilation phase. The overall flow involves reading the source code, identifying the literal types, and constructing corresponding abstract syntax trees (ASTs).
+These functions collectively form the foundation for handling literals in the Quantum Language, ensuring that they are correctly interpreted and represented during the compilation process.
 
-## Files and Functions
+## Files and Their Roles
 
-### parseArrayLiteral
+### parseArrayLiteral.cpp
+- **Role**: Contains the implementation of the `parseArrayLiteral` function, which is responsible for parsing array literals from the input source code.
+- **Dependencies**: Includes necessary headers for handling tokens, parsing contexts, and internal data structures representing arrays.
 
-**Description**: Parses array literals from the source code.
+### parseArrowFunction.cpp
+- **Role**: Implements the `parseArrowFunction` function, which parses arrow function definitions and constructs the corresponding internal function representations.
+- **Dependencies**: Utilizes headers for managing parsing states, symbol tables, and function metadata.
 
-**Parameters**:
-- `input`: A string representing the source code containing the array literal.
+### parseArgList.cpp
+- **Role**: Defines the `parseArgList` function, which processes lists of arguments found in function calls or declarations.
+- **Dependencies**: Requires headers for tokenization, context management, and argument representation.
 
-**Returns**:
-- An AST node representing the parsed array literal.
+### parseParamList.cpp
+- **Role**: Provides the implementation of the `parseParamList` function, focusing on parsing parameter lists from function declarations.
+- **Dependencies**: Includes headers for parsing states, symbol tables, and parameter metadata.
 
-### parseDictLiteral
+### isCTypeKeyword.cpp
+- **Role**: Contains the logic for determining whether a token is a valid C type keyword using the `isCTypeKeyword` function.
+- **Dependencies**: Requires headers for token comparison and predefined C type keywords.
 
-**Description**: Parses dictionary literals from the source code.
+### parseCTypeVarDecl.cpp
+- **Role**: Implements the `parseCTypeVarDecl` function, which parses C-type variable declarations and constructs the appropriate internal variable representations.
+- **Dependencies**: Utilizes headers for parsing states, symbol tables, and variable metadata.
 
-**Parameters**:
-- `input`: A string representing the source code containing the dictionary literal.
+## Overall Flow
 
-**Returns**:
-- An AST node representing the parsed dictionary literal.
+1. **Initialization**: The parser initializes and sets up the necessary parsing context.
+2. **Tokenization**: Tokens are extracted from the input source code.
+3. **Parsing Literals**:
+   - For array literals, the `parseArrayLiteral` function is called.
+   - For arrow functions, the `parseArrowFunction` function is invoked.
+   - For argument lists, the `parseArgList` function processes the tokens.
+   - For parameter lists, the `parseParamList` function interprets the tokens.
+   - For C type keywords, the `isCTypeKeyword` function checks validity.
+   - For C-type variable declarations, the `parseCTypeVarDecl` function constructs the variable representation.
+4. **Validation and Error Handling**: Each parsing function validates the input and handles errors appropriately.
+5. **Internal Representation**: Parsed literals are converted into their respective internal data structures, ready for further processing by other components of the compiler.
 
-### parseLambda
-
-**Description**: Parses lambda expressions from the source code.
-
-**Parameters**:
-- `input`: A string representing the source code containing the lambda expression.
-
-**Returns**:
-- An AST node representing the parsed lambda expression.
-
-### parseArrowFunction
-
-**Description**: Parses arrow functions from the source code.
-
-**Parameters**:
-- `input`: A string representing the source code containing the arrow function.
-
-**Returns**:
-- An AST node representing the parsed arrow function.
-
-### parseArgList
-
-**Description**: Parses argument lists from function calls or definitions.
-
-**Parameters**:
-- `input`: A string representing the source code containing the argument list.
-
-**Returns**:
-- An AST node representing the parsed argument list.
-
-### parseParamList
-
-**Description**: Parses parameter lists from function definitions.
-
-**Parameters**:
-- `input`: A string representing the source code containing the parameter list.
-
-**Returns**:
-- An AST node representing the parsed parameter list.
-
-### isCTypeKeyword
-
-**Description**: Determines whether a given token is a C type keyword.
-
-**Parameters**:
-- `token`: A string representing the token to be checked.
-
-**Returns**:
-- A boolean indicating whether the token is a C type keyword.
-
-### parseCTypeVarDecl
-
-**Description**: Parses C-type variable declarations from the source code.
-
-**Parameters**:
-- `input`: A string representing the source code containing the C-type variable declaration.
-
-**Returns**:
-- An AST node representing the parsed C-type variable declaration.
-
-## Usage Example
-
-```cpp
-#include "parserliterals.h"
-
-int main() {
-    std::string array_code = "[1, 2, 3]";
-    auto array_ast = parseArrayLiteral(array_code);
-
-    std::string dict_code = "{ 'a': 1, 'b': 2 }";
-    auto dict_ast = parseDictLiteral(dict_code);
-
-    // Continue with parsing other literals...
-
-    return 0;
-}
-```
-
-In this example, we demonstrate how to use the `parseArrayLiteral` and `parseDictLiteral` functions to parse array and dictionary literals from the source code. Similar usage patterns can be applied to the other functions in the `parserliterals` component.
+By following this structured approach, the `parserliterals` component ensures robust and accurate parsing of literals in the Quantum Language, facilitating efficient compilation and execution of quantum programs.
