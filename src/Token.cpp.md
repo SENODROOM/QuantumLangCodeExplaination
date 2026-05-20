@@ -2,51 +2,61 @@
 
 ## Overview
 
-The `Token.cpp` file is a crucial component of the Quantum Language compiler, responsible for extracting and representing individual lexical tokens from the input source code. These tokens form the foundation for the syntax tree construction, enabling further stages like semantic analysis and code generation.
+The `Token.cpp` file plays a pivotal role in the Quantum Language compiler by parsing and converting individual lexical elements from the source code into structured token objects. These tokens serve as the building blocks for subsequent phases such as syntax analysis and code generation.
 
 ## Role in Compiler Pipeline
 
-In the Quantum Language compiler's pipeline, `Token.cpp` operates at the lexical analysis stage. It processes the raw source code, breaking it down into meaningful units called tokens. Each token encapsulates information about its type, value, and position within the source code.
+### Parsing Lexical Elements
 
-### Key Design Decisions and Why
+The primary function of `Token.cpp` is to tokenize the input source code. This involves breaking down the text into meaningful units called tokens, which include keywords, identifiers, literals, operators, and punctuation marks. Each token is represented by an instance of the `Token` class.
 
-1. **Token Class Definition**: The `Token` class is designed to store essential information about each token, including its type (`type`), value (`value`), line number (`line`), and column number (`col`). This ensures that every token has a clear identity and context.
+### Representing Tokens
 
-2. **Lexical Analysis Functionality**: The primary functionality of `Token.cpp` involves implementing the lexical analyzer, which scans through the source code and identifies tokens based on predefined rules. This process includes recognizing keywords, identifiers, literals, operators, and punctuation marks.
+Each token object contains essential information such as its type, value, line number, and column position within the source code. The `Token` class provides methods to access these properties, ensuring that they can be utilized effectively throughout the compilation process.
 
-3. **Error Handling**: The lexer must handle errors gracefully, such as unrecognized characters or unterminated strings. By providing detailed error messages indicating the location and nature of issues, the compiler can assist developers in fixing their code effectively.
+### Syntax Tree Construction
 
-4. **Efficiency Considerations**: To ensure efficient processing, the lexer uses techniques like finite state machines (FSMs) to quickly identify token types. Additionally, it minimizes memory usage by reusing token objects where possible.
+Tokens extracted by `Token.cpp` are fed into the syntax tree builder. This phase constructs a hierarchical representation of the source code's structure, facilitating easier parsing and understanding during later stages of compilation.
 
-5. **Extensibility**: The design allows for easy extension to support new language features or variations. Adding new token types or modifying existing ones requires minimal changes to the core lexer logic.
+## Key Design Decisions and Why
+
+1. **Encapsulation**: By encapsulating token details within the `Token` class, we ensure that each token is self-contained and easy to manage. This approach simplifies the interaction between different parts of the compiler.
+
+2. **Flexibility**: The `Token` class allows for easy extension to support new token types or modifications to existing ones. This flexibility ensures that the compiler can adapt to changes in the language specification without significant refactoring.
+
+3. **Performance**: Efficient tokenization is critical for the performance of the compiler. By using fast string processing techniques and minimizing memory allocations, `Token.cpp` aims to provide optimal performance.
+
+4. **Error Handling**: The `Token.cpp` implementation includes robust error handling mechanisms to identify and report lexical errors. This helps in diagnosing issues early in the compilation process, improving overall reliability.
 
 ## Major Classes/Functions Overview
 
 ### Token Class
 
-- **Attributes**:
-  - `type`: Represents the type of the token (e.g., keyword, identifier).
-  - `value`: Holds the actual text value of the token.
-  - `line`: Indicates the line number where the token starts.
-  - `col`: Specifies the column number where the token begins.
-
+- **Purpose**: Represents a single lexical token with attributes like type, value, line number, and column position.
 - **Methods**:
-  - `toString()`: Returns a string representation of the token, useful for debugging and logging purposes.
+  - `getType()`: Returns the type of the token.
+  - `getValue()`: Returns the value associated with the token.
+  - `getLine()`: Returns the line number where the token was found.
+  - `getColumn()`: Returns the column position within the line where the token starts.
+  - `toString()`: Converts the token to a string representation for debugging purposes.
 
-### Lexer Functions
+### Tokenizer Function
 
-- **scan()**: Main function that reads the source code and generates a sequence of tokens.
-- **getNextToken()**: Retrieves the next token from the input stream, handling any necessary lookahead or backtracking.
-- **handleError()**: Processes errors encountered during tokenization, reporting them with appropriate details.
+- **Purpose**: Parses the input source code and generates a sequence of token objects.
+- **Process**:
+  - Reads the input character by character.
+  - Identifies and categorizes characters into token types.
+  - Constructs token objects based on identified patterns.
+  - Handles whitespace and comments appropriately.
 
 ## Tradeoffs
 
-While the current design provides robust lexical analysis capabilities, there are some tradeoffs:
+1. **Complexity vs. Simplicity**: While encapsulation enhances simplicity and maintainability, it may introduce additional complexity in managing token interactions across different compiler components.
 
-1. **Complexity vs. Performance**: Using FSMs for token recognition simplifies the implementation but may introduce additional overhead compared to simpler linear scanning approaches. Balancing these factors is essential for maintaining performance while ensuring ease of maintenance.
+2. **Memory Usage vs. Performance**: Efficient tokenization requires careful management of memory allocations. Overusing dynamic memory can lead to increased overhead, potentially impacting performance.
 
-2. **Flexibility vs. Simplicity**: Allowing for easy extension increases flexibility but may complicate the core lexer logic. Simplifying the lexer could reduce complexity but limit future enhancements.
+3. **Extensibility vs. Stability**: Allowing extensive customization through the `Token` class improves stability but may make future updates more challenging due to potential conflicts with existing implementations.
 
-3. **Memory Usage vs. Reusability**: Minimizing memory usage by reusing token objects improves efficiency but may require careful management to avoid unintended side effects.
+4. **Error Reporting vs. User Experience**: Robust error handling is crucial for identifying issues early, but overly verbose error messages might overwhelm users. Balancing these aspects ensures a good user experience while maintaining high-quality diagnostics.
 
 By addressing these tradeoffs, the `Token.cpp` file contributes significantly to the overall efficiency and effectiveness of the Quantum Language compiler.
