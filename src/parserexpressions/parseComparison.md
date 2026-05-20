@@ -1,86 +1,34 @@
 # `parseComparison` Function
 
 ## Purpose
-The `parseComparison` function is designed to parse comparison expressions in the Quantum Language compiler. It handles various types of comparisons including `<`, `>`, `<=`, `>=`, `in`, and `is` operators, as well as their negated forms (`not in`, `is not`). This function ensures that the correct syntax and semantics of comparison operations are parsed accurately, maintaining the integrity of the quantum program being compiled.
+The `parseComparison` function is designed to parse comparison expressions in the Quantum Language compiler. It handles various types of comparisons including `<`, `>`, `<=`, `>=`, `in`, and `is` operators, as well as their negated forms (`not in`, `is not`). This function ensures that the parser can correctly interpret and construct abstract syntax trees (ASTs) representing these comparison operations.
 
-## Parameters
-- **None**: The function takes no explicit parameters. It operates on the global state of the parser, accessing the current token through the `current()` method and modifying the parser's position using the `consume()` method.
-
-## Return Value
-- **std::unique_ptr<ASTNode>**: The function returns a unique pointer to an abstract syntax tree (AST) node representing the parsed comparison expression. This AST node can be used further in the compilation process to generate executable code or perform semantic analysis.
-
-## Edge Cases
-1. **Nested Comparisons**: The function correctly handles nested comparisons, such as `a < b <= c`. In this case, it will parse the expression as `(a < b) <= c`.
-2. **Negated Membership Tests**: The function supports both `is not` and `not in` operators. For example, `x is not y` and `z not in w` are valid expressions.
-3. **Single Token Operators**: The function handles single-token operators like `<`, `>`, `<=`, and `>=`.
+## Parameters/Return Value
+- **Parameters**:
+  - None explicitly listed in the provided code snippet, but implicitly relies on global state managed by the parser, such as the current token being processed.
+  
+- **Return Value**:
+  - A `std::unique_ptr<ASTNode>` representing the parsed comparison expression. The ASTNode contains a `BinaryExpr` object which holds the operation type and pointers to the left and right operands.
 
 ## How It Works
-1. **Initial Parsing**: The function starts by parsing the left-hand side of the comparison expression using the `parseShift()` function. This function is responsible for parsing shift expressions, which include terms, factors, and unary operators.
-   
-   ```cpp
-   auto left = parseShift();
-   ```
+1. **Initial Parsing**: The function starts by parsing the left-hand side of the comparison using the `parseShift()` method. This method typically parses arithmetic or shift expressions depending on the context.
 
-2. **Loop Through Comparison Tokens**: The function then enters a loop that continues as long as the next token is one of the comparison operators (`<`, `>`, `<=`, `>=`, `in`, `is`, `not in`, `is not`). Inside the loop:
-   - **Line Number Recording**: The line number of the current token is recorded using `current().line`.
-   - **Handling 'is' and 'is not' Operators**:
-     - If the current token is `is`, the function consumes it and checks if the next token is `not`. If so, it parses the right-hand side using `parseShift()` and constructs an AST node with the operation `"is not"`. Otherwise, it constructs an AST node with the operation `"is"`.
-     
-     ```cpp
-     if (check(TokenType::IS)) {
-         consume(); // eat 'is'
-         if (match(TokenType::NOT)) {
-             auto right = parseShift();
-             left = std::make_unique<ASTNode>(BinaryExpr{"is not", std::move(left), std::move(right)}, ln);
-         } else {
-             auto right = parseShift();
-             left = std::make_unique<ASTNode>(BinaryExpr{"is", std::move(left), std::move(right)}, ln);
-         }
-         continue;
-     }
-     ```
-   - **Handling 'not in' Operator**:
-     - If the current token is `not`, the function consumes it and checks if the next token is `in`. If so, it parses the right-hand side using `parseShift()` and constructs an AST node with the operation `"not in"`.
-     
-     ```cpp
-     if (check(TokenType::NOT)) {
-         consume(); // eat 'not'
-         if (!match(TokenType::IN))
-             throw ParseError("Expected 'in' after 'not'", current().line, current().col);
-         auto right = parseShift();
-         left = std::make_unique<ASTNode>(BinaryExpr{"not in", std::move(left), std::move(right)}, ln);
-         continue;
-     }
-     ```
-   - **Handling 'in' Operator**:
-     - If the current token is `in`, the function consumes it and parses the right-hand side using `parseShift()`. It then constructs an AST node with the operation `"in"`.
-     
-     ```cpp
-     if (check(TokenType::IN)) {
-         consume();
-         auto right = parseShift();
-         left = std::make_unique<ASTNode>(BinaryExpr{"in", std::move(left), std::move(right)}, ln);
-         continue;
-     }
-     ```
-   - **General Comparison Operators**:
-     - For any other comparison operator, the function consumes it, parses the right-hand side using `parseShift()`, and constructs an AST node with the operation represented by the consumed token.
-     
-     ```cpp
-     auto op = consume().value;
-     auto right = parseShift();
-     left = std::make_unique<ASTNode>(BinaryExpr{op, std::move(left), std::move(right)}, ln);
-     ```
+2. **Loop Through Comparison Operators**: The function enters a loop that continues as long as the next token is one of the recognized comparison operators (`<`, `>`, `<=`, `>=`, `in`, `is`, `not in`, `is not`). Inside the loop:
+   - **Line Number Retrieval**: The line number of the current token is retrieved and stored in `ln`.
+   - **Handling `is` and `is not` Operators**:
+     - If the current token is `is`, the function checks for a subsequent `not`. If found, it constructs an `ASTNode` with the "is not" operation; otherwise, it constructs an "is" operation.
+   - **Handling `not in` Operator**:
+     - If the current token is `not`, the function consumes it and then checks if the next token is `in`. If both tokens are present, it constructs an `ASTNode` with the "not in" operation.
+   - **General Comparison Handling**:
+     - For any other comparison operator (`<`, `>`, `<=`, `>=`), the function consumes the operator token and parses the right-hand side using `parseShift()`. It then constructs an `ASTNode` with the binary expression containing the consumed operator and the parsed operands.
 
-3. **Return Parsed Expression**: Once the loop exits (i.e., there are no more comparison tokens), the function returns the unique pointer to the AST node representing the parsed comparison expression.
+3. **Edge Cases**:
+   - The function throws a `ParseError` if it encounters a `not` followed by something other than `in` when expecting a "not in" operator. This ensures that the grammar rules are strictly adhered to.
+   - The function assumes that `parseShift()` will correctly handle its own set of operators and expressions, ensuring that nested comparisons are properly parsed.
 
-   ```cpp
-   return left;
-   ```
+4. **Interactions with Other Components**:
+   - The `parseComparison` function interacts with the broader parsing system through calls to `current()` and `consume()`, which manage the stream of tokens being processed. These functions provide access to the current token and advance the token stream respectively.
+   - It also uses `match()` to check for specific tokens without consuming them, allowing for more complex grammatical structures to be handled.
+   - The function constructs `ASTNode` objects which represent nodes in the abstract syntax tree. These nodes are used by subsequent stages of the compilation process for semantic analysis, code generation, etc.
 
-## Interactions With Other Components
-- **Parser Class**: The `parseComparison` function is part of the `Parser` class, which manages the overall parsing process of the quantum language.
-- **Token Stream**: The function interacts with the token stream managed by the `Parser` class to consume tokens and determine their type.
-- **Abstract Syntax Tree (AST)**: The function constructs AST nodes using the `ASTNode` class, which represents different elements of the quantum program structure. These nodes are built up recursively based on the parsed comparison expressions.
-
-By handling these comparison operators and their negations, the `parseComparison` function plays a crucial role in ensuring that the quantum
+In summary, the `parseComparison` function is crucial for handling comparison expressions in the Quantum Language compiler. By looping through potential comparison operators and constructing appropriate ASTNodes, it ensures that the parser can accurately represent and process these expressions according to the language's grammar rules.
