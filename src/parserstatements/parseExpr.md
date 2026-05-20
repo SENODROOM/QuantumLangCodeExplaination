@@ -2,48 +2,27 @@
 
 ## Overview
 
-The `parseExpr` function is a crucial component of the Quantum Language compiler's parser module. It is designed to handle and parse expressions that appear throughout the language. These expressions can include literals, variables, arithmetic operations, and more complex constructs like function calls or array accesses.
+The `parseExpr` function serves as a fundamental method in the Quantum Language compiler's parser module. Its primary role is to parse expressions encountered within the language. Expressions may consist of literals, variables, arithmetic operations, logical operators, and more complex constructs like function calls or array indexing.
 
 ### Why It Works This Way
 
-The current implementation of `parseExpr` directly returns the result of calling `parseAssignment()`. This design choice simplifies the parsing process by leveraging an existing method (`parseAssignment()`) that is capable of handling both simple and complex expressions. By doing so, `parseExpr` avoids duplicating code and ensures consistency across different expression types.
+The implementation of `parseExpr` returns the result of calling another method named `parseAssignment()`. This design choice is based on the precedence rules of quantum language syntax. In quantum language, assignment statements have higher precedence than simple expressions, which means they should be parsed first when an expression is encountered. By delegating the parsing of expressions to `parseAssignment()`, we ensure that any potential assignments within the expression are correctly handled before proceeding with lower-precedence elements.
 
 ### Parameters/Return Value
 
 - **Parameters**: None
-- **Return Value**: The function returns an `ExpressionPtr`, which is a smart pointer to an abstract base class representing an expression in the Quantum Language. This allows the function to handle any type of expression without needing to know the exact details at compile time.
+- **Return Value**: The return type of `parseExpr()` is typically a pointer to an abstract syntax tree (AST) node representing the parsed expression. This AST node encapsulates all the details of the expression, such as its type, operands, and operator.
 
 ### Edge Cases
 
-1. **Empty Expression**: If the input stream is empty or contains only whitespace, `parseAssignment()` should gracefully handle this case and return a null `ExpressionPtr`.
-2. **Invalid Syntax**: If the input stream contains invalid syntax, `parseAssignment()` will throw an exception indicating the error. This exception needs to be caught and handled appropriately by the caller of `parseExpr`.
+1. **Empty Expression**: If the input stream is empty or contains only whitespace, `parseAssignment()` would likely return a null pointer or an appropriate error node.
+2. **Nested Expressions**: When dealing with nested expressions, `parseAssignment()` ensures that each sub-expression is correctly parsed according to its precedence level.
+3. **Invalid Syntax**: If the input stream contains invalid syntax, `parseAssignment()` would detect this and return an error node indicating the nature of the syntax error.
 
-### Interactions With Other Components
+### Interactions with Other Components
 
-- **Lexer**: `parseExpr` interacts with the lexer to tokenize the input stream. The lexer provides tokens that `parseExpr` uses to construct the expression tree.
-- **Error Handling**: `parseExpr` relies on the error handling mechanisms provided by the lexer and parser. If an error occurs during tokenization or parsing, appropriate exceptions are thrown and need to be caught and handled by higher-level components.
-- **Symbol Table**: During the parsing process, `parseExpr` may need to look up symbols in the symbol table to resolve variable names and function calls. This interaction ensures that the parser has access to all necessary information about the program's context.
+- **Lexer**: The `parseExpr` function relies on the lexer to tokenize the input source code. The lexer breaks down the source code into meaningful tokens, which are then used by `parseAssignment()` to construct the AST.
+- **Error Handling**: Both the lexer and `parseAssignment()` contribute to robust error handling. If either encounters issues during tokenization or parsing, respectively, they generate appropriate error nodes that are propagated up through the call stack.
+- **Symbol Table**: During the parsing process, `parseAssignment()` might need to look up variable names in the symbol table to determine their types and values. This interaction helps in resolving references to variables and functions accurately.
 
-### Detailed Implementation
-
-Here is a more detailed breakdown of how `parseExpr` might work:
-
-```cpp
-ExpressionPtr parseExpr() {
-    // Attempt to parse an assignment expression
-    try {
-        return parseAssignment();
-    } catch (const std::exception& e) {
-        // Handle parsing errors
-        handleError(e);
-        return nullptr;  // Return a null expression pointer
-    }
-}
-```
-
-In this implementation:
-- The `try` block attempts to parse an assignment expression using `parseAssignment()`.
-- If an exception is thrown during parsing (e.g., due to invalid syntax), the `catch` block catches the exception and calls `handleError(e)` to log or display the error message.
-- Finally, the function returns a null `ExpressionPtr` to indicate that the parsing was unsuccessful.
-
-This approach ensures that `parseExpr` is robust and can handle various edge cases while maintaining a clean and maintainable codebase.
+In summary, the `parseExpr` function plays a pivotal role in the Quantum Language compiler by ensuring that expressions are parsed correctly, taking into account their precedence levels. Delegating the parsing logic to `parseAssignment()` simplifies the overall structure of the parser and enhances its ability to handle various syntactic constructs effectively.
