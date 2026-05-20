@@ -2,33 +2,38 @@
 
 ## Description
 
-The `parsePower` function is an essential component of the parser within the Quantum Language compiler. Its primary role is to interpret and construct Abstract Syntax Tree (AST) nodes representing expressions that utilize the power operator (`**`). This function employs a recursive descent parsing strategy to manage nested power operations effectively, thereby ensuring correct expression evaluation.
+The `parsePower` function is an essential component of the parser within the Quantum Language compiler. Its primary role is to interpret and construct Abstract Syntax Tree (AST) nodes representing expressions that utilize the power operator (`**`). This function employs a recursive descent parsing technique to handle expressions involving multiple levels of exponentiation, ensuring correct precedence through its right-associativity.
 
-## Parameters/Return Value
+## Parameters
 
-- **Parameters**: None
-- **Return Value**: A unique pointer to an `ASTNode` object representing the parsed power expression. If the input does not contain a power operation, it returns the result of parsing a unary expression.
+- None
 
-## How It Works
+## Return Value
 
-1. **Parse Unary Expression**: The function begins by calling `parseUnary()`, which parses a single operand (either a literal or another expression enclosed in parentheses). This initial step ensures that we have a valid base for our power operation.
-
-2. **Check For Power Operator**: After obtaining the left-hand side operand, the function checks if the next token is the power operator (`TokenType::POWER`) using the `check()` method. If the power operator is found, it proceeds to consume the token.
-
-3. **Recursive Parsing**: Since power operations can be nested, the function calls itself recursively to parse the right-hand side operand. This recursive call allows the parser to handle expressions like `a ** b ** c`, where `c` is raised to the power of `b`, and then the result is raised to the power of `a`.
-
-4. **Construct AST Node**: Once both operands are successfully parsed, the function constructs an `ASTNode` object representing the binary power expression. The node's type is set to `"**"`, and its children are the parsed left and right operands. Additionally, it records the line number of the power operator for error reporting purposes.
-
-5. **Return Result**: Finally, the function returns the constructed `ASTNode`. If no power operator is encountered, it simply returns the result of the unary expression parsing.
+- Returns a unique pointer to an `ASTNode` object representing the parsed expression tree. If the current token is not a power operator, it returns the result of `parseUnary()`.
 
 ## Edge Cases
 
-- **No Power Operator**: If the input expression does not include a power operator, the function will correctly return the result of parsing a unary expression.
-- **Nested Power Operations**: The recursive nature of `parsePower` ensures that deeply nested power expressions are handled accurately, evaluating them from right to left as per the language's rules.
+1. **No Power Operator**: If the current token is not a power operator (`**`), the function simply returns the result of `parseUnary()`, effectively skipping any potential power operations in the expression.
+2. **Nested Exponentiation**: The function handles nested exponentiations correctly due to its right-associative nature. For example, the expression `a ** b ** c` is interpreted as `a ** (b ** c)`.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Parser Expressions**: `parsePower` interacts with other parsing functions such as `parseUnary()` to build up complex expressions. These functions collectively form the foundation of the parser's ability to handle various types of quantum expressions.
-- **Error Handling**: By recording the line number of the power operator, `parsePower` aids in more precise error messages when syntax errors related to power operations occur during compilation.
+- **parseUnary()**: This function is called at the beginning of `parsePower()` to parse the base expression before encountering the power operator. It ensures that the base expression is properly constructed before proceeding with the power operation.
+- **check(TokenType::POWER)**: This function checks whether the current token in the input stream is a power operator (`**`). If it is, the function proceeds to parse the right-hand side of the expression.
+- **consume()**: When a power operator is encountered, this function consumes the token from the input stream, advancing the parser to the next token.
+- **std::make_unique<ASTNode>()**: This function creates a new `ASTNode` object with a binary expression type (`BinaryExpr`) and assigns it the line number where the power operator was found. The node represents the entire power expression, including both the base and the exponent.
 
-This function is a key piece of the parser, enabling the Quantum Language compiler to correctly interpret and represent power expressions in the AST, facilitating further processing and analysis during the compilation phase.
+## Implementation Details
+
+The implementation of `parsePower()` follows a typical recursive descent pattern:
+
+1. **Base Case**: Start by calling `parseUnary()` to parse the base expression. This could be a variable, literal, or another expression.
+2. **Recursive Case**: Check if the current token is a power operator using `check(TokenType::POWER)`. If it is:
+   - Record the current line number (`ln`).
+   - Consume the power operator token.
+   - Recursively call `parsePower()` again to parse the exponent expression. This recursion ensures that exponentiation is handled right-associatively.
+   - Create a new `ASTNode` with a binary expression type (`"**"`), moving ownership of the base and exponent AST nodes into it.
+3. **Return**: If no power operator is found, simply return the result of `parseUnary()`.
+
+This design allows `parsePower()` to seamlessly integrate with other parts of the parser, handling complex expressions involving multiple levels of exponentiation while maintaining correct precedence.
