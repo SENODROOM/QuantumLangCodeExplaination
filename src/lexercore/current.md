@@ -2,46 +2,42 @@
 
 ## Overview
 
-The `current` function is an essential method of the LexerCore class in the Quantum Language compiler. It fetches the character at the position indicated by the `pos` cursor within the source code string `src`. If the cursor has reached or surpassed the end of the string, the function returns the null character (`'\0'`). This ensures that the lexer can safely access characters without causing out-of-bounds errors.
+The `current` function is an essential method of the LexerCore class in the Quantum Language compiler. It retrieves the character located at the current position (`pos`) within the source code string (`src`). This function plays a critical role in parsing and tokenizing the input source code by allowing the lexer to access individual characters as needed.
+
+### Why It Works This Way
+
+The implementation of the `current` function checks whether the current position (`pos`) is less than the size of the source code string (`src`). If it is, the function returns the character at that position. Otherwise, it returns the null character (`'\0'`). This design ensures that the lexer can safely access characters without causing out-of-bounds errors. The use of the null character helps in distinguishing between valid characters and the end of the string.
 
 ## Parameters
 
-- **None**
+- **None**: The `current` function does not take any parameters.
 
 ## Return Value
 
-- **char**: The character at the current position of the `pos` cursor. Returns `'\0'` if the cursor is past the end of the source code string.
+- **char**: Returns the character at the current position (`pos`) within the source code string (`src`). If the cursor has reached or surpassed the end of the string, it returns the null character (`'\0'`).
 
 ## Edge Cases
 
-1. **Empty String**: If the source code string `src` is empty, calling `current()` will return `'\0'`.
-2. **Cursor Beyond End**: When the `pos` cursor exceeds the length of the source code string, `current()` returns `'\0'`, preventing any potential runtime errors due to accessing invalid memory locations.
+1. **Empty Source Code String**: If the source code string (`src`) is empty, calling `current()` will return the null character (`'\0'`).
+2. **Position Beyond String Length**: If the current position (`pos`) exceeds the length of the source code string (`src`), the function will also return the null character (`'\0'`).
 
-## Interactions with Other Components
+## Interactions With Other Components
 
-The `current` function interacts closely with the LexerCore's state management and tokenization process. It is used internally to check the next character in the source code during lexical analysis. For example, when determining whether a sequence of characters forms a keyword or an identifier, the lexer uses `current()` to look ahead at subsequent characters.
+The `current` function interacts closely with the `LexerCore` class's state, particularly the `pos` cursor which indicates the current position in the source code string being processed. This function is used extensively throughout the lexer's operations to read and analyze individual characters, aiding in the creation of tokens and the overall parsing process.
 
-Here’s how it might be used in a typical scenario:
+Here is a brief snippet demonstrating how `current` might be used within the `LexerCore` class:
 
 ```cpp
-// Example usage within LexerCore::nextToken()
-if (isalpha(current())) {
-    // Start of an identifier or keyword
-    std::string token;
-    while (isalnum(current()) || current() == '_') {
-        token += current();
-        advance();  // Move to the next character
+// Example usage within LexerCore class
+void LexerCore::processCharacter() {
+    char ch = current(); // Get the current character
+    if (ch == '\0') {
+        // End of string reached
+        return;
     }
-    // Check if the token is a keyword
-    if (isKeyword(token)) {
-        return Token(TokenType::KEYWORD, token);
-    } else {
-        return Token(TokenType::IDENTIFIER, token);
-    }
-} else {
-    // Handle other types of tokens or errors
-    return Token(TokenType::ERROR, "Unexpected character");
+    // Process the character
+    pos++; // Move to the next position
 }
 ```
 
-In this example, `current()` is used to determine if the first character of a potential token is alphabetic, which indicates the start of either an identifier or a keyword. The function continues to collect characters until it encounters a non-alphanumeric character, then checks if the collected token matches any known keywords. This demonstrates the function's role in driving the lexer's decision-making process based on the current character in the input stream.
+In summary, the `current` function is a fundamental utility in the Quantum Language compiler's lexer core, enabling safe and efficient access to characters in the source code. Its straightforward implementation makes it easy to integrate into various parsing and tokenization processes, contributing significantly to the lexer's functionality.
