@@ -1,143 +1,93 @@
 # vmcore
 
-The `vmcore` component is a critical module within the Quantum Language compiler, designed to execute bytecode and manage runtime operations efficiently. This directory houses several well-documented functions and files that collaborate seamlessly to maintain the virtual machine's state and ensure smooth execution.
+The `vmcore` component is a vital module in the Quantum Language compiler responsible for executing bytecode and managing runtime operations efficiently. This directory includes several well-documented functions and files that work together to maintain the virtual machine's state and ensure smooth execution.
 
 ## Overview
 
-The `vmcore` component is at the heart of the Quantum Language interpreter, handling the essential tasks of executing instructions, managing values on the stack, and resolving runtime errors. It consists of a series of functions that perform specific operations necessary for the virtual machine to function correctly.
+The `vmcore` component serves as the core engine of the Quantum Language interpreter. It handles the execution of bytecode instructions, manages memory allocation and deallocation, and provides mechanisms for calling native functions and methods. The component consists of several key files:
+
+- **bytecode.h**: Contains definitions for bytecode instructions and their corresponding opcodes.
+- **stack.h**: Manages the stack used for function calls and local variables.
+- **memory.h**: Handles dynamic memory allocation and garbage collection.
+- **closure.h**: Defines structures and functions related to closures, which are first-class functions with access to their lexical environment.
+- **class.h**: Manages class definitions and instances, providing support for object-oriented programming features.
+- **builtin.h**: Includes declarations for built-in functions and methods that can be called directly from the language.
 
 ### Key Functions
 
-- **run**: Initiates the execution of the bytecode in the virtual machine.
-- **push**: Adds a value to the top of the stack.
-- **pop**: Removes the top value from the stack.
-- **runtimeError**: Handles and reports runtime errors encountered during execution.
-- **toNumber**: Converts a value to a number type.
-- **valuesEqual**: Compares two values for equality.
-- **execBinary**: Executes binary operations like addition or multiplication.
-- **execUnary**: Executes unary operations like negation or increment.
-- **captureUpvalue**: Captures upvalues (local variables from enclosing functions) into closures.
-- **closeUpvalues**: Closes upvalues when a function exits.
-- **callValue**: Calls a function using a value as its reference.
-- **callClosure**: Calls a closure, which is a function bundled with an environment.
-- **callNativeFn**: Invokes a native function implemented in C++.
-- **callClass**: Instantiates and calls methods on a class.
-- **callBuiltinMethod**: Calls built-in methods provided by the language.
+- **run()**: Initializes the virtual machine and starts the execution of the provided bytecode.
+- **push()** and **pop()**: Manage the stack, allowing values to be pushed onto and popped from it during function calls.
+- **runtimeError()**: Handles runtime errors, such as division by zero or undefined variables, by printing an error message and exiting the program.
+- **closeUpvalues()**: Closes upvalues when a function returns, ensuring that any references to local variables are properly cleaned up.
+- **callValue()**, **callClosure()**, and **callNativeFn()**: Implement different ways to call functions, including regular function calls, closure calls, and calls to native functions written in C++.
+- **callClass()** and **callBuiltinMethod()**: Handle method calls on objects and built-in methods respectively, providing the necessary functionality for object-oriented programming.
 
-### File Structure
+## File Structure
 
-The `vmcore` directory is organized as follows:
-
-- **vmcore.h**: Header file containing declarations for all public functions and data structures used by the `vmcore` component.
-- **vmcore.cpp**: Source file implementing the core functionality of the `vmcore` component.
-- **stack.h** and **stack.cpp**: Files defining the stack data structure used by the virtual machine.
-- **error.h** and **error.cpp**: Files handling error reporting and management.
-- **types.h** and **types.cpp**: Files defining various data types and their conversions.
-- **operations.h** and **operations.cpp**: Files implementing binary and unary operations.
-- **closures.h** and **closures.cpp**: Files managing upvalues and closures.
-- **calls.h** and **calls.cpp**: Files handling function calls, both native and user-defined.
-- **classes.h** and **classes.cpp**: Files supporting object-oriented programming features like classes and method calls.
-
-## Flow Diagram
-
-```plaintext
-+-------------------+
-|      run()        |
-+---------+---------+
-          |
-          v
-+---------+---------+
-|     push()      |
-+---------+---------+
-          |
-          v
-+---------+---------+
-|     pop()       |
-+---------+---------+
-          |
-          v
-+---------+---------+
-|  runtimeError()   |
-+---------+---------+
-          |
-          v
-+---------+---------+
-|    toNumber()     |
-+---------+---------+
-          |
-          v
-+---------+---------+
-| valuesEqual()   |
-+---------+---------+
-          |
-          v
-+---------+---------+
-| execBinary()    |
-+---------+---------+
-          |
-          v
-+---------+---------+
-|  execUnary()    |
-+---------+---------+
-          |
-          v
-+---------+---------+
-| captureUpvalue()|
-+---------+---------+
-          |
-          v
-+---------+---------+
-| closeUpvalues() |
-+---------+---------+
-          |
-          v
-+---------+---------+
-|  callValue()    |
-+---------+---------+
-          |
-          v
-+---------+---------+
-| callClosure()   |
-+---------+---------+
-          |
-          v
-+---------+---------+
-| callNativeFn()  |
-+---------+---------+
-          |
-          v
-+---------+---------+
-|    callClass()    |
-+---------+---------+
-          |
-          v
-+---------+---------+
-| callBuiltinMethod()|
-+-------------------+
 ```
+vmcore/
+├── bytecode.h
+├── stack.h
+├── memory.h
+├── closure.h
+├── class.h
+├── builtin.h
+└── vm.cpp
+```
+
+### bytecode.h
+
+Contains definitions for bytecode instructions and their corresponding opcodes. Each instruction is represented by a unique opcode, making it easy to decode and execute them.
+
+### stack.h
+
+Manages the stack used for function calls and local variables. The stack supports push and pop operations, ensuring that values are correctly managed during function execution.
+
+### memory.h
+
+Handles dynamic memory allocation and garbage collection. The component uses reference counting to manage memory, automatically deallocating memory when it is no longer in use.
+
+### closure.h
+
+Defines structures and functions related to closures, which are first-class functions with access to their lexical environment. Closures allow functions to capture and use variables from their surrounding scope.
+
+### class.h
+
+Manages class definitions and instances, providing support for object-oriented programming features. Classes can have properties, methods, and constructors, allowing for the creation of complex data structures and behaviors.
+
+### builtin.h
+
+Includes declarations for built-in functions and methods that can be called directly from the language. These functions provide essential functionality for tasks like input/output operations, arithmetic calculations, and more.
+
+### vm.cpp
+
+Implements the main logic of the virtual machine, coordinating the execution of bytecode and the management of runtime resources. This file includes the implementation of the `run()` function, which initializes the virtual machine and starts the execution process.
 
 ## Usage
 
-To use the `vmcore` component, include the `vmcore.h` header file in your source code and link against the corresponding library. Below is a simple example demonstrating how to initialize and run the virtual machine:
+To use the `vmcore` component, include the necessary headers in your project and link against the appropriate libraries. Here is a basic example of how to run bytecode using the `vmcore` component:
 
 ```cpp
-#include "vmcore.h"
+#include "vmcore/bytecode.h"
+#include "vmcore/vm.h"
 
 int main() {
-    VM* vm = createVM();
-    loadBytecode(vm, "example.qb");
-    run(vm);
-    destroyVM(vm);
+    // Load bytecode into the virtual machine
+    loadBytecode("example.qb");
+
+    // Run the bytecode
+    run();
+
     return 0;
 }
 ```
 
-For more detailed information on each function and its usage, refer to the individual `.h` and `.cpp` files within the `vmcore` directory.
+In this example, the `loadBytecode()` function loads the bytecode into the virtual machine, and the `run()` function executes it.
 
 ## Contributing
 
-Contributions to the `vmcore` component are welcome! If you encounter any issues or have suggestions for improvements, please open an issue or submit a pull request on the [Quantum Language GitHub repository](https://github.com/quantum-lang/compiler).
+Contributions to the `vmcore` component are welcome! If you find a bug or have an idea for a new feature, please open an issue or submit a pull request. Make sure to follow the existing coding style and guidelines to ensure seamless integration with the rest of the Quantum Language compiler.
 
 ---
 
-This README provides a comprehensive overview of the `vmcore` component, detailing its purpose, key functions, and file structure. The flow diagram offers a visual representation of how these components interact, and the usage example demonstrates basic integration into a project.
+This README provides a comprehensive overview of the `vmcore` component, highlighting its role in the Quantum Language compiler and outlining the structure and usage of its key files and functions.
