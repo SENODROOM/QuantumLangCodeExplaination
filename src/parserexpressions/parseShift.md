@@ -1,30 +1,32 @@
 # `parseShift` Function
 
 ## Purpose
-The `parseShift` function is designed to parse shift expressions in the Quantum Language compiler. Shift expressions include bitwise left (`<<`) and right (`>>`) shifts. This function ensures that the correct order of operations is maintained during parsing, particularly when dealing with compound assignment operators like `<<=` and `>>=`, which should be handled separately by the `parseAssignment` function.
+The `parseShift` function is designed to parse shift expressions in the Quantum Language compiler. Shift expressions include bitwise left (`<<`) and right (`>>`) shifts. This function ensures that the correct order of operations is maintained during parsing, particularly when dealing with compound assignment operators like `<<=` and `>>=`.
 
-## Parameters/Return Value
-- **Parameters**: None
-- **Return Value**: A unique pointer to an `ASTNode` representing the parsed shift expression.
+## Parameters
+- None explicitly stated in the provided code snippet. However, based on typical parser implementations, the function likely takes no parameters directly. Instead, it interacts with global state such as `tokens`, `current()`, and `consume()`.
+
+## Return Value
+- The function returns a unique pointer to an `ASTNode` representing the parsed shift expression. If no shift operation is found, it returns the result of `parseAddSub()`.
 
 ## How It Works
-The function starts by calling `parseAddSub()` to parse the left-hand side of the shift expression. It then enters a loop that continues as long as the next token is either a left shift (`TokenType::LSHIFT`) or a right shift (`TokenType::RSHIFT`). Inside the loop:
-- The function checks if the next token after the current one is an assignment operator (`TokenType::ASSIGN`). If so, it breaks out of the loop because these compound assignment operators should be handled by `parseAssignment`.
-- The function consumes the current token, which will be either `<<` or `>>`, and stores its value.
-- It recursively calls `parseAddSub()` again to parse the right-hand side of the shift expression.
-- An `ASTNode` is created with a `BinaryExpr` containing the operation type, the left-hand side, and the right-hand side. This node represents the parsed shift expression.
-- The line number of the current token is stored in `ln` and used to create the `ASTNode`.
+The `parseShift` function begins by calling `parseAddSub()` to parse the left-hand side of the shift expression. It then enters a loop that continues as long as the next token is either a left shift (`TokenType::LSHIFT`) or a right shift (`TokenType::RSHIFT`). Inside the loop:
+- It checks if the next token after the current operator is an assignment (`TokenType::ASSIGN`). If so, it breaks out of the loop because these are treated as compound assignment operators (e.g., `<<=`).
+- It records the line number of the current token using `current().line`.
+- It consumes the current token to get the operator value (`op`).
+- It calls `parseAddSub()` again to parse the right-hand side of the shift expression.
+- It constructs a new `ASTNode` containing a `BinaryExpr` with the operator, the left-hand side, and the right-hand side. This node represents the parsed shift expression.
+- It updates the left-hand side (`left`) with the newly constructed node.
 
-This process repeats until there are no more shift operators to parse, ensuring that all shift operations are correctly nested within their respective sub-expressions.
+This process repeats until there are no more shift operators, ensuring that all shift operations are correctly parsed and ordered within the expression.
 
 ## Edge Cases
-- **No Shift Operators**: If the input does not contain any shift operators, the function simply returns the result of `parseAddSub()`, which could be an integer literal, variable, or another expression.
-- **Compound Assignment Operators**: The function correctly identifies and handles compound assignment operators like `<<=` and `>>=`, breaking out of the loop when such an operator is encountered.
+- **No Shift Operators**: If there are no shift operators in the input sequence, the function simply returns the result of `parseAddSub()`. This allows for fall-through into subsequent parsing stages.
+- **Compound Assignment Operators**: The function breaks out of the loop when encountering a compound assignment operator immediately following a shift operator. This prevents incorrect parsing of expressions like `a <<= b`.
 
 ## Interactions With Other Components
-The `parseShift` function interacts with several other components of the Quantum Language compiler:
-- **Tokenizer**: It uses the tokenizer to retrieve and consume tokens based on their type.
-- **ASTBuilder**: It constructs an Abstract Syntax Tree (AST) using `ASTNode` objects, where each node represents a part of the expression being parsed.
-- **Error Handling**: While not explicitly shown in the code snippet, the function likely includes error handling mechanisms to manage unexpected token types or malformed expressions.
+- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens (`tokens`). It uses `current()` and `consume()` methods to access and manipulate these tokens.
+- **Parse Tree Construction**: The function constructs an abstract syntax tree (AST) using `ASTNode` and `BinaryExpr`. These structures represent the parsed expression and facilitate further semantic analysis and code generation.
+- **Error Handling**: While not shown in the snippet, the function likely includes error handling mechanisms to manage unexpected tokens or malformed expressions. This could involve reporting errors and possibly recovering from them.
 
-Overall, the `parseShift` function plays a crucial role in parsing shift expressions, ensuring that they are correctly interpreted and represented in the AST.
+Overall, the `parseShift` function plays a crucial role in accurately parsing shift expressions within the Quantum Language compiler, ensuring that they are correctly represented in the AST and maintaining the proper order of operations.
