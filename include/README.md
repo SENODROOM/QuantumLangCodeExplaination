@@ -1,59 +1,48 @@
-# QuantumLanguage Compiler - Compiler.h
+# QuantumLanguage Compiler - Disassembler.h
 
 ## Overview
 
-The `include/Compiler.h` header file is a crucial component of the QuantumLanguage compiler, focusing on defining the core compiler class that orchestrates the translation of abstract syntax trees (ASTs) into executable bytecode. This class plays a pivotal role in managing the compilation process, including scope handling, exception management, and maintaining the runtime environment.
+The `include/Disassembler.h` header file is a crucial component of the QuantumLanguage compiler, focusing on the disassembly functionality. This file provides functions to convert bytecode into human-readable assembly instructions, aiding in debugging and understanding the execution flow of the compiled programs.
 
 ## Role in Compiler Pipeline
 
-The `Compiler` class operates within the broader context of the QuantumLanguage compiler's pipeline. It takes an AST as input and produces a `Chunk`, which represents the bytecode that can be executed by the virtual machine (VM). The `compile` method serves as the entry point, initiating the compilation process from the root node of the AST.
+In the QuantumLanguage compiler's pipeline, `Disassembler.h` plays a vital role during the debugging phase. It facilitates the conversion of bytecode back into assembly language, which can be easily read and analyzed. This allows developers to trace the execution path of the program, inspect intermediate states, and identify potential issues or optimizations.
 
 ### Key Design Decisions and Why
 
-1. **Separation of Concerns**: By encapsulating the compilation logic within the `Compiler` class, the codebase becomes more modular and easier to manage. Each method handles specific aspects of the compilation process, such as variable declarations, function definitions, and control flow statements.
+1. **Separation of Concerns**: By isolating disassembly logic into its own header file, the compiler's architecture remains clean and modular. This separation ensures that changes in disassembly do not affect other parts of the compiler, such as the virtual machine or optimization passes.
 
-2. **Dynamic Memory Management**: Utilizing smart pointers (`std::shared_ptr`) ensures automatic memory management, reducing the risk of memory leaks and making the code cleaner and safer.
+2. **Efficiency**: The disassembler is designed to handle small chunks of bytecode efficiently. Each instruction is pretty-printed with minimal overhead, making it suitable for use in real-time debugging scenarios where performance is critical.
 
-3. **Efficient Code Generation**: The use of helper methods like `emit`, `emitJump`, and `patchJump` simplifies the generation of bytecode instructions. These methods handle common tasks such as emitting operations, adding constants, and patching jump offsets, thereby streamlining the overall compilation process.
+3. **Flexibility**: The disassembler supports both individual instructions and entire chunks. This flexibility allows for detailed inspection of specific operations or comprehensive analysis of the entire program.
 
-4. **Scoping Mechanism**: The `Compiler` class maintains a stack-based scope mechanism through the `beginScope` and `endScope` methods. This allows for dynamic tracking of local variables and their lifetimes, facilitating correct variable resolution and promotion to upvalues when necessary.
+4. **Readability**: The output format is carefully chosen to be readable and intuitive. Assembly-like syntax is used to represent each opcode, along with relevant operands, making it easier for developers to understand the underlying operations.
 
 ## Major Classes/Functions Overview
 
-### Compiler Class
+### `disassembleInstruction`
 
-- **Purpose**: Manages the compilation process, converting AST nodes into executable bytecode.
-- **Key Methods**:
-  - `compile(ASTNode &root)`: Compiles an entire program starting from the root AST node.
-  - `declareLocal(const std::string &name, int line)`: Declares a new local variable and records its details.
-  - `resolveLocal(CompilerState *state, const std::string &name)`: Resolves the index of a local variable within the current scope.
-  - `resolveUpvalue(CompilerState *state, const std::string &name)`: Resolves the index of an upvalue (a variable captured from an outer scope).
+- **Purpose**: Converts a single bytecode instruction into a human-readable format.
+- **Parameters**:
+  - `const Chunk &chunk`: A reference to the bytecode chunk containing the instruction.
+  - `size_t idx`: The index of the instruction within the chunk.
+  - `std::ostream &out`: An output stream where the disassembled instruction will be written.
+- **Return Value**: Returns the number of bytes consumed by the instruction (typically 1 byte per instruction).
 
-### CompilerState Struct
+### `disassembleChunk`
 
-- **Purpose**: Represents the state of the compiler during the compilation of a block of code.
-- **Fields**:
-  - `chunk`: A shared pointer to the `Chunk` object representing the generated bytecode.
-  - `locals`: A vector of `Local` structs, each containing information about a local variable.
-  - `upvalues`: A vector of `UpvalueDesc` structs, used to track upvalues during compilation.
-  - `scopeDepth`: Tracks the current depth of the scope.
-  - `enclosing`: Points to the enclosing `CompilerState`, allowing for nested scopes.
-  - `isFunction`: Indicates whether the current compilation context is a function.
-
-### Helper Functions
-
-- **Purpose**: Simplify the generation of bytecode instructions and manage the compilation state.
-- **Examples**:
-  - `emit(Op op, int32_t operand = 0, int line = 0)`: Emits a single bytecode instruction.
-  - `emitJump(Op op, int line = 0)`: Emits a jump instruction with a placeholder operand.
-  - `patchJump(size_t idx)`: Patches a jump instruction with the correct offset.
+- **Purpose**: Dumps the entire bytecode chunk into a human-readable assembly listing.
+- **Parameters**:
+  - `const Chunk &chunk`: A reference to the bytecode chunk to be disassembled.
+  - `std::ostream &out`: An output stream where the disassembled chunk will be written.
+- **Return Value**: None.
 
 ## Tradeoffs
 
-1. **Complexity vs. Maintainability**: While the separation of concerns makes the codebase more maintainable, it also introduces additional complexity due to the need to manage multiple states and scopes.
+1. **Performance vs. Readability**: While the disassembler aims for efficiency, readability often takes precedence. This tradeoff is necessary because disassembly is primarily a tool for debugging and development rather than production performance.
 
-2. **Memory Usage**: Using smart pointers for memory management helps reduce manual memory handling but may introduce some overhead compared to raw pointers.
+2. **Complexity vs. Simplicity**: A more complex disassembler could provide additional features like color-coding or more detailed annotations. However, simplicity is favored to ensure ease of use and maintainability.
 
-3. **Performance**: The dynamic nature of scope management and the use of helper functions can impact performance slightly, although these effects are generally minimal in modern compilers.
+3. **Memory Usage**: Disassembling large chunks of bytecode requires significant memory resources. Balancing memory usage with the need for thorough disassembly is an ongoing challenge.
 
-Overall, the `Compiler.h` file provides a robust foundation for the QuantumLanguage compiler's compilation process, balancing functionality, maintainability, and performance considerations.
+By providing these disassembly functions, `Disassembler.h` enhances the debugging capabilities of the QuantumLanguage compiler, allowing developers to better understand and optimize their quantum programs.
