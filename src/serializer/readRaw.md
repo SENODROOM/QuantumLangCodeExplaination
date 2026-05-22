@@ -6,35 +6,37 @@ The `readRaw` function is designed to deserialize raw binary data into a specifi
 
 ## Parameters
 
-- `data`: A reference to a `std::vector<uint8_t>` containing the serialized binary data.
-- `offset`: An integer representing the current position within the `data` vector where reading should begin.
+- `data`: A reference to a `std::vector<uint8_t>` representing the buffer containing the serialized data.
+- `offset`: An integer representing the current position within the buffer where reading should begin.
 
 ## Return Value
 
-- Returns an instance of type `T`, which has been reconstructed from the binary data starting at the specified `offset`.
+- Returns an instance of type `T`, which is constructed using the binary data read from the buffer starting at the specified `offset`.
 
 ## How It Works
 
-The `readRaw` function operates by copying a block of memory from the `data` vector into a variable of type `T`. Here’s how it ensures this:
+The `readRaw` function operates by copying a block of memory from the buffer into a variable of type `T`. Here’s how it achieves this:
 
-1. **Bounds Checking**: Before proceeding with the copy operation, the function checks if there is enough data left in the `data` vector to accommodate the size of `T`. If not, it throws a `std::runtime_error` indicating an unexpected end of file during deserialization. This prevents potential buffer overflows or undefined behavior.
+1. **Bounds Checking**: Before proceeding with the copy operation, the function checks whether there is enough data left in the buffer to accommodate the size of `T`. If not, it throws a `std::runtime_error` indicating an unexpected end of file during deserialization.
 
-2. **Memory Copying**: The function uses `std::memcpy` to copy `sizeof(T)` bytes from the `data` vector, starting at the position indicated by `offset`, into the memory location of the variable `t`.
+2. **Memory Copy**: The function uses `std::memcpy` to copy the bytes from the buffer (`data.data() + offset`) into the memory location of the variable `t`. This effectively reconstructs the object of type `T` from its serialized binary representation.
 
-3. **Offset Update**: After successfully copying the data, the function updates the `offset` by adding `sizeof(T)`. This ensures that subsequent calls to `readRaw` will start reading from the correct position in the `data` vector.
-
-4. **Return Instance**: Finally, the function returns the reconstructed instance of `T`.
+3. **Update Offset**: After successfully copying the data, the function increments the `offset` by the size of `T` to move past the deserialized data in the buffer.
 
 ## Edge Cases
 
-- **Empty Data Vector**: If the `data` vector is empty, attempting to read any data will result in an immediate error due to the bounds check.
+- **Buffer Overflow**: If the `offset` plus the size of `T` exceeds the total size of the buffer, the function will throw an exception. This prevents reading beyond the allocated memory, which could lead to undefined behavior or security vulnerabilities.
   
-- **Insufficient Data**: If the remaining data in the `data` vector is less than `sizeof(T)`, the function will throw an exception. This handles scenarios where the serialized data is incomplete or corrupted.
+- **Empty Buffer**: If the buffer is empty or has fewer elements than expected, the function will also throw an exception. This ensures that the deserialization process only proceeds when sufficient data is available.
 
-- **Negative Offset**: Passing a negative `offset` will also lead to an error because the function expects a valid index within the `data` vector.
+## Interactions With Other Components
 
-## Interactions with Other Components
+The `readRaw` function is typically used as part of a larger deserialization process. It interacts with other components such as:
 
-The `readRaw` function interacts closely with the serialization framework, particularly with classes that implement serialization logic. These classes typically use `readRaw` to reconstruct their member variables from the serialized binary data. For example, when deserializing a complex object, each member might be read using `readRaw`, and then these members are used to initialize the object.
+- **Deserializer Class**: The `readRaw` function might be called by methods within a `Deserializer` class, which manages the overall deserialization workflow.
+  
+- **Data Structures**: Depending on the context, `readRaw` may be used to deserialize complex data structures composed of multiple types `T`.
+  
+- **Error Handling**: The function relies on throwing exceptions to handle errors, which means it must be integrated with error handling mechanisms in the surrounding codebase.
 
-In summary, `readRaw` is a fundamental utility for deserializing binary data back into typed objects, providing both safety through bounds checking and efficiency through direct memory manipulation. Its interaction with other parts of the serialization system ensures that objects can be fully reconstructed from their serialized forms.
+In summary, the `readRaw` function provides a fundamental mechanism for converting serialized binary data back into usable objects of type `T`. Its careful implementation ensures robustness and reliability in the deserialization process, safeguarding against common pitfalls like buffer overflow and incomplete data.
