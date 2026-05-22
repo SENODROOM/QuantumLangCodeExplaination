@@ -1,51 +1,53 @@
 # `readChunk` Function
 
 ## Purpose
-The `readChunk` function is responsible for deserializing a binary data stream into a `Chunk` object. A `Chunk` represents a segment of code or data within a larger program or module in the Quantum Language compiler. This function reads various fields from the input data to reconstruct the `Chunk` object accurately.
+The `readChunk` function is responsible for deserializing a binary data stream into a `Chunk` object. A `Chunk` represents a segment of code or data within a larger program or module in the Quantum Language compiler. This function reads various fields from the input data and populates the corresponding fields in the `Chunk` object.
 
-## Parameters/Return Value
-- **Parameters**:
-  - `data`: A pointer to the binary data stream being deserialized.
-  - `offset`: The current position in the data stream where reading should begin.
+## Parameters
+- `const uint8_t* data`: A pointer to the binary data stream that needs to be deserialized.
+- `size_t& offset`: A reference to the current offset within the data stream. The offset is incremented as the function reads different fields from the data.
 
-- **Return Value**:
-  - Returns a shared pointer to a `Chunk` object that has been fully populated with data from the input stream.
+## Return Value
+- Returns a shared pointer to a `Chunk` object containing the deserialized data.
 
 ## How It Works
-1. **Name**: The function starts by reading the name of the `Chunk` using the `readString` method. This name helps identify the purpose or context of the chunk within the program.
+1. **Reading Chunk Name**:
+   - The function starts by reading a string from the binary data using the `readString` function. This string represents the name of the chunk and is stored in the `chunk->name` field.
 
-2. **Code Instructions**: 
-   - The size of the code section is determined by reading a 32-bit unsigned integer (`uint32_t`) from the data stream.
-   - The function then reserves space in the `chunk->code` vector based on the size of the code section.
-   - For each instruction in the code section, the function reads an operation type (`Op`), an operand (`int32_t`), and a line number (`int`). These values are used to construct an `Instruction` object, which is then added to the `chunk->code` vector.
+2. **Reading Instructions**:
+   - The next step involves reading the size of the instruction array (`codeSize`) from the binary data. This size determines how many instructions will be read.
+   - The function then reserves space in the `chunk->code` vector based on `codeSize`.
+   - For each instruction, the function reads an operation type (`Op`) and an operand (`int32_t`). These values are used to create an `Instruction` object, which is then pushed back into the `chunk->code` vector.
 
-3. **Parameters**:
-   - The number of parameters is read as a 32-bit unsigned integer (`uint32_t`).
-   - The function reserves space in the `chunk->params` vector based on the number of parameters.
-   - Each parameter is read as a string using the `readString` method and added to the `chunk->params` vector.
+3. **Reading Parameters**:
+   - The function reads the number of parameters (`paramsSize`) from the binary data.
+   - It reserves space in the `chunk->params` vector based on `paramsSize`.
+   - Each parameter is read as a string using the `readString` function and added to the `chunk->params` vector.
 
-4. **Parameter Reference Flags**:
-   - The size of the `paramIsRef` array is determined by reading a 32-bit unsigned integer (`uint32_t`).
-   - The function reserves space in the `chunk->paramIsRef` vector based on the size of the array.
-   - Each flag is read as a single byte (`uint8_t`). If the byte is not zero, the corresponding parameter is marked as a reference (`true`); otherwise, it is marked as a non-reference (`false`).
+4. **Reading Parameter Reference Flags**:
+   - The function reads the number of parameter reference flags (`refSize`) from the binary data.
+   - It reserves space in the `chunk->paramIsRef` vector based on `refSize`.
+   - For each flag, the function reads a raw byte. If the byte is non-zero, it indicates that the corresponding parameter is a reference, and the function adds `true` to the `chunk->paramIsRef` vector. Otherwise, it adds `false`.
 
-5. **Upvalue Count**:
-   - The count of upvalues (variables captured from outer scopes) is read as a 32-bit signed integer (`int`).
-   - This value is stored directly in the `chunk->upvalueCount` member variable.
+5. **Reading Upvalue Count**:
+   - The function reads the count of upvalues (`upvalueCount`) from the binary data and stores it in the `chunk->upvalueCount` field.
 
-6. **Constants**:
-   - The number of constants is read as a 32-bit unsigned integer (`uint32_t`).
-   - The function reserves space in the `chunk->constants` vector based on the number of constants.
-   - Each constant is read using the `readValue` method and added to the `chunk->constants` vector.
+6. **Reading Constants**:
+   - The function reads the number of constants (`constSize`) from the binary data.
+   - It reserves space in the `chunk->constants` vector based on `constSize`.
+   - Each constant is read using the `readValue` function and added to the `chunk->constants` vector.
 
 ## Edge Cases
-- **Empty Data Stream**: If the input data stream is empty or null, the function may throw an exception or handle it gracefully depending on the implementation.
-- **Invalid Data Format**: If the data format in the stream does not match the expected structure, the function will likely fail during deserialization. Proper error handling mechanisms should be in place to manage such scenarios.
-- **Memory Allocation Issues**: Since the function uses `reserve` to allocate memory for vectors, there might be cases where memory allocation fails. Handling these exceptions is crucial to prevent crashes.
+- **Empty Data Stream**: If the input data stream is empty, the function may encounter undefined behavior when attempting to read from it. To handle this case, ensure that the data stream is not empty before calling `readChunk`.
+- **Invalid Data Format**: If the data format in the binary stream is incorrect or corrupted, the function may fail to deserialize the data correctly. Ensure that the data stream adheres to the expected format before calling `readChunk`.
+- **Memory Allocation Failure**: If memory allocation fails during the reservation of space in vectors, the function will throw an exception. Handle such exceptions appropriately in your code.
 
 ## Interactions with Other Components
-- **Deserializer Class**: The `readChunk` function is part of a deserializer class that handles the conversion of binary data back into objects. It interacts with other methods like `readString`, `readRaw`, and `readValue` to extract different types of data from the input stream.
-- **Chunk Object**: The `Chunk` object is a fundamental data structure in the Quantum Language compiler. It holds information about code segments, parameters, constants, and more. The `readChunk` function populates this object with data from the binary stream, allowing other parts of the compiler to use it effectively.
-- **Error Handling**: The function includes calls to error-handling methods like `readString` and `readValue`, which ensure that any issues encountered during deserialization are properly managed. This interaction with error handling mechanisms ensures the robustness of the deserialization process.
+The `readChunk` function interacts with several other components in the Quantum Language compiler:
 
-Overall, the `readChunk` function plays a critical role in the Quantum Language compiler by converting binary data into meaningful `Chunk` objects. Its design allows for efficient and accurate deserialization, ensuring that the compiler can work with structured data streams reliably.
+- **`readString` Function**: Used to read strings from the binary data stream.
+- **`readRaw<T>` Template Function**: Used to read raw data types (e.g., `uint32_t`, `int32_t`, `int`) from the binary data stream.
+- **`readValue` Function**: Used to read constants from the binary data stream.
+- **`Chunk` Class**: Represents a segment of code or data and contains various fields such as `name`, `code`, `params`, `paramIsRef`, `upvalueCount`, and `constants`. The `readChunk` function populates these fields with the deserialized data.
+
+By understanding how `readChunk` functions, developers can better integrate it with other parts of the Quantum Language compiler and ensure proper deserialization of binary data streams.
