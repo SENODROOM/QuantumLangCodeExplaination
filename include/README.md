@@ -1,81 +1,59 @@
-# QuantumLanguage Compiler - AST.h
+# QuantumLanguage Compiler - Compiler.h
 
 ## Overview
 
-The `include/AST.h` header file is a crucial component of the QuantumLanguage compiler, focused on defining the Abstract Syntax Tree (AST) structure. This AST represents the syntactic structure of the source code in a tree-like format, which is used during the compilation process to analyze and transform the code into executable instructions.
+The `include/Compiler.h` header file is a crucial component of the QuantumLanguage compiler, focusing on defining the core compiler class that orchestrates the translation of abstract syntax trees (ASTs) into executable bytecode. This class plays a pivotal role in managing the compilation process, including scope handling, exception management, and maintaining the runtime environment.
 
 ## Role in Compiler Pipeline
 
-The AST serves as the foundation for various stages of the compiler pipeline:
+The `Compiler` class operates within the broader context of the QuantumLanguage compiler's pipeline. It takes an AST as input and produces a `Chunk`, which represents the bytecode that can be executed by the virtual machine (VM). The `compile` method serves as the entry point, initiating the compilation process from the root node of the AST.
 
-1. **Parsing**: Converts the source code into an AST.
-2. **Semantic Analysis**: Validates the AST against language rules and resolves symbols.
-3. **Code Generation**: Translates the AST into target machine code.
-4. **Optimization**: Improves the efficiency of the generated code.
+### Key Design Decisions and Why
 
-By representing the source code as an AST, the compiler can perform complex transformations and optimizations that would be difficult or impossible with a linear representation of the code.
+1. **Separation of Concerns**: By encapsulating the compilation logic within the `Compiler` class, the codebase becomes more modular and easier to manage. Each method handles specific aspects of the compilation process, such as variable declarations, function definitions, and control flow statements.
 
-## Key Design Decisions and Why
+2. **Dynamic Memory Management**: Utilizing smart pointers (`std::shared_ptr`) ensures automatic memory management, reducing the risk of memory leaks and making the code cleaner and safer.
 
-### Use of Variants
+3. **Efficient Code Generation**: The use of helper methods like `emit`, `emitJump`, and `patchJump` simplifies the generation of bytecode instructions. These methods handle common tasks such as emitting operations, adding constants, and patching jump offsets, thereby streamlining the overall compilation process.
 
-The AST uses `std::variant` to represent different types of expressions and statements. This choice allows for a flexible and extensible representation, where new expression or statement types can be easily added without modifying existing code.
-
-### Smart Pointers
-
-All nodes in the AST are managed using `std::unique_ptr`, which ensures automatic memory management and prevents memory leaks. This approach aligns with modern C++ practices and enhances the safety and reliability of the compiler.
-
-### Hierarchical Structure
-
-The AST is designed with a hierarchical structure, where each node can have child nodes. This design facilitates easy traversal and manipulation of the tree, making it suitable for a wide range of operations during the compilation process.
+4. **Scoping Mechanism**: The `Compiler` class maintains a stack-based scope mechanism through the `beginScope` and `endScope` methods. This allows for dynamic tracking of local variables and their lifetimes, facilitating correct variable resolution and promotion to upvalues when necessary.
 
 ## Major Classes/Functions Overview
 
-### Expression Types
+### Compiler Class
 
-- **NumberLiteral**: Represents numeric literals.
-- **StringLiteral**: Represents string literals.
-- **BoolLiteral**: Represents boolean literals.
-- **NilLiteral**: Represents the `nil` literal.
-- **Identifier**: Represents variable identifiers.
-- **BinaryExpr**: Represents binary operators like `+`, `-`, `*`, etc.
-- **UnaryExpr**: Represents unary operators like `!`, `-`, etc.
-- **AssignExpr**: Represents assignment operations like `=`, `+=`, `-=`, etc.
-- **CallExpr**: Represents function calls.
-- **IndexExpr**: Represents indexing operations.
-- **SliceExpr**: Represents slicing operations similar to Python's `[start:stop:step]`.
-- **MemberExpr**: Represents member access.
-- **ArrayLiteral**: Represents array literals.
-- **DictLiteral**: Represents dictionary literals.
-- **LambdaExpr**: Represents lambda functions.
-- **TernaryExpr**: Represents ternary conditional expressions.
-- **SuperExpr**: Represents calls to superclass constructors or methods.
+- **Purpose**: Manages the compilation process, converting AST nodes into executable bytecode.
+- **Key Methods**:
+  - `compile(ASTNode &root)`: Compiles an entire program starting from the root AST node.
+  - `declareLocal(const std::string &name, int line)`: Declares a new local variable and records its details.
+  - `resolveLocal(CompilerState *state, const std::string &name)`: Resolves the index of a local variable within the current scope.
+  - `resolveUpvalue(CompilerState *state, const std::string &name)`: Resolves the index of an upvalue (a variable captured from an outer scope).
 
-### C++ Pointer Expression Types
+### CompilerState Struct
 
-- **AddressOfExpr**: Represents the address-of operator (`&`).
-- **DerefExpr**: Represents the dereference operator (`*`).
-- **ArrowExpr**: Represents member access through pointers (`->`).
+- **Purpose**: Represents the state of the compiler during the compilation of a block of code.
+- **Fields**:
+  - `chunk`: A shared pointer to the `Chunk` object representing the generated bytecode.
+  - `locals`: A vector of `Local` structs, each containing information about a local variable.
+  - `upvalues`: A vector of `UpvalueDesc` structs, used to track upvalues during compilation.
+  - `scopeDepth`: Tracks the current depth of the scope.
+  - `enclosing`: Points to the enclosing `CompilerState`, allowing for nested scopes.
+  - `isFunction`: Indicates whether the current compilation context is a function.
 
-### Statement Types
+### Helper Functions
 
-- **VarDecl**: Represents variable declarations.
-- **FunctionDecl**: Represents function declarations.
-- **ReturnStmt**: Represents return statements.
-- **IfStmt**: Represents conditional statements.
+- **Purpose**: Simplify the generation of bytecode instructions and manage the compilation state.
+- **Examples**:
+  - `emit(Op op, int32_t operand = 0, int line = 0)`: Emits a single bytecode instruction.
+  - `emitJump(Op op, int line = 0)`: Emits a jump instruction with a placeholder operand.
+  - `patchJump(size_t idx)`: Patches a jump instruction with the correct offset.
 
 ## Tradeoffs
 
-### Flexibility vs. Complexity
+1. **Complexity vs. Maintainability**: While the separation of concerns makes the codebase more maintainable, it also introduces additional complexity due to the need to manage multiple states and scopes.
 
-Using `std::variant` provides flexibility in adding new expression or statement types, but it also increases the complexity of the AST implementation. Developers must be careful to handle all possible variants when traversing or manipulating the AST.
+2. **Memory Usage**: Using smart pointers for memory management helps reduce manual memory handling but may introduce some overhead compared to raw pointers.
 
-### Memory Management
+3. **Performance**: The dynamic nature of scope management and the use of helper functions can impact performance slightly, although these effects are generally minimal in modern compilers.
 
-Smart pointers (`std::unique_ptr`) simplify memory management by automatically deallocating memory when nodes are no longer needed. However, they introduce additional overhead compared to raw pointers, which might impact performance in some critical sections of the compiler.
-
-### Hierarchical Structure vs. Flat Representation
-
-A hierarchical AST offers a more intuitive and structured representation of the code, making it easier to understand and manipulate. On the other hand, a flat representation could potentially reduce complexity, although it would make certain operations more cumbersome.
-
-Overall, the design of the AST in `include/AST.h` aims to balance flexibility, simplicity, and performance, providing a robust foundation for the QuantumLanguage compiler's various stages.
+Overall, the `Compiler.h` file provides a robust foundation for the QuantumLanguage compiler's compilation process, balancing functionality, maintainability, and performance considerations.
