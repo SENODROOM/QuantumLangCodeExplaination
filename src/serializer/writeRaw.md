@@ -2,33 +2,50 @@
 
 ## Purpose
 
-The `writeRaw` function is crucial in the Quantum Language compiler's serialization module. It inserts the raw binary data of a specified variable into an output buffer, facilitating direct conversion of a variable's memory layout into bytes. This function is vital for ensuring that variables can be accurately serialized and deserialized across different platforms or systems.
+The `writeRaw` function serves as a fundamental utility within the Quantum Language compiler's serialization module. Its primary role is to insert the raw binary data of a specified variable into an output buffer, thereby enabling the direct conversion of a variable's memory layout into bytes. This function plays a critical role in ensuring that data structures can be serialized and deserialized accurately, preserving their integrity across different systems or processes.
 
-## Parameters
+## Functionality
 
-- **out**: A reference to a `std::vector<uint8_t>` where the raw binary data will be inserted.
-- **t**: The variable whose raw binary data needs to be written into the output buffer. The type of `t` determines how many bytes will be inserted into the buffer.
+The `writeRaw` function takes two parameters:
+1. `T t`: The variable whose raw binary data needs to be inserted into the output buffer.
+2. `std::vector<uint8_t>& out`: A reference to the output buffer where the raw binary data will be stored.
 
-## Return Value
+Here's a breakdown of how the function works:
 
-This function does not return any value (`void`). Instead, it modifies the contents of the `out` vector by appending the raw binary data of the variable `t`.
+- **Type Casting**: The input variable `t` is cast to a pointer of type `const uint8_t*`. This allows us to access the variable's memory as a sequence of bytes.
+  
+  ```cpp
+  const uint8_t* ptr = reinterpret_cast<const uint8_t*>(&t);
+  ```
 
-## How It Works
+- **Buffer Insertion**: The function then uses the `insert` method of the `std::vector<uint8_t>` class to add the bytes from the pointer `ptr` to the end of the vector `out`. The range of bytes added is determined by the size of the type `T`, which is obtained using `sizeof(T)`.
 
-The `writeRaw` function operates by first casting the address of the variable `t` to a pointer of type `const uint8_t*`. This allows us to access the raw bytes stored in the memory location of `t`. The function then uses the `insert` method of the `std::vector<uint8_t>` class to append these bytes to the end of the vector. The number of bytes appended is determined by the size of the type `T`, which is obtained using `sizeof(T)`.
+  ```cpp
+  out.insert(out.end(), ptr, ptr + sizeof(T));
+  ```
 
-### Why It Works This Way
+## Why It Works This Way
 
-This approach ensures that the memory layout of the variable `t` is preserved exactly as it would appear in memory. By directly accessing and copying the bytes, we avoid any potential issues related to type-specific serialization mechanisms, such as byte order or padding. This method provides a straightforward and efficient way to serialize variables without worrying about their internal representation.
+This approach ensures that the entire memory layout of the variable `t` is preserved when written to the output buffer. By casting the variable to a byte pointer and inserting these bytes directly into the vector, we avoid any potential issues related to type-specific serialization mechanisms. This method provides a straightforward and efficient way to serialize variables without worrying about platform-specific details such as endianness or alignment requirements.
+
+## Parameters/Return Value
+
+- **Parameters**:
+  - `T t`: The variable to be serialized.
+  - `std::vector<uint8_t>& out`: The output buffer where the serialized data will be stored.
+
+- **Return Value**: None. The function modifies the output buffer in place.
 
 ## Edge Cases
 
-1. **Empty Variable**: If `t` is an empty variable (e.g., an empty string or an array with zero elements), the function will simply insert zero bytes into the output buffer.
-2. **Large Variables**: For very large variables, the function may encounter performance issues due to the need to copy a significant amount of data. However, since the function is designed to work with any type, it should handle even large variables efficiently.
-3. **Non-Trivial Types**: The function handles non-trivial types (i.e., types that have constructors, destructors, or virtual functions) just like trivial types. Since it copies the raw bytes, it does not invoke any special member functions of the type.
+- **Empty Variables**: If the variable `t` has zero size (e.g., an empty array), the function will not insert anything into the output buffer, resulting in an empty buffer.
+  
+- **Large Variables**: For very large variables, the function may consume significant amounts of memory due to the temporary storage required for the byte pointer. However, modern C++ implementations handle such cases efficiently, making this less of a concern in practice.
+
+- **Alignment Issues**: Since the function simply copies the bytes from the variable's memory, it does not address alignment issues. These should be handled at a higher level in the serialization process, typically by aligning the data before writing it to the buffer.
 
 ## Interactions With Other Components
 
-The `writeRaw` function interacts primarily with the serialization module of the Quantum Language compiler. It is used by various serialization functions to insert raw binary data into the output buffer. Additionally, it is used by deserialization functions to reconstruct variables from their binary representations. Together, these functions form a robust system for handling serialization and deserialization tasks within the compiler.
+The `writeRaw` function is typically used in conjunction with other serialization functions within the compiler. For example, it might be called within a larger serialization routine that handles complex data structures or nested objects. Additionally, it could interact with deserialization functions, which would need to reverse the process of copying bytes back into the original variable's memory layout.
 
-By providing a mechanism to insert raw binary data into the output buffer, the `writeRaw` function enables the compiler to perform accurate serialization and deserialization operations. This, in turn, facilitates the exchange of quantum programs between different systems or platforms, ensuring compatibility and interoperability.
+Overall, the `writeRaw` function is a powerful tool for handling low-level binary data in the Quantum Language compiler, providing a solid foundation for more advanced serialization techniques.
