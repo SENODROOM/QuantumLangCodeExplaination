@@ -2,47 +2,54 @@
 
 ## Purpose
 
-The `parseArgList` function is designed to parse a list of arguments enclosed within parentheses. This includes handling positional arguments, keyword arguments, generator expressions, and unpacking of keyword arguments using the `**` syntax. The function ensures proper parsing and construction of an Abstract Syntax Tree (AST) representing the argument list.
+The `parseArgList` function is designed to parse a list of arguments enclosed within parentheses. This includes handling positional arguments, keyword arguments, generator expressions, and unpacking of keyword arguments using the `**` syntax. The function ensures proper parsing and construction of an abstract syntax tree (AST) representing the parsed arguments.
 
-## Parameters
+## Parameters/Return Value
 
-- None
-
-## Return Value
-
-- Returns a `std::vector<ASTNodePtr>` containing pointers to the parsed AST nodes representing each argument in the list.
+- **Parameters**: None
+- **Return Value**: A `std::vector<ASTNodePtr>` containing pointers to AST nodes representing the parsed arguments.
 
 ## How It Works
 
-1. **Expect LPAREN**: The function starts by expecting a left parenthesis (`(`). If not found, it throws an error indicating that a left parenthesis was expected.
+1. **Expecting Parentheses**: The function starts by expecting a left parenthesis (`(`). If not found, it throws an error indicating that a left parenthesis was expected.
 
-2. **Initialize Argument List**: An empty vector `args` is initialized to store pointers to the parsed AST nodes.
+2. **Parsing Arguments**: Inside a loop, it continuously parses arguments until a right parenthesis (`)` is encountered or the end of the input is reached.
 
-3. **Skip Newlines**: The function calls `skipNewlines()` to skip any newline characters before starting the argument parsing loop.
+3. **Handling Keyword Argument Unpacking (`**`)**:
+   - If the next token is `TokenType::POWER`, it indicates a keyword argument unpacking operation (`**expr`). 
+   - The function consumes the `**` token and then parses the expression following it.
+   - To distinguish this from regular positional arguments, it wraps the parsed expression in a `UnaryExpr` node with the operator `"**"`.
+   - After adding the wrapped expression to the `args` vector, it checks if there is a comma (`,`), which would indicate more arguments. If not, it breaks out of the loop.
 
-4. **Argument Parsing Loop**: The function enters a loop that continues until a right parenthesis (`)` is encountered or the end of the input is reached:
-   - **Track Line Number**: For each argument, the line number where it begins is tracked.
-   - **Skip Newlines Again**: The function skips any newline characters at the start of the loop iteration.
-   - **Check for Keyword Unpacking (`**`)**: If the next token is a `POWER` token (`**`), indicating keyword unpacking, the function consumes the `POWER` token and parses the following expression. The parsed expression is wrapped in a `UnaryExpr{"**", ...}` node to indicate that it should be evaluated as a spread operation. This node is then added to the `args` vector.
-   - **Check for Keyword Arguments**: If the next token is an `IDENTIFIER`, the function checks if it is followed by an `ASSIGN` token (`=`), indicating a keyword argument. If so, the function consumes both the identifier and the assignment token, skipping any newlines between them, and then consumes the value expression associated with the keyword argument. This value expression is added to the `args` vector.
-   - **Parse Expression**: If none of the above conditions are met, the function parses the current expression using the `parseExpr()` method and adds the resulting AST node to the `args` vector.
-   - **Skip Newlines After Expression**: The function skips any newline characters after parsing an expression.
-   - **Check for Comma Separators**: If the next token is a `COMMA`, the function consumes it and continues to the next argument. If not, the loop breaks, indicating that all arguments have been parsed.
+4. **Handling Regular Keyword Arguments**:
+   - If the next token is an `IDENTIFIER`, it might be followed by a keyword assignment (`=`).
+   - The function skips any newlines before and after the identifier and the assignment token.
+   - It consumes the identifier and the assignment token, then parses the expression following the assignment.
+   - Since the goal is to handle only the value part of the keyword argument, the identifier itself is ignored.
 
-5. **Return Parsed Arguments**: Once the loop completes, the function returns the `args` vector containing pointers to the parsed AST nodes representing each argument in the list.
+5. **Parsing Expressions**:
+   - For each argument, the function calls `parseExpr()` to parse the expression and adds it to the `args` vector.
+   - It also handles any trailing newlines after parsing an expression.
+
+6. **Handling Generator Expressions**:
+   - If the next token is `TokenType::FOR`, it indicates a generator expression.
+   - The function consumes the `for` token and then reads variables involved in the generator.
+   - Variables can be identifiers or CType keywords.
+   - After reading the variables, it expects an `IN` token followed by another expression, which represents the iterable part of the generator.
+   - The function constructs an appropriate AST node for the generator expression and adds it to the `args` vector.
+
+7. **Skipping Newlines**: Throughout the parsing process, the function uses `skipNewlines()` to ignore any extraneous newlines in the input.
 
 ## Edge Cases
 
-- **Empty Parentheses**: If only a pair of empty parentheses is provided, the function will return an empty vector.
-- **Trailing Commas**: Trailing commas within the argument list are allowed and will simply be ignored.
-- **Mixed Types**: The function can handle a mix of positional arguments, keyword arguments, and generator expressions within the same argument list.
-- **Nested Expressions**: Nested expressions within the argument list are correctly parsed and handled.
+- **Empty Argument List**: If the argument list is empty (i.e., immediately followed by a right parenthesis), the function will return an empty vector without throwing an error.
+- **Trailing Comma**: If there is a trailing comma at the end of the argument list, the function will stop parsing at that point and not include the extra comma in the result.
+- **Nested Parentheses**: The function correctly handles nested parentheses by continuing to parse arguments until the corresponding right parenthesis is encountered.
 
 ## Interactions With Other Components
 
-- **Tokenizer**: The `parseArgList` function relies on the tokenizer to provide the sequence of tokens for parsing.
-- **Error Handling**: The function uses error-handling mechanisms provided by the tokenizer to report errors such as missing closing parentheses or unexpected tokens.
-- **Expression Parser**: The function calls `parseExpr()` to parse individual expressions within the argument list, which is implemented in another part of the compiler.
-- **Abstract Syntax Tree Construction**: The parsed AST nodes are constructed using the `ASTNode` class and added to the `args` vector, which is used to build the final AST representation of the function call or similar construct.
+- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing.
+- **Error Handling**: Errors such as missing closing parentheses or invalid syntax are handled appropriately by throwing exceptions.
+- **Abstract Syntax Tree Construction**: The parsed arguments are added to an AST, which is used by subsequent stages of compilation to generate executable code.
 
-This comprehensive approach ensures that the `parseArgList` function can accurately parse complex argument lists and construct corresponding AST nodes, facilitating further processing in the compilation pipeline.
+This comprehensive approach ensures that `parseArgList` can accurately parse various types of arguments and construct a robust AST representation, facilitating further processing in the quantum language compiler.
