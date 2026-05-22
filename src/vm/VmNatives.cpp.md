@@ -1,60 +1,43 @@
 # VmNatives.cpp - Native Functions Registration Module for Quantum Language Compiler
 
 ## Overview
-`VmNatives.cpp` is a crucial component of the Quantum Language compiler's virtual machine (VM) module. It is responsible for registering native functions that can be invoked within the quantum programming environment. These native functions provide essential capabilities such as input/output operations, mathematical calculations, string manipulations, random number generation, and more. By integrating these functionalities into the VM, `VmNatives.cpp` enhances the flexibility and expressiveness of quantum programs.
+`VmNatives.cpp` is an integral part of the Quantum Language compiler's virtual machine (VM) module. Its primary responsibility is to register native functions that can be invoked within the quantum programming environment. These native functions offer essential capabilities such as input/output operations, mathematical calculations, string manipulations, random number generation, and more. By integrating these native functions into the VM, the compiler enhances its functionality, allowing developers to write more comprehensive and efficient quantum programs.
 
 ## Role in Compiler Pipeline
-The `VmNatives.cpp` module operates at the runtime stage of the compiler pipeline. After the quantum code has been compiled and optimized, it is executed through the VM. The VM needs access to native functions to perform tasks like reading user input, writing output, generating random numbers, and performing complex mathematical operations. `VmNatives.cpp` ensures that all necessary native functions are registered and available for use during execution.
+The `VmNatives.cpp` module plays a pivotal role in the compiler pipeline by providing a bridge between the high-level quantum language and the underlying hardware or simulation environment. During the compilation process, when the compiler encounters a call to a native function, it invokes the corresponding function registered in `VmNatives.cpp`. This ensures that all necessary operations are performed correctly and efficiently, regardless of their complexity.
 
 ## Key Design Decisions and Why
-### 1. **Separation of Concerns**
-   - **Why**: Separating the registration of native functions from other parts of the VM improves modularity and maintainability. It allows developers to focus on specific functionalities without being concerned about the broader VM architecture.
+1. **Dynamic Function Registration**: The use of dynamic function registration allows for flexibility and scalability. New native functions can be added without modifying the existing codebase, making it easier to extend the compiler's functionality.
    
-### 2. **Dynamic Function Registration**
-   - **Why**: Using dynamic registration (`reg`) enables the addition of new native functions at runtime. This approach provides flexibility and scalability, allowing the compiler to support various extensions and plugins without requiring changes to the core VM codebase.
-   
-### 3. **Type Safety with Exceptions**
-   - **Why**: Implementing type safety checks using exceptions ensures that only appropriate arguments are passed to native functions. If incorrect types are encountered, an exception is thrown, preventing runtime errors and improving the robustness of the compiler.
+2. **Type Safety**: The implementation includes type safety checks to ensure that arguments passed to native functions are of the expected types. This prevents runtime errors and ensures that the program behaves predictably.
+
+3. **Format Awareness**: The inclusion of format awareness in the native input functions allows for more flexible handling of user inputs. Developers can specify the expected format of the input, and the function will return the appropriate value based on the specified format.
+
+4. **Testing Mode Support**: The module supports testing mode by providing predefined input values for native functions. This feature is particularly useful during unit testing and integration testing phases, ensuring that the compiler behaves correctly under various conditions.
 
 ## Major Classes/Functions Overview
-### `VM::registerNatives()`
-- **Overview**: This function registers all native functions required by the quantum language compiler. It uses a lambda function (`reg`) to create and define each native function in the global scope of the VM.
-- **Parameters**:
-  - None
-- **Return Value**:
-  - None
+### `VM`
+- **Overview**: The `VM` class represents the virtual machine used by the Quantum Language compiler. It contains methods for executing quantum programs and managing global variables.
+  
+- **Functionality**:
+  - `registerNatives()`: Registers all available native functions with the virtual machine.
+  - `executeProgram()`: Executes a given quantum program within the virtual machine environment.
 
-### `toNum2(const QuantumValue &v, const std::string &ctx)`
-- **Overview**: Converts a `QuantumValue` to a numeric type. If the value is not a number, it throws a `TypeError`.
-- **Parameters**:
-  - `v`: The `QuantumValue` to convert.
-  - `ctx`: The context in which the conversion is taking place.
-- **Return Value**:
-  - A `double` representing the numeric value.
+### `QuantumNative`
+- **Overview**: The `QuantumNative` class represents a native function available in the quantum programming environment. Each instance of `QuantumNative` contains the function name and the actual function implementation.
 
-### `defaultTestInput(const std::vector<QuantumValue> &args)`
-- **Overview**: Generates a default test input based on the provided arguments. This function handles various prompts and returns corresponding default inputs.
-- **Parameters**:
-  - `args`: A vector of `QuantumValue` arguments.
-- **Return Value**:
-  - A `std::string` representing the default test input.
+- **Attributes**:
+  - `name`: A string representing the name of the native function.
+  - `fn`: A shared pointer to the function implementation.
 
-### `defaultTestInputValue(const std::vector<QuantumValue> &args, bool formatAware)`
-- **Overview**: Similar to `defaultTestInput`, but also considers format specifiers when determining the default input type.
-- **Parameters**:
-  - `args`: A vector of `QuantumValue` arguments.
-  - `formatAware`: A boolean indicating whether to consider format specifiers.
-- **Return Value**:
-  - A `QuantumValue` representing the default test input value.
+### `QuantumNativeFunc`
+- **Overview**: The `QuantumNativeFunc` type alias represents a function that takes a vector of `QuantumValue` objects as arguments and returns a `QuantumValue` object. This type is used to define the signature of native function implementations.
 
 ## Tradeoffs
-### 1. **Performance vs. Flexibility**
-   - **Tradeoff**: Dynamic function registration offers flexibility but may introduce minor performance overhead compared to static registration. However, the benefits of flexibility often outweigh the performance impact in practical scenarios.
-   
-### 2. **Memory Usage**
-   - **Tradeoff**: Storing native functions in memory requires additional space. While this can be managed efficiently, it does increase overall memory usage. In environments with limited resources, careful optimization may be necessary.
+1. **Performance vs. Flexibility**: While dynamic function registration provides flexibility, it may introduce a slight performance overhead compared to statically defined functions. However, this tradeoff is often acceptable due to the benefits gained in terms of extensibility and maintainability.
 
-### 3. **Complexity vs. Simplicity**
-   - **Tradeoff**: Providing extensive type safety and error handling increases complexity in the implementation. However, this leads to more robust and reliable code, reducing the likelihood of bugs and making debugging easier.
+2. **Complexity vs. Simplicity**: Supporting format awareness and testing mode adds complexity to the native functions. However, these features simplify the development and testing process, leading to more robust and reliable quantum programs.
 
-By addressing these tradeoffs, `VmNatives.cpp` ensures that the quantum language compiler remains both powerful and efficient, providing a seamless experience for developers working with quantum programs.
+3. **Memory Usage**: Storing native functions dynamically requires additional memory to manage the function instances and their associated data. This tradeoff is generally manageable, especially considering the relatively small number of native functions typically required.
+
+By carefully balancing these tradeoffs, the `VmNatives.cpp` module ensures that the Quantum Language compiler remains both powerful and easy to use, enabling developers to create complex and efficient quantum applications.
