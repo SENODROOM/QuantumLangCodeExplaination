@@ -2,50 +2,25 @@
 
 ## Purpose
 
-The `callClosure` function is responsible for executing a closure in the Quantum Virtual Machine (QVM). A closure is essentially a function along with an environment that captures its enclosing scope's variables. This function ensures that all arguments required by the closure are provided, filling in any missing arguments with default values (in this case, `nil`). It then pushes the closure and its execution frame onto the virtual machine's stack.
+The `callClosure` function is responsible for executing a closure in the Quantum Virtual Machine (QVM). A closure is essentially a function along with an environment that captures its enclosing scope's variables. This function ensures that all arguments required by the closure are provided and correctly sets up the execution frame to capture these arguments.
 
 ## Parameters
 
-- `closure`: A pointer to the `Closure` object representing the function to be executed.
-- `argCount`: An integer indicating the number of arguments passed to the function.
+- **closure**: A pointer to the `Closure` object representing the function to be executed and its captured environment.
+- **argCount**: An integer indicating the number of arguments passed to the closure.
 
 ## Return Value
 
-This function does not return a value directly. Instead, it modifies the state of the virtual machine by pushing the closure and its execution frame onto the stack.
-
-## How It Works
-
-1. **Retrieve Chunk**: The function starts by accessing the chunk associated with the given closure using `auto &ch = *closure->chunk;`. Each closure has a chunk which contains the bytecode for the function.
-
-2. **Check Argument Count**: It checks if the number of arguments (`argCount`) passed to the function is less than the number of parameters expected by the function (`ch.params.size()`).
-
-3. **Fill Missing Arguments**: If there are fewer arguments than expected, the function fills the missing arguments with `nil` (represented as an empty `QuantumValue`). This is done using a loop:
-   ```cpp
-   while (argCount < (int)ch.params.size())
-   {
-       push(QuantumValue()); // Pushes 'nil' onto the stack
-       argCount++;
-   }
-   ```
-   This ensures that the function always receives the correct number of arguments, even if some were not provided.
-
-4. **Set Stack Base**: The function calculates the base index on the stack where the arguments for the current function call start. This is done by subtracting the argument count from the current stack size:
-   ```cpp
-   size_t stackBase = stack_.size() - argCount;
-   ```
-
-5. **Push Frame**: Finally, the function creates an execution frame containing the closure, the instruction pointer set to 0 (indicating the start of execution), and the calculated stack base. This frame is then pushed onto the `frames_` vector, which manages the call stack of the virtual machine.
+This function does not return any value directly. It modifies the internal state of the QVM by pushing the closure onto the stack and setting up a new execution frame.
 
 ## Edge Cases
 
-- **Exact Number of Arguments**: If the exact number of arguments is provided, the function will not fill in any additional arguments with `nil`.
-- **More Arguments Than Expected**: While the code snippet provided does not handle this scenario explicitly, in a more complete implementation, handling extra arguments might involve error checking or ignoring the extra arguments.
-- **No Arguments Provided**: If no arguments are provided, the function will fill in all parameters with `nil`.
+1. **Insufficient Arguments**: If fewer arguments than expected are passed (`argCount < (int)ch.params.size()`), the function fills the missing arguments with `nil`. This mimics default argument behavior in some languages.
+2. **Empty Environment**: The function assumes that the `Closure` has an associated environment which might be empty or contain variables. It handles both scenarios without errors.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Stack Management**: The `callClosure` function interacts with the stack component of the QVM. It uses the `stack_` vector to manage the function call's arguments and local variables.
-- **Frame Creation**: It also interacts with the frame management component, creating new execution frames for each function call and managing them in the `frames_` vector.
-- **Bytecode Execution**: By pushing the closure and its frame onto the stack, `callClosure` sets up the environment for the bytecode interpreter to execute the function's instructions.
+- **Stack Management**: The `callClosure` function interacts with the stack to manage the arguments and local variables. It pushes the closure onto the stack and calculates a `stackBase` index to track where the arguments start within the stack.
+- **Execution Frame**: It creates a new execution frame containing the closure, the current instruction pointer set to 0 (indicating the start of the function), and the `stackBase` index. This frame is then pushed onto the `frames_` vector, allowing the VM to resume execution at the correct point after the function returns.
 
-In summary, the `callClosure` function plays a crucial role in preparing the execution environment for closures in the QVM, ensuring that all necessary arguments are provided and setting up the call stack appropriately.
+By ensuring that all necessary arguments are provided and setting up the appropriate execution context, the `callClosure` function facilitates the proper execution of closures within the QVM, maintaining the integrity of the captured environment and the flow of control.

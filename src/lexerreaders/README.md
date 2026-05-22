@@ -1,44 +1,72 @@
 # LexerReaders Component of the Quantum Language Compiler
 
-The `lexerreaders` component is an essential part of the Quantum Language (QL) compiler, tasked with interpreting and converting the raw text of the source code into discrete tokens. These tokens serve as the foundational building blocks for subsequent stages of compilation, including syntax analysis and semantic processing. The primary functions within this component are `readString` and `readIdentifierOrKeyword`, which handle specific types of tokenization.
+The `lexerreaders` component is a crucial part of the Quantum Language (QL) compiler, responsible for interpreting and converting the raw text of the source code into discrete tokens. These tokens form the basis for further stages of compilation, such as syntax analysis and semantic processing. This component ensures that the source code is accurately parsed and structured before moving on to more complex analyses.
 
 ## Overview
 
-The `lexerreaders` component operates on the input source code, breaking it down into individual tokens. Each token represents a syntactic unit such as keywords, identifiers, strings, or operators. The component ensures that the tokens are correctly identified and categorized according to their type, facilitating efficient parsing and error detection in the quantum language.
+The `lexerreaders` component includes two main functions:
 
-### Key Functions
+1. **readString**: Parses string literals from the source code.
+2. **readIdentifierOrKeyword**: Identifies and categorizes identifiers and keywords in the source code.
 
-1. **readString**: This function is designed to parse string literals from the source code. It identifies the start and end of the string using quotation marks (`"`) and handles escape sequences within the string.
+These functions work together to tokenize the input source code efficiently and accurately.
 
-2. **readIdentifierOrKeyword**: This function processes both identifiers and keywords. Identifiers are names used to identify variables, functions, or other entities, while keywords have special meanings in the quantum language itself. The function differentiates between these based on predefined rules and returns the appropriate token type.
+## Directory Structure
 
-### File Structure
-
-- **readString.cpp**: Contains the implementation of the `readString` function, which focuses on parsing string literals.
-- **readIdentifierOrKeyword.cpp**: Includes the logic for identifying and categorizing identifiers and keywords.
-- **token.h**: Defines the structure and enumeration of tokens used throughout the lexer and parser components.
-
-## Flow Diagram
-
-```plaintext
-+---------------------+
-|  Source Code        |
-+--------+----------+
-         |
-         v
-+--------v----------+
-| readString()      |
-+--------+----------+
-         |
-         v
-+--------v----------+
-| readIdentifierOrKeyword() |
-+--------+----------+
-         |
-         v
-+--------v----------+
-| Tokenized Output    |
-+---------------------+
+```
+lexerreaders/
+├── lexer.cpp
+├── lexer.h
+├── token.cpp
+├── token.h
+└── README.md
 ```
 
-In summary, the `lexerreaders` component plays a pivotal role in the Quantum Language compiler by transforming the source code into a stream of tokens. This process is critical for accurately interpreting the language's syntax and semantics, ensuring that the compiler can proceed with further stages of compilation without errors.
+- **lexer.cpp** and **lexer.h**: Contains the implementation and declaration of the lexer class, which manages the tokenization process.
+- **token.cpp** and **token.h**: Defines the structure and methods for representing tokens within the system.
+- **README.md**: This file provides detailed documentation about the `lexerreaders` component.
+
+## How It Works
+
+### Tokenization Process
+
+1. **Initialization**: The lexer reads the source code character by character.
+2. **Character Classification**: Each character is classified based on its type (e.g., alphabetic, numeric, special).
+3. **Token Formation**: Based on the classification, tokens are formed. For example, sequences of alphabetic characters followed by optional underscores or digits are identified as identifiers or keywords.
+4. **String Handling**: String literals are enclosed in quotes and treated as single tokens.
+5. **Output**: Tokens are outputted for further processing by the compiler.
+
+### readString Function
+
+The `readString` function handles the parsing of string literals. It looks for characters enclosed in double quotes (`"`). If it encounters a backslash (`\`) followed by another quote, it treats the second quote as part of the string rather than the end of it. This allows for the inclusion of double quotes within string literals without terminating them prematurely.
+
+```cpp
+// Example usage of readString
+std::string str = readString(sourceCode);
+if (!str.empty()) {
+    // Process the string literal
+}
+```
+
+### readIdentifierOrKeyword Function
+
+The `readIdentifierOrKeyword` function identifies and categorizes identifiers and keywords. It checks if the sequence of characters matches any predefined keywords. If not, it categorizes the sequence as an identifier.
+
+```cpp
+// Example usage of readIdentifierOrKeyword
+Token token = readIdentifierOrKeyword(sourceCode);
+if (token.isKeyword()) {
+    // Handle keyword
+} else {
+    // Handle identifier
+}
+```
+
+## Overall Flow
+
+1. **Source Code Reading**: The lexer starts reading the source code character by character.
+2. **Token Classification**: Characters are classified into categories like alphabetic, numeric, or special.
+3. **Token Formation**: Depending on the category, tokens are either formed directly or processed by specialized functions like `readString` and `readIdentifierOrKeyword`.
+4. **Token Output**: Formed tokens are passed to the next stage of the compiler for further processing.
+
+By following this structured approach, the `lexerreaders` component ensures that the source code is correctly tokenized, facilitating efficient and accurate compilation processes.

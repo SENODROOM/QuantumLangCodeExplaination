@@ -2,38 +2,38 @@
 
 ## Role in Compiler Pipeline
 
-The `LexerReaders.cpp` file is integral to the Quantum Language compiler's lexical analysis phase. Its primary function is to parse template literals, allowing dynamic content within string literals using `${}` syntax. This feature significantly enhances the flexibility of string manipulation and direct embedding of expressions, making it essential for advanced programming constructs.
+The `LexerReaders.cpp` file plays a crucial role in the lexical analysis phase of the Quantum Language compiler. It is responsible for parsing template literals, which allow dynamic content within string literals using `${}` syntax. This feature greatly enhances the flexibility of string manipulation and direct embedding of expressions, making it an essential component of the compiler.
 
 ## Key Design Decisions and Why
 
 ### Handling Escaped Characters
-
-To correctly interpret escaped characters within template literals, such as `\n`, `\t`, and ``\` ``$, the lexer uses a state machine approach. When an escape character (`\`) is encountered, the lexer checks the subsequent character to determine its intended meaning. If the subsequent character is not recognized as an escape sequence, the lexer simply appends both characters to the current segment. This ensures that all valid escape sequences are handled accurately while preserving any unrecognized escape sequences.
+The lexer must correctly handle escaped characters such as `\n`, `\t`, `` ` `` (backtick), and others. To achieve this, the code uses a simple state machine where it checks for escape sequences starting with a backslash (`\`). If a recognized escape sequence is found, it replaces the escape character with its corresponding ASCII value or literal. For unrecognized escape sequences, the lexer emits a warning and leaves the original escape character unchanged.
 
 ### Parsing Expressions Within Template Literals
+Expressions embedded within template literals are enclosed in `${}`. The lexer identifies these expressions by looking for the dollar sign followed immediately by a curly brace (`$}`). Once an expression is identified, it advances past the curly brace and collects all characters until another closing curly brace is encountered, indicating the end of the expression. This allows the lexer to treat the expression as a separate token that can be re-lexed later during the parsing phase.
 
-Expressions embedded within template literals are identified by the presence of `${` followed by `}`. To handle these expressions, the lexer maintains a depth counter that increments when encountering `{` and decrements when encountering `}`. This allows the lexer to accurately identify the boundaries of the expression and collect its source code. Once an expression is collected, it is treated separately from the surrounding text, ensuring that it can be re-lexed and parsed independently.
+### Trade-offs Considered
 
-### Removing Empty Parts
+#### Complexity vs. Flexibility
+While handling complex escape sequences adds some complexity to the lexer, it provides significant flexibility in string manipulation. The decision was made to support common escape sequences directly rather than implementing a full-fledged string parser.
 
-To maintain a clean and efficient token sequence, the lexer removes any empty text-only parts that appear at the beginning or end of the template literal. This helps to simplify the resulting token stream and avoid unnecessary processing during later stages of the compilation pipeline.
+#### Performance vs. Robustness
+To improve performance, the lexer avoids unnecessary re-lexing of expressions. Instead, it treats them as separate tokens that can be processed by subsequent stages of the compiler. This approach balances robustness, as it ensures correct parsing of both text and expressions, with performance, as it minimizes redundant processing.
 
 ## Major Classes/Functions Overview
 
 ### Lexer Class
-
-The `Lexer` class contains the main logic for reading and parsing the input source code. The `readTemplateLiteral` function is a member of this class and is responsible for handling the parsing of template literals.
+The `Lexer` class contains the main logic for reading and lexing the input source code. It includes methods like `readTemplateLiteral` for handling template literals specifically.
 
 ### readTemplateLiteral Function
+This function is central to the lexer's functionality for template literals. It processes the input stream, collecting alternating text segments and expression sources. Each text segment is treated as a `STRING` token, while each expression source is temporarily stored as a raw string and will be re-lexed later.
 
-This function takes two parameters: a reference to a vector of `Token` objects where the parsed tokens will be stored, and the starting line and column numbers for the template literal. The function processes the input source code to extract text segments and embedded expressions, building a list of parts that are then converted into tokens.
+### Part Struct
+A helper structure named `Part` is used to store information about each segment collected during the parsing process. Each `Part` object indicates whether the segment is an expression or plain text and stores the actual content of the segment.
 
-## Tradeoffs
+### emitPlus Lambda Function
+This lambda function is used to insert a `PLUS` token between different parts of the template literal when building the output token sequence. It helps maintain proper syntax tree construction by ensuring that text segments are concatenated appropriately.
 
-### Complexity vs. Flexibility
+## Conclusion
 
-While the lexer provides robust support for template literals, including handling of escaped characters and embedded expressions, this complexity adds overhead to the lexical analysis process. However, the enhanced flexibility of template literals outweighs this tradeoff, as they enable more powerful and expressive string manipulation capabilities.
-
-### Memory Usage vs. Performance
-
-The lexer stores intermediate parts of template literals in a vector, which may lead to increased memory usage compared to simpler approaches. However, this additional memory usage is generally negligible and provides better performance through improved tokenization and re-lexing of embedded expressions.
+The `LexerReaders.cpp` file is a vital part of the Quantum Language compiler's lexical analysis phase, enabling the efficient parsing of template literals. By carefully handling escape sequences and identifying expressions within template literals, the lexer ensures that the compiler can accurately process and generate the appropriate abstract syntax trees. The design choices balance complexity and flexibility, performance and robustness, resulting in a reliable and efficient implementation of template literal parsing.

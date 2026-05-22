@@ -2,50 +2,58 @@
 
 ## Overview
 
-`VmCore.cpp` is a crucial component of the Quantum Language compiler's virtual machine (VM) core. It houses fundamental functions necessary for interpreting and executing compiled bytecode within the VM environment. This file plays a pivotal role in the compiler pipeline, especially during the execution phase where generated code is executed.
+`VmCore.cpp` is a critical part of the Quantum Language compiler's virtual machine (VM) core. It contains essential functions required for interpreting and executing compiled bytecode within the VM environment. This file is vital during the execution phase of the compiler pipeline, handling the generation and execution of code.
+
+### Role in the Compiler Pipeline
+
+- **Execution Phase**: `VmCore.cpp` manages the execution of bytecode chunks, including setting up the execution environment, managing stacks, and handling function calls.
+- **Bytecode Interpretation**: It interprets the bytecode instructions and executes corresponding operations.
+- **Error Handling**: The VM core handles runtime errors and exceptions that may occur during execution.
 
 ### Key Design Decisions and Why
 
-1. **Iterator State Tagging**:
-   - **Why**: To efficiently manage iterator states without additional data structures.
-   - **Implementation**: Encodes iterators as `QuantumNative` objects with a function that never gets called. The VM recognizes these by their name prefix "__iter__" and stores an `IterState` keyed by the raw pointer.
+1. **Stack Management**:
+   - The VM uses a stack-based architecture for storing values and managing function call contexts.
+   - The stack is dynamically resized based on the program's needs, with a default capacity of 65536 elements to handle large programs efficiently.
 
-2. **Stack Management**:
-   - **Why**: To provide a flexible and efficient way to handle runtime values.
-   - **Implementation**: Uses a dynamic array (`std::vector`) for the stack, with helper methods like `push`, `pop`, and `peek` to manage stack operations. The stack capacity is reserved up to 65536 elements to optimize performance.
+2. **Function Calls and Closures**:
+   - Functions are encapsulated within closures, which hold references to the function's bytecode and its environment.
+   - The VM maintains a frame stack to keep track of active function calls and their local variables.
 
-3. **Runtime Error Handling**:
-   - **Why**: To ensure robustness and provide meaningful error messages to users.
-   - **Implementation**: Defines custom exceptions (`RuntimeError` and `TypeError`) to handle errors during execution. These exceptions include detailed error messages and line numbers for better debugging.
+3. **Iterator Support**:
+   - Iterators are represented as special QuantumNative objects with names prefixed by `__iter__`.
+   - Each iterator has associated state stored in an `IterState` map, allowing efficient iteration over collections.
 
-4. **Type Conversion**:
-   - **Why**: To support type-safe operations between different value types.
-   - **Implementation**: Provides a method `toNumber` to convert values to numbers, handling both numeric and string inputs. This ensures that arithmetic operations can be performed seamlessly across different types.
+4. **Concurrency and Threading**:
+   - The VM supports basic concurrency through threading, enabling parallel execution of tasks.
+   - Thread safety is ensured using mutexes and other synchronization primitives.
 
-## Major Classes/Functions Overview
+5. **Performance Optimization**:
+   - The VM uses various optimizations such as just-in-time compilation (JIT) to improve performance.
+   - Memory allocation strategies minimize garbage collection overhead.
+
+### Major Classes/Functions Overview
 
 - **VM Class**:
-  - **Constructor**: Initializes the global environment and registers native functions.
-  - **Run Method**: Executes a given chunk of bytecode by setting up the initial stack frame and calling `runFrame`.
+  - Manages the overall state of the VM, including the global environment, stack, and frame stack.
+  - Provides methods for running bytecode chunks, pushing/popping values from the stack, and handling runtime errors.
 
-- **Stack Helpers**:
-  - **Push**: Adds a value to the stack.
-  - **Pop**: Removes and returns the top value from the stack.
-  - **Peek**: Returns a reference to the value at a specified offset from the top of the stack.
+- **Closure Class**:
+  - Represents a function along with its lexical environment.
+  - Holds references to the function's bytecode and any captured variables.
 
-- **Error Handling**:
-  - **RuntimeError**: Custom exception class for runtime errors, including error message and line number.
-  - **TypeError**: Custom exception class for type errors, providing context and line number information.
+- **QuantumValue Class**:
+  - Encapsulates different types of values (numbers, strings, booleans, etc.) used within the VM.
+  - Provides methods for type checking and value manipulation.
 
-- **Type Conversion**:
-  - **toNumber**: Converts a `QuantumValue` to a number, supporting both numeric and string inputs.
+- **RuntimeError Class**:
+  - Custom exception class for handling runtime errors in the VM.
+  - Includes error messages and line numbers for better debugging.
 
-## Tradeoffs
+### Tradeoffs
 
-- **Memory Usage vs. Performance**: Reserving stack capacity up to 65536 elements optimizes memory usage but may lead to higher peak memory consumption during certain executions.
-  
-- **Exception Overhead**: Using custom exceptions for error handling introduces overhead compared to standard exceptions. However, this approach provides more detailed error information, which aids in debugging.
+- **Memory Usage vs. Performance**: The dynamic resizing of the stack provides flexibility but can lead to increased memory usage. JIT compilation optimizes performance but adds complexity to the implementation.
+- **Thread Safety vs. Complexity**: Supporting concurrency through threading increases the complexity of the VM but allows for more efficient use of resources in multi-threaded applications.
+- **Flexibility vs. Simplicity**: Allowing for custom data types and complex operations enhances the language's expressiveness but makes the VM core more intricate.
 
-- **Flexibility vs. Complexity**: Supporting multiple value types and complex operations increases flexibility but also adds complexity to the implementation.
-
-Overall, `VmCore.cpp` is a well-designed module that balances functionality, efficiency, and maintainability, ensuring that the Quantum Language compiler can execute bytecode effectively and robustly.
+In summary, `VmCore.cpp` is a central component of the Quantum Language compiler responsible for executing bytecode efficiently while managing the VM's state and handling errors gracefully. Its design choices balance performance, flexibility, and simplicity, making it a robust foundation for the compiler's execution phase.

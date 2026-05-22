@@ -1,96 +1,44 @@
 # `execUnary`
 
-The `execUnary` function in the Quantum Language compiler's virtual machine core (`VmCore.cpp`) is designed to execute unary operations on quantum values. This function supports various unary operators including negation (`-`), logical NOT (`!`), and bitwise NOT (`~`). It ensures that the operation is performed correctly based on the type of the quantum value and throws appropriate errors for unsupported types or unknown operators.
+The `execUnary` function in the Quantum Language compiler's virtual machine core (`VmCore.cpp`) is designed to execute unary operations on quantum values. This function supports various unary operators including negation (`-`), logical NOT (`!`), and bitwise NOT (`~`). It ensures that these operations are performed correctly based on the type of the quantum value being operated upon.
 
-## Functionality
+## What it Does
 
-The `execUnary` function takes two parameters:
-1. `op`: An enumeration representing the unary operator to be executed.
-2. `v`: A `QuantumValue` object representing the operand on which the unary operation will be applied.
+The `execUnary` function takes a single quantum value `v` and an operation code `op`, and applies the specified unary operator to the value. The result of the operation is returned as a new quantum value. Supported operations include:
 
-The function returns a new `QuantumValue` object containing the result of the unary operation.
+- **Negation (`Op::NEG`)**: Applies the negation operator to numeric values, reversing their sign.
+- **Logical NOT (`Op::NOT`)**: Converts the quantum value to a boolean and then applies the logical NOT operator, flipping its truthiness.
+- **Bitwise NOT (`Op::BIT_NOT`)**: Applies the bitwise NOT operator to numeric values, inverting each bit.
 
-### Supported Unary Operators
+## Why it Works This Way
 
-- **Negation (`Op::NEG`)**: Applies the negation operator to the numeric value of the quantum variable. If the quantum value is not a number, it throws a `TypeError`.
-  
-- **Logical NOT (`Op::NOT`)**: Applies the logical NOT operator to the truthiness of the quantum value. The function checks if the quantum value is truthy (i.e., non-zero, non-empty, etc.) and returns a boolean value indicating whether the original value was falsy.
+The function works by using a switch statement to handle different unary operations. Each case checks the type of the input quantum value `v` and performs the appropriate operation. For example, when handling negation, it checks if `v` is a number and then returns a new quantum value with the negated number. If `v` is not a number, it throws a `TypeError`. Similarly, for logical NOT, it checks if `v` is truthy or falsy and returns the opposite boolean value. Bitwise NOT also requires `v` to be a number and inverts each bit of the number.
 
-- **Bitwise NOT (`Op::BIT_NOT`)**: Applies the bitwise NOT operator to the numeric value of the quantum variable. Similar to negation, if the quantum value is not a number, it throws a `TypeError`.
+This design allows for clear and concise handling of different unary operations, ensuring that each operation is applied correctly based on the type of the input value. By throwing errors for unsupported types, the function maintains robustness and prevents unexpected behavior during execution.
 
-### Edge Cases
+## Parameters/Return Value
 
-- **Non-Numeric Operand**: When applying negation or bitwise NOT, if the quantum value is not a number, the function throws a `TypeError`. For example, attempting to negate a quantum string or array would result in an error.
-  
-- **Unknown Operator**: If the provided unary operator is not recognized, the function throws a `RuntimeError`.
+### Parameters
 
-## Implementation Details
+- `v`: A `QuantumValue` object representing the quantum value to which the unary operator will be applied.
+- `op`: An enumeration value of type `Op` indicating the unary operator to be executed (e.g., `Op::NEG`, `Op::NOT`, `Op::BIT_NOT`).
 
-Here’s how the `execUnary` function implements its functionality:
+### Return Value
 
-```cpp
-QuantumValue VmCore::execUnary(Op op, const QuantumValue& v, int line) {
-    switch (op) {
-    case Op::NEG:
-        // Check if the quantum value is a number
-        if (v.isNumber()) 
-            // Return the negated number
-            return QuantumValue(-v.asNumber());
-        else 
-            // Throw an error if the value is not a number
-            throw TypeError("Unary - on " + v.typeName(), line);
-    case Op::NOT:
-        // Return the logical NOT of the quantum value
-        return QuantumValue(!v.isTruthy());
-    case Op::BIT_NOT:
-        // Check if the quantum value is a number
-        if (v.isNumber()) 
-            // Apply bitwise NOT and cast back to double
-            return QuantumValue((double)(~(long long)v.asNumber()));
-        else 
-            // Throw an error if the value is not a number
-            throw TypeError("Bitwise ~ on " + v.typeName(), line);
-    default:
-        // Throw an error for unknown unary operators
-        throw RuntimeError("Unknown unary op", line);
-    }
-}
-```
+- Returns a new `QuantumValue` object containing the result of applying the unary operator to `v`.
 
-### Explanation of Each Case
+## Edge Cases
 
-- **Negation (`Op::NEG`)**:
-  ```cpp
-  if (v.isNumber()) 
-      return QuantumValue(-v.asNumber());
-  else 
-      throw TypeError("Unary - on " + v.typeName(), line);
-  ```
-  - Checks if the quantum value is a number using `v.isNumber()`.
-  - If true, negates the number using `-v.asNumber()` and returns the result wrapped in a `QuantumValue`.
-  - If false, throws a `TypeError` specifying that the unary minus cannot be applied to the given type.
+1. **Unsupported Types**: If the input quantum value `v` is not of a supported type (e.g., attempting to apply negation to a non-numeric value), the function throws a `TypeError`.
+2. **Truthiness Check**: When applying logical NOT, the function converts the quantum value to a boolean before performing the NOT operation. This means that any non-zero numeric value is considered true, and zero is considered false.
+3. **Bitwise NOT**: The bitwise NOT operation is only defined for numeric values. Applying it to non-numeric values results in a `TypeError`.
 
-- **Logical NOT (`Op::NOT`)**:
-  ```cpp
-  return QuantumValue(!v.isTruthy());
-  ```
-  - Returns a new `QuantumValue` containing the logical NOT of the quantum value. This is determined by checking if the quantum value is truthy using `v.isTruthy()`.
+## Interactions with Other Components
 
-- **Bitwise NOT (`Op::BIT_NOT`)**:
-  ```cpp
-  if (v.isNumber()) 
-      return QuantumValue((double)(~(long long)v.asNumber()));
-  else 
-      throw TypeError("Bitwise ~ on " + v.typeName(), line);
-  ```
-  - Checks if the quantum value is a number using `v.isNumber()`.
-  - If true, applies the bitwise NOT using `~(long long)v.asNumber()` and casts the result back to a `double`, returning it wrapped in a `QuantumValue`.
-  - If false, throws a `TypeError` specifying that the bitwise NOT cannot be applied to the given type.
+The `execUnary` function interacts with several other components within the Quantum Language compiler's virtual machine:
 
-### Interactions with Other Components
+- **QuantumValue Class**: This class represents quantum values and provides methods for accessing their properties and performing operations like conversion to numbers or checking truthiness.
+- **Error Handling**: The function uses custom error classes (`TypeError`, `RuntimeError`) to manage exceptions and provide meaningful error messages to the user.
+- **Line Number Information**: The function accepts a `line` parameter, which indicates the line number where the operation was encountered. This information is used in error messages to help users locate the source of the issue.
 
-The `execUnary` function interacts with several other components within the Quantum Language compiler's virtual machine core:
-- **Type Checking**: Uses methods like `isNumber()` and `isTruthy()` to ensure that the quantum value is of the correct type before performing the unary operation.
-- **Error Handling**: Throws exceptions like `TypeError` and `RuntimeError` when encountering invalid input or unknown operators, ensuring robust error handling throughout the execution process.
-
-Overall, the `execUnary` function plays a crucial role in processing unary operations efficiently and safely within the Quantum Language compiler's virtual machine core.
+Overall, the `execUnary` function plays a crucial role in executing unary operations within the Quantum Language compiler's virtual machine, ensuring that operations are performed correctly and providing informative error messages for unsupported types or invalid operations.

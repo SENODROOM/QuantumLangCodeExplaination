@@ -1,47 +1,54 @@
 # `match` Function
 
-The `match` function is an essential component within the parser framework of the Quantum Language compiler. This function plays a pivotal role in verifying whether the current token sequence aligns with the anticipated syntax and structure during the compilation process. 
+The `match` function is a crucial component within the parser framework of the Quantum Language compiler. Its primary responsibility is to verify whether the current token sequence matches the expected syntax and structure during the compilation process.
 
-## What it Does
+## What It Does
 
-The primary objective of the `match` function is to check if the next token in the input stream conforms to a specified pattern or rule. If the token matches, it consumes the token and proceeds; otherwise, it returns false.
+The `match` function takes a token type as its parameter and checks if the next token in the sequence matches the specified token type. If there is a match, it consumes the token and returns `true`. Otherwise, it returns `false`.
 
-## Why it Works this Way
+### Parameters
 
-This design allows for a flexible and hierarchical approach to parsing. By encapsulating the logic for checking and consuming tokens, the `match` function simplifies the implementation of more complex parsing rules. It ensures that each rule can be broken down into smaller, manageable parts, making the codebase cleaner and easier to maintain.
+- `t`: The token type to be matched against the current token in the sequence.
 
-## Parameters/Return Value
+### Return Value
 
-- **Parameters**:
-  - `t`: A reference to a token representing the expected pattern or rule.
+- Returns `true` if the current token matches the specified token type.
+- Returns `false` if the current token does not match the specified token type.
 
-- **Return Value**:
-  - Returns `true` if the current token matches the expected pattern, after which the token is consumed.
-  - Returns `false` if there is a mismatch between the current token and the expected pattern.
+## Why It Works This Way
+
+The `match` function works in this manner because it allows the parser to validate the syntax step-by-step. By checking each token individually and consuming them when they match, the parser can ensure that the entire input sequence adheres to the language's grammar rules. This approach helps in identifying syntax errors early in the parsing process, making debugging more straightforward.
 
 ## Edge Cases
 
-1. **Empty Input Stream**: If the input stream is empty, calling `match` will result in undefined behavior since there is no token to check or consume.
-2. **Token Mismatch**: If the current token does not match the expected pattern, the function simply returns false without altering the state of the parser.
-3. **End of File (EOF)**: When encountering EOF, the `match` function should handle it gracefully, possibly returning false or indicating an error condition depending on the context.
+1. **Empty Token Sequence**: If the token sequence is empty and the function attempts to match a token, it should ideally handle this case gracefully. However, since the function assumes there is always at least one token to check, it might need additional logic to manage such scenarios.
+   
+2. **Token Mismatch**: When the current token does not match the expected token type, the function simply returns `false`. This behavior ensures that the parser can continue with the rest of the input sequence or backtrack if necessary.
 
-## Interactions with Other Components
+3. **End of File (EOF)**: If the parser reaches the end of the file while trying to match a token, it should handle this appropriately. Typically, this would involve returning `false` or throwing an exception, depending on the design of the parser.
 
-The `match` function interacts closely with several other components within the parser:
+## Interactions With Other Components
 
-1. **Lexer**: The lexer generates tokens based on the input source code. These tokens are then passed to the parser for further processing.
-2. **Token Buffer**: The parser maintains a buffer of tokens to manage the lookahead and ensure correct parsing decisions.
-3. **Error Handling**: Upon detecting a mismatch, the `match` function may trigger error handling mechanisms to report syntax errors back to the user.
+- **Lexer**: The `match` function relies on the lexer to provide the next token in the sequence. The lexer scans the source code and breaks it into individual tokens, which are then consumed by the parser.
+  
+- **Error Handling**: When a mismatch occurs, the `match` function does not handle the error itself but rather propagates it up to higher-level components where appropriate error messages can be generated.
 
-Here's how these interactions play out in the provided code snippet:
+- **State Management**: The `match` function updates the parser's internal state by consuming tokens. This state management is critical for maintaining the correct context during parsing.
+
+Here is the updated implementation of the `match` function:
 
 ```cpp
-if (check(t)) // Checks if the current token matches the expected pattern 't'
-{
-    consume(); // Consumes the matched token
-    return true;
+bool ParserCore::match(TokenType t) {
+    if (check(t)) {
+        consume();
+        return true;
+    }
+    return false;
 }
-return false; // Returns false if there is a mismatch
 ```
 
-In summary, the `match` function is a vital tool in the Quantum Language compiler's parser framework. Its straightforward implementation makes it easy to integrate into larger parsing structures while providing robust functionality for validating and advancing through token sequences.
+In this implementation:
+- `check(t)` is a helper function that verifies if the current token matches the specified token type `t`.
+- `consume()` is another helper function that removes the current token from the sequence, advancing the parser to the next token.
+
+This structured approach ensures that the `match` function operates efficiently and correctly, contributing to the overall reliability of the parser.

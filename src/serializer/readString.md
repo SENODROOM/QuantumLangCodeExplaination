@@ -2,35 +2,35 @@
 
 ## Overview
 
-The `readString` function is a crucial method within the Quantum Language compiler's serialization module, located in the `src/Serializer.cpp` file. This function is responsible for extracting a string from a serialized data buffer, ensuring that the data remains intact and is handled appropriately during deserialization.
+The `readString` function is an essential component of the Quantum Language compiler's serialization mechanism, found in the `src/Serializer.cpp` file. It serves to decode a string from a serialized data buffer, maintaining the integrity and consistency of the data throughout the process.
 
 ### Why It Works This Way
 
-The function operates by first reading the length of the string from the serialized data buffer using the `readRaw<uint32_t>` method. This length indicates how many bytes follow that represent the actual string content. The function then checks if the total number of bytes required to read the string exceeds the size of the data buffer. If it does, an exception is thrown to prevent potential out-of-bounds access, which could lead to undefined behavior or security vulnerabilities.
+This function operates under the principle of reading a string from a binary buffer in a manner that preserves its original format. The approach involves two primary steps:
 
-Next, the function constructs a `std::string` object by interpreting the following bytes as a character array. The constructor takes two arguments: a pointer to the start of the character array (`reinterpret_cast<const char*>(data.data() + offset)`) and the length of the array (`len`). After creating the string, the function updates the `offset` variable to move past the string data in the buffer, ensuring that subsequent reads do not overlap with previously processed data.
+1. **Reading the Length**: The function first reads a 32-bit unsigned integer (`uint32_t`) which represents the length of the string. This ensures that the function knows how many bytes to expect for the actual string content.
+  
+2. **Extracting the String**: Using the length obtained, the function then extracts the string from the buffer. It casts the pointer to the start of the string data as `const char*`, allowing it to interpret the next `len` bytes as characters forming the string. After extraction, the offset is incremented by the length of the string to ensure subsequent reads proceed correctly.
 
-### Parameters/Return Value
+By following this sequence, the function can accurately reconstruct strings from their serialized form without corruption or misinterpretation.
+
+## Parameters/Return Value
 
 - **Parameters**:
-  - `const std::vector<uint8_t>& data`: A constant reference to the serialized data buffer from which the string will be extracted.
-  - `size_t& offset`: A reference to the current offset in the data buffer. This parameter is updated by the function to reflect the position after the string has been read.
+  - `data`: A constant reference to a vector of bytes (`std::vector<uint8_t> const&`). This parameter represents the serialized data buffer from which the string will be extracted.
+  - `offset`: A reference to a size_t variable (`size_t &`). This parameter indicates the current position in the data buffer where the function should begin reading the string. Upon successful completion, the offset is updated to point immediately after the end of the string.
 
 - **Return Value**:
-  - Returns a `std::string` object containing the extracted string data.
+  - The function returns a `std::string` object containing the decoded string.
 
-### Edge Cases
+## Edge Cases
 
-1. **Empty String**: If the string length read from the buffer is zero, the function returns an empty string without throwing any exceptions.
-2. **Buffer Overflow**: If the calculated end of the string exceeds the bounds of the data buffer, a `std::runtime_error` is thrown to indicate that there is an unexpected string length.
-3. **Non-ASCII Characters**: The function correctly handles non-ASCII characters by interpreting the bytes as a character array, allowing strings with special characters to be accurately reconstructed.
+1. **Buffer Overflow**: If the calculated string length exceeds the available space in the buffer starting from the current offset, the function throws a `std::runtime_error`. This prevents potential buffer overflow issues and ensures robust error handling during deserialization.
 
-### Interactions With Other Components
+2. **Empty String**: While not explicitly handled in the provided code snippet, the function assumes that the string length is always non-zero. Handling empty strings would involve additional checks and possibly returning an empty string object.
 
-The `readString` function interacts with several other components within the serialization module:
+## Interactions with Other Components
 
-- **`readRaw<T>` Method**: This helper method is used to read raw binary data of type `T` from the buffer at the specified offset. In this case, it reads a `uint32_t` representing the length of the string.
-- **Data Buffer Management**: The function assumes that the data buffer (`data`) is properly managed and contains valid serialized data up to the specified `offset`. It also updates the `offset` parameter to ensure that the buffer is advanced correctly after each read operation.
-- **Error Handling**: By checking the calculated end of the string against the buffer size, the function ensures robust error handling, preventing common issues such as buffer overflow.
+The `readString` function interacts closely with other parts of the serialization module, particularly with the `readRaw` function. The `readRaw` function is used to read raw data types such as integers directly from the buffer. In the context of `readString`, `readRaw` provides the necessary functionality to extract the 32-bit length indicator before proceeding to read the string content.
 
-Overall, the `readString` function plays a vital role in the Quantum Language compiler's deserialization process, providing a safe and efficient means of extracting string data from a serialized buffer.
+Additionally, this function might interact with higher-level components of the compiler that utilize serialized data for various operations, such as parsing source code or generating intermediate representations. By providing accurate string decoding, it supports these components in their tasks, ensuring seamless integration and correct processing of serialized information.

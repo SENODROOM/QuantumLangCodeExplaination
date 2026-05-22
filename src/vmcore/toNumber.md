@@ -2,29 +2,26 @@
 
 ## Overview
 
-The `toNumber` function is a crucial utility within the Quantum Language compiler's Virtual Machine (VM) core. Its main objective is to transform a provided value (`v`) into a numeric data type, facilitating arithmetic operations and comparisons. The function operates by first checking if the input value is already of a numeric type. If so, it simply returns the numeric representation. If not, it attempts to convert the string representation of the value into a double using `std::stod`. If the conversion fails due to invalid characters or format, the function throws a `TypeError`.
+The `toNumber` function is an essential utility within the Quantum Language compiler's Virtual Machine (VM) core. Its primary purpose is to convert a given value (`v`) into a numeric data type, thereby enabling arithmetic operations and comparisons. This function operates by first checking if the input value is already a number. If not, it attempts to convert the string representation of the value into a double using `std::stod`. If the conversion fails due to invalid input, it throws a `TypeError`.
 
-## Parameters
+### Parameters
 
-- `v`: The input value that needs to be converted into a numeric type. It can be either a numeric type or a string representing a numeric value.
-- `ctx`: A context string indicating where the error occurred, aiding in debugging.
-- `line`: The line number at which the error occurred, also assisting in debugging.
+- `v`: A value that can be either a number or a string. This parameter represents the input value that needs to be converted to a numeric type.
+- `ctx`: A string representing the context in which the error occurred. This helps in providing more informative error messages.
+- `line`: An integer representing the line number where the error occurred. This aids in debugging by pinpointing the exact location of the issue.
 
-## Return Value
+### Return Value
 
-- Returns a `double` representing the numeric value of the input.
+The function returns a `double`, which is the numeric representation of the input value.
 
-## Edge Cases
+### Edge Cases
 
-1. **Numeric Input**: If the input value is already a numeric type, the function directly returns its numeric representation without any conversion.
-2. **String Input**: If the input value is a string, the function tries to convert it into a double. If the string contains non-numeric characters or is formatted incorrectly, the conversion will fail, and the function will throw a `TypeError`.
-3. **Invalid Input Type**: If the input value is neither a numeric type nor a string, the function throws a `TypeError`.
+1. **Already Number**: If the input value (`v`) is already a number, the function simply returns it as is without any conversion.
+2. **Valid String Representation**: If the input value is a string that can be successfully converted to a number (e.g., "123", "45.67"), the function returns the corresponding numeric value.
+3. **Invalid String Representation**: If the input value is a string that cannot be converted to a number (e.g., "abc", "123.45.67"), the function throws a `TypeError`.
 
-## Interactions with Other Components
+### Interactions with Other Components
 
-The `toNumber` function interacts with various components within the VM core:
+The `toNumber` function interacts primarily with the VM core and the error handling mechanism. It uses the `isNumber()` method to check if the input value is already a number and the `asNumber()` method to retrieve its numeric value. Additionally, it utilizes exception handling to manage errors during the conversion process, ensuring robustness and reliability in the compiler's operation.
 
-1. **Value Class**: It utilizes methods from the `Value` class to check if the input value is a number or a string and to retrieve their respective representations.
-2. **Error Handling**: It leverages the `TypeError` exception to handle errors related to invalid input types or formatting issues during the conversion process.
-
-This utility ensures that values are consistently treated as numbers throughout the compilation and execution phases, thereby simplifying arithmetic operations and comparisons.
+This function plays a critical role in maintaining the integrity and functionality of arithmetic operations and comparisons within the Quantum Language compiler's VM core. By converting various types of values to numbers, it facilitates seamless integration and execution of quantum algorithms and programs.
