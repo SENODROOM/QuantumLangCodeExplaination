@@ -2,77 +2,47 @@
 
 ## Overview
 
-`src/main.cpp` serves as the central entry point for the Quantum Language compiler, overseeing the entire compilation process. It interacts with various components such as the lexer, parser, compiler, virtual machine (VM), disassembler, type checker, and error handler to transform source code into executable programs or bytecode files. Additionally, it handles command-line arguments and controls the execution flow based on the build mode defined during compilation.
+`src/main.cpp` is the central entry point for the Quantum Language compiler, responsible for orchestrating the entire compilation process. It interfaces with components like the lexer, parser, compiler, virtual machine (VM), disassembler, type checker, and error handler to convert source code into either executable programs or bytecode files. This file plays a crucial role in managing command-line arguments, handling input/output operations, and coordinating the flow of data through the compiler's various stages.
 
-## Key Design Decisions and Why
+### Key Design Decisions and Why
 
-### Modularity and Separation of Concerns
+The design of `main.cpp` involves several critical choices that ensure the flexibility and robustness of the compiler:
 
-The compiler is designed with a modular architecture, where each component has a specific responsibility:
-- **Lexer**: Converts raw text into tokens.
-- **Parser**: Constructs an abstract syntax tree (AST) from tokens.
-- **Compiler**: Translates AST into intermediate representation (IR).
-- **VM**: Executes IR directly or compiles it into native code.
-- **Disassembler**: Converts IR back into human-readable assembly code.
-- **Type Checker**: Ensures that types are used correctly throughout the program.
-- **Error Handler**: Manages and reports errors encountered during compilation.
+1. **Modular Architecture**: By dividing the functionality into distinct modules (`Lexer`, `Parser`, `Compiler`, `VM`, `Disassembler`, `TypeChecker`, `Error`), `main.cpp` facilitates easier maintenance and scalability. Each module can be developed, tested, and debugged independently.
 
-This separation allows for easier maintenance, testing, and scalability of the compiler.
+2. **Command-Line Argument Handling**: The program uses `argc` and `argv` to parse command-line arguments, allowing users to specify options such as input file paths, output formats, and debugging levels. This approach ensures that the compiler can be used flexibly in different environments and configurations.
 
-### Command-Line Argument Handling
+3. **Conditional Compilation**: Based on build definitions set by `CMakeLists.txt`, the program determines its mode of operation. For example:
+   - `QUANTUM_MODE_COMPILER`: Compiles `.sa` files into `.exe` files and then executes them.
+   - `QRUN_MODE`: Always interprets the source code without bundling it.
+   - `neither`: Produces a standalone bundled executable, suitable for distribution.
 
-The compiler processes command-line arguments to determine its operation mode:
-- `QUANTUM_MODE_COMPILER`: Compiles `.sa` files into `.exe` files and executes them.
-- `QRUN_MODE`: Always interprets `.sa` files without bundling.
-- `neither`: Generates standalone bundled executables like `hello.exe`.
+4. **Error Handling**: The program includes comprehensive error handling mechanisms to manage syntax errors, semantic errors, and runtime exceptions. These mechanisms help in providing clear and actionable error messages, improving the user experience.
 
-Handling these modes ensures flexibility in how the compiler can be used depending on the user's needs.
-
-### Embedded Bytecode Support
-
-For certain build configurations, the compiler supports embedded bytecode within the executable. This feature is particularly useful for creating self-contained applications. The bytecode is appended to the PE (Portable Executable) image at the end, and `loadEmbeddedBytecode` function reads and deserializes it when necessary.
+5. **Performance Optimization**: To enhance performance, especially during the compilation of large files, `main.cpp` employs techniques such as caching intermediate results and parallel processing where applicable. This optimization ensures that the compiler can handle complex projects efficiently.
 
 ## Major Classes/Functions Overview
 
-### `main()`
-- **Purpose**: The primary function that initializes the compiler and orchestrates the compilation process.
-- **Flow**:
-  1. Parses command-line arguments.
-  2. Initializes the appropriate components based on the build mode.
-  3. Reads input source files.
-  4. Invokes the lexer, parser, compiler, and VM in sequence.
-  5. Handles any errors that occur during the process.
+- **`getExecutablePath()`**:
+  - **Description**: Retrieves the full path of the currently executing binary.
+  - **Usage**: Used to locate embedded bytecode within the executable file.
 
-### `getExecutablePath()`
-- **Purpose**: Retrieves the full path of the currently executing executable.
-- **Usage**: Used to locate the embedded bytecode section within the executable.
+- **`loadEmbeddedBytecode(const std::string &exePath)`**:
+  - **Description**: Loads and deserializes embedded bytecode from the specified executable file.
+  - **Usage**: Enables the execution of precompiled bytecode directly from the executable, bypassing the need for separate compilation steps.
 
-### `loadEmbeddedBytecode(const std::string &exePath)`
-- **Purpose**: Loads and deserializes embedded bytecode from the specified executable path.
-- **Details**:
-  1. Opens the executable file in binary read mode.
-  2. Checks the file size to ensure it contains enough data for the embedded bytecode.
-  3. Verifies the presence of the "QNTM_VM!" magic string at the end of the file.
-  4. Reads the payload size and the actual payload data.
-  5. Deserializes the payload using `Serializer::deserialize`.
-- **Return Value**: A shared pointer to the loaded `Chunk`, which represents the compiled bytecode.
-
-### `printBanner()`
-- **Purpose**: Prints a colorful banner to the console when the compiler starts.
-- **Details**:
-  - Uses ANSI escape codes to set text color and style.
-  - Displays ASCII art representing the Quantum Language logo.
+- **`printBanner()`**:
+  - **Description**: Prints a colorful banner to the console when the compiler starts.
+  - **Usage**: Enhances the visual appeal and provides immediate feedback to the user about the compiler's status.
 
 ## Tradeoffs
 
-### Memory Usage vs. Execution Speed
+While `main.cpp` offers a modular and efficient architecture, it also comes with some tradeoffs:
 
-- **Embedded Bytecode**: While embedding bytecode reduces the need for external files, it increases memory usage because the entire bytecode must be loaded into memory along with the executable.
-- **Interpretation vs. Compilation**: Choosing between interpretation and compilation affects both memory usage and execution speed. Interpretation is slower but uses less memory, while compilation generates faster-executing native code but requires more memory during the compilation phase.
+- **Complexity**: Managing multiple modules and their interactions increases the complexity of the codebase. However, this complexity is mitigated by thorough testing and documentation.
 
-### Flexibility vs. Simplicity
+- **Memory Usage**: Loading and deserializing embedded bytecode requires additional memory resources. While this can impact performance, it allows for more compact and convenient deployment of precompiled applications.
 
-- **Modular Architecture**: Provides greater flexibility by allowing individual components to be modified or replaced independently. However, it adds complexity due to increased interdependencies and the need for careful management of resources.
-- **Single-File vs. Multi-File**: Bundling bytecode into a single executable simplifies distribution and deployment but limits the ability to update or debug individual components separately.
+- **Build Time**: Conditional compilation based on build definitions can increase build time slightly. However, this tradeoff is acceptable given the benefits of flexible and optimized modes of operation.
 
-By carefully balancing these factors, the Quantum Language compiler aims to provide a powerful yet flexible tool for developing quantum applications.
+In conclusion, `src/main.cpp` is a vital component of the Quantum Language compiler, ensuring its modularity, efficiency, and adaptability across different usage scenarios. Its design decisions and functionalities provide a solid foundation for developing, testing, and deploying quantum applications.
