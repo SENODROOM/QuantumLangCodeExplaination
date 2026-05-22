@@ -1,57 +1,41 @@
-# QuantumLanguage Compiler - Lexer.h
+# QuantumLanguage Compiler - Opcode.h
 
 ## Overview
 
-The `include/Lexer.h` header file is a crucial component of the QuantumLanguage compiler, focusing on the lexical analysis phase. This phase involves breaking down the source code into individual tokens that can be processed further in the compilation pipeline. The `Lexer` class plays a pivotal role in managing this process efficiently and accurately.
+The `include/Opcode.h` header file defines the opcodes used by the QuantumLanguage virtual machine (VM). These opcodes specify the operations that the VM can perform during the execution of a quantum program. Each opcode corresponds to a specific operation, such as loading constants, manipulating variables, performing arithmetic, handling control flow, calling functions, managing collections, accessing members, iterating over data structures, creating classes, raising exceptions, and more.
 
 ## Role in Compiler Pipeline
 
-The `Lexer` class operates at the beginning of the compiler pipeline, converting raw source code into a stream of tokens. These tokens represent the smallest meaningful units in the language, such as keywords, identifiers, numbers, strings, and operators. By tokenizing the input, the lexer facilitates subsequent phases like parsing and semantic analysis, which rely on structured data rather than plain text.
+The `Opcode.h` file plays a crucial role in the QuantumLanguage compiler's pipeline. It serves as the foundation for the bytecode generation process, where each high-level instruction is translated into one or more opcodes. During the execution phase, the VM interprets these opcodes to carry out the corresponding operations. This separation allows the compiler to focus on translating source code into a low-level format that is easy for the VM to execute, while the VM handles the actual execution logic.
 
-### Key Design Decisions and Why
+## Key Design Decisions and Why
 
-1. **Tokenization Rules**: The lexer must adhere to strict rules to correctly identify and categorize tokens. For instance, it needs to distinguish between identifiers and keywords, handle different types of literals (numbers, strings), and recognize operators and delimiters. This ensures that the compiler can interpret the code accurately.
+1. **Stack-Based Architecture**: The use of a stack-based architecture simplifies the implementation of the VM and allows for efficient memory management. Operations like pushing and popping values are straightforward and do not require complex addressing modes.
+   
+2. **Extensibility**: By defining a clear and extensible set of opcodes, the QuantumLanguage compiler can easily add new features or optimizations without breaking existing code. This flexibility is crucial for supporting future enhancements and performance improvements.
 
-2. **Error Handling**: Efficient error handling is critical during the lexical analysis phase. The lexer should be able to detect syntax errors early and provide clear messages to help developers correct their code. This enhances the overall reliability and maintainability of the compiler.
+3. **Performance Optimization**: Certain opcodes, such as those related to arithmetic and bitwise operations, are designed to be highly optimized. This ensures that critical parts of the quantum program run efficiently, which is essential for achieving good performance.
 
-3. **State Management**: To manage complex scenarios such as template literals and string interpolation, the lexer may need to maintain state across multiple characters or lines. This allows it to handle nested structures and ensure proper tokenization even when encountering special constructs.
+4. **Exception Handling**: The inclusion of opcodes for exception handling (e.g., `PUSH_HANDLER`, `POP_HANDLER`, `RAISE`, `RERAISE`) provides robust support for error management within the quantum program. This helps ensure that the program can gracefully handle unexpected situations and maintain its integrity.
 
-4. **Preprocessor Support**: The lexer includes support for C-style preprocessor directives (`#define`). This enables the compiler to expand macros before proceeding with the main compilation process, simplifying the codebase and reducing complexity.
-
-5. **Performance Optimization**: Lexical analysis can be computationally intensive, especially for large codebases. Optimizations such as lookahead and caching can significantly improve performance without compromising accuracy.
+5. **Pointer Support (C++ Extensions)**: To support C++ extensions, the QuantumLanguage compiler includes opcodes for pointer manipulation (`ADDRESS_OF`, `DEREF`, `ARROW`). This allows quantum programs to interact with C++ objects and their properties, providing a bridge between the quantum and classical worlds.
 
 ## Major Classes/Functions Overview
 
-### Lexer Class
+- **Op Enum Class**: This enum class defines all the available opcodes. Each opcode represents a specific operation that the VM can perform. The opcodes are organized into categories such as stack manipulation, variable handling, arithmetic, comparison, logical operations, string manipulation, control flow, function calls, collection creation, member access, iteration, class creation, exception handling, and pointer support.
 
-- **Constructor**: `explicit Lexer(const std::string &source);`
-  - Initializes the lexer with the source code to be analyzed.
+- **Value Class**: This class represents the values that can be manipulated by the VM. It supports various types, including integers, floating-point numbers, strings, booleans, and pointers. The `Value` class is essential for maintaining the state of the VM and facilitating the execution of quantum operations.
 
-- **tokenize() Function**:
-  - Converts the entire source code into a vector of tokens.
-  - Returns the vector of tokens representing the source code.
-
-### Private Member Functions
-
-- **current() const**: Retrieves the current character being analyzed.
-- **peek(int offset = 1) const**: Looks ahead by a specified number of characters without advancing the position.
-- **advance()**: Advances the position to the next character and returns it.
-- **skipWhitespace()**: Skips any whitespace characters until a non-whitespace character is encountered.
-- **skipComment()**: Skips a single-line comment starting with `//`.
-- **skipBlockComment()**: Skips a multi-line comment enclosed within `/* */`.
-
-- **readNumber()**: Reads a numeric literal from the source code and returns it as a `Token`.
-- **readString(char quote)**: Reads a string literal enclosed within a specified type of quotes and returns it as a `Token`.
-- **readTemplateLiteral(std::vector<Token> &out, int startLine, int startCol)**: Handles template literals, expanding them into a sequence of tokens.
-- **defines_**: A map storing macro definitions, allowing for easy expansion during preprocessing.
-- **pendingTokens_**: Used for managing intermediate tokens during f-string expansion.
+- **QuantumFunction Class**: This class represents a quantum function. It encapsulates the function's bytecode, parameters, and other metadata. The `QuantumFunction` class is used to manage function calls and returns within the VM.
 
 ## Tradeoffs
 
-1. **Complexity vs. Accuracy**: While supporting advanced features like template literals and macros adds complexity to the lexer, these features enhance the expressiveness and utility of the language. Balancing simplicity and functionality is essential for maintaining a robust and user-friendly compiler.
+1. **Simplicity vs. Complexity**: A stack-based architecture offers simplicity and ease of implementation but may limit certain advanced features. Extending the opcode set to support C++ pointers adds complexity but enables quantum programs to interact with classical data structures effectively.
 
-2. **Performance vs. Memory Usage**: Optimizing the lexer for performance often requires additional memory usage for caching and state management. Finding the right balance between these factors is crucial for maintaining efficiency while accommodating larger codebases.
+2. **Memory Usage**: Stack-based operations generally have lower memory usage compared to register-based architectures. However, managing large stacks can lead to performance issues, especially for deep recursion or nested function calls.
 
-3. **Readability vs. Maintainability**: Adding more features and optimizations can sometimes reduce the readability of the lexer's implementation. Ensuring that the code remains clean and maintainable is important for long-term development and debugging.
+3. **Execution Speed**: Optimized opcodes for arithmetic and bitwise operations can significantly improve execution speed. However, adding too many specialized opcodes may increase the complexity of the VM and slow down general-purpose operations.
 
-By carefully considering these tradeoffs, the QuantumLanguage compiler aims to deliver a powerful and efficient tool for developers working with quantum programming languages.
+4. **Flexibility vs. Performance**: Providing a wide range of opcodes for different operations increases flexibility but may reduce performance due to increased branching and conditional logic. Balancing these factors is essential for achieving optimal performance.
+
+In conclusion, the `include/Opcode.h` header file is a vital component of the QuantumLanguage compiler, defining the opcodes that enable the VM to execute quantum programs efficiently. Its design decisions reflect a balance between simplicity, extensibility, performance, and flexibility, making it well-suited for both educational and practical applications in the field of quantum computing.
