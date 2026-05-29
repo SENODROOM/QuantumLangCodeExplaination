@@ -7,33 +7,30 @@ The `typeName` function is a crucial member method of the `QuantumValue` class i
 - None
 
 ## Return Value
-- Returns a `std::string` representing the type name of the quantum value.
+- A `std::string` representing the type name of the quantum value stored in the `data` variant of the `QuantumValue` class.
 
 ## How It Works
-The `typeName` function utilizes `std::visit`, which is part of C++17's variant utilities, to inspect the underlying type of the `data` member variable of the `QuantumValue` class. Depending on the type of `data`, the function returns a corresponding string that represents the type name:
+The `typeName` function utilizes `std::visit` to inspect the contents of the `data` variant within the `QuantumValue` class. Depending on the actual type of the contained value, it returns a corresponding string that identifies the type. The function employs template metaprogramming through `if constexpr` to check the type at compile time, ensuring efficient execution without runtime overhead.
 
-- `QuantumNil`: Returns `"nil"`.
-- `bool`: Returns `"bool"`.
-- `double`: Returns `"number"`.
-- `std::string`: Returns `"string"`.
-- `std::shared_ptr<Array>`: Returns `"array"`.
-- `std::shared_ptr<Dict>`: Returns `"dict"`.
-- `std::shared_ptr<Closure>`: Returns `"function"`.
-- `std::shared_ptr<QuantumNative>`: Returns `"native"`.
-- `std::shared_ptr<QuantumInstance>`: Returns the name of the class (`v->klass->name`) associated with the instance.
-- `std::shared_ptr<QuantumClass>`: Returns `"class"`.
-- `std::shared_ptr<QuantumBoundMethod>`: Returns `"method"`.
-- `std::shared_ptr<QuantumPointer>`: Returns `"pointer"`.
+Here’s how each case works:
+- If the value is of type `QuantumNil`, it returns `"nil"`.
+- For boolean values (`bool`), it returns `"bool"`.
+- Double precision floating-point numbers (`double`) are identified as `"number"`.
+- Strings (`std::string`) are returned as `"string"`.
+- Arrays (`std::shared_ptr<Array>`) are recognized as `"array"`.
+- Dictionaries (`std::shared_ptr<Dict>`) are identified as `"dict"`.
+- Functions (`std::shared_ptr<Closure>`) are returned as `"function"`.
+- Native objects (`std::shared_ptr<QuantumNative>`) are identified as `"native"`.
+- Instances of classes (`std::shared_ptr<QuantumInstance>`) have their type name retrieved from the associated class object (`v->klass->name`).
+- Classes themselves (`std::shared_ptr<QuantumClass>`) are identified as `"class"`.
+- Bound methods (`std::shared_ptr<QuantumBoundMethod>`) are returned as `"method"`.
+- Pointers (`std::shared_ptr<QuantumPointer>`) are identified as `"pointer"`.
 
-If the type of `data` does not match any of the above cases, the function returns `"unknown"`.
+If none of these conditions match, the function defaults to returning `"unknown"`.
 
 ## Edge Cases
-- If `data` contains an unknown or unsupported type, the function returns `"unknown"`.
-- For `std::shared_ptr<QuantumInstance>`, the function correctly retrieves the class name associated with the instance.
+- **Empty Variant**: Although not explicitly handled in the provided code snippet, an empty `data` variant would lead to undefined behavior since `std::visit` requires a non-empty variant.
+- **Unknown Type**: Any types not explicitly covered in the `if constexpr` clauses will result in the function returning `"unknown"`.
 
 ## Interactions With Other Components
-- The `typeName` function interacts with various classes such as `QuantumNil`, `bool`, `double`, `std::string`, `Array`, `Dict`, `Closure`, `QuantumNative`, `QuantumInstance`, `QuantumClass`, `QuantumBoundMethod`, and `QuantumPointer` through their shared pointers.
-- This interaction allows the function to determine the exact type of the quantum value and retrieve its appropriate type name.
-
-## Why It Works This Way
-This implementation leverages `std::visit` and `if constexpr` to provide compile-time branching based on the type of `data`. By doing so, the function avoids runtime type checking and directly accesses the type-specific logic, ensuring efficient and type-safe operation. The use of `std::decay_t` ensures that any reference types are decayed into their underlying types before comparison, preventing issues related to type qualifiers.
+The `typeName` function interacts primarily with the `data` variant of the `QuantumValue` class, which holds different types of quantum values such as integers, strings, arrays, etc. By identifying the type of the value, `typeName` facilitates operations that depend on the type, such as serialization, debugging, or type-specific processing during compilation. Additionally, it might interact with other parts of the compiler that need to know the type of a value for semantic analysis or optimization purposes.
