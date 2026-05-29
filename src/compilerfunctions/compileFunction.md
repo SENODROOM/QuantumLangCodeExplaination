@@ -2,40 +2,34 @@
 
 ## Overview
 
-The `compileFunction` function is a crucial component within the Quantum Language compiler, located in the `CompilerFunctions.cpp` file. Its primary role is to translate a function definition into a sequence of bytecode instructions that can be executed by the quantum virtual machine (QVM). This function ensures that each parameter and local variable is properly declared and managed during compilation, while also handling the body of the function and emitting appropriate return instructions.
+The `compileFunction` function is a critical component within the Quantum Language compiler, located in the `CompilerFunctions.cpp` file. Its primary role is to translate a function definition into a sequence of bytecode instructions that can be executed by the quantum virtual machine (QVM). This function ensures that all local variables and parameters are properly declared and managed during the compilation process.
 
 ### Why It Works This Way
 
-The function works by creating a new `CompilerState` object (`fnState`) specific to the function being compiled. This state includes information about the function's parameters, whether they are references, and the scope of local variables. By setting up these states, the function ensures that all necessary declarations are made before any code execution occurs.
-
-The function then iterates over the list of parameters to handle any special syntax related to arrays or lists. If a parameter name starts and ends with square brackets (`[]`), it indicates that the parameter represents an array or list. The function processes this syntax by splitting the parameter name into individual elements and declaring them as separate local variables within the function.
-
-Finally, the function compiles the body of the function. If the body consists of multiple statements enclosed in a block (`BlockStmt`), the function calls `compileBlock` to handle the entire block. Otherwise, if the body is a single expression, the function compiles the expression and emits a `RETURN` instruction to ensure the function returns the correct value.
-
-If the function has no explicit body, the function emits a `RETURN_NIL` instruction to indicate that the function should return `nil`.
+The function operates by creating a new `CompilerState` object specifically for the function being compiled. This state includes information about the function's parameters, local variables, and the chunk of bytecode that will be generated. The function then iterates through each parameter to check if it is an array declaration. If a parameter is identified as an array, it processes the array elements to create corresponding local variables. Finally, the function compiles the body of the function and emits necessary bytecode instructions to handle returns and scope management.
 
 ### Parameters/Return Value
 
 - **Parameters**:
   - `name`: A string representing the name of the function being compiled.
   - `params`: A vector of strings representing the parameters of the function.
-  - `paramIsRef`: A vector of booleans indicating whether each parameter is a reference.
-  - `body`: A pointer to a `Statement` object representing the body of the function.
-  - `line`: An integer representing the line number where the function definition appears in the source code.
+  - `paramIsRef`: A vector of booleans indicating whether each parameter is passed by reference.
+  - `body`: A pointer to a statement or expression representing the body of the function.
+  - `line`: An integer representing the line number where the function is defined.
 
 - **Return Value**:
-  - Returns a pointer to a `Chunk` object representing the compiled bytecode of the function.
+  - Returns a pointer to the `Chunk` object containing the compiled bytecode for the function.
 
 ### Edge Cases
 
-- **Empty Body**: If the function has no explicit body, the function will automatically return `nil`.
-- **Single Expression Body**: If the function body consists of a single expression, the function will compile the expression and emit a `RETURN` instruction.
-- **Array/List Parameters**: The function handles parameters that represent arrays or lists by splitting the parameter names into individual elements and declaring them as separate local variables.
+- **Empty Parameter List**: If the function has no parameters, the function simply compiles the body and emits a return instruction.
+- **Non-Array Parameters**: Parameters that are not array declarations are handled normally, without any special processing.
+- **Array Declaration Syntax**: The function assumes that array declarations follow the syntax `[elementName]`. Any deviation from this syntax may lead to incorrect handling of array elements.
 
 ### Interactions With Other Components
 
-- **CompilerState**: The function interacts with the `CompilerState` class to manage the state of the function being compiled, including its parameters and local variables.
-- **Chunk**: The function creates a new `Chunk` object to store the compiled bytecode of the function.
-- **Op Codes**: The function uses various op codes (`Op::LOAD_LOCAL`, `Op::LOAD_CONST`, `Op::GET_INDEX`, etc.) to generate bytecode instructions for different operations such as loading local variables, accessing constants, and performing index operations on arrays or lists.
+- **CompilerState**: The function uses `CompilerState` objects to manage the compilation context for both the global scope and the function scope. It temporarily switches the `current_` state to the function state during compilation and restores it afterward.
+- **Bytecode Emission**: The function interacts with the bytecode emission logic to generate instructions for loading constants, accessing local variables, and performing operations such as indexing and defining local variables.
+- **Scope Management**: The function manages the scope of the function using `beginScope()` and `endScope()` methods. This ensures that local variables are properly declared and cleaned up when the function execution ends.
 
-This comprehensive approach ensures that the `compileFunction` method effectively translates high-level function definitions into low-level bytecode instructions, facilitating efficient execution on the QVM.
+By carefully managing these aspects, the `compileFunction` function ensures that the quantum program is correctly translated into executable bytecode, facilitating efficient execution on the QVM.
