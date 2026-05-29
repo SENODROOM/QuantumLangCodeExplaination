@@ -2,41 +2,45 @@
 
 ## Purpose
 
-The `readRaw` function is designed to deserialize raw binary data into a specific type `T`. It reads the data directly from a buffer and returns an instance of `T`. This function is crucial in the process of reconstructing objects from their serialized form, ensuring that the original object's state is accurately restored.
+The `readRaw` function is designed to deserialize raw binary data into a specific type `T`. It reads the data directly from a buffer and returns an instance of `T`. This function is crucial in the process of reconstructing objects from their serialized form, ensuring that the data integrity is maintained during the deserialization process.
 
 ## Parameters
 
-- `data`: A reference to a `std::vector<uint8_t>` representing the buffer containing the serialized data.
-- `offset`: An integer representing the current position within the buffer where reading should begin.
+- `data`: A reference to a `std::vector<uint8_t>` containing the serialized binary data.
+- `offset`: An integer representing the current position within the `data` vector where the deserialization should start.
 
 ## Return Value
 
-- Returns an instance of type `T`, which is constructed using the binary data read from the buffer starting at the specified `offset`.
-
-## How It Works
-
-The `readRaw` function operates by copying a block of memory from the buffer into a variable of type `T`. Here’s how it achieves this:
-
-1. **Bounds Checking**: Before proceeding with the copy operation, the function checks whether there is enough data left in the buffer to accommodate the size of `T`. If not, it throws a `std::runtime_error` indicating an unexpected end of file during deserialization.
-
-2. **Memory Copy**: The function uses `std::memcpy` to copy the bytes from the buffer (`data.data() + offset`) into the memory location of the variable `t`. This effectively reconstructs the object of type `T` from its serialized binary representation.
-
-3. **Update Offset**: After successfully copying the data, the function increments the `offset` by the size of `T` to move past the deserialized data in the buffer.
+The function returns an instance of type `T`, which represents the deserialized object.
 
 ## Edge Cases
 
-- **Buffer Overflow**: If the `offset` plus the size of `T` exceeds the total size of the buffer, the function will throw an exception. This prevents reading beyond the allocated memory, which could lead to undefined behavior or security vulnerabilities.
+1. **Buffer Overflow**: If the `offset` plus the size of `T` exceeds the total size of the `data` vector, the function throws a `std::runtime_error` indicating an unexpected end of file. This prevents reading beyond the allocated memory, which could lead to undefined behavior or security vulnerabilities.
+   
+2. **Empty Data Vector**: If the `data` vector is empty, attempting to access any element will result in a runtime error. The function checks for this condition before proceeding with the deserialization process.
+
+3. **Type Mismatch**: Since `readRaw` assumes that the data at the specified `offset` is of type `T`, using this function on mismatched data types can lead to incorrect values being assigned to the returned object. It is essential to ensure that the data being read matches the expected type `T`.
+
+## Interactions with Other Components
+
+The `readRaw` function interacts closely with the serialization mechanism used throughout the Quantum Language compiler. It is typically called by higher-level functions responsible for deserializing complex objects or structures. For example, when reconstructing a quantum circuit from its serialized representation, multiple calls to `readRaw` might be made to read different parts of the circuit's state, such as gate operations, qubit states, and control flow instructions.
+
+Here’s how it fits into the broader context:
+
+- **Deserialization Pipeline**: `readRaw` operates as part of a larger deserialization pipeline. After initializing the buffer, various components call `readRaw` to extract specific fields or sub-objects from the serialized data.
   
-- **Empty Buffer**: If the buffer is empty or has fewer elements than expected, the function will also throw an exception. This ensures that the deserialization process only proceeds when sufficient data is available.
+- **Error Handling**: By checking the `offset` against the size of the `data` vector, `readRaw` ensures robust error handling. This helps maintain the reliability of the deserialization process, preventing crashes due to invalid data access.
 
-## Interactions With Other Components
+## Implementation Details
 
-The `readRaw` function is typically used as part of a larger deserialization process. It interacts with other components such as:
+The implementation of `readRaw` uses `std::memcpy` to copy the binary data from the `data` vector into a temporary variable of type `T`. This method is efficient and straightforward for copying fixed-size data types. Here’s a breakdown of the steps involved:
 
-- **Deserializer Class**: The `readRaw` function might be called by methods within a `Deserializer` class, which manages the overall deserialization workflow.
-  
-- **Data Structures**: Depending on the context, `readRaw` may be used to deserialize complex data structures composed of multiple types `T`.
-  
-- **Error Handling**: The function relies on throwing exceptions to handle errors, which means it must be integrated with error handling mechanisms in the surrounding codebase.
+1. **Bounds Checking**: Before copying any data, the function checks whether there is enough space left in the `data` vector starting from the given `offset` to accommodate the entire object of type `T`. If not, it throws an exception to prevent buffer overflow.
 
-In summary, the `readRaw` function provides a fundamental mechanism for converting serialized binary data back into usable objects of type `T`. Its careful implementation ensures robustness and reliability in the deserialization process, safeguarding against common pitfalls like buffer overflow and incomplete data.
+2. **Memory Copy**: Using `std::memcpy`, the function copies the bytes from the `data` vector into the memory location of the temporary variable `t`. This effectively converts the binary data back into a usable object of type `T`.
+
+3. **Offset Update**: After successfully copying the data, the function updates the `offset` by adding the size of `T`. This ensures that subsequent calls to `readRaw` start reading from the correct position in the buffer.
+
+4. **Return Deserialized Object**: Finally, the function returns the deserialized object `t`.
+
+This implementation ensures that the deserialization process is both safe and efficient, leveraging standard library functions to handle the low-level details of data copying.
