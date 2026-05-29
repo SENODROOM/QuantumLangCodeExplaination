@@ -2,44 +2,33 @@
 
 ## Purpose
 
-The `compileBlock` function is responsible for compiling a block of statements in the quantum language. Its primary purpose is to ensure that all functions declared within the block are properly defined and initialized before any other statements are compiled. This function plays a crucial role in maintaining the correct order of operations during compilation, which is essential for the proper execution of the program.
+The `compileBlock` function is responsible for compiling a block of statements in the quantum language. Its primary purpose is to ensure that all functions declared within the block are properly defined and initialized before any other statements are compiled. This function operates on a given block (`b`) which contains multiple statements (`statements`). It ensures that each function declaration is handled appropriately to prevent redeclaration errors and to set up the necessary environment for subsequent function calls or executions.
 
 ## Parameters
 
-- `b`: A reference to the `Block` object containing the statements to be compiled. The `Block` object represents a group of statements executed sequentially.
+- **`b`**: A reference to a `Block` object representing the block of statements to be compiled. The `Block` class typically includes a list of statements (`statements`).
 
 ## Return Value
 
-This function does not return any value explicitly. However, it indirectly contributes to the generation of bytecode that will be executed by the quantum interpreter.
-
-## How It Works
-
-The `compileBlock` function operates in two main phases:
-
-1. **Initialization Phase**:
-   - If the current scope depth (`current_->scopeDepth`) is greater than zero, indicating that we are inside a nested scope, the function proceeds to the initialization phase.
-   - It iterates over each statement in the block using a range-based for loop.
-   - For each statement, it checks if the statement is a function declaration (`FunctionDecl`). If it is not, the iteration continues to the next statement.
-   - If the statement is a function declaration, it resolves whether the function name already exists in the local symbol table using `resolveLocal(current_, fn.name)`. If the function name is found (i.e., `resolveLocal` returns a non-negative index), the function skips further processing for this declaration.
-   - If the function name is not found, it emits an `Op::LOAD_NIL` operation to push a nil value onto the stack. This is done to initialize the function variable.
-   - It then declares the function name in the local symbol table using `declareLocal(fn.name, stmt->line)`.
-   - Finally, it emits an `Op::DEFINE_LOCAL` operation to define the function as a local variable. The index used here corresponds to the position of the function variable in the local symbol table.
-
-2. **Compilation Phase**:
-   - After the initialization phase, the function enters the compilation phase.
-   - It again iterates over each statement in the block using a range-based for loop.
-   - For each statement, it calls the `compileNode` function to recursively compile the statement. This allows the `compileBlock` function to handle nested blocks and individual statements correctly.
+This function does not return any value explicitly. Instead, it compiles the block of statements, modifying the internal state of the compiler to reflect the compilation process.
 
 ## Edge Cases
 
-- **Empty Block**: If the block contains no statements, the function simply completes without emitting any operations.
-- **Nested Functions**: If the block contains nested functions, the `compileBlock` function ensures that each nested function is initialized before its parent function. This is achieved through the nested scope handling logic.
-- **Function Redefinition**: If a function is redefined within the same block, the `compileBlock` function will skip the second definition, ensuring that only one instance of the function is compiled.
+1. **Empty Block**: If the block (`b`) is empty, the function will simply return without performing any operations.
+2. **No Function Declarations**: If there are no function declarations within the block, the function will iterate through all statements but will not perform any actions related to function handling.
+3. **Re-declaration of Functions**: If a function is declared more than once within the same block, the function will only handle the first declaration and ignore subsequent ones. This prevents redeclaration errors during compilation.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Symbol Table Management**: The `compileBlock` function interacts closely with the symbol table management component. It uses `resolveLocal` to check if a function name already exists in the local symbol table and `declareLocal` to add new function names to the table.
-- **Bytecode Emission**: The `compileBlock` function also interacts with the bytecode emission component. It uses `emit` to generate bytecode instructions such as `Op::LOAD_NIL`, `Op::DEFINE_LOCAL`, etc., which are necessary for the proper execution of the quantum program.
-- **Scope Handling**: The `compileBlock` function manages the scope depth (`current_->scopeDepth`) to ensure that nested functions are handled correctly. It initializes nested functions before their parent functions, maintaining the correct order of operations during compilation.
+- **Scope Management**: The function interacts with the scope management component to track the depth of the current scope (`current_->scopeDepth`). If the scope depth is greater than zero, it indicates that the block is nested within another block or function, and the function proceeds to handle function declarations within this context.
+  
+- **Symbol Table**: The function uses the symbol table component to resolve local symbols (`resolveLocal`). If a function name already exists in the local symbol table at the current scope level, the function skips its handling to avoid redeclaration issues.
 
-By carefully managing the initialization and compilation phases, the `compileBlock` function ensures that the quantum language program is compiled correctly, with all functions properly defined and initialized before any other statements are executed. This contributes to the overall correctness and reliability of the quantum interpreter.
+- **Emission of Instructions**: The function emits instructions using the instruction emission component. Specifically:
+  - `emit(Op::LOAD_NIL, 0, stmt->line);`: Emits an instruction to load `nil` onto the stack. This is done to initialize the function variable before defining it.
+  - `declareLocal(fn.name, stmt->line);`: Declares a new local symbol in the symbol table for the function name.
+  - `emit(Op::DEFINE_LOCAL, static_cast<int>(current_->locals.size()) - 1, stmt->line);`: Defines the local symbol as a function, setting up the necessary metadata and references.
+
+- **Recursive Compilation**: After handling all function declarations, the function recursively compiles each statement in the block using `compileNode(*stmt);`. This ensures that all other types of statements (e.g., expressions, control flow constructs) are processed correctly after the function declarations have been handled.
+
+In summary, the `compileBlock` function plays a crucial role in ensuring proper initialization and definition of functions within a block of quantum language statements, facilitating correct compilation and execution of the code.
