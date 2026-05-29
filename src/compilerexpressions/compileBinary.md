@@ -2,44 +2,54 @@
 
 ## Overview
 
-The `compileBinary` function is designed to compile binary expressions within the Quantum Language compiler. This function processes various types of binary operators such as logical operations (`and`, `&&`), membership tests (`in`, `not in`), arithmetic operations (`+`, `-`, `*`, `/`, `%`, `//`, `**`), and comparison operations (`==`, `!=`, `<`, `<=`, `>`, `>=`). By handling these different operators, `compileBinary` ensures that the quantum code generated accurately reflects the intended logic or computation of the binary expression.
-
-### Why It Works This Way
-
-The design of `compileBinary` allows for a flexible and extensible approach to handling binary operators. Each type of operator has its own specific behavior, which is encapsulated within conditional blocks. For example, logical operators like `and` and `or` require special handling because they involve control flow based on the evaluation of their operands. Membership tests (`in`, `not in`) rely on calling the `__contains__` method, while arithmetic and comparison operators directly map to corresponding bytecode instructions.
-
-This separation of concerns makes the function easier to maintain and extend. Adding support for new binary operators can be done by simply adding entries to the `opMap` unordered map without altering the existing logic for handling other operators.
+The `compileBinary` function is responsible for compiling binary expressions encountered during the compilation process of the Quantum Language. It handles different types of binary operators including logical operations, membership tests, and arithmetic operations. The function ensures that the correct sequence of bytecode instructions is emitted based on the operator type and operands.
 
 ## Parameters/Return Value
 
-### Parameters
+- **Parameters**: 
+  - `e`: A reference to a `BinaryExpression` object representing the binary expression to be compiled.
+  
+- **Return Value**: 
+  - None. The function directly modifies the bytecode stream through calls to `emit` and `emitJump`.
 
-- `e`: A reference to a `BinaryExpression` object representing the binary expression to be compiled. This object contains information about the left and right operands, as well as the operator itself.
+## How It Works
 
-### Return Value
+1. **Logical Operations (`and`, `&&`)**:
+   - If the operator is either `"and"` or `"&&"`, the function compiles the left operand first.
+   - It then emits a jump instruction (`Op::JUMP_IF_FALSE`) to skip the right operand if the left operand evaluates to false.
+   - After emitting the jump instruction, it pops the result of the left operand from the stack.
+   - Next, it compiles the right operand.
+   - Finally, it patches the jump instruction to ensure it jumps correctly after evaluating the right operand.
 
-- None. The function compiles the binary expression in place, modifying the internal state of the compiler to generate the appropriate quantum bytecode.
+2. **Logical Operations (`or`, `||`, `??`)**:
+   - For the operators `"or"`, `"||"`, and `"??"` (the nullish coalescing operator), the function compiles the left operand first.
+   - It emits a jump instruction (`Op::JUMP_IF_TRUE`) to skip the right operand if the left operand evaluates to true.
+   - After emitting the jump instruction, it pops the result of the left operand from the stack.
+   - Next, it compiles the right operand.
+   - Finally, it patches the jump instruction to ensure it jumps correctly after evaluating the right operand.
+
+3. **Membership Tests (`in`, `not in`)**:
+   - If the operator is either `"in"` or `"not in"`, the function loads the `__contains__` method from the global scope using `emit(Op::LOAD_GLOBAL)`.
+   - It compiles both the left and right operands.
+   - Then, it calls the `__contains__` method with the two operands using `emit(Op::CALL)`.
+   - If the operator is `"not in"`, it negates the result of the call using `emit(Op::NOT)`.
+
+4. **Arithmetic and Bitwise Operations**:
+   - For all other binary operators (arithmetic, bitwise, comparison), the function compiles both operands.
+   - It uses a static `std::unordered_map` named `opMap` to map the operator string to the corresponding bytecode operation.
+   - If the operator is found in the map, it emits the appropriate bytecode operation using `emit(opMap[e.op], 0, line)`.
+   - If the operator is not found, it throws a runtime error indicating an unknown binary operator.
 
 ## Edge Cases
 
-1. **Logical Operators**: When encountering logical operators (`and`, `&&`, `or`, `||`, `??`), the function must ensure that only one operand is evaluated if the result is known early. This is achieved using jump instructions (`JUMP_IF_FALSE` and `JUMP_IF_TRUE`).
+- **Empty Operands**: The function assumes that the operands of the binary expression are non-empty and valid. If an empty operand were passed, it would lead to undefined behavior.
+- **Unknown Operators**: If an unknown binary operator is encountered, the function will throw an exception. This helps catch errors early in the compilation process.
+- **Short-Circuiting**: Logical operators (`and`, `&&`, `or`, `||`) implement short-circuiting, meaning they do not evaluate the right operand if the left operand determines the outcome of the expression. This can improve performance by avoiding unnecessary computations.
 
-2. **Membership Tests**: If the operator is `in` or `not in`, the function must correctly call the `__contains__` method on the right-hand side operand and handle the boolean result accordingly.
+## Interactions with Other Components
 
-3. **Unknown Operators**: If the function encounters an operator that is not defined in the `opMap`, it throws a runtime error indicating that the compiler does not recognize the operator.
+- **Bytecode Emission**: The function interacts with the bytecode emission system through calls to `emit` and `emitJump`. These functions manage the generation and insertion of bytecode instructions into the output stream.
+- **Error Handling**: The function includes basic error handling to manage unknown operators. This interaction with error handling mechanisms is crucial for maintaining robustness in the compiler.
+- **Scope Management**: When dealing with membership tests (`in`, `not in`), the function loads the `__contains__` method from the global scope. This demonstrates how the function interacts with the scope management component of the compiler to resolve identifiers.
 
-4. **Arithmetic and Comparison Operations**: These operators are straightforward and map directly to bytecode instructions. However, care must be taken to ensure that the correct number of operands is pushed onto the stack before the instruction is emitted.
-
-## Interactions With Other Components
-
-- **Bytecode Emission**: The `emit` function is used to generate bytecode instructions. This function takes an operation (`Op`) and any necessary arguments, appending them to the current bytecode stream.
-
-- **Jump Instructions**: The `emitJump` function generates jump instructions, which are essential for controlling the flow of execution based on the results of binary operations. Jump instructions modify the program counter to skip ahead to a specified location if a condition is met.
-
-- **Patch Jumps**: The `patchJump` function updates the target address of a previously emitted jump instruction. This is crucial when the compiler needs to know where to jump after evaluating the left-hand side of a logical or membership test.
-
-- **Global Method Calls**: For membership tests, the `emitLoadGlobal` function loads the `__contains__` method from the global scope onto the stack. This method is then called with the operands using the `emitCall` function.
-
-- **Error Handling**: The function includes basic error handling through exceptions. If an unrecognized operator is encountered, a `std::runtime_error` is thrown, indicating a problem with the input code.
-
-Overall, the `compileBinary` function plays a critical role in translating high-level quantum language constructs into low-level quantum bytecode, ensuring efficient and accurate compilation of binary expressions.
+In summary, the `compileBinary` function plays a vital role in the Quantum Language compiler by handling various binary operators and ensuring that the correct bytecode instructions are generated. Its design incorporates logical short-circuiting, membership testing, and arithmetic/bitwise operations, making it essential for the overall functionality of the compiler.
