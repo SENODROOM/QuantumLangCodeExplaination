@@ -2,38 +2,33 @@
 
 ## Overview
 
-The `check` function plays a crucial role in the Quantum Language compiler's type-checking phase. Its main objective is to ensure that the source code adheres to the language's syntactic and semantic rules. This function operates recursively, examining each node in the abstract syntax tree (AST) to verify its correctness.
+The `check` function is a crucial component of the Quantum Language compiler's type-checking phase. Its main purpose is to ensure that the source code adheres to the language's syntactic and semantic rules. The function uses a recursive approach to traverse the abstract syntax tree (AST) and perform type checking on each node.
 
 ### Why It Works This Way
 
-Using a recursive approach allows the `check` function to traverse through all nodes of the AST, ensuring comprehensive validation. Each node represents a part of the source code, such as expressions, statements, or declarations. By recursively checking each node, the function can handle nested structures and maintain context throughout the entire program.
+The recursive nature of the `check` function allows it to handle nested structures within the AST efficiently. By breaking down the problem into smaller subproblems, it ensures that all parts of the code are checked comprehensively. This method also facilitates error handling at multiple levels, making it easier to pinpoint issues in complex programs.
 
 ## Parameters
 
-- **nodes**: A vector containing pointers to the nodes of the abstract syntax tree (AST). These nodes represent various elements of the source code, including expressions, statements, and declarations.
-  
-- **globalEnv**: A reference to the global environment object, which holds information about variables, functions, and types defined at the global scope. This environment is essential for resolving identifiers and validating their usage within the program.
+- **`node`**: A pointer to the current AST node being processed. If the node is a block statement (`BlockStmt`), the function will recursively check its statements.
+- **`globalEnv`**: A reference to the global environment, which contains information about types, variables, and functions available throughout the program.
 
 ## Return Value
 
-The `check` function returns nothing (`void`). However, during its execution, it raises exceptions if any type-related errors are detected. For example, if an operation is performed on incompatible types, or if an undefined identifier is used, the function will throw an appropriate exception.
+The `check` function does not return any value explicitly. Instead, it performs type checking and raises errors or warnings when necessary. If an error is detected, the compilation process is halted, and an appropriate error message is displayed.
 
 ## Edge Cases
 
-1. **Empty AST**: If the `nodes` vector is empty, the `check` function will simply return without performing any checks, as there is no source code to validate.
-
-2. **Single Node**: When the `nodes` vector contains only one node, the function will check this single node and then return.
-
-3. **Nested Structures**: The function handles nested structures gracefully by recursively calling itself for each child node. This ensures that even deeply nested constructs are validated correctly.
-
-4. **Global Scope Validation**: The `check` function validates identifiers and types defined in the global scope using the `globalEnv`. This includes verifying that all global variables and functions are declared before they are used.
+1. **Empty Block Statement**: If the node is a block statement but contains no statements, the function should proceed without raising an error.
+2. **Null Node Pointer**: If the `node` parameter is `nullptr`, the function should handle this case gracefully, possibly indicating an unexpected condition during the traversal.
+3. **Unsupported Node Types**: If the node type is not recognized or supported by the type checker, the function should raise an error indicating that the node type is invalid.
 
 ## Interactions With Other Components
 
-- **Symbol Table**: The `check` function interacts with the symbol table component to resolve identifiers and validate their usage. It uses the `globalEnv` to look up symbols and ensure they are declared and have the correct type.
+The `check` function interacts closely with several other components of the Quantum Language compiler:
 
-- **Error Reporting**: During the type-checking process, the `check` function reports errors to the error reporting component. If any type-related issues are found, it throws exceptions, which are caught and reported back to the user.
+1. **Symbol Table**: The global environment (`globalEnv`) acts as a symbol table, storing information about identifiers such as variables, functions, and types. The `check` function uses this information to resolve references and enforce type consistency.
+2. **Error Reporting**: When an error is encountered during type checking, the `check` function reports it using the compiler's error reporting mechanism. This helps developers understand where and why their code violates the language's rules.
+3. **Scope Management**: The function manages scopes by keeping track of the current context. For example, when entering a new block statement, the scope is updated to include the block's local variables. This ensures that type checking respects variable visibility and scoping rules.
 
-- **Scope Management**: The function manages scopes by keeping track of the current scope and updating it as it traverses through the AST. This ensures that local variables and functions do not conflict with those in the global scope.
-
-In summary, the `check` function is a vital component of the Quantum Language compiler's type-checking phase. By employing a recursive approach, it comprehensively validates the source code against syntactic and semantic rules, ensuring the correctness and reliability of the compiled quantum programs.
+By leveraging these interactions, the `check` function provides robust type checking capabilities, helping to catch and fix errors early in the development process.
