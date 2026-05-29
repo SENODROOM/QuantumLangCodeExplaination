@@ -2,52 +2,73 @@
 
 ## Overview
 
-The `src/compiler/CompilerExpressions.cpp` file is a vital part of the QuantumLanguage compiler, focusing on the compilation of expressions into Intermediate Representation (IR) instructions suitable for execution on the Virtual Machine (`Vm`). This module manages both binary and unary operations, as well as assignment statements, ensuring efficient and accurate compilation of quantum language expressions.
+The `src/compiler/CompilerExpressions.cpp` file is a critical component of the QuantumLanguage compiler, responsible for translating expressions into Intermediate Representation (IR) instructions that can be executed on the Virtual Machine (`Vm`). This module handles both binary and unary operations, as well as assignment statements, ensuring that the resulting IR accurately represents the semantics of the original code.
 
 ### Role in Compiler Pipeline
 
-This module operates within the compiler's expression handling phase. It takes parsed expressions and converts them into IR instructions that can be executed by the Vm. The output of this module serves as input to subsequent phases such as optimization and code generation.
+This module operates within the broader context of the QuantumLanguage compiler's pipeline. It follows the parsing stage, where expressions are syntactically analyzed, and proceeds to the optimization phase. The primary responsibilities include:
 
-### Key Design Decisions and Why
+- **Binary Operations**: Compiling expressions involving operators like `+`, `-`, `*`, `/`, etc., into corresponding IR instructions.
+- **Unary Operations**: Translating expressions with operators such as `-`, `!`, `~`, etc., into their respective IR forms.
+- **Assignment Statements**: Converting assignment expressions into IR instructions that handle variable storage and retrieval efficiently.
 
-1. **Binary Operations Handling**: 
-   - The module uses a switch-like structure (`std::unordered_map`) to map binary operators to their corresponding IR operations. This approach enhances readability and maintainability by centralizing operator mappings in one place.
-   
-2. **Conditional Compilation**:
-   - For conditional operators like `and`, `or`, and `??`, the module emits jump instructions based on the evaluation of the left operand. If the condition is met, it jumps to the right operand; otherwise, it continues with the next instruction. This ensures that only necessary parts of the expression are compiled, optimizing performance.
+By handling these fundamental expression types, the module ensures that the subsequent stages of the compiler can generate optimized machine code that closely mirrors the intended behavior of the source code.
 
-3. **Assignment Statements**:
-   - The module supports both simple assignments (`=`) and compound assignments (`+=`, `-=`). For compound assignments, it normalizes the operator and performs the appropriate sequence of IR instructions. This allows for a unified handling of different types of assignments.
+## Key Design Decisions and Why
 
-4. **Error Handling**:
-   - The module includes robust error handling mechanisms to manage unknown operators. If an unrecognized operator is encountered, it throws a runtime exception, preventing the compiler from proceeding with incorrect or incomplete code.
+### Use of IR Instructions
 
-### Major Classes/Functions Overview
+The decision to use IR instructions instead of directly generating machine code allows for easier optimization and portability across different hardware architectures. IR provides a high-level abstraction that abstracts away many details of specific machine languages, making it possible to apply general optimizations before finalizing the target code.
 
-1. **`Compiler::compileBinary(BinaryExpr &e, int line)`**:
-   - Compiles binary expressions into IR instructions.
-   - Handles logical operators (`and`, `or`, `??`), comparison operators, arithmetic operators, and bitwise operators.
-   - Uses a `std::unordered_map` to map operators to their corresponding IR operations.
+### Operator Mapping
 
-2. **`Compiler::compileUnary(UnaryExpr &e, int line)`**:
-   - Compiles unary expressions into IR instructions.
-   - Supports negation (`-`), logical not (`!`, `not`), bitwise not (`~`), increment (`++`), and decrement (`--`).
-   - Emits the appropriate IR operation based on the unary operator.
+A key design decision is the use of an operator mapping table (`opMap`) to translate string representations of operators into their corresponding IR opcodes. This approach simplifies the implementation by centralizing the logic for operator translation, reducing redundancy and potential errors.
 
-3. **`Compiler::compileAssign(AssignExpr &e, int line)`**:
-   - Compiles assignment expressions into IR instructions.
-   - Handles both simple and compound assignments.
-   - Normalizes compound operators and performs the necessary sequence of IR instructions.
+```cpp
+static const std::unordered_map<std::string, Op> opMap = {
+    {"+", Op::ADD},
+    {"-", Op::SUB},
+    // ... other mappings
+};
+```
 
-### Tradeoffs
+### Compound Assignment Handling
 
-1. **Readability vs. Performance**:
-   - Using a `std::unordered_map` for operator mapping improves readability but may slightly impact performance due to hash lookups.
+Compound assignments (like `+=`, `-=`, etc.) are handled by normalizing them to their standard form (`=`) and then applying the appropriate operation. This normalization makes the code cleaner and more maintainable, as all assignment-related logic is concentrated in one place.
 
-2. **Flexibility vs. Complexity**:
-   - Supporting both simple and compound assignments adds flexibility but increases the complexity of the codebase.
+```cpp
+const std::string normalizedOp =
+    e.op == "post+=" ? "+=" : e.op == "post-=" ? "-="
+                                               : e.op;
+bool compound = (normalizedOp != "=");
+```
 
-3. **Error Handling vs. Robustness**:
-   - Throwing exceptions for unknown operators provides robustness but can lead to less user-friendly error messages compared to returning error codes.
+## Major Classes/Functions Overview
 
-Overall, the `src/compiler/CompilerExpressions.cpp` file plays a crucial role in the QuantumLanguage compiler by efficiently converting expressions into executable IR instructions. Its design decisions balance readability, performance, flexibility, and robustness, making it a well-engineered component of the compiler.
+### `Compiler::compileBinary(BinaryExpr &e, int line)`
+
+Compiles binary expressions into IR instructions. Handles logical operators (`and`, `or`, `??`), comparison operators, arithmetic operators, and bitwise operators. Uses an operator mapping table to find the correct opcode for each operator.
+
+### `Compiler::compileUnary(UnaryExpr &e, int line)`
+
+Translates unary expressions into IR instructions. Supports negation (`-`), logical not (`!`, `not`), bitwise not (`~`), and increment/decrement operators (`++`, `--`). Handles special cases like the spread operator (`...`).
+
+### `Compiler::compileAssign(AssignExpr &e, int line)`
+
+Converts assignment expressions into IR instructions. Manages simple assignments (`=`) and compound assignments (`+=`, `-=`, etc.). Normalizes compound assignments to their standard form for consistency.
+
+## Tradeoffs
+
+### Abstraction vs. Performance
+
+Using IR instructions introduces a layer of abstraction between the compiler's frontend and backend. While this improves flexibility and optimization opportunities, it may slightly increase the overhead compared to direct machine code generation. However, the benefits in terms of code quality and maintainability often outweigh this cost.
+
+### Complexity vs. Simplicity
+
+The introduction of an operator mapping table adds complexity to the codebase, but it significantly simplifies the process of compiling various operators. By centralizing this logic, the module becomes more readable and easier to extend or modify.
+
+### Memory Usage vs. Execution Speed
+
+Storing the operator mapping table in memory requires additional space. However, the performance impact is minimal, and the benefits in terms of code organization and maintainability make this tradeoff worthwhile.
+
+In conclusion, the `src/compiler/CompilerExpressions.cpp` file plays a crucial role in the QuantumLanguage compiler by managing the compilation of expressions into IR instructions. Its design decisions, including the use of IR instructions and operator mapping tables, strike a balance between flexibility, performance, and simplicity, contributing to the overall effectiveness of the compiler.
