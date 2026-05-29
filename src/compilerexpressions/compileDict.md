@@ -2,34 +2,98 @@
 
 ## Overview
 
-The `compileDict` function is designed to handle the compilation of dictionary expressions within the Quantum Language compiler. This function iterates through each key-value pair in the dictionary expression and compiles them into individual dictionary entries. If the dictionary includes a spread operator (`...`), it utilizes specialized helper functions to merge dictionaries or set values dynamically.
+The `compileDict` function is responsible for compiling dictionary expressions in the Quantum Language compiler. It processes each key-value pair in the dictionary and generates corresponding bytecode operations to construct the dictionary.
 
 ### Why It Works This Way
 
-- **Handling Spread Operator**: The presence of a spread operator requires a different approach than normal dictionary construction because it involves merging multiple dictionaries. By using helper functions like `__dict_merge__` and `__dict_set__`, the function can efficiently manage these operations without manually iterating through all elements.
-  
-- **Efficiency**: Using built-in helper functions optimizes performance by leveraging existing implementations that have been tested and optimized for such tasks.
+1. **Handling Spread Syntax**: The function first checks if there is any spread syntax (`...`) in the dictionary pairs. If present, it uses a custom function (`__dict_merge__`) to merge dictionaries.
+   
+2. **Bytecode Operations**:
+   - For each key-value pair without spread syntax, it emits an operation to load the global function `__dict_set__`.
+   - It then swaps the top of the stack to ensure the key is on top before pushing the value.
+   - After compiling both the key and value, it calls `__dict_set__` to set the key-value pair in the dictionary being constructed.
+   - Finally, it emits an operation to create the dictionary using `MAKE_DICT`, specifying the number of pairs as an argument.
 
-### Parameters/Return Value
+3. **Edge Cases**:
+   - If a spread syntax is found, the function handles merging dictionaries by calling `__dict_merge__` after processing all non-spread pairs.
+   - If no spread syntax is found, it directly constructs the dictionary using `MAKE_DICT`.
+
+4. **Interactions with Other Components**:
+   - The function interacts with the `emit` function to generate bytecode instructions.
+   - It also uses the `addStr` function to add string literals to the compiler's symbol table.
+   - Additionally, it calls `compileExpr` recursively to compile the keys and values of the dictionary pairs.
+
+## Parameters/Return Value
 
 - **Parameters**:
-  - `e`: A reference to an `Expression` object representing the dictionary expression to be compiled. This object contains a list of key-value pairs.
-  - `line`: An integer representing the current line number in the source code, used for error reporting and debugging purposes.
+  - `e`: A reference to the dictionary expression node that needs to be compiled.
+  - `line`: An integer representing the current source code line number for error reporting purposes.
 
-- **Return Value**: None. The function directly emits bytecode instructions to represent the dictionary.
+- **Return Value**:
+  - None. The function modifies the bytecode stream directly.
 
-### Edge Cases
+## Detailed Explanation
 
-- **Empty Dictionary**: If the dictionary is empty, the function will not emit any instructions since there are no key-value pairs to process.
-  
-- **Null Keys**: When encountering a null key (`!k`), the function recognizes this as a signal to use the spread operator. It then calls the `__dict_merge__` helper function to merge dictionaries, effectively skipping the emission of individual key-value pairs.
+### Step-by-Step Breakdown
 
-### Interactions With Other Components
+1. **Check for Spread Syntax**:
+   ```cpp
+   bool hasSpread = false;
+   for (auto &[k, v] : e.pairs)
+   {
+       if (!k)
+       {
+           hasSpread = true;
+           break;
+       }
+   }
+   ```
+   - The function initializes a boolean flag `hasSpread` to `false`.
+   - It iterates through each key-value pair in the dictionary expression `e.pairs`.
+   - If a key is `nullptr` (indicating spread syntax), it sets `hasSpread` to `true` and breaks out of the loop.
 
-- **Bytecode Emission**: The function interacts with the bytecode emission system by calling `emit()` to insert various operations such as loading global variables, swapping stack items, and making dictionary objects.
-  
-- **Expression Compilation**: For each key and value in the dictionary, the function calls `compileExpr()` to recursively compile the sub-expressions. This ensures that complex expressions within the dictionary keys and values are correctly handled.
-  
-- **Helper Functions**: The function leverages external helper functions (`__dict_merge__` and `__dict_set__`) to perform specific operations related to dictionary manipulation. These functions are assumed to be defined elsewhere in the compiler's codebase and are responsible for handling the logic associated with the spread operator and setting dictionary values.
+2. **Handle Spread Syntax**:
+   ```cpp
+   if (hasSpread)
+   {
+       emit(Op::MAKE_DICT, 0, line);
+       for (auto &[k, v] : e.pairs)
+       {
+           if (!k)
+           {
+               emit(Op::LOAD_GLOBAL, addStr("__dict_merge__"), line);
+               emit(Op::SWAP, 0, line);
+               compileExpr(*v);
+               emit(Op::CALL, 2, line);
+               continue;
+           }
+           emit(Op::LOAD_GLOBAL, addStr("__dict_set__"), line);
+           emit(Op::SWAP, 0, line);
+           compileExpr(*k);
+           compileExpr(*v);
+           emit(Op::CALL, 3, line);
+       }
+       return;
+   }
+   ```
+   - If `hasSpread` is `true`, it starts by creating an empty dictionary using `MAKE_DICT`.
+   - It then iterates through each key-value pair again.
+   - When encountering a spread syntax (key is `nullptr`), it loads the global function `__dict_merge__`, swaps the top of the stack to ensure the dictionary to be merged is on top, compiles the value expression, and calls `__dict_merge__` with two arguments.
+   - For non-spread pairs, it loads the global function `__dict_set__`, swaps the top of the stack to ensure the key is on top, compiles the key and value expressions, and calls `__dict_set__` with three arguments.
 
-This comprehensive approach allows the `compileDict` function to efficiently handle dictionary expressions, including those with spread operators, ensuring that the resulting bytecode accurately reflects the intended behavior of the original source code.
+3. **Construct Dictionary Without Spread Syntax**:
+   ```cpp
+   for (auto &[k, v] : e.pairs)
+   {
+       compileExpr(*k);
+       compileExpr(*v);
+   }
+   emit(Op::MAKE_DICT, static_cast<int32_t>(e.pairs.size()), line);
+   ```
+   - If no spread syntax is found, it simply iterates through each key-value pair.
+   - For each pair, it compiles the key and value expressions.
+   - After processing all pairs, it creates the dictionary using `MAKE_DICT`, passing the size of the dictionary as an argument.
+
+### Summary
+
+The `compileDict` function efficiently handles the compilation of dictionary expressions by checking for spread syntax and generating appropriate bytecode operations. It ensures correct construction of dictionaries even when spread syntax is used, leveraging custom functions for complex scenarios. This function interacts seamlessly with other parts of the compiler, such as emitting bytecode and handling expressions, making it a crucial component for dictionary support in the Quantum Language.
