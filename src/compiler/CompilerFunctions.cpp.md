@@ -2,55 +2,65 @@
 
 ## Role in Compiler Pipeline
 
-`CompilerFunctions.cpp` is a crucial component of the Quantum Language compiler, responsible for compiling function definitions into executable chunks. This process involves creating new scopes to manage variable declarations within functions, declaring local variables, and generating code for the function body. The role of this file ensures that each function is correctly translated into bytecode, which can then be executed by the Quantum Virtual Machine (QVM).
+`CompilerFunctions.cpp` plays a pivotal role in the Quantum Language compiler's pipeline, specifically focusing on the compilation of function definitions into executable chunks. This process involves several critical steps:
+
+1. **Creating New Scopes**: A new scope is initiated for each function definition to manage variable declarations effectively.
+2. **Declaring Local Variables**: All parameters of the function are declared as local variables within their respective scope.
+3. **Generating Code for Function Body**: The body of the function is compiled, which may include block statements or individual expressions.
+4. **Returning Values**: Appropriate return operations are generated based on whether the function has an explicit return statement or not.
+
+By encapsulating these functionalities, `CompilerFunctions.cpp` ensures that each function is correctly translated into bytecode, facilitating efficient execution during runtime.
 
 ## Key Design Decisions and Why
 
 ### Scope Management
-The compiler creates a new scope (`CompilerState`) specifically for each function being compiled. This allows for encapsulation of local variables and prevents conflicts with global or outer scope variables. By managing scopes explicitly, the compiler can handle nested functions and closures effectively.
+- **New Scope Creation**: Each function starts with a fresh scope to isolate its variables from those outside its definition. This decision is crucial for maintaining correct variable scoping and preventing conflicts between nested functions.
+- **Scope End**: At the end of function compilation, the scope is properly closed, ensuring that all local variables are cleaned up before the function returns.
 
-### Local Variable Declaration
-Local variables are declared using the `declareLocal` method. This method takes the variable name and its declaration line number as parameters. It ensures that each local variable has a unique identifier within the function's scope. This design decision simplifies the management of variable lifetimes and visibility.
+### Parameter Handling
+- **Parameter Declaration**: Parameters are declared as local variables, allowing them to be accessed and modified within the function body. This simplifies the handling of function inputs and outputs.
+- **Reference Parameters**: Support for reference parameters is added through a boolean vector indicating whether each parameter should be treated as a reference. This allows functions to modify their arguments directly, enhancing flexibility and performance.
 
-### Handling Array Parameters
-The compiler also handles array parameters by extracting individual elements and declaring them as separate local variables. This is achieved through a custom parsing mechanism within the loop that iterates over the parameter string. Each element is identified by commas and brackets, and it is declared as a local variable. This approach enhances flexibility and readability in function definitions involving arrays.
+### Code Generation
+- **Block Compilation**: If the function body consists of multiple statements enclosed in a block (`BlockStmt`), they are compiled sequentially. This approach ensures proper execution order and error handling.
+- **Expression Compilation**: For single expression bodies, the expression is compiled directly, followed by a return operation. This keeps the bytecode concise and straightforward.
 
-### Trade-offs
-While providing robust scope management and local variable declaration, there are some trade-offs:
-- **Complexity**: Managing multiple scopes and handling complex data structures like arrays adds complexity to the compiler.
-- **Performance**: Frequent scope changes and dynamic memory allocation for variable names can impact performance.
-- **Readability**: The custom parsing mechanism for array parameters might reduce code readability for developers not familiar with the specific syntax.
-
-Despite these trade-offs, the design choices in `CompilerFunctions.cpp` ensure that the compiler can handle a wide range of function definitions efficiently and accurately.
+### Return Operations
+- **Explicit Return**: If the function contains an explicit return statement, the corresponding bytecode is emitted immediately.
+- **Implicit Return**: Functions without explicit return statements implicitly return `nil`. This decision simplifies the compiler logic while ensuring consistent behavior across all functions.
 
 ## Major Classes/Functions Overview
 
-### `Compiler`
-This class contains the main logic for compiling quantum programs. It includes methods for compiling blocks, expressions, and functions.
-
-#### Methods
-- `compileFunction`: Compiles a function definition into an executable chunk.
-- `beginScope`: Starts a new scope.
-- `endScope`: Ends the current scope.
-- `declareLocal`: Declares a local variable within the current scope.
-
 ### `CompilerState`
-This struct represents the state of the compiler during the compilation of a function. It includes information about the function's name, whether it is a function, and the chunk of bytecode being generated.
+- **Purpose**: Manages the state of the compiler during function compilation, including the current scope, chunk being compiled, and upvalue information.
+- **Key Features**:
+  - `scope`: Represents the current lexical scope.
+  - `chunk`: Holds the intermediate bytecode representation of the function.
+  - `upvalues`: Tracks upvalues used by the function.
 
-#### Members
-- `name`: The name of the function.
-- `isFunction`: A boolean indicating whether the current state corresponds to a function.
-- `chunk`: The chunk of bytecode being generated for the function.
-- `locals`: A map of local variables and their indices.
-- `upvalues`: A list of upvalue descriptors used for closure creation.
+### `compileFunction`
+- **Purpose**: Compiles a function definition into an executable chunk.
+- **Parameters**:
+  - `name`: The name of the function.
+  - `params`: A list of parameter names.
+  - `paramIsRef`: A boolean vector indicating whether each parameter is a reference.
+  - `body`: The AST node representing the function body.
+  - `line`: The line number where the function definition begins.
+- **Process**:
+  - Initializes a new `CompilerState` for the function.
+  - Begins a new scope and declares local variables for the function parameters.
+  - Compiles the function body, either as a block or a single expression.
+  - Emits appropriate return operations based on the presence of an explicit return statement.
+  - Ends the scope and packs upvalue descriptors as the last constant for the `MAKE_CLOSURE` opcode.
 
-### `Chunk`
-This class represents a chunk of bytecode. It includes methods for emitting instructions and managing constants.
+## Tradeoffs
 
-#### Methods
-- `emit`: Emits a bytecode instruction at the specified line number.
-- `addConst`: Adds a constant to the chunk's constants list and returns its index.
+### Memory Usage vs. Performance
+- **Scope Management**: While managing new scopes adds complexity to the compiler, it improves memory usage by isolating variables and reducing potential conflicts. This tradeoff is acceptable given the benefits for correctness and maintainability.
+- **Upvalue Packing**: Packing upvalue descriptors at the end of the function increases memory usage slightly but enhances performance by avoiding repeated lookups during closure creation.
 
-## Conclusion
+### Readability vs. Complexity
+- **Code Generation Logic**: The logic for generating bytecode can become complex due to handling different types of function bodies and parameters. However, this complexity is necessary to ensure accurate translation of quantum language constructs into executable code.
+- **Functionality vs. Simplicity**: Supporting both block and expression bodies requires additional branching logic in the compiler. While this adds some complexity, it provides greater functionality and flexibility to the quantum language.
 
-`CompilerFunctions.cpp` is a vital part of the Quantum Language compiler, responsible for translating function definitions into executable bytecode. Through careful design and implementation, it manages scopes, declares local variables, and handles complex data structures efficiently. While there are trade-offs associated with its complexity and performance, the benefits of accurate and flexible function compilation outweigh these concerns.
+In conclusion, `src/compiler/CompilerFunctions.cpp` is a vital component of the Quantum Language compiler, responsible for translating function definitions into executable bytecode. Its design decisions balance memory usage, performance, readability, and functionality, ensuring robust and efficient compilation of quantum programs.

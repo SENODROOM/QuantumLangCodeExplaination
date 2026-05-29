@@ -1,33 +1,34 @@
 # `visit` Function
 
 ## Purpose
-The `visit` function is a template method within the Quantum Language compiler's `CompilerCore` class. Its primary purpose is to process and translate various types of abstract syntax tree (AST) nodes into corresponding quantum machine code instructions. This function acts as a dispatcher that calls appropriate compilation functions based on the type of AST node encountered.
+The `visit` function is a template method within the Quantum Language compiler's `CompilerCore` class. Its primary purpose is to process and translate various types of abstract syntax tree (AST) nodes into corresponding quantum machine code instructions. This function serves as a dispatcher that calls specialized methods based on the type of AST node encountered during compilation.
 
 ## Parameters
-- `n`: The current AST node being processed.
-- `ln`: The line number in the source code where the node appears.
+- `n`: The AST node to be processed. It is a generic parameter that allows the function to handle different types of AST nodes through template specialization.
+- `ln`: A line number associated with the current AST node, used for error reporting and debugging purposes.
 
 ## Return Value
-This function does not return any value (`void`). It directly emits quantum machine code instructions using the `emit` method.
+The return type of the `visit` function is `void`. Each specialized method called within the function also returns `void`, as they perform in-place translation of the AST nodes into quantum machine code instructions.
 
 ## How It Works
-The `visit` function uses a series of `if constexpr` statements to determine the type of the AST node `n`. Depending on the type, it calls one of several specialized methods:
-- For `NumberLiteral`, `StringLiteral`, and `BoolLiteral`, it loads constants into the quantum register.
-- For `NilLiteral`, it loads a nil value.
-- For `Identifier`, it compiles the identifier to resolve its value or reference.
-- For `BinaryExpr`, `UnaryExpr`, `AssignExpr`, `CallExpr`, `IndexExpr`, `SliceExpr`, `MemberExpr`, `ArrayLiteral`, `DictLiteral`, `TupleLiteral`, `LambdaExpr`, `TernaryExpr`, `ListComp`, `SuperExpr`, `NewExpr`, and `AddressOfExpr`, it calls the respective compilation method (`compileBinary`, `compileUnary`, etc.).
+The `visit` function uses C++20's `if constexpr` feature to determine the type of the AST node at compile time. Depending on the type of the node, it calls one of several specialized methods (`compileIdentifier`, `compileBinary`, etc.). These methods contain the logic necessary to translate the specific AST node into quantum machine code instructions.
 
-Each of these specialized methods handles the specific logic required to translate the given AST node into quantum machine code. By using `if constexpr`, the function ensures that only the relevant code path is compiled at compile time, which can lead to performance optimizations.
+For example:
+- If the node is a `NumberLiteral`, it emits an `Op::LOAD_CONST` instruction followed by the constant value.
+- If the node is a `StringLiteral`, it emits an `Op::LOAD_CONST` instruction followed by the string value.
+- If the node is a `BoolLiteral`, it emits either `Op::LOAD_TRUE` or `Op::LOAD_FALSE` depending on the boolean value.
+
+This approach ensures that each AST node is handled efficiently and correctly, leveraging compile-time dispatch to avoid runtime overhead.
 
 ## Edge Cases
-- If an unexpected AST node type is encountered, the function will not handle it gracefully and may result in a compile-time error.
-- When processing expressions like `BinaryExpr`, `UnaryExpr`, and `AssignExpr`, the function must ensure that the operands are correctly evaluated before performing the operation.
-- Handling `NilLiteral` should be straightforward, but care must be taken to ensure that the nil value is represented accurately in the quantum machine code.
+- **Unknown Node Types**: If the AST node type is not recognized by any of the `if constexpr` conditions, the function will likely result in a compile-time error. This is intentional to catch and fix issues early in the development process.
+- **Empty Nodes**: Some AST nodes might be empty or null. Proper handling of these cases should be implemented in the respective specialized methods to ensure robustness.
 
 ## Interactions With Other Components
-- **AST Nodes**: The `visit` function receives instances of different AST node classes such as `NumberLiteral`, `BinaryExpr`, etc., which represent various constructs in the Quantum Language source code.
-- **Emit Method**: The function interacts with the `emit` method of the `CompilerCore` class to generate quantum machine code instructions. Each instruction corresponds to a specific operation in the quantum computing domain.
-- **Symbol Table**: During the compilation of identifiers, the function may interact with the symbol table to resolve variable names and their associated values or references.
-- **Error Handling**: The function implicitly relies on the error handling mechanisms provided by the compiler to manage cases where an unexpected AST node type is encountered or when errors occur during expression evaluation.
+The `visit` function interacts closely with other components of the Quantum Language compiler, including but not limited to:
 
-Overall, the `visit` function serves as a crucial component in the Quantum Language compiler, ensuring that each AST node is translated accurately and efficiently into quantum machine code.
+- **Symbol Table**: Used to resolve identifiers and retrieve their corresponding symbols.
+- **Emit Function**: Responsible for generating quantum machine code instructions. The `emit` function is called within each specialized method to insert new instructions into the compiled program.
+- **Error Handling**: Utilizes the provided line number (`ln`) to report errors accurately when encountering unsupported or malformed AST nodes.
+
+Overall, the `visit` function plays a crucial role in the translation phase of the Quantum Language compiler, ensuring that each AST node is appropriately translated into quantum machine code instructions.

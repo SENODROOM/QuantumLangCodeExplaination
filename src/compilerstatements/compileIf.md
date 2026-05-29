@@ -1,61 +1,55 @@
 # `compileIf` Function
 
 ## Purpose
-The `compileIf` function handles the compilation of `if` statements within the Quantum Language compiler. It evaluates the condition of the `if` statement and determines which branch to execute—either the `then` branch or the `else` branch—based on the result of the condition.
+The `compileIf` function is responsible for compiling conditional (`if`) statements in the Quantum Language compiler. It evaluates the condition of the `if` statement and decides whether to execute the `then` branch or the `else` branch based on the evaluation result.
 
 ## Parameters/Return Value
-- **Parameters**:
+- **Parameters**: 
   - `s`: A reference to an `IfStatement` object representing the `if` statement to be compiled.
   
-- **Return Value**: None. The function directly modifies the bytecode being generated during the compilation process.
+- **Return Value**: None. The function compiles the `if` statement directly into machine code instructions.
 
 ## How It Works
 1. **Condition Compilation**:
-   - The function first compiles the condition expression using `compileExpr(*s.condition)`. This results in the bytecode that represents the evaluation of the condition.
+   - The function first compiles the condition expression using `compileExpr(*s.condition)`. This step ensures that the condition is evaluated correctly before proceeding to the branching logic.
 
-2. **Conditional Jump Creation**:
-   - After compiling the condition, the function creates a jump instruction at the current position in the bytecode using `emitJump(Op::JUMP_IF_FALSE, line)`. This jump will occur if the condition evaluates to false. The `Op::JUMP_IF_FALSE` operation code indicates that the program should jump to the specified target address if the top value on the stack is false.
-   - The `line` parameter specifies the source code line number where the `if` statement starts, aiding in debugging and error reporting.
+2. **Conditional Jump**:
+   - After compiling the condition, the function emits a jump instruction using `emitJump(Op::JUMP_IF_FALSE, line)`. This instruction jumps to the `else` branch if the condition evaluates to false. The `Op::JUMP_IF_FALSE` operation pops the condition's result from the stack and jumps if the result is zero (false). The `line` parameter specifies the source code line number where the jump occurs.
 
 3. **Post-Condition Cleanup**:
-   - The function emits a `POP` operation (`emit(Op::POP, 0, line)`) to remove the result of the condition from the stack. This ensures that the stack remains clean after the condition has been evaluated.
+   - The function then emits a `POP` operation using `emit(Op::POP, 0, line)` to remove the condition's result from the stack, as it is no longer needed after the jump decision has been made.
 
-4. **Begin Scope for Then Branch**:
-   - The function begins a new scope for the `then` branch using `beginScope()`. Scopes help manage variable lifetimes and prevent name clashes.
+4. **Execution of Then Branch**:
+   - The function begins a new scope using `beginScope()` to isolate variables declared within the `then` branch from the outer scope. It then compiles the `then` branch using `compileNode(*s.thenBranch)`, effectively translating the quantum language code into executable instructions.
 
-5. **Compile `then` Branch**:
-   - The `then` branch of the `if` statement is compiled using `compileNode(*s.thenBranch)`. This involves generating the necessary bytecode for any operations or statements within the `then` block.
+5. **End of Then Branch Scope**:
+   - After compiling the `then` branch, the function ends the scope using `endScope(line)`, ensuring that any resources allocated for the `then` branch are properly released.
 
-6. **End Scope for Then Branch**:
-   - After compiling the `then` branch, the function ends the scope using `endScope(line)`, ensuring that all variables declared within the `then` block are properly cleaned up.
+6. **Else Branch Jump**:
+   - The function emits another jump instruction using `emitJump(Op::JUMP, line)`. This time, the `Op::JUMP` operation unconditionally jumps past the `else` branch, allowing execution to continue at the next instruction after the `if` statement.
 
-7. **Create Jump to End of If Statement**:
-   - The function creates another jump instruction at the current position in the bytecode using `emitJump(Op::JUMP, line)`. This jump will skip over both the `then` and `else` branches and continue execution at the next instruction after the `if` statement. The `Op::JUMP` operation code indicates that the program should unconditionally jump to the specified target address.
+7. **Patch Conditional Jump**:
+   - The function patches the initial conditional jump using `patchJump(thenJump)`. This update sets the correct target address for the jump, based on the position of the unconditional jump emitted later.
 
-8. **Patch Jump for `then` Branch**:
-   - The function patches the previously emitted `JUMP_IF_FALSE` jump instruction using `patchJump(thenJump)`. This updates the jump target to the correct position immediately following the `then` branch, ensuring that the program correctly executes the `then` branch when the condition is true.
+8. **Post-Then Branch Cleanup**:
+   - Similar to the post-condition cleanup, the function emits another `POP` operation using `emit(Op::POP, 0, line)` to remove any remaining values from the stack that might have been left over from the `then` branch compilation.
 
-9. **Post-Then Branch Cleanup**:
-   - The function emits another `POP` operation (`emit(Op::POP, 0, line)`) to remove any additional values that might have been left on the stack after the `then` branch was executed.
+9. **Execution of Else Branch**:
+   - If an `else` branch exists (`s.elseBranch`), the function begins a new scope using `beginScope()` and compiles the `else` branch using `compileNode(*s.elseBranch)`. This step translates the quantum language code into executable instructions for the `else` branch.
 
-10. **Optional Else Branch Compilation**:
-    - If an `else` branch exists (`if (s.elseBranch)`), the function begins a new scope for the `else` branch using `beginScope()` and compiles the `else` branch using `compileNode(*s.elseBranch)`.
+10. **End of Else Branch Scope**:
+    - After compiling the `else` branch, the function ends the scope using `endScope(line)`, releasing any resources allocated for the `else` branch.
 
-11. **End Scope for Else Branch**:
-    - After compiling the `else` branch, the function ends the scope using `endScope(line)`, ensuring that all variables declared within the `else` block are properly cleaned up.
-
-12. **Patch Jump for `else` Branch**:
-    - Finally, the function patches the jump instruction created earlier to skip over the `else` branch when the condition is true using `patchJump(elseJump)`.
+11. **Patch Unconditional Jump**:
+    - Finally, the function patches the unconditional jump emitted earlier using `patchJump(elseJump)`. This update sets the correct target address for the jump, ensuring that execution continues at the appropriate point after the `if` statement.
 
 ## Edge Cases
-- **Empty Condition**: If the condition expression is empty, the function may need to handle this case appropriately to avoid runtime errors.
-- **Nested `if` Statements**: The function must correctly handle nested `if` statements, ensuring that scopes are properly managed and jumps are patched correctly across multiple levels of nesting.
-- **No `else` Branch**: If there is no `else` branch, the function must ensure that the bytecode correctly skips over the `else` part without causing issues.
+- **Empty Condition**: If the condition expression is empty, the function should handle this gracefully without causing errors during compilation.
+- **Nested If Statements**: The function must correctly handle nested `if` statements, ensuring that each `if`'s scope is properly managed and that the correct branches are executed based on the nested conditions.
+- **No Else Branch**: If there is no `else` branch, the function should ensure that the program does not attempt to jump to a non-existent location, thus avoiding runtime errors.
 
-## Interactions with Other Components
-- **Bytecode Emission**: The `compileIf` function interacts with the bytecode emission system to generate conditional jump instructions and `POP` operations.
-- **Scope Management**: The function uses scope management functions (`beginScope()` and `endScope()`) to handle variable declarations and cleanups within the `if` statement's branches.
-- **Expression Compilation**: The function relies on the `compileExpr` function to compile the condition expression into bytecode.
-- **Error Handling**: While not explicitly shown in the provided code snippet, the `compileIf` function likely interacts with error handling mechanisms to report any issues encountered during condition evaluation or branch compilation.
-
-This comprehensive approach ensures that `if` statements are compiled accurately and efficiently, maintaining the integrity and functionality of the resulting quantum programs.
+## Interactions With Other Components
+- **Expression Compiler**: The `compileExpr` function interacts with the expression compiler component to evaluate the condition expression.
+- **Code Emission**: The `emit` and `emitJump` functions interact with the code emission component to generate machine code instructions for the `if` statement.
+- **Scope Management**: The `beginScope` and `endScope` functions interact with the scope management component to handle variable declarations and deallocations within the `if` statement's branches.
+- **Jump Patching**: The `patchJump` function interacts with the jump patching component to update jump targets dynamically during compilation, ensuring that the correct paths are taken based on the condition evaluation.

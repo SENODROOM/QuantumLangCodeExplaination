@@ -1,95 +1,43 @@
 # `callClass` Function
 
 ## Purpose
-The `callClass` function in the Quantum Language compiler is responsible for creating an instance of a class and optionally calling its initialization method (`__init__`, `init`, or `constructor`). This function plays a crucial role in object-oriented programming within the compiler's virtual machine (VM) core.
+The `callClass` function in the Quantum Language compiler is responsible for creating an instance of a class and optionally calling its initialization method (`__init__`, `init`, or `constructor`). This function plays a crucial role in object-oriented programming within the compiler's virtual machine (VM).
 
 ## Parameters
-- **`std::shared_ptr<Class>` klass**: A shared pointer to the class from which the instance is to be created.
-- **`std::shared_ptr<Environment>` globals**: A shared pointer to the global environment where the class and its methods are defined.
-- **`size_t argCount`**: The number of arguments passed to the initialization method of the class.
-- **`int line`**: The line number at which the class instantiation occurs, used for error reporting and debugging purposes.
+- `klass`: A shared pointer to the class definition from which the instance should be created.
+- `argCount`: The number of arguments that need to be passed to the initialization method.
+- `line`: The source code line number where the `callClass` function was invoked, used for error reporting.
 
 ## Return Value
-No explicit return value. However, the function modifies the VM's stack to include the newly created instance and any results from the initialization method.
+This function does not explicitly return a value but modifies the VM's state by pushing the newly created instance onto the stack.
 
-## Detailed Explanation
-### Step-by-Step Breakdown
-1. **Create Instance**:
-   ```cpp
-   auto inst = std::make_shared<QuantumInstance>();
-   inst->klass = klass;
-   inst->env = std::make_shared<Environment>(globals);
-   ```
-   - An instance of `QuantumInstance` is created using `std::make_shared`.
-   - The `klass` member of the instance is set to the provided class.
-   - An environment for the instance is created using the global environment, stored in the `env` member.
+## How It Works
+1. **Create Instance**: The function begins by creating a new `QuantumInstance` using `std::make_shared`. This instance will hold the data and methods associated with the class.
 
-2. **Find Initialization Method**:
-   ```cpp
-   auto *k = klass.get();
-   std::shared_ptr<Closure> initFn;
-   while (k)
-   {
-       for (const char *initName : {"__init__", "init", "constructor"})
-       {
-           auto it = k->methods.find(initName);
-           if (it != k->methods.end())
-           {
-               initFn = it->second;
-               break;
-           }
-       }
-       if (initFn)
-           break;
-       k = k->base.get();
-   }
-   ```
-   - The function iterates through the class hierarchy starting from the provided class (`klass`).
-   - For each class, it checks for the presence of one of the initialization methods (`__init__`, `init`, or `constructor`) in the `methods` map.
-   - If found, the corresponding closure is assigned to `initFn`, and the loop breaks.
+2. **Set Class and Environment**:
+   - The `klass` member of the `QuantumInstance` is set to the provided class definition.
+   - An `Environment` is created for the instance, initialized with global variables (`globals`). This environment will store any local variables or bindings specific to the instance.
 
-3. **Prepare Stack for Instance Creation**:
-   ```cpp
-   QuantumValue instVal(inst);
-   ```
-   - A `QuantumValue` wrapping the new instance is created.
+3. **Find Initialization Method**:
+   - The function then searches for the initialization method (`__init__`, `init`, or `constructor`) in the class hierarchy. It starts with the current class and moves up through its base classes until it finds a matching method or reaches the root of the inheritance chain.
+   - If a matching method is found, it is stored in `initFn`.
 
-4. **Call Initialization Method**:
-   ```cpp
-   if (initFn)
-   {
-       size_t calleeIndex = stack_.size() - argCount - 1;
-       stack_.insert(stack_.begin() + calleeIndex + 1, instVal);
-       pendingInstances_.push_back({instVal, frames_.size()});
-       callClosure(initFn, argCount + 1, line);
-       return;
-   }
-   ```
-   - If an initialization method is found (`initFn` is not null), the function prepares the stack for the method call.
-   - It inserts the instance value into the stack immediately after the current frame's index.
-   - The instance and its frame index are added to the `pendingInstances_` list to handle post-initialization tasks.
-   - The `callClosure` function is called to execute the initialization method with the appropriate argument count (`argCount + 1`).
+4. **Push Instance onto Stack**:
+   - Regardless of whether an initialization method is found, the newly created instance (`instVal`) is pushed onto the stack at the position indicated by `calleeIndex`.
 
-5. **Direct Assignment Without Initialization**:
-   ```cpp
-   size_t calleeIndex = stack_.size() - argCount - 1;
-   stack_[calleeIndex] = instVal;
-   for (int i = 0; i < argCount; ++i)
-       stack_.pop_back();
-   ```
-   - If no initialization method is found, the function directly assigns the instance value to the position on the stack that corresponds to the caller's frame.
-   - Any remaining arguments on the stack are removed to maintain consistency.
+5. **Call Initialization Method**:
+   - If an initialization method (`initFn`) is found, the function inserts the instance into the stack again (at `calleeIndex + 1`) to ensure that it is available as the first argument when the method is called.
+   - The instance and the frame index are recorded in `pendingInstances_`.
+   - The `callClosure` function is invoked with `initFn`, passing along the adjusted argument count (`argCount + 1`) and the source code line number (`line`).
+   - After the initialization method completes execution, control returns to the caller.
 
-## Edge Cases
-- **No Initialization Method**: If none of the specified initialization methods (`__init__`, `init`, or `constructor`) are found in the class hierarchy, the instance is simply created without invoking any initialization logic.
-- **Multiple Initialization Methods**: If multiple initialization methods are present in the class hierarchy, only the first encountered method will be used.
+6. **Edge Cases**:
+   - If no initialization method is found in the class hierarchy, the instance is still created and pushed onto the stack without invoking any method.
+   - If the `argCount` is negative, indicating an invalid number of arguments, the function may throw an exception or handle it appropriately based on the compiler's error handling strategy.
 
-## Interactions with Other Components
-- **`QuantumInstance` Class**: This class represents an instance of a quantum class and holds references to the class itself and its environment.
-- **`Environment` Class**: Manages the scope and variables for the quantum instance.
-- **`Class` Class**: Contains metadata about the quantum class, including its methods.
-- **`Closure` Class**: Represents a callable entity in the VM, typically associated with a method or function.
-- **Stack Management**: The function interacts with the VM's stack to manage the creation and initialization of instances.
-- **Error Reporting**: The line number parameter is used to provide context when errors occur during class instantiation.
+7. **Interactions with Other Components**:
+   - **Virtual Machine Core**: The `callClass` function operates within the context of the VM core, manipulating the stack and managing environments for instances.
+   - **Class Definitions**: It interacts with the class definitions to locate and invoke the appropriate initialization method.
+   - **Error Handling**: The function includes mechanisms for handling cases where no initialization method is found, ensuring robustness in the face of potential errors during object creation.
 
-This detailed explanation covers the purpose, implementation, parameters, return value, edge cases, and interactions of the `callClass` function within the Quantum Language compiler's VM core.
+By following these steps, the `callClass` function ensures that objects are properly instantiated and initialized within the Quantum Language compiler's VM, supporting the language's object-oriented features effectively.

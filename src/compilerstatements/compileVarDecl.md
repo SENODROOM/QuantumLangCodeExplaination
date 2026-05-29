@@ -1,34 +1,32 @@
 # `compileVarDecl` Function
 
 ## Purpose
-The `compileVarDecl` function is crucial for processing variable declarations within the Quantum Language compiler. This function ensures that both global and local variables are correctly initialized and defined during the compilation process.
+The `compileVarDecl` function processes variable declarations in the Quantum Language compiler. It ensures that both global and local variables are correctly initialized and defined during the compilation process. This function plays a critical role in maintaining the scope and lifetime of variables throughout the program.
 
 ## Parameters/Return Value
 - **Parameters**:
-  - `s`: A reference to a `VariableDeclaration` object representing the variable declaration being compiled.
-- **Return Value**: None. The function operates directly on the bytecode stream and does not return any value.
+  - `s`: A reference to a `VariableDeclaration` structure containing details about the variable being declared, such as its name, whether it's a constant (`isConst`), and an optional initializer expression (`initializer`).
+  
+- **Return Value**: None. The function directly interacts with the compiler's internal state to define or initialize variables.
 
-## Detailed Explanation
-### Variable Initialization
-The function begins by checking if the variable declaration (`s`) has an initializer. If an initializer exists, it calls `compileExpr(*s.initializer)` to compile the expression associated with the initializer. This step ensures that the variable is assigned a value at the time of declaration.
+## How It Works
+The function first checks if the variable has an initializer. If it does, it compiles the initializer expression using `compileExpr(*s.initializer)`. If there is no initializer, it emits an `Op::LOAD_NIL` operation to load the nil value onto the stack, effectively initializing the variable to nil.
 
-If there is no initializer, the function emits an `Op::LOAD_NIL` operation, loading the nil value into the stack. This is because un-initialized variables should default to nil in the Quantum Language.
+Next, based on the current scope depth (`current_->scopeDepth`), the function decides how to handle the variable declaration:
+- If the current scope depth is zero (`current_->scopeDepth == 0`), indicating a global scope, the function defines the variable either as a constant (`Op::DEFINE_CONST`) or a regular global variable (`Op::DEFINE_GLOBAL`). It uses the `addStr(s.name)` function to get the string index of the variable's name and emits the appropriate opcode along with the line number where the declaration occurs.
+  
+- If the current scope depth is greater than zero, indicating a local scope, the function declares the local variable using the `declareLocal(s.name, line)` method. This method updates the compiler's internal state to keep track of local variables. After declaring the local variable, the function emits an `Op::DEFINE_LOCAL` operation. The operand passed to this operation is the index of the local variable within the current scope, calculated as `static_cast<int>(current_->locals.size()) - 1`, and includes the line number where the declaration occurs.
 
-### Scope Handling
-The function then checks the current scope depth using `current_->scopeDepth`. This determines whether the variable is global or local.
+## Edge Cases
+- **No Initializer**: When a variable is declared without an initializer, the function initializes it to nil. This prevents uninitialized variables which could lead to undefined behavior at runtime.
+  
+- **Global vs Local Scope**: The function distinguishes between global and local scopes to ensure that variables are properly defined according to their scope rules. Global variables can be accessed from anywhere in the program, while local variables have limited visibility within their defining block.
 
-#### Global Variables
-If the scope depth is zero (`current_->scopeDepth == 0`), indicating that the variable is declared globally, the function proceeds to define the variable. Depending on whether the variable is marked as constant (`s.isConst`), it either emits an `Op::DEFINE_CONST` or an `Op::DEFINE_GLOBAL` operation. The `addStr(s.name)` function is used to add the variable's name to the string table, ensuring that the variable can be referenced later.
+## Interactions With Other Components
+- **Scope Management**: The function interacts with the scope management component of the compiler through methods like `declareLocal()`. These methods help maintain the correct context for variable declarations and accesses.
+  
+- **Expression Compilation**: If the variable has an initializer, the function calls `compileExpr()` to compile the initializer expression. This involves evaluating the expression and pushing the result onto the stack, which is then used to initialize the variable.
+  
+- **String Table**: The function uses `addStr(s.name)` to retrieve the string index of the variable's name. This index is essential for identifying the variable in the compiler's data structures and emitting the correct opcodes.
 
-#### Local Variables
-For local variables, the function first declares the local variable using `declareLocal(s.name, line)`. This step updates the local symbol table with the variable's name and its position in the locals array. After declaring the local, the function emits an `Op::DEFINE_LOCAL` operation. The index emitted corresponds to the position of the local variable in the current scope's locals array. This allows the runtime environment to quickly locate and manage local variables.
-
-### Edge Cases
-- **Uninitialized Constants**: If a constant variable is declared without an initializer, the function will load nil into the stack, which might lead to unexpected behavior if the constant is accessed before it is properly set.
-- **Scope Depth Errors**: The function assumes that `current_->scopeDepth` accurately reflects the current scope level. Incorrect values could result in incorrect variable definitions (either global when they should be local, or vice versa).
-
-### Interactions with Other Components
-- **Symbol Table Management**: The function interacts with the symbol table to manage both global and local variables. For global variables, it uses `emit(Op::DEFINE_CONST / Op::DEFINE_GLOBAL, ...)`, while for local variables, it uses `declareLocal(...)` followed by `emit(Op::DEFINE_LOCAL, ...)`.
-- **Bytecode Emission**: The function relies on the `emit` function to generate bytecode operations such as `Op::LOAD_NIL`, `Op::DEFINE_CONST`, `Op::DEFINE_GLOBAL`, and `Op::DEFINE_LOCAL`.
-
-In summary, the `compileVarDecl` function plays a vital role in the Quantum Language compiler by ensuring that all variable declarations are processed correctly, taking into account their initialization and scope. Its implementation involves interacting with various components of the compiler, including the symbol table and bytecode emission mechanisms, to produce accurate and efficient code.
+By handling both initialization and scope definition, the `compileVarDecl` function ensures that variables are correctly managed throughout the compilation process, contributing to the overall correctness and efficiency of the generated code.

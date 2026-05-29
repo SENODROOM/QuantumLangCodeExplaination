@@ -2,49 +2,53 @@
 
 ## Purpose
 
-The `parseEquality` function in the Quantum Language Compiler is designed to parse equality expressions from the source code. It handles both loose (`==`, `!=`) and strict (`===`, `!==`) equality comparisons, treating strict equality (`===`, `!==`) as their non-strict counterparts (`==`, `!=`). This simplifies the parsing process by reducing the number of distinct operators that need to be handled.
+The `parseEquality` function in the Quantum Language Compiler is responsible for parsing equality expressions from the source code. This includes both loose (`==`, `!=`) and strict (`===`, `!==`) equality comparisons. The function treats strict equality (`===`, `!==`) as equivalent to their non-strict counterparts (`==`, `!=`) because Quantum is a dynamically typed language.
 
 ## Parameters/Return Value
 
 ### Parameters
-
-- None
+- None explicitly mentioned in the provided code snippet.
 
 ### Return Value
-
-- `std::unique_ptr<ASTNode>`: A unique pointer to an ASTNode representing the parsed equality expression.
+- Returns a unique pointer to an `ASTNode` representing the parsed equality expression.
 
 ## How It Works
 
-1. **Initialization**: The function starts by calling `parseComparison()` to parse the left-hand side of the equality expression. This function returns an `std::unique_ptr<ASTNode>` representing the comparison part of the expression.
+1. **Initial Parsing**: The function starts by calling `parseComparison()` to parse the left-hand side of the equality expression. This function returns a unique pointer to an `ASTNode`.
 
-2. **Loop Through Equality Operators**:
-   - The function enters a loop that continues as long as the next token is one of the equality operators (`==`, `!=`, `===`, `!==`).
-   - Inside the loop, it retrieves the line number (`ln`) where the operator occurs using `current().line`.
-   - It consumes the current token (`op`) using `consume()`. Depending on whether the token type is `TokenType::STRICT_EQ` or `TokenType::STRICT_NEQ`, it sets `opStr` to `"=="` or `"!="`, respectively. For non-strict operators, `opStr` is set directly to the operator's value.
+2. **Loop for Equality Operators**: 
+   - The function enters a loop that continues as long as the next token is one of the equality operators (`TokenType::EQ`, `TokenType::NEQ`, `TokenType::STRICT_EQ`, or `TokenType::STRICT_NEQ`).
+   
+3. **Token Consumption**:
+   - Inside the loop, the function consumes the current token using `consume()`. This token represents the equality operator encountered.
+   
+4. **Operator String Conversion**:
+   - Depending on the type of the consumed token, the function converts it into a string representation of the operator. For strict equality (`===`), it uses `"=="`, and for strict inequality (`!==`), it uses `"!="`. For loose equality (`==`) and loose inequality (`!=`), it directly uses the values of the tokens.
 
-3. **Parse Right-Hand Side**:
-   - After consuming the operator, the function calls `parseComparison()` again to parse the right-hand side of the equality expression.
+5. **Right-hand Side Parsing**:
+   - After consuming the operator token, the function calls `parseComparison()` again to parse the right-hand side of the equality expression.
 
-4. **Create Binary Expression Node**:
-   - The function creates a new `BinaryExpr` node with the operator string (`opStr`), the left-hand side (`left`), and the right-hand side (`right`). It also assigns the line number (`ln`) to the new node.
-   - The new `BinaryExpr` node is wrapped in a `std::unique_ptr<ASTNode>` and assigned back to `left`.
+6. **Creating ASTNode**:
+   - The function then creates a new `ASTNode` containing a `BinaryExpr` object. This `BinaryExpr` object encapsulates the operator string and the two parsed sub-expressions (left and right). The line number of the current token is passed to the `ASTNode` constructor.
 
-5. **Repeat Loop**:
-   - The loop repeats until there are no more equality operators following the current expression.
+7. **Updating Left-hand Side**:
+   - The newly created `ASTNode` becomes the new left-hand side of the expression, and the loop continues until there are no more equality operators.
 
-6. **Return Result**:
-   - Once the loop exits, the function returns the final `left` node, which now represents the entire equality expression tree.
+8. **Exit Loop**:
+   - Once the loop exits, the function returns the final `ASTNode` which represents the entire equality expression.
 
 ## Edge Cases
 
-- **No Equality Operators**: If there are no equality operators after the initial comparison, the function simply returns the result of `parseComparison()`.
-- **Nested Equality Expressions**: The function can handle nested equality expressions, such as `a == b != c`. In this case, it will correctly parse the inner comparison first (`b != c`), then combine it with the outer comparison (`a == ...`).
+- **No Equality Operator**: If there are no equality operators after the initial call to `parseComparison()`, the function simply returns the result of `parseComparison()`.
+  
+- **Multiple Consecutive Equality Operators**: The function can handle multiple consecutive equality operators correctly, building up the expression tree accordingly.
 
-## Interactions With Other Components
+- **Mixed Types**: Since Quantum is dynamically typed, the function ensures that the types of the operands are compatible before performing the comparison.
 
-- **Parsing Context**: The `parseEquality` function operates within the broader context of the parser, utilizing helper functions like `check()` and `consume()` to navigate through the tokens in the source code.
-- **Abstract Syntax Tree (AST)**: The function constructs an AST by creating `BinaryExpr` nodes. These nodes represent the structure of the equality expressions and are used by subsequent stages of the compiler for semantic analysis and code generation.
-- **Error Handling**: Although not explicitly shown in the provided code snippet, the parser likely includes error handling mechanisms to manage unexpected tokens or syntax errors during the parsing process.
+## Interactions with Other Components
 
-This implementation ensures that the Quantum Language Compiler can accurately parse equality expressions, taking into account both strict and loose comparisons, while maintaining simplicity and efficiency in the parsing logic.
+- **Tokenizer**: The function relies on the tokenizer to provide the correct sequence of tokens, including the equality operators.
+  
+- **ASTBuilder**: The function constructs an abstract syntax tree (AST) node for each equality expression, which is then used by other parts of the compiler for further processing, such as semantic analysis and code generation.
+
+This implementation ensures that equality expressions are correctly parsed and represented in the AST, facilitating subsequent stages of compilation.

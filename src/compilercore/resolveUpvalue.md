@@ -2,36 +2,45 @@
 
 ## Purpose
 
-The `resolveUpvalue` function plays a crucial role in managing upvalues within nested functions in the Quantum Language compiler. An upvalue is a variable that is accessible in an inner function but defined in an outer function. The primary purpose of this function is to determine whether a given variable name corresponds to an upvalue and, if so, to capture it appropriately.
+The `resolveUpvalue` function manages upvalues within nested functions in the Quantum Language compiler. An upvalue is a variable that is accessible in an inner function but defined in an outer function. This function ensures that upvalues are correctly captured and resolved during the compilation process.
 
 ## Parameters
 
-- `State* state`: A pointer to the current compilation state, which includes information about the enclosing scope and the list of locals.
-- `const std::string& name`: The name of the variable to be resolved as an upvalue.
+- `State* state`: A pointer to the current compilation state, which includes information about the enclosing function and the list of locals.
+- `const std::string& name`: The name of the variable being resolved as an upvalue.
 
 ## Return Value
 
-- `int`: Returns the index of the upvalue if found; otherwise, returns `-1`.
+- `int`: The index of the resolved upvalue or `-1` if the variable cannot be found as an upvalue.
 
 ## How It Works
 
-### Step 1: Check Enclosing Scope
-The function first checks if there is an enclosing scope (`state->enclosing`). If not, it means the variable is not accessible through any upvalue, so it returns `-1`.
+The function operates in a recursive manner, starting from the current function's enclosing scope and moving outward until it finds the variable or reaches the top-level scope. Here’s a step-by-step breakdown of how it works:
 
-### Step 2: Resolve Local Variable
-If there is an enclosing scope, the function attempts to resolve the variable name as a local variable within that scope using the `resolveLocal` method. If successful (`local != -1`), it marks the local variable as captured and adds it as an upvalue to the current scope using the `addUpvalue` method with the parameter `true`. The index of the new upvalue is then returned.
+1. **Check Enclosing Function**: 
+   - If there is no enclosing function (`!state->enclosing`), the function returns `-1`, indicating that the variable is not an upvalue.
+   
+2. **Resolve Local Variable**:
+   - The function attempts to resolve the variable as a local in the enclosing function using `resolveLocal`.
+   - If the variable is found as a local (`local != -1`), it marks the local as captured (`state->enclosing->locals[local].isCaptured = true`) and adds an upvalue to the current function’s list of upvalues using `addUpvalue`. The boolean parameter `true` indicates that the upvalue is a local capture.
+   - If the variable is successfully added as an upvalue, the function returns its index.
 
-### Step 3: Resolve Upvalue
-If the variable name is not found as a local variable in the enclosing scope, the function recursively calls itself on the enclosing scope to check further up the scope chain. If an upvalue is found (`upvalue != -1`), it adds this upvalue to the current scope using the `addUpvalue` method with the parameter `false`, indicating that the upvalue is not a local variable but rather a reference to a variable in an even higher enclosing scope. The index of the new upvalue is returned.
+3. **Resolve Upvalue**:
+   - If the variable is not found as a local, the function recursively calls itself on the enclosing function (`resolveUpvalue(state->enclosing, name)`).
+   - If the variable is found as an upvalue in the enclosing function (`upvalue != -1`), it adds the upvalue to the current function’s list of upvalues using `addUpvalue`. The boolean parameter `false` indicates that the upvalue is a non-local capture.
+   - If the variable is successfully added as an upvalue, the function returns its index.
 
-### Step 4: Handle Edge Cases
-- **No Enclosing Scope**: If there is no enclosing scope, the function immediately returns `-1`.
-- **Variable Not Found**: If the variable is not found either as a local or as an upvalue in the enclosing scope, the function continues checking further up the scope chain until it reaches the global scope or returns `-1` if the variable is not found anywhere.
+4. **Return `-1`**:
+   - If the variable is not found in any enclosing function, the function returns `-1`.
+
+## Edge Cases
+
+- **No Enclosing Function**: If the current function has no enclosing function, the variable cannot be an upvalue, so the function returns `-1`.
+- **Variable Not Found**: If the variable is not found in either the local scope or any enclosing scopes, the function returns `-1`.
 
 ## Interactions With Other Components
 
-- **Scope Management**: The `resolveUpvalue` function interacts closely with the scope management system, utilizing methods like `resolveLocal` and `addUpvalue` to manage the capturing and resolution of upvalues.
-- **Compilation State**: The function operates on the current compilation state, which contains information about the scopes and variables being processed during compilation.
-- **Recursive Calls**: By calling itself on the enclosing scope, the function demonstrates its recursive nature, allowing it to traverse multiple levels of nested scopes to find the required upvalue.
+- **resolveLocal**: This helper function is used to find a variable as a local in the given function’s scope.
+- **addUpvalue**: This helper function adds an upvalue to the current function’s list of upvalues, handling both local and non-local captures.
 
-In summary, the `resolveUpvalue` function is designed to efficiently manage upvalues in nested functions, ensuring that variables can be accessed correctly across different scopes. Its implementation leverages recursion and interaction with the scope management system to achieve this goal.
+By leveraging these helper functions, `resolveUpvalue` ensures that all upvalues are correctly identified and managed during the compilation process, allowing nested functions to access variables from their enclosing scopes efficiently.

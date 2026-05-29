@@ -1,51 +1,31 @@
 # TypeChecker Component
 
-The TypeChecker component is a crucial part of the Quantum Language compiler, responsible for performing static type checking on the Abstract Syntax Tree (AST). This ensures that the code complies with the defined type rules, thereby avoiding runtime type-related errors before execution begins.
+The TypeChecker component is a vital part of the Quantum Language compiler, tasked with executing static type validation on the Abstract Syntax Tree (AST). This process helps ensure that the code adheres to predefined type constraints, thus preventing runtime errors related to type mismatches before execution starts.
 
 ## Overview
 
-The main objective of the TypeChecker component is to validate the types in the AST nodes and ensure they adhere to the language's type system. It processes the AST by traversing it recursively and applying type rules to each node. If any type error is detected during the traversal, the component reports an error message indicating the issue and halts further processing.
+The primary function of the TypeChecker component is to traverse and analyze the AST to verify the types of variables, expressions, and statements. It uses a combination of built-in type definitions and user-defined type declarations to enforce type safety throughout the compilation process.
 
 ### Files and Their Roles
 
-- **`check.cpp`**: Contains the implementation of the core type checking logic. It defines functions that traverse the AST and apply type rules to each node.
-- **`check.h`**: Declares the public interface of the TypeChecker component, including function prototypes for type checking operations.
-- **`checkNode.cpp`** and **`checkNode.h`**: These files contain specific implementations for type checking different types of AST nodes such as variables, expressions, statements, etc.
+- **`check.cpp`**: Contains the core logic for type checking. The `checkNode` function is central to this file, as it processes each node in the AST according to its type.
+  
+- **`check.h`**: Declares the public interface for the type checker, including the `checkNode` function prototype and any necessary data structures or enums to represent different types and their relationships.
 
-### Overall Flow
+- **`type_checker.cpp`**: Implements additional functionality specific to the type checker, such as handling custom type definitions, type inference, and error reporting.
 
-1. **Initialization**: The TypeChecker component initializes itself and prepares for type checking.
-2. **Traversal**: It starts traversing the AST from the root node downwards.
-3. **Type Checking**: For each node, it applies the appropriate type checking rule based on the node's type (e.g., variable declaration, arithmetic expression).
-4. **Error Reporting**: If a type error is found, it reports an error message detailing the issue.
-5. **Completion**: Once the entire AST has been traversed, the TypeChecker component concludes its operation.
+- **`type_checker.h`**: Exposes the implementation details of the type checker, allowing other parts of the compiler to interact with it effectively.
 
-By ensuring that all types in the AST are correctly validated, the TypeChecker component helps maintain the integrity and reliability of the compiled quantum code.
+## Flow of Execution
 
-## Usage
+1. **Initialization**: The TypeChecker component initializes itself by setting up any required data structures or parsing user-defined type declarations from the source code.
 
-To use the TypeChecker component, include the necessary headers and call the `typeCheck` function with the root of your AST.
+2. **Traversal**: The component traverses the AST using a depth-first search (DFS) approach. Each node in the AST is processed by the `checkNode` function, which determines the appropriate type checking based on the node's type.
 
-```cpp
-#include "check.h"
+3. **Type Validation**: For each node, the `checkNode` function validates the type against the expected type. If there is a mismatch, an error message is generated indicating the issue.
 
-// Assuming 'root' is the root node of your AST
-bool isValid = typeCheck(root);
-if (!isValid) {
-    std::cerr << "Type check failed!" << std::endl;
-}
-```
+4. **Error Reporting**: Errors detected during type checking are reported back to the compiler, providing detailed information about the location and nature of the problem.
 
-## Contributing
+5. **Completion**: Once all nodes have been checked, the TypeChecker component completes its task, ensuring that the entire AST has been validated without any type-related issues.
 
-Contributions to the TypeChecker component are welcome! Please follow the guidelines below:
-
-1. Fork the repository.
-2. Create a new branch (`git checkout -b feature/YourFeatureName`).
-3. Make your changes and commit them (`git commit -m "Add some feature"`).
-4. Push to the branch (`git push origin feature/YourFeatureName`).
-5. Open a pull request.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+By following this structured approach, the TypeChecker component plays a critical role in maintaining the integrity and reliability of the compiled quantum programs.

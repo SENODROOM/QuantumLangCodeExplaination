@@ -2,54 +2,47 @@
 
 ## Purpose
 
-The `parseArgList` function is designed to parse a list of arguments enclosed within parentheses. This includes handling positional arguments, keyword arguments, generator expressions, and unpacking of keyword arguments using the `**` syntax. The function ensures proper parsing and construction of an abstract syntax tree (AST) representing the parsed arguments.
+The `parseArgList` function is designed to parse a list of arguments enclosed within parentheses. This includes handling positional arguments, keyword arguments, generator expressions, and unpacking of keyword arguments using the `**` syntax. The function ensures proper parsing and construction of an Abstract Syntax Tree (AST) representing the parsed arguments.
 
 ## Parameters/Return Value
 
 - **Parameters**: None
-- **Return Value**: A `std::vector<ASTNodePtr>` containing pointers to AST nodes representing the parsed arguments.
+- **Return Value**: A vector of ASTNodePtr objects representing the parsed arguments.
 
 ## How It Works
 
-1. **Expecting Parentheses**: The function starts by expecting a left parenthesis (`(`). If not found, it throws an error indicating that a left parenthesis was expected.
+The function starts by expecting a left parenthesis `(`. It then enters a loop that continues until it encounters a right parenthesis `)` or reaches the end of the input. Within the loop, it handles different types of arguments:
 
-2. **Parsing Arguments**: Inside a loop, it continuously parses arguments until a right parenthesis (`)` is encountered or the end of the input is reached.
+1. **Unpacking Keyword Arguments (`**expr`)**:
+   - If the next token is `TokenType::POWER`, indicating unpacking, the function consumes the `**` token and parses the expression following it.
+   - The parsed expression is wrapped in a `UnaryExpr` node with the operator `"**"`. This indicates to the evaluation context that the expression should be treated as a spread operation.
+   - The function then skips any newlines and checks if there is a comma `,` after the unpacking expression. If not, the loop breaks.
 
-3. **Handling Keyword Argument Unpacking (`**`)**:
-   - If the next token is `TokenType::POWER`, it indicates a keyword argument unpacking operation (`**expr`). 
-   - The function consumes the `**` token and then parses the expression following it.
-   - To distinguish this from regular positional arguments, it wraps the parsed expression in a `UnaryExpr` node with the operator `"**"`.
-   - After adding the wrapped expression to the `args` vector, it checks if there is a comma (`,`), which would indicate more arguments. If not, it breaks out of the loop.
+2. **Handling Keyword Arguments (`name=expr`)**:
+   - If the next token is an identifier, the function checks if the subsequent tokens indicate a keyword assignment (`=`).
+   - If a keyword assignment is found, the function consumes the identifier and the `=` token, skipping any intervening newlines.
+   - The function then parses the expression following the `=` token, which represents the value of the keyword argument.
 
-4. **Handling Regular Keyword Arguments**:
-   - If the next token is an `IDENTIFIER`, it might be followed by a keyword assignment (`=`).
-   - The function skips any newlines before and after the identifier and the assignment token.
-   - It consumes the identifier and the assignment token, then parses the expression following the assignment.
-   - Since the goal is to handle only the value part of the keyword argument, the identifier itself is ignored.
+3. **Parsing Positional Arguments**:
+   - For all other cases, the function assumes that the current token represents a positional argument.
+   - It parses the expression corresponding to the positional argument.
+   - The function then skips any newlines.
 
-5. **Parsing Expressions**:
-   - For each argument, the function calls `parseExpr()` to parse the expression and adds it to the `args` vector.
-   - It also handles any trailing newlines after parsing an expression.
-
-6. **Handling Generator Expressions**:
-   - If the next token is `TokenType::FOR`, it indicates a generator expression.
-   - The function consumes the `for` token and then reads variables involved in the generator.
-   - Variables can be identifiers or CType keywords.
-   - After reading the variables, it expects an `IN` token followed by another expression, which represents the iterable part of the generator.
-   - The function constructs an appropriate AST node for the generator expression and adds it to the `args` vector.
-
-7. **Skipping Newlines**: Throughout the parsing process, the function uses `skipNewlines()` to ignore any extraneous newlines in the input.
+4. **Generator Expressions (`f(expr for var in iterable)`)**:
+   - If the next token is `TokenType::FOR`, indicating the start of a generator expression, the function consumes the `for` token and reads variables involved in the generator.
+   - Variables are read one at a time, consuming identifiers or CType keywords.
+   - After reading the variables, the function expects a `TokenType::IN` token followed by an iterable expression.
 
 ## Edge Cases
 
-- **Empty Argument List**: If the argument list is empty (i.e., immediately followed by a right parenthesis), the function will return an empty vector without throwing an error.
-- **Trailing Comma**: If there is a trailing comma at the end of the argument list, the function will stop parsing at that point and not include the extra comma in the result.
-- **Nested Parentheses**: The function correctly handles nested parentheses by continuing to parse arguments until the corresponding right parenthesis is encountered.
+- **Empty Argument List**: If the argument list is empty (i.e., only contains parentheses), the function returns an empty vector.
+- **Trailing Comma**: If there is a trailing comma after the last argument, the function will still parse correctly and ignore the extra comma.
+- **Nested Parentheses**: The function can handle nested parentheses within the argument list, ensuring that each set of parentheses is properly closed before moving on to the next set.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
 - **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing.
-- **Error Handling**: Errors such as missing closing parentheses or invalid syntax are handled appropriately by throwing exceptions.
-- **Abstract Syntax Tree Construction**: The parsed arguments are added to an AST, which is used by subsequent stages of compilation to generate executable code.
+- **Error Handling**: The function uses error-handling mechanisms provided by the tokenizer to report issues such as missing closing parentheses or unexpected tokens.
+- **Evaluation Context**: When constructing the AST nodes, the function may interact with the evaluation context to determine how to treat certain expressions, especially those involving unpacking operations.
 
-This comprehensive approach ensures that `parseArgList` can accurately parse various types of arguments and construct a robust AST representation, facilitating further processing in the quantum language compiler.
+This comprehensive approach allows `parseArgList` to accurately parse various forms of argument lists encountered in quantum language code, providing a robust foundation for further processing and interpretation.

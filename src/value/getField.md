@@ -1,29 +1,57 @@
 # `getField` Function
 
 ## Purpose
-The `getField` function is designed to retrieve a field or method from an instance of a class in the Quantum Language compiler. It enables dynamic access to properties and behaviors encapsulated within objects at runtime, thereby facilitating flexible and powerful object-oriented programming practices.
+The `getField` function is designed to retrieve a field or method from an instance of a class in the Quantum Language compiler. It allows dynamic access to properties and behaviors encapsulated within objects at runtime, thereby enabling flexible and powerful object-oriented programming capabilities.
 
 ## Parameters
-- `name`: A string representing the name of the field or method to be retrieved.
+- **name**: A string representing the name of the field or method to be retrieved.
 
 ## Return Value
 - Returns a `QuantumValue` containing the field or method if found.
-- Throws a `NameError` exception if the specified field or method does not exist on the instance of the class.
-
-## How it Works
-1. **Field Search**: The function first attempts to find the specified `name` in the `fields` map associated with the current instance. If the field is found (`it != fields.end()`), it returns the corresponding `QuantumValue`.
-
-2. **Method Search**: If the field is not found, the function proceeds to check for the existence of the `name` as a method in the class hierarchy. It starts by retrieving the class pointer (`klass.get()`) and then iterates through each base class using a `while` loop until it reaches the root class (`nullptr`). During each iteration, it checks the `methods` map of the current class (`k->methods.find(name)`). If a method with the specified `name` is found, it returns a new `QuantumValue` wrapping the method.
-
-3. **Exception Handling**: If neither a field nor a method named `name` is found after searching all classes in the hierarchy, the function throws a `NameError` exception indicating that the specified field or method does not exist on the instance of the class.
+- Throws a `NameError` if no field or method with the specified name exists on the instance of the class.
 
 ## Edge Cases
-- **Non-existent Field/Method**: If the specified `name` does not correspond to any field or method in the class hierarchy, the function will throw a `NameError`. This ensures that the user is aware of the incorrect field or method name they provided.
-- **Inheritance Chain**: The function correctly handles inheritance chains by checking each base class for the specified `name`. This allows for accessing overridden fields and methods in derived classes.
+1. **Non-existent Field/Method**: If the specified field or method does not exist on the instance of the class, the function will throw a `NameError`.
+2. **Inheritance Chain**: The function searches for the field or method in the current class and then recursively checks each base class in the inheritance chain until it finds the desired member or reaches the topmost base class.
+3. **Private Members**: The function should handle private members appropriately, ensuring that they can only be accessed through public interfaces or when explicitly allowed.
 
 ## Interactions with Other Components
-- **Class Hierarchy Management**: The `getField` function interacts with the class hierarchy management component to traverse up the inheritance chain when searching for methods.
-- **Field/Method Storage**: It relies on the storage mechanisms for fields and methods, which are typically implemented as maps within the class definition.
-- **Dynamic Access**: By allowing dynamic access to fields and methods, the `getField` function facilitates advanced features such as reflection and introspection, enhancing the flexibility and power of the Quantum Language compiler.
+- **Class Definition**: The function interacts with the class definition (`klass`) to access its fields and methods.
+- **Field Storage**: Fields are stored in a map called `fields`, which allows for efficient lookup.
+- **Method Storage**: Methods are stored in another map called `methods`, similar to fields, allowing for quick retrieval.
+- **Base Class Handling**: When a field or method is not found in the current class, the function traverses up the inheritance chain using the `base` pointer of the class definition.
 
-This comprehensive approach ensures that the `getField` function can effectively retrieve fields and methods from instances of classes, even in complex inheritance hierarchies, providing robust support for dynamic object-oriented programming.
+## Implementation Details
+The implementation of the `getField` function involves two main steps:
+1. **Local Lookup**: The function first attempts to find the specified field or method in the local `fields` map of the instance's class.
+2. **Inheritance Search**: If the local lookup fails, the function proceeds to search the inheritance chain. This is done by iterating through each base class of the current class until the desired member is found or the topmost base class is reached.
+
+Here is the code snippet for the `getField` function:
+
+```cpp
+auto it = fields.find(name);
+if (it != fields.end())
+    return it->second;
+
+// Check methods
+auto k = klass.get();
+while (k)
+{
+    auto mit = k->methods.find(name);
+    if (mit != k->methods.end())
+        return QuantumValue(mit->second);
+    k = k->base.get();
+}
+
+throw NameError("No field/method '" + name + "' on instance of " + klass->name);
+```
+
+### Explanation of Code
+- **Line 1**: The function attempts to find the specified field or method in the `fields` map of the instance's class.
+- **Line 2-4**: If the field is found, it is returned directly.
+- **Line 5**: The function then starts checking methods by retrieving the current class definition (`klass`).
+- **Line 6-8**: It iterates through each base class of the current class, searching for the specified method in the `methods` map of each base class.
+- **Line 9**: If the method is found, it is wrapped in a `QuantumValue` and returned.
+- **Line 10-12**: If neither the field nor the method is found after checking all classes in the inheritance chain, a `NameError` is thrown indicating that the specified member does not exist on the instance of the class.
+
+This design ensures that the `getField` function can dynamically access both fields and methods, providing flexibility and power in handling objects at runtime.

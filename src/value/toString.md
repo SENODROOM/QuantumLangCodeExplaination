@@ -1,39 +1,32 @@
-# `toString()` Method Explanation
+# `toString` Method Explanation
 
 ## Overview
 
-The `toString()` method in the Quantum Language compiler is responsible for converting various quantum data types into their corresponding string representations. This functionality is essential for debugging, logging, and user interface interactions where textual output is required.
+The `toString` method in the Quantum Language compiler converts various quantum data types into their corresponding string representations. This functionality is crucial for debugging, logging, and user interface interactions where textual output is required.
 
-## How It Works
+### Why It Works This Way
 
-The `toString()` method utilizes `std::visit` to handle different data types gracefully. Each type has its own conversion logic:
+This implementation uses `std::visit` to handle different data types within a variant container. The `if constexpr` statements ensure that each type is handled appropriately without runtime overhead. For example, integers are converted directly to strings, floating-point numbers are formatted to a fixed precision, and complex structures like arrays and dictionaries are recursively converted to strings.
 
-- **QuantumNil**: Returns the string `"nil"` indicating an empty or null value.
-- **bool**: Converts `true` to `"true"` and `false` to `"false"`.
-- **double**: Handles floating-point numbers. If the number is an integer (`std::floor(v) == v`) and its absolute value is less than \(1 \times 10^{15}\), it converts the number to a long integer and returns it as a string. For other values, it formats the number to 10 decimal places using `std::ostringstream`.
-- **std::string**: Simply returns the string itself.
-- **std::shared_ptr<Array>**: Iterates over each element in the array. If an element is a string, it encloses it in quotes. Otherwise, it converts the element to a string directly. The resulting elements are joined with commas and enclosed in square brackets.
-- **std::shared_ptr<Dict>**: Iterates over each key-value pair in the dictionary. If the value is a string, it encloses it in quotes. Otherwise, it converts the value to a string directly. The pairs are joined with commas and enclosed in curly braces.
-- **std::shared_ptr<Closure>**: Returns a string that indicates the closure's name prefixed with `<fn:`. This helps in identifying closures during debugging.
-- **std::shared_ptr<QuantumNative>**: Similar to closures, it returns a string that indicates the native function's name prefixed with `<native:`. This aids in distinguishing between native functions and regular closures.
-- **std::shared_ptr<QuantumInstance>**: Checks if the class of the instance defines a method named `__str__`. If such a method exists, it calls this method to get the string representation of the instance. If not, it falls back to a default conversion mechanism.
+## Parameters/Return Value
 
-## Parameters and Return Value
-
-- **Parameters**: None.
-- **Return Value**: A `std::string` representing the string form of the quantum data type.
+- **Parameters**: None
+- **Return Value**: A `std::string` representing the stringified version of the quantum data type.
 
 ## Edge Cases
 
-- **Empty Array**: An empty array will be represented as `[]`.
-- **Empty Dictionary**: An empty dictionary will be represented as `{}`.
-- **Integer Precision**: Floating-point numbers that are integers and fall within the specified range (\(-1 \times 10^{15}\) to \(1 \times 10^{15}\)) are converted to long integers.
-- **Missing `__str__` Method**: For instances without a `__str__` method, a fallback conversion is used which may not always produce the most readable output.
+1. **Integer Types**: Directly convert to strings.
+2. **Floating-Point Types**: Format to a fixed precision of 10 decimal places unless they represent an integer less than \(10^{15}\).
+3. **Strings**: Return the string as-is.
+4. **Arrays**: Convert each element to a string and concatenate them with commas. If an element is a string, enclose it in quotes.
+5. **Dictionaries**: Convert each key-value pair to a string and concatenate them with commas. Enclose keys in quotes. If the value is a string, enclose it in quotes.
+6. **Closures and Native Functions**: Return a simple representation indicating the type and name.
+7. **Instances of Classes**: Attempt to call a special `__str__` method if defined; otherwise, use default conversion.
 
-## Interactions with Other Components
+## Interactions With Other Components
 
-- **Debugging and Logging**: The `toString()` method is frequently called during debugging sessions and when logging errors or intermediate states of the compiler.
-- **User Interface**: When displaying results or error messages to the user, the `toString()` method ensures that the data is presented in a human-readable format.
-- **Class Methods**: The interaction with the `__str__` method allows for custom string representations of classes, enhancing flexibility and readability in complex scenarios.
+- **Debugging and Logging**: Provides a readable format for quantum values which can be logged or printed during debugging sessions.
+- **User Interface**: Used to display quantum values to users in a human-readable manner.
+- **Serialization**: Can be used in serialization processes to convert quantum data into a string format suitable for storage or transmission.
 
-Overall, the `toString()` method provides a robust solution for converting quantum data types to strings, ensuring compatibility across different parts of the compiler and facilitating effective communication with users and developers.
+This method ensures comprehensive coverage of common quantum data types, making it versatile for various applications within the compiler.

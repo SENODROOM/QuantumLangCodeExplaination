@@ -1,77 +1,85 @@
 # `parseUnary` Function
 
 ## Purpose
-The `parseUnary` function in the Quantum Language compiler is responsible for parsing unary expressions. These expressions typically involve a single operator applied to an operand, such as increment (`++`), decrement (`--`), negation (`-`), logical NOT (`!`), bitwise NOT (`~`), address-of (`&`), and dereference (`*`). The function ensures that these operators are correctly interpreted and transformed into appropriate Abstract Syntax Tree (AST) nodes.
+The `parseUnary` function in the Quantum Language compiler is designed to parse unary expressions. These expressions consist of a single operator followed by an operand, such as increment (`++`), decrement (`--`), negation (`-`), logical NOT (`!`), bitwise NOT (`~`), address-of (`&`), and dereference (`*`). The function ensures that these operators are correctly interpreted and transformed into their corresponding Abstract Syntax Tree (AST) nodes.
 
 ## Parameters
-- **None**: This function operates on the global state of the parser, which includes the current token being processed.
+- **None**: The `parseUnary` function operates on the global state of the parser, which includes the current token being processed and the ability to consume tokens.
 
 ## Return Value
-- **std::unique_ptr<ASTNode>**: The function returns a unique pointer to an AST node representing the parsed unary expression. Depending on the type of unary operation encountered, different types of AST nodes are returned:
-  - For prefix increment (`++`) and decrement (`--`), an `AssignExpr` node is returned.
-  - For negation (`-`), logical NOT (`!`), and bitwise NOT (`~`), a `UnaryExpr` node is returned.
-  - For the C-style address-of (`&`) operator, an `AddressOfExpr` node is returned.
-  - For the C-style dereference (`*`) operator, a `DerefExpr` node is returned.
+- **std::unique_ptr<ASTNode>**: The function returns a unique pointer to an AST node representing the parsed unary expression. Depending on the type of unary operator encountered, different types of AST nodes are returned:
+  - For prefix increment (`++`) and decrement (`--`), it returns an `AssignExpr` node.
+  - For postfix increment (`i++`) and decrement (`i--`), it returns an `IncDecExpr` node.
+  - For negation (`-`), logical NOT (`!`), and bitwise NOT (`~`), it returns a `UnaryExpr` node.
+  - For address-of (`&`) and dereference (`*`), it returns an `AddressOfExpr` and `DerefExpr` node respectively.
 
 ## Edge Cases
-- **Empty Expression**: If the parser encounters an empty expression or reaches the end of the input while trying to parse a unary expression, it should handle this gracefully without causing a runtime error.
-- **Invalid Operand**: If the operand following a unary operator is not valid (e.g., expecting an identifier but encountering a number), the parser should generate an appropriate error message indicating the syntax error.
-- **Nested Unary Operations**: The function should be able to handle nested unary operations correctly, ensuring that each operator is properly associated with its operand.
+- **Invalid Unary Operator**: If the current token is not a valid unary operator, the function will throw an error indicating an unexpected token.
+- **Postfix Increment/Decrement**: The function currently only handles prefix increment and decrement. Handling postfix versions would require additional logic to manage the order of operations correctly.
+- **Namespace Qualification**: In the case of the address-of operator (`&`), the function checks if the identifier contains a scope resolution operator (`::`). If so, it extracts the member name and returns a `StringLiteral` node instead of an `AddressOfExpr`. This behavior may need to be adjusted based on the language's rules regarding namespace qualification and address-of operations.
 
 ## Interactions with Other Components
-- **Token Stream**: The `parseUnary` function relies on the global token stream managed by the parser. It consumes tokens from this stream to identify and process unary operators.
-- **Error Handling**: The function interacts with the error handling mechanism of the parser to report any syntax errors encountered during the parsing process.
-- **AST Construction**: The function constructs AST nodes based on the parsed unary expressions. These nodes are then used by subsequent phases of the compiler (e.g., semantic analysis, code generation) to represent the abstract structure of the quantum program.
+- **Token Stream**: The `parseUnary` function relies on the global token stream managed by the parser. It consumes tokens as part of its operation to progress through the input source code.
+- **Error Handling**: Errors during parsing are handled by throwing exceptions. The calling component should catch these exceptions and handle them appropriately, possibly reporting errors to the user or continuing execution in a controlled manner.
+- **AST Construction**: The function constructs AST nodes based on the parsed unary expressions. These nodes are then used by subsequent stages of the compilation process, such as semantic analysis and code generation, to build the final executable representation of the program.
 
 ## Implementation Details
-Here's a breakdown of how the `parseUnary` function handles different unary operators:
+The implementation of `parseUnary` is structured to handle each type of unary operator separately. For example, when encountering a prefix increment (`++`), the function consumes the token, recursively parses the operand, creates a `NumberLiteral` node with the value `1.0`, and then constructs an `AssignExpr` node with the operator `"+="`. This approach allows for clear separation of concerns and easy expansion to support additional unary operators in the future.
 
-1. **Prefix Increment (`++`)**:
-   - Checks if the current token is `TokenType::PLUS_PLUS`.
-   - Consumes the token.
-   - Recursively parses the operand using `parseUnary()`.
-   - Creates a `NumberLiteral` node representing the value `1.0`.
-   - Constructs an `AssignExpr` node with the operator `"+="`, linking the operand and the literal.
-   - Returns the constructed `AssignExpr` node.
+Here is a simplified version of how the function might be implemented:
 
-2. **Prefix Decrement (`--`)**:
-   - Similar to prefix increment, but uses the operator `"-"=`.
-   - Creates a `NumberLiteral` node with the value `-1.0`.
-
-3. **Negation (`-`)**:
-   - Checks if the current token is `TokenType::MINUS`.
-   - Consumes the token.
-   - Recursively parses the operand using `parseUnary()`.
-   - Constructs a `UnaryExpr` node with the operator `"-"`.
-   - Returns the constructed `UnaryExpr` node.
-
-4. **Logical NOT (`!`)**:
-   - Checks if the current token is `TokenType::NOT`.
-   - Consumes the token.
-   - Recursively parses the operand using `parseUnary()`.
-   - Constructs a `UnaryExpr` node with the operator `"not"`.
-   - Returns the constructed `UnaryExpr` node.
-
-5. **Bitwise NOT (`~`)**:
-   - Checks if the current token is `TokenType::BIT_NOT`.
-   - Consumes the token.
-   - Recursively parses the operand using `parseUnary()`.
-   - Constructs a `UnaryExpr` node with the operator `"~"`.
-   - Returns the constructed `UnaryExpr` node.
-
-6. **C-style Address-of (`&`)**:
-   - Checks if the current token is `TokenType::BIT_AND`.
-   - Consumes the token.
-   - If the next token is an identifier containing a scope resolution operator (`::`), extracts the member name and creates a `StringLiteral` node.
-   - Otherwise, recursively parses the operand using `parseUnary()`.
-   - Constructs an `AddressOfExpr` node with the operand.
-   - Returns the constructed `AddressOfExpr` node.
-
-7. **C-style Dereference (`*`)**:
-   - Checks if the current token is `TokenType::STAR`.
-   - Consumes the token.
-   - Recursively parses the operand using `parseUnary()`.
-   - Constructs a `DerefExpr` node with the operand.
-   - Returns the constructed `DerefExpr` node.
-
-By carefully handling each unary operator and constructing the corresponding AST nodes, the `parseUnary` function enables the Quantum Language compiler to accurately represent and analyze unary expressions within the quantum program.
+```cpp
+std::unique_ptr<ASTNode> parseUnary() {
+    int ln = current().line;
+    
+    // Handle prefix operators
+    if (check(TokenType::PLUS_PLUS)) {
+        consume();
+        auto operand = parseUnary();
+        auto one = std::make_unique<ASTNode>(NumberLiteral{1.0}, ln);
+        return std::make_unique<ASTNode>(AssignExpr{"+=", std::move(operand), std::move(one)}, ln);
+    }
+    if (check(TokenType::MINUS_MINUS)) {
+        consume();
+        auto operand = parseUnary();
+        auto one = std::make_unique<ASTNode>(NumberLiteral{1.0}, ln);
+        return std::make_unique<ASTNode>(AssignExpr{"-=", std::move(operand), std::move(one)}, ln);
+    }
+    if (check(TokenType::MINUS)) {
+        consume();
+        return std::make_unique<ASTNode>(UnaryExpr{"-", parseUnary()}, ln);
+    }
+    if (check(TokenType::PLUS)) {
+        consume();
+        return parseUnary(); // Discard the '+'
+    }
+    if (check(TokenType::NOT)) {
+        consume();
+        return std::make_unique<ASTNode>(UnaryExpr{"not", parseUnary()}, ln);
+    }
+    if (check(TokenType::BIT_NOT)) {
+        consume();
+        return std::make_unique<ASTNode>(UnaryExpr{"~", parseUnary()}, ln);
+    }
+    
+    // Handle address-of and dereference operators
+    if (check(TokenType::BIT_AND)) {
+        consume();
+        int ln2 = current().line;
+        if (check(TokenType::IDENTIFIER) && current().value.find("::") != std::string::npos) {
+            std::string val = consume().value;
+            size_t pos = val.rfind("::");
+            std::string member = val.substr(pos + 2);
+            return std::make_unique<ASTNode>(StringLiteral{member}, ln2);
+        }
+        auto operand = parseUnary();
+        return std::make_unique<ASTNode>(AddressOfExpr{std::move(operand)}, ln2);
+    }
+    if (check(TokenType::STAR)) {
+        consume();
+        int ln2 = current().line;
+        auto operand = parseUnary();
+        return std::make_unique<ASTNode>(DerefExpr{std::move(operand)}, ln2);
+    }
+    
+    // If none of the above operators are found, consume the token and call

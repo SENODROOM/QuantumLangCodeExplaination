@@ -2,61 +2,53 @@
 
 ## Purpose
 
-The `compileNew` function in the Quantum Language compiler is responsible for creating new instances of objects within the quantum programming environment. It performs several critical tasks:
+The `compileNew` function in the Quantum Language compiler is designed to create new instances of objects within the quantum programming environment. It accomplishes this through a series of steps that ensure the correct instantiation and initialization of objects based on their type and provided arguments.
 
-1. **Loading the Type Name**: The function first loads the type name of the object to be instantiated.
-2. **Compiling Arguments**: It then compiles each argument passed to the constructor of the object.
-3. **Emitting New Instance Operation**: Finally, it emits an operation to create a new instance of the object using the loaded type name and compiled arguments.
+## Parameters/Return Value
 
-## Parameters
+- **Parameters**:
+  - `e`: A reference to an expression object (`Expression`) containing information about the object to be instantiated, including its type name and arguments.
+  - `line`: An integer representing the current line number in the source code, used for error reporting and debugging purposes.
 
-- `e`: A reference to a `CompileExpression` object that contains information about the object instantiation, including the type name and arguments.
-- `line`: An integer representing the current line number in the source code, used for error reporting and debugging purposes.
+- **Return Value**:
+  - None. This function operates directly on the compilation state and emits instructions into the target bytecode or assembly.
 
-## Return Value
+## Detailed Explanation
 
-This function does not explicitly return a value. Instead, it modifies the internal state of the compiler by emitting operations that will result in the creation of a new object instance.
-
-## Edge Cases
-
-1. **Empty Argument List**: If the object's constructor does not take any arguments, the function should still correctly load the type name and emit the `INSTANCE_NEW` operation with zero arguments.
-2. **Type Not Found**: If the specified type name cannot be found in the compiler's symbol table or context, the function should raise an appropriate error indicating that the type is undefined.
-3. **Constructor Overloading**: If the type has multiple constructors, the function should determine which one to use based on the provided arguments. This might involve additional logic to resolve overloads.
-
-## Interactions with Other Components
-
-1. **Symbol Table**: The function interacts with the symbol table to retrieve information about the type being instantiated, such as its size and alignment requirements.
-2. **Memory Management**: It may also interact with memory management components to allocate space for the new object instance.
-3. **Error Handling**: The function relies on the compiler's error handling mechanisms to report errors related to undefined types or incorrect arguments.
-
-Here's a more detailed breakdown of the function implementation:
-
-```cpp
-void compileNew(CompileExpression& e, int32_t line) {
-    // Load the type name of the object to be instantiated
-    emitLoad(e.typeName, line);
-
-    // Compile each argument passed to the constructor
-    for (auto &arg : e.args) {
-        compileExpr(*arg);  // Recursively compile the expression
-    }
-
-    // Emit the INSTANCE_NEW operation with the number of arguments
-    emit(Op::INSTANCE_NEW, static_cast<int32_t>(e.args.size()), line);
-}
-```
-
-### Detailed Steps
+### Step-by-Step Breakdown
 
 1. **Loading the Type Name**:
-   - The function calls `emitLoad(e.typeName, line)` to load the type name into the compiler's internal state. This ensures that the type is recognized and available for further processing.
+   ```cpp
+   emitLoad(e.typeName, line);
+   ```
+   - **Explanation**: The function begins by loading the type name of the object to be instantiated. This is done using the `emitLoad` function, which places the type name onto the operand stack.
+   - **Why it Works**: Loading the type name ensures that the compiler knows which object class or structure to instantiate when executing the `INSTANCE_NEW` operation. This step is crucial as it sets the context for the subsequent object creation process.
 
 2. **Compiling Arguments**:
-   - For each argument in the `e.args` list, the function recursively calls `compileExpr(*arg)`. This step ensures that all arguments are properly compiled before the object is instantiated.
+   ```cpp
+   for (auto &arg : e.args)
+       compileExpr(*arg);
+   ```
+   - **Explanation**: The function then iterates over each argument passed to the constructor of the object. For each argument, it calls the `compileExpr` method to recursively compile the expression.
+   - **Why it Works**: Compiling the arguments ensures that all necessary data is prepared and placed onto the operand stack before the object is instantiated. This allows the constructor to access and use these arguments during the initialization process.
 
-3. **Emitting New Instance Operation**:
-   - After compiling all arguments, the function emits an `INSTANCE_NEW` operation. The opcode `Op::INSTANCE_NEW` indicates that a new object instance is being created.
-   - The second parameter to `emit` specifies the number of arguments passed to the constructor.
-   - The third parameter (`line`) provides the line number for error reporting and debugging.
+3. **Emitting INSTANCE_NEW Operation**:
+   ```cpp
+   emit(Op::INSTANCE_NEW, static_cast<int32_t>(e.args.size()), line);
+   ```
+   - **Explanation**: After compiling all the arguments, the function emits the `INSTANCE_NEW` operation. This operation takes the type name from the top of the operand stack and uses the specified number of arguments (determined by the size of `e.args`) to create a new instance of the object.
+   - **Why it Works**: Emitting the `INSTANCE_NEW` operation triggers the actual instantiation of the object. The operation pops the type name and arguments from the operand stack, constructs the new object, and pushes a reference to the newly created object back onto the stack.
 
-By following these steps, the `compileNew` function ensures that new object instances are correctly created within the quantum programming environment, taking into account the type name and any necessary arguments.
+### Edge Cases
+
+- **Empty Argument List**: If the object's constructor does not require any arguments, the `compileNew` function will still correctly handle the instantiation by emitting the `INSTANCE_NEW` operation without any additional arguments.
+- **Type Not Found**: If the type name provided in `e.typeName` does not correspond to any defined object class or structure in the quantum programming environment, the compiler should raise an error indicating that the type is undefined. However, this scenario is not explicitly handled in the given code snippet; proper error handling would need to be implemented elsewhere in the compiler.
+- **Argument Mismatch**: If the number of arguments provided does not match the expected number of parameters for the object's constructor, the behavior is undefined. This could potentially lead to runtime errors or incorrect program execution. Proper validation and error checking mechanisms should be in place to prevent such mismatches.
+
+### Interactions with Other Components
+
+- **Operand Stack Management**: The `emitLoad` and `emit` functions interact with the operand stack, managing the flow of data between different operations. The `emitLoad` function loads the type name onto the stack, while the `emit` function uses this type name along with the compiled arguments to perform the object instantiation.
+- **Error Handling**: While not shown in the given code snippet, the `compileNew` function likely interacts with broader error handling mechanisms in the compiler. These mechanisms would catch any issues related to undefined types or mismatched arguments and report appropriate errors to the user.
+- **Symbol Table**: The `emitLoad` function may rely on the symbol table to resolve the type name. The symbol table stores information about all defined types and their associated metadata, allowing the compiler to correctly load the type name during the instantiation process.
+
+Overall, the `compileNew` function plays a vital role in the Quantum Language compiler by ensuring the correct instantiation and initialization of objects. Its interaction with the operand stack, error handling, and symbol table highlights the importance of robust design and comprehensive testing in a compiler implementation.

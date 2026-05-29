@@ -2,27 +2,27 @@
 
 ## Overview
 
-The `toString` function is a member method of the `Token` class in the Quantum Language compiler's source code (`src/Token.cpp`). Its primary purpose is to convert a `Token` object into a human-readable string representation that includes the token's line number, column number, and its value.
+The `toString` function is a member method of the `Token` class within the Quantum Language compiler's source code located at `src/Token.cpp`. This function serves as a utility to provide a readable string representation of a `Token` object, which includes details such as the token's line number and column position, along with its value.
 
 ### Why It Works This Way
 
-This implementation uses an `std::ostringstream` to build a formatted string. The format `[line:col value]` ensures that all relevant information about the token is clearly visible and easily understandable. By including both the line and column numbers, the string provides context within the source code where the token appears, making debugging and error reporting more efficient.
+This implementation uses an `std::ostringstream` to format the output string. The `<<` operator is used to concatenate the line number, column number, and value of the token into a single formatted string. By placing these values within square brackets, the function emphasizes their significance as part of the token's identity.
 
 ### Parameters/Return Value
 
-- **Parameters**: None.
+- **Parameters**: None
 - **Return Value**: A `std::string` representing the token in a human-readable format.
 
 ### Edge Cases
 
-1. **Empty Token Value**: If the `value` attribute of the `Token` object is empty, the resulting string will still include the line and column numbers but will not display any token value.
-2. **Special Characters in Value**: Special characters or spaces in the `value` attribute will be correctly escaped and included in the output string, ensuring accurate representation.
+1. **Empty Token Value**: If the token's value is empty, the function will still return a string indicating the line and column numbers, but without the token's actual value.
+2. **Negative Line or Column Numbers**: While not common in typical use cases, the function can handle negative line and column numbers gracefully, converting them to strings and including them in the output.
 
 ### Interactions With Other Components
 
-The `toString` function interacts primarily with the `Token` class itself. It accesses the private members `line`, `col`, and `value` of the `Token` object to construct the string. This function is typically used in logging, error messages, or when displaying tokens during development or debugging phases.
+The `toString` function interacts primarily with the `Token` class itself. It accesses the private members `line`, `col`, and `value` of the `Token` object to construct the string representation. No external dependencies are required for this operation.
 
-Here is the updated implementation of the `toString` function:
+Here is the complete implementation of the `toString` function:
 
 ```cpp
 #include <sstream>
@@ -30,14 +30,10 @@ Here is the updated implementation of the `toString` function:
 
 class Token {
 public:
-    int line; // Line number in the source code
-    int col;  // Column number in the source code
-    std::string value; // Value of the token
+    int line;  // Line number where the token appears
+    int col;   // Column number where the token appears
+    std::string value;  // Value of the token
 
-    // Constructor to initialize the token attributes
-    Token(int l, int c, const std::string& v) : line(l), col(c), value(v) {}
-
-    // Member function to convert the token to a string
     std::string toString() const {
         std::ostringstream oss;
         oss << "[" << line << ":" << col << " " << value << "]";
@@ -46,4 +42,4 @@ public:
 };
 ```
 
-This implementation ensures that the `Token` object can be easily converted to a readable string format, providing valuable context for developers working with the Quantum Language compiler.
+In summary, the `toString` function provides a clear and concise string representation of a `Token` object, making debugging and logging easier during the compilation process.

@@ -2,63 +2,112 @@
 
 ## Purpose
 
-The `parsePrintStmt` function in the Quantum Language compiler is designed to parse print statements. It supports both simple print statements and more complex ones that can include optional keyword arguments such as `sep`, `end`, `file`, and `flush`. This function ensures that the syntax of the print statement is correctly interpreted and constructs an appropriate Abstract Syntax Tree (AST) node representing the print operation.
+The `parsePrintStmt` function in the Quantum Language compiler is responsible for parsing print statements. It handles both simple print statements and more complex ones that may include optional keyword arguments such as `sep`, `end`, `file`, and `flush`.
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - None explicitly listed in the provided code snippet.
+  - None
   
 - **Return Value**:
-  - An `ASTNodePtr` object representing the parsed print statement. The AST node contains information about the expressions to be printed, along with any keyword arguments specified (`sep`, `end`, `file`, `flush`).
+  - An `ASTNodePtr` representing the parsed print statement node.
 
 ## How It Works
 
 ### Parsing Simple Print Statements
 
-If the parser encounters a print statement without parentheses, it assumes a simple print statement and parses the expression immediately following the `print` keyword. For example:
+If the current token is not an opening parenthesis (`(`), the function assumes a simple print statement and parses the expression following the `print` keyword. The parsed expression is added to the `args` vector.
 
-```ql
-print Hello, World!
+```cpp
+if (!check(TokenType::LPAREN)) {
+    args.push_back(parseExpr());
+    while (match(TokenType::COMMA))
+        args.push_back(parseExpr());
+}
 ```
-
-In this case, the function will call `parseExpr()` once to get the expression `Hello, World!` and then construct an AST node with this single argument.
 
 ### Parsing Complex Print Statements
 
-For complex print statements with parentheses, the function enters a loop where it continues parsing expressions until it encounters a closing parenthesis or reaches the end of the input. Inside the loop, it checks for keyword arguments using the syntax `keyword=value`. If a keyword argument is detected, it consumes the keyword and the equals sign, then processes the value associated with the keyword.
+For complex print statements, the function checks if the next token is an opening parenthesis (`(`). If so, it enters a loop to parse each argument within the parentheses. Each argument can be either a positional argument or a keyword argument.
 
-#### Supported Keyword Arguments
+#### Positional Arguments
 
-- **sep**: Specifies the separator between items to be printed. If not specified, a space character (" ") is used by default.
-- **end**: Specifies the string appended at the end of the output. If not specified, a newline character ("\n") is used by default.
-- **file**: Specifies the file object to which the output should be written. If not specified, the standard output stream is used.
-- **flush**: A boolean indicating whether the output buffer should be flushed after printing. If not specified, the buffer may not be flushed automatically.
+Positional arguments are parsed using the `parseExpr()` function and added to the `args` vector.
 
-#### Example
-
-Consider the following complex print statement:
-
-```ql
-print("Hello", "World", sep=", ", end="!")
+```cpp
+else {
+    consume(); // eat '('
+    skipNewlines();
+    while (!check(TokenType::RPAREN) && !atEnd()) {
+        args.push_back(parseExpr());
+        skipNewlines();
+        if (!match(TokenType::COMMA))
+            break;
+        skipNewlines();
+    }
+    expect(TokenType::RPAREN, "Expected ')'");
+}
 ```
 
-Here's how the function would parse it:
+#### Keyword Arguments
 
-1. It detects the opening parenthesis `(` and skips any newlines.
-2. It parses three expressions: `"Hello"`, `"World"`, and `"sep=", "end="`.
-3. When it encounters the keyword `sep`, it consumes the value `"="` and then the string `" , "`, setting `sep` to `", "`.
-4. Similarly, when it encounters the keyword `end`, it consumes the value `"="` and then the string `"!"`, setting `end_str` to `"!"` and overriding the default behavior of appending a newline.
-5. After processing all expressions and keyword arguments, it expects a closing parenthesis `)` and constructs an AST node with the parsed expressions and their corresponding keyword values.
+Keyword arguments are detected by checking if the current token is an identifier followed by an assignment operator (`=`). Depending on the keyword, the function consumes the corresponding value:
 
-### Edge Cases
+- **sep**: Consumes a string literal which sets the separator between printed values.
+  
+- **end**: Consumes a string literal which sets the character(s) printed at the end of the statement. If a string literal is provided, `newline` is set to `false` to override the default behavior of printing a newline.
 
-- **Missing Parentheses**: If the print statement lacks parentheses, the function will assume a simple print statement and parse only one expression.
-- **Invalid Keyword Arguments**: If a keyword argument is encountered but its value is not a valid expression (e.g., `sep=123`), the function will consume the invalid value but ignore it, continuing with the next argument or expression.
-- **Empty Expressions**: If there are empty expressions within the parentheses (e.g., `print("", "")`), they will be included in the AST node as literal strings.
+- **file**: Consumes an expression which specifies the output stream. Currently, this argument is discarded as its handling is not implemented.
 
-## Interactions With Other Components
+- **flush**: Consumes an expression which indicates whether to forcibly flush the output buffer. Like `file`, this argument is also discarded.
 
-The `parsePrintStmt` function interacts closely with the `Tokenizer` component to identify and consume tokens according to the language's grammar rules. It also utilizes the `ParserExpressions` module to parse individual expressions within the print statement.
+```cpp
+while (!check(TokenType::RPAREN) && !atEnd()) {
+    if (check(TokenType::IDENTIFIER) && 
+        (current().value == "sep" || current().value == "end" ||
+         current().value == "file" || current().value == "flush") &&
+        pos + 1 < tokens.size() && tokens[pos + 1].type == TokenType::ASSIGN) {
+        
+        std::string kw = consume().value; // eat keyword name
+        consume();                        // eat '='
+        
+        if (kw == "sep") {
+            if (check(TokenType::STRING))
+                sep = consume().value;
+            else
+                parseExpr(); // consume but discard non-literal
+        } else if (kw == "end") {
+            if (check(TokenType::STRING)) {
+                end_str = consume().value;
+                newline = false; // end= overrides default newline
+            } else
+                parseExpr();
+        } else {
+            parseExpr(); // file= / flush= — consume and discard
+        }
+    } else {
+        args.push_back(parseExpr());
+    }
+    skipNewlines();
+    if (!match(TokenType::COMMA))
+        break;
+    skipNewlines();
+}
+expect(TokenType::RPAREN, "Expected ')'");
+```
 
-Upon successful parsing, the function constructs an `ASTNodePtr` object that represents the print statement. This AST node can then be further processed by the compiler's other modules, such as semantic analysis and code generation, to ensure that the print operation is executed correctly during runtime.
+## Edge Cases
+
+- **Missing Parentheses**: If a complex print statement is missing a closing parenthesis (`)`), the function will raise an error indicating that a closing parenthesis was expected.
+  
+- **Non-Literal Values for `sep` and `end`**: If a non-string literal is provided for the `sep` or `end` keyword arguments, the function will still parse the expression but discard it since these arguments should be strings.
+
+## Interactions with Other Components
+
+- **Tokenizer**: The `parsePrintStmt` function relies on the tokenizer to provide the sequence of tokens for parsing. Tokens such as `print`, `sep`, `end`, `file`, `flush`, `(`, `)`, `,`, and string literals are used during parsing.
+
+- **Abstract Syntax Tree (AST)**: After parsing, the function constructs an ASTNodePtr representing the print statement. This AST node includes the list of arguments and any keyword arguments specified.
+
+- **Error Handling**: The function uses the `expect()` method to ensure that certain tokens are present in the correct order. If a required token is missing, an appropriate error message is raised.
+
+Overall, the `parsePrintStmt` function provides robust support for parsing both simple and complex print statements in the Quantum Language, ensuring that all necessary components are correctly identified and handled.

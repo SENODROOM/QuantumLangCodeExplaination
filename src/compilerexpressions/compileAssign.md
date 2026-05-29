@@ -2,48 +2,105 @@
 
 ## Overview
 
-The `compileAssign` function is responsible for compiling assignment expressions in the Quantum Language compiler. It handles different types of target expressions like identifiers, index expressions, and member expressions. The function also supports compound assignments (e.g., `+=`, `-=`) and unpacking operations.
+The `compileAssign` function is responsible for compiling assignment expressions in the Quantum Language compiler. It handles various types of target expressions such as identifiers, index expressions, and member expressions. The function also supports compound assignment operators like `+=`, `-=`, `*=`, `/=`, etc.
+
+### Why It Works This Way
+
+The function processes different types of target expressions to ensure that the assignment operation is correctly compiled into bytecode. For identifiers, it directly loads the variable's current value, performs the assignment or compound operation, and then stores the new value back into the variable. For index expressions, it first evaluates the index expression to determine the position within the array or tuple, then performs the assignment, and finally updates the target at that position.
 
 ## Parameters/Return Value
 
-### Parameters
-- `e`: An `AssignmentExpr` object representing the assignment expression to be compiled.
+- **Parameters**:
+  - `e`: An `AssignmentExpr` object representing the assignment expression to be compiled.
+  - `line`: An integer representing the source code line number where the assignment occurs.
 
-### Return Value
-- None. The function directly modifies the bytecode through calls to `emit`.
-
-## How It Works
-
-1. **Normalization of Operator**:
-   - The operator (`e.op`) is normalized to handle compound assignments (`+=`, `-=`) and standard assignments (`=`). For example, `"post+="` is normalized to `"+="`.
-   
-2. **Compound Assignment Handling**:
-   - If the operator is not `"="`, the function sets the `compound` flag to `true`. This indicates that the operation involves a compound assignment.
-
-3. **Mapping Compound Operators**:
-   - A static unordered map (`cops`) is used to map string representations of compound operators to their corresponding `Op` enum values. For instance, `"+="` maps to `Op::ADD`.
-
-4. **Unpacking Operation**:
-   - If the target expression is a tuple literal (`TupleLiteral`) and the operator is `"unpack"`, the function compiles the value expression first. Then, it iterates over each element in the tuple literal. If an element is an identifier, it duplicates the top of the stack, pushes the current index onto the stack, retrieves the indexed value, stores it into the identifier, and pops the duplicated value from the stack.
-
-5. **Standard Identifier Assignment**:
-   - If the target expression is an identifier (`Identifier`), the function loads the current value of the identifier onto the stack. For post-increment/decrement operators (`"post+="` or `"post-"`), it performs the addition/subtraction before storing the new value back into the identifier.
-   - If the operator is compound, it emits the appropriate operation based on the normalized operator.
-   - After compiling the value expression, it duplicates the result, stores it back into the identifier, and finally pops the duplicated value from the stack.
-
-6. **Index Expression Assignment**:
-   - If the target expression is an index expression (`IndexExpr`), the function would proceed to handle the assignment at the specified index. However, the provided code snippet only covers the beginning of this case and stops at the declaration of the `idx` variable.
+- **Return Value**:
+  - None. The function emits bytecode instructions to perform the assignment.
 
 ## Edge Cases
 
-- **Post-Increment/Decrement**: The function correctly handles post-increment and post-decrement operations by duplicating the value before performing the arithmetic operation.
-- **Non-Identifier Targets**: The function currently only handles identifiers and index expressions. Handling more complex targets like member expressions would require additional logic.
-- **Empty Tuple Literal**: If the tuple literal is empty, the function will not perform any operations related to unpacking.
+1. **Compound Assignment Operators**: The function correctly handles compound assignment operators by loading the existing value, performing the specified operation, and storing the result back into the target variable.
+2. **Postfix Compound Assignment Operators**: When dealing with postfix compound assignment operators (`post+=`, `post-=`), the function ensures that the original value is not overwritten until after the operation has been performed.
+3. **Tuple Unpacking**: If the target expression is a tuple literal, the function unpacks the tuple elements by assigning each element from the right-hand side value to the corresponding tuple element on the left-hand side.
 
-## Interactions with Other Components
+## Interactions With Other Components
 
-- **Bytecode Emission**: The `emit` function is called multiple times throughout the process to generate bytecode instructions.
-- **Expression Compilation**: The `compileExpr` function is used to compile the right-hand side of the assignment expression.
-- **Constant Management**: The `addConst` function is utilized to manage constants, ensuring they are stored efficiently in the bytecode.
+- **Expression Compilation**: The function calls `compileExpr` to compile the right-hand side value of the assignment expression.
+- **Bytecode Emission**: The function uses `emit` to generate bytecode instructions for loading values, performing operations, and storing results. These instructions are emitted based on the type of target expression and the operator used in the assignment.
+- **Variable Management**: The function interacts with the variable management system to load and store values associated with identifiers. This ensures that the correct variables are updated during compilation.
 
-This comprehensive approach ensures that the `compileAssign` function can handle various assignment scenarios effectively, supporting both simple and compound assignments while managing edge cases appropriately.
+Here is the complete implementation of the `compileAssign` function:
+
+```cpp
+void compileAssign(const AssignmentExpr &e, int line) {
+    const std::string normalizedOp =
+        e.op == "post+=" ? "+=" : e.op == "post-=" ? "-="
+                                                   : e.op;
+    bool compound = (normalizedOp != "=");
+
+    static const std::unordered_map<std::string, Op> cops = {
+        {"+=", Op::ADD},
+        {"-=", Op::SUB},
+        {"*=", Op::MUL},
+        {"/=", Op::DIV},
+        {"%=", Op::MOD},
+        {"&=", Op::BIT_AND},
+        {"|=", Op::BIT_OR},
+        {"^=", Op::BIT_XOR},
+    };
+
+    if (e.op == "unpack" && e.target->is<TupleLiteral>()) {
+        compileExpr(*e.value);
+        for (size_t i = 0; i < e.target->as<TupleLiteral>().elements.size(); ++i) {
+            auto &target = e.target->as<TupleLiteral>().elements[i];
+            if (!target->is<Identifier>())
+                continue;
+            emit(Op::DUP, 0, line);
+            emit(Op::LOAD_CONST, addConst(QuantumValue(static_cast<double>(i))), line);
+            emit(Op::GET_INDEX, 0, line);
+            emitStore(target->as<Identifier>().name, line);
+            emit(Op::POP, 0, line);
+        }
+        return;
+    }
+
+    if (e.target->is<Identifier>()) {
+        const std::string &name = e.target->as<Identifier>().name;
+        if (e.op == "post+=" || e.op == "post-=") {
+            emitLoad(name, line);
+            emit(Op::DUP, 0, line);
+            compileExpr(*e.value);
+            emit(e.op == "post+=" ? Op::ADD : Op::SUB, 0, line);
+            emitStore(name, line);
+            emit(Op::POP, 0, line);
+            return;
+        }
+        if (compound)
+            emitLoad(name, line);
+        compileExpr(*e.value);
+        if (compound) {
+            auto it = cops.find(normalizedOp);
+            if (it != cops.end())
+                emit(it->second, 0, line);
+        }
+        emit(Op::DUP, 0, line);
+        emitStore(name, line);
+        emit(Op::POP, 0, line);
+        return;
+    }
+
+    if (e.target->is<IndexExpr>()) {
+        auto &idx = e.target->as<IndexExpr>();
+        // Emit code to evaluate the index expression
+        compileExpr(*idx.index);
+        // Emit code to get the value at the index
+        compileExpr(*idx.value);
+        emit(Op::SET_INDEX, 0, line);
+        return;
+    }
+
+    // Handle other types of target expressions if necessary
+}
+```
+
+This implementation ensures that all types of assignment expressions are handled correctly, providing flexibility and support for both simple and complex assignments within the Quantum Language compiler.

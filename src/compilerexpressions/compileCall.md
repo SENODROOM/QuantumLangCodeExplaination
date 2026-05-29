@@ -2,32 +2,49 @@
 
 ## Description
 
-The `compileCall` function is a critical component of the Quantum Language compiler, located in the `src/compiler/CompilerExpressions.cpp` file. Its primary responsibility is to handle the compilation of function calls within the language. This function ensures that arguments are correctly compiled and passed to the function being called, handling both normal arguments and those using spread or unpack syntax.
+The `compileCall` function is a crucial component of the Quantum Language compiler, located in the `src/compiler/CompilerExpressions.cpp` file. Its primary responsibility is to handle the compilation of function calls within the language. This function ensures that arguments are correctly compiled and passed to the target function, handling both regular and spread syntax.
 
-## Parameters/Return Value
+### Parameters
 
-- **Parameters**:
-  - `e`: An ASTNode representing the function call expression to be compiled.
-  - `line`: The current line number in the source code, used for error reporting and debugging purposes.
+- `e`: An `Expression` object representing the function call to be compiled.
 
-- **Return Value**: None. The function compiles the given function call expression directly into bytecode instructions.
+### Return Value
 
-## Edge Cases
+This function does not explicitly return any value. Instead, it compiles the function call directly into bytecode instructions.
 
-1. **Normal Argument Compilation**: When the function call does not use spread or unpack syntax, each argument is compiled individually and then passed to the function.
+### Edge Cases
+
+1. **Spread Syntax**: If the function call contains spread syntax (`...` or `**`), the function handles these cases by creating an array or dictionary dynamically and populating it with the spreaded elements.
    
-2. **Spread Syntax Handling**: If the function call uses the spread (`...`) syntax, the function first loads a global variable `__call_spread__`, which is responsible for handling spread operations. It then compiles the callee and creates an empty array. For each argument, it checks if the argument is a spread argument. If so, it loads another global variable `__array_extend__` and extends the array with the values of the spread argument. Otherwise, it pushes the argument onto the array using `__listcomp_push__`. Finally, it calls the function with the array as its argument.
+2. **Super Method Call**: The function includes a special case for calling methods on the superclass using `super.method(args)` syntax. This requires additional handling to ensure proper inheritance and method resolution.
 
-3. **Unpack Syntax Handling**: Similar to spread syntax, but specifically for tuple literals. The function handles each element of the tuple separately before passing them to the function.
+3. **Assignment Expressions as Arguments**: The function can handle assignment expressions as arguments, either assigning values directly to identifiers or unpacking tuple literals into multiple variables.
 
-4. **Super Method Calls**: There is a special case where the function call is made through a `SuperExpr`. In this scenario, the compiler needs to handle method calls on the parent class, which involves additional bytecode instructions to ensure correct context and inheritance.
+### Interactions with Other Components
 
-## Interactions with Other Components
+- **Op Class**: The function uses the `Op` class to generate bytecode operations such as loading global variables, making arrays, swapping stack items, and calling functions.
+  
+- **ASTNode Class**: It processes `ASTNode` objects, which represent nodes in the abstract syntax tree (AST). These nodes include various types of expressions like `AssignExpr`, `TupleLiteral`, and `UnaryExpr`.
 
-- **ASTNode Compilation**: The function interacts with various types of ASTNodes such as `AssignExpr`, `TupleLiteral`, `UnaryExpr`, and `SuperExpr`. Each type is handled differently based on its structure and the operation it represents.
+- **CompileExpr Function**: The function interacts with `compileExpr`, another key function in the compiler, to recursively compile individual expressions within the function call's arguments.
 
-- **Bytecode Emission**: The function emits bytecode instructions using the `emit` function. These instructions include loading global variables, creating arrays, pushing elements onto lists, and calling functions.
+- **SymbolTable**: Although not shown in the provided code snippet, `compileCall` likely interacts with a symbol table to resolve variable names and function references during compilation.
 
-- **Error Reporting**: While not explicitly shown in the provided snippet, the function likely integrates with the compiler's error reporting system to handle any issues that arise during the compilation process, such as invalid arguments or undefined functions.
+## Implementation Details
 
-This comprehensive approach ensures that the Quantum Language compiler can handle complex function calls efficiently and accurately, supporting features like spread and unpack syntax while maintaining compatibility with traditional function calls.
+1. **Argument Compilation**:
+   - The function defines a lambda `emitArgValues` to handle the compilation of each argument in the function call.
+   - For `AssignExpr` nodes, it checks if the operation is either direct assignment (`=`) or unpacking into a tuple literal (`unpack`). Depending on the operation type, it compiles the value expression and returns the number of arguments processed.
+
+2. **Spread Syntax Handling**:
+   - The function iterates through the arguments to check for spread syntax (`...` or `**`).
+   - If spread syntax is found, it emits a special bytecode operation to load the `__call_spread__` function.
+   - It then compiles the callee function and creates an empty array using `MAKE_ARRAY`.
+   - For each argument, it determines whether it is a spread element and emits the appropriate bytecode operation (`__array_extend__` for spread arrays or `__listcomp_push__` for list comprehensions).
+   - Finally, it calls the `__call_spread__` function with the array containing all arguments.
+
+3. **Special Case for Super Method Calls**:
+   - The function checks if the callee is a `SuperExpr`. If so, it handles the special case for calling methods on the superclass.
+   - This involves resolving the correct method based on the current class hierarchy and compiling the call accordingly.
+
+By carefully handling different scenarios and interacting with various components of the compiler, `compileCall` ensures that function calls are correctly compiled into executable bytecode, supporting features like spread syntax and method resolution on the superclass.

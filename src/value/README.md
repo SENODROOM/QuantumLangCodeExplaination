@@ -1,85 +1,43 @@
 # Value Component of the Quantum Language Compiler
 
-The Value component is a critical module in the Quantum Language (QL) compiler, designed to handle and manage various types of values within the quantum programming environment. This component ensures efficient conversion, access, and manipulation of these values, enabling their smooth integration throughout the compiler architecture.
+The Value component is a fundamental module in the Quantum Language (QL) compiler, responsible for handling and managing different types of values within the quantum programming environment. This component ensures efficient conversion, access, and manipulation of these values, facilitating their seamless integration across the compiler's architecture.
 
 ## Overview
 
-The Value component comprises several key functionalities:
+The Value component consists of several key functions and classes that work together to manage and manipulate values. These include:
 
-- **Value Conversion**: Efficiently converts values between different representations.
-- **Value Access**: Provides methods to retrieve and manipulate values stored in cells or fields.
-- **Type Management**: Manages and retrieves type information associated with values.
-- **Reference Handling**: Defines and manages references to values, ensuring proper memory management.
-- **Native Integration**: Facilitates interaction with native code and data structures.
+- `isTruthy`: Determines whether a given value is considered "truthy" in the quantum context.
+- `toString`: Converts a value to its string representation.
+- `typeName`: Retrieves the type name of a value.
+- `define`: Defines a new variable or constant with a specified type and value.
+- `defineRef`: Defines a reference to an existing variable or constant.
+- `get`: Retrieves the current value of a variable or constant.
+- `set`: Sets the value of a variable or constant.
+- `has`: Checks if a variable or constant exists in the current scope.
+- `getCell`: Retrieves the cell associated with a variable or constant.
+- `getField`: Retrieves the field associated with a variable or constant.
+- `setField`: Sets the field associated with a variable or constant.
+- `isNative`: Determines if a value is native to the quantum language.
+- `asNative`: Converts a value to its native form.
 
-These functionalities work together to form a robust system for handling values in the QL compiler.
+These functions and classes provide a comprehensive set of tools for working with values in the QL compiler, ensuring that they are handled efficiently and correctly throughout the compilation process.
 
-## Files and Their Roles
+### File Structure
 
-### `value.h`
-- **Header File**: Contains declarations for all public functions and classes related to the Value component.
-- **Dependencies**: Includes necessary headers for basic data types and utilities.
+The Value component is organized into several files, each containing related functionality:
 
-### `value.cpp`
-- **Implementation File**: Contains the implementation details for all functions declared in `value.h`.
-- **Logic**: Implements the core logic for value conversion, access, and type management.
+- `value.h`: Contains declarations for the main classes and functions used in the Value component.
+- `value.cpp`: Implements the main classes and functions declared in `value.h`.
+- `type_info.h`: Contains declarations for the type information classes used in the Value component.
+- `type_info.cpp`: Implements the type information classes declared in `type_info.h`.
 
-### `reference.h`
-- **Header File**: Declares functions and classes specifically for reference handling within the Value component.
-- **Dependencies**: Includes `value.h` for base functionality.
+### Overall Flow
 
-### `reference.cpp`
-- **Implementation File**: Implements the reference handling logic.
-- **Memory Management**: Ensures that references are managed correctly to prevent memory leaks.
+The overall flow of the Value component can be described as follows:
 
-### `native_integration.h`
-- **Header File**: Declares functions and classes for integrating with native code and data structures.
-- **Dependencies**: Includes `value.h` for base functionality.
+1. **Value Creation**: Values are created using the `define` and `defineRef` functions, which allocate memory and initialize the value accordingly.
+2. **Type Handling**: The `typeName` function retrieves the type name of a value, while the `isNative` function checks if a value is native to the quantum language.
+3. **Access and Manipulation**: Values are accessed and manipulated using the `get`, `set`, `has`, `getCell`, `getField`, and `setField` functions. These functions ensure that values are retrieved and modified correctly, taking into account any references or cells involved.
+4. **Conversion**: Values are converted to their string representations using the `toString` function, and to their native forms using the `asNative` function. These conversions ensure that values are presented in a consistent and usable format throughout the compiler.
 
-### `native_integration.cpp`
-- **Implementation File**: Implements the native integration logic.
-- **Interoperability**: Facilitates communication between the QL compiler and external native systems.
-
-## Overall Flow
-
-1. **Initialization**: The Value component initializes itself, setting up any necessary data structures or configurations.
-2. **Value Creation**: When a new value needs to be created, it goes through the Value component's initialization process.
-3. **Type Management**: The Value component manages type information, allowing for easy retrieval and validation of value types.
-4. **Conversion**: Values are converted using the Value component's conversion functions, ensuring compatibility across different parts of the compiler.
-5. **Access and Manipulation**: Values are accessed and manipulated using the provided get/set functions, which interact with the underlying storage mechanisms.
-6. **Reference Handling**: References to values are defined and managed using the Reference component, ensuring proper memory management.
-7. **Native Integration**: The Value component integrates with native code and data structures using the Native Integration component, facilitating interoperability.
-
-By following this flow, the Value component ensures that all values within the QL compiler are handled efficiently and consistently, supporting the overall performance and reliability of the compiler.
-
-## Usage Example
-
-Here's a simple example demonstrating how to use the Value component:
-
-```cpp
-#include "value.h"
-#include "reference.h"
-
-int main() {
-    // Create a new value
-    ValuePtr newValue = Value::create(42);
-
-    // Define a reference to the value
-    ReferencePtr ref = Reference::define(newValue);
-
-    // Get the value from the reference
-    ValuePtr retrievedValue = ref->get();
-
-    // Check if the value is truthy
-    bool isTrue = retrievedValue->isTruthy();
-
-    // Convert the value to a string
-    std::string strValue = retrievedValue->toString();
-
-    return 0;
-}
-```
-
-In this example, we create a new value, define a reference to it, retrieve the value, check its truthiness, and convert it to a string.
-
-For more detailed usage and examples, refer to the individual function and class documentation provided in the `value.h` and `value.cpp` files.
+By providing a robust and efficient framework for handling values in the QL compiler, the Value component enables developers to create complex quantum programs with ease.

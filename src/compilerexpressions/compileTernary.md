@@ -1,96 +1,68 @@
 # `compileTernary`
 
-The `compileTernary` function is an essential component of the Quantum Language compiler responsible for compiling ternary expressions. Ternary expressions allow for concise conditional evaluations, selecting one of two values based on whether a specified condition is true or false. This function ensures that these expressions are correctly translated into executable bytecode instructions.
+The `compileTernary` function is a crucial part of the Quantum Language compiler that handles the compilation of ternary expressions. Ternary expressions provide a compact way to evaluate conditions and select between two possible outcomes based on whether the condition is true or false.
 
-## What It Does
+## Function Overview
 
-The primary task of `compileTernary` is to translate a ternary expression (`e`) into machine code. The ternary expression has three parts:
-1. A condition (`e.condition`)
-2. An expression to evaluate if the condition is true (`e.thenExpr`)
-3. An expression to evaluate if the condition is false (`e.elseExpr`)
+### What It Does
 
-The function compiles each part and constructs the appropriate control flow to handle the conditional branching.
+The `compileTernary` function takes a ternary expression (`e`) as input and compiles it into machine code instructions. The ternary expression consists of three parts:
+- A condition (`e.condition`)
+- An expression to execute if the condition is true (`e.thenExpr`)
+- An expression to execute if the condition is false (`e.elseExpr`)
 
-## Why It Works This Way
+The function evaluates the condition, then selects and compiles either the `thenExpr` or the `elseExpr`, depending on the result of the condition evaluation.
 
-The function operates under the principle of stack-based evaluation, which is common in many compilers. Here’s how it works:
+### Why It Works This Way
 
-1. **Compile Condition**: The first step is to compile the condition expression. This results in a boolean value being pushed onto the stack.
-   
-   ```cpp
-   compileExpr(*e.condition);
-   ```
+This implementation ensures that the ternary expression is compiled efficiently and correctly. Here's how it works:
 
-2. **Conditional Jump**: After evaluating the condition, the function emits a jump instruction (`Op::JUMP_IF_FALSE`). This instruction checks the top value on the stack; if it is false, the program jumps to the location specified by `elseJump`. If the value is true, execution continues to the next instruction.
+1. **Compile Condition**: The first step is to compile the condition expression. This prepares the condition's result to be used in subsequent jumps.
 
-   ```cpp
-   size_t elseJump = emitJump(Op::JUMP_IF_FALSE, line);
-   ```
+2. **Emit Jump If False**: After compiling the condition, the function emits a jump instruction (`Op::JUMP_IF_FALSE`). This jump will skip the execution of the `thenExpr` if the condition is false. The `emitJump` function returns the position where the jump instruction is emitted, which is stored in `elseJump`.
 
-3. **Pop Stack Value**: Before jumping, the function pops the stack value to ensure that only the result of the condition remains relevant for the subsequent operations.
+3. **Pop Condition Result**: The condition result is popped from the stack using the `emit` function with the `Op::POP` operation. This is done to ensure that the stack remains clean after the condition has been evaluated.
 
-   ```cpp
-   emit(Op::POP, 0, line);
-   ```
+4. **Compile True Expression**: Next, the function compiles the `thenExpr`. If the condition is true, this expression will be executed.
 
-4. **Compile True Branch**: The function then compiles the expression that should be evaluated if the condition is true (`e.thenExpr`). This expression's result will be pushed onto the stack after the condition check.
+5. **Emit Jump**: After compiling the `thenExpr`, another jump instruction (`Op::JUMP`) is emitted. This jump skips over the `elseExpr` and moves the program counter to the end of the ternary expression. The `emitJump` function returns the position where this jump instruction is emitted, which is stored in `endJump`.
 
-   ```cpp
-   compileExpr(*e.thenExpr);
-   ```
+6. **Patch Jump at Else Position**: The `patchJump` function is called with `elseJump` as its argument. This function updates the jump instruction at `elseJump` to point to the correct location after the `thenExpr` has been executed.
 
-5. **Conditional End Jump**: Following the true branch, another jump instruction (`Op::JUMP`) is emitted to skip over the false branch. This jump marks the end of the ternary expression.
+7. **Pop True Expression Result**: The result of the `thenExpr` is popped from the stack using the `emit` function with the `Op::POP` operation. This ensures that the stack is cleaned up properly.
 
-   ```cpp
-   size_t endJump = emitJump(Op::JUMP, line);
-   ```
+8. **Compile False Expression**: Finally, the function compiles the `elseExpr`. If the condition is false, this expression will be executed.
 
-6. **Patch Else Jump**: The `patchJump` function is called to update the `elseJump` label with the current position in the bytecode. This ensures that the jump to the false branch is correctly placed.
-
-   ```cpp
-   patchJump(elseJump);
-   ```
-
-7. **Pop Stack Value Again**: Similar to before the true branch, the function pops the stack value again to clean up any intermediate results.
-
-   ```cpp
-   emit(Op::POP, 0, line);
-   ```
-
-8. **Compile False Branch**: Finally, the function compiles the expression that should be evaluated if the condition is false (`e.elseExpr`). This expression's result will also be pushed onto the stack.
-
-   ```cpp
-   compileExpr(*e.elseExpr);
-   ```
-
-9. **Patch End Jump**: The `patchJump` function is called once more to update the `endJump` label with the current position in the bytecode. This completes the construction of the control flow for the ternary expression.
-
-   ```cpp
-   patchJump(endJump);
-   ```
+9. **Patch Jump at End Position**: The `patchJump` function is called again with `endJump` as its argument. This function updates the jump instruction at `endJump` to point to the correct location after the `elseExpr` has been executed.
 
 ## Parameters/Return Value
 
-- **Parameters**:
-  - `e`: A reference to the `TernaryExpression` object representing the ternary expression to be compiled.
+### Parameters
 
-- **Return Value**:
-  - None. The function modifies the internal state of the compiler by emitting bytecode instructions.
+- `e`: A reference to the ternary expression to be compiled.
+
+### Return Value
+
+No explicit return value; the function modifies the internal state of the compiler to generate the appropriate machine code instructions.
 
 ## Edge Cases
 
-- **Empty Expressions**: If either the true or false branches of the ternary expression are empty, the function still handles them gracefully by ensuring that the stack remains consistent.
+- **Empty Expressions**: If any of the expressions (`condition`, `thenExpr`, or `elseExpr`) are empty, the function should handle these cases gracefully without causing errors.
   
-- **Boolean Condition**: The function assumes that the condition expression evaluates to a boolean value. If the condition does not produce a boolean, the behavior is undefined.
+- **Nested Ternary Expressions**: The function must correctly handle nested ternary expressions, ensuring that the control flow remains intact and that all branches are properly patched.
 
-- **Nested Ternaries**: The function can handle nested ternary expressions without issues, as long as the structure is valid and the conditions are properly evaluated.
+- **Side Effects**: Both the `thenExpr` and `elseExpr` may have side effects, such as modifying variables or performing I/O operations. The function should ensure that these side effects are executed correctly regardless of whether the condition is true or false.
 
 ## Interactions With Other Components
 
-- **Bytecode Emission**: `compileTernary` interacts with the bytecode emission module to generate the necessary instructions for the ternary expression. This includes conditional jumps and stack manipulation operations.
+The `compileTernary` function interacts with several other components within the compiler:
 
-- **Error Handling**: The function may interact with error handling mechanisms within the compiler to report errors related to invalid ternary expressions or runtime conditions.
+- **Expression Compiler**: The function uses the `compileExpr` method to compile individual expressions within the ternary expression. This method is likely defined elsewhere in the compiler, handling various types of expressions like arithmetic, logical, and function calls.
 
-- **Symbol Table**: Depending on the implementation, `compileTernary` might use the symbol table to resolve variables used in the ternary expression.
+- **Instruction Emitter**: The function utilizes the `emit` and `emitJump` methods to generate machine code instructions. These methods manage the instruction buffer and ensure that the generated code is placed in the correct locations.
 
-By understanding the inner workings of `compileTernary`, developers can better appreciate how the Quantum Language compiler handles complex conditional logic efficiently and accurately.
+- **Jump Patching**: The function employs the `patchJump` method to update jump instructions once their targets are known. This interaction is critical for maintaining the correct control flow in the compiled code.
+
+- **Stack Management**: The function manages the stack by popping results after evaluating the condition and executing each branch. Proper stack management ensures that the compiled code behaves predictably and avoids stack overflow or underflow errors.
+
+By understanding the purpose, mechanism, and context of the `compileTernary` function, developers can better appreciate its role in the Quantum Language compiler and how it contributes to the overall efficiency and correctness of the compiled output.

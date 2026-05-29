@@ -2,34 +2,34 @@
 
 ## Overview
 
-The `beginLoop` function is a method within the `CompilerCore` class of the Quantum Language compiler. Its primary purpose is to initiate the process of compiling a loop structure in the quantum program. This function adds a new loop entry to the `loops_` vector and records the starting instruction pointer (`startIp`) of the loop.
+The `beginLoop` function is a method within the `CompilerCore` class of the Quantum Language compiler. Its primary purpose is to initiate the process of compiling a loop structure in the quantum program. The function adds a new loop entry to the `loops_` vector and sets the starting instruction pointer (`startIp`) for that loop.
 
-### Why It Works This Way
+### Parameters
+- `startIp`: An integer representing the instruction pointer where the loop starts in the quantum program.
 
-Adding a new loop entry to the `loops_` vector allows the compiler to keep track of all active loops during compilation. By recording the starting instruction pointer (`startIp`), the compiler can later use this information to generate control flow instructions that manage the loop's execution, such as jump back to the beginning or exit the loop when necessary.
-
-### Parameters/Return Value
-
-- **Parameters**:
-  - `startIp`: An integer representing the instruction pointer at which the loop begins in the quantum program.
-
-- **Return Value**:
-  - The function does not return any value explicitly. However, it modifies the internal state of the `CompilerCore` object by adding a new loop entry to the `loops_` vector.
+### Return Value
+- None
 
 ### Edge Cases
-
-1. **Empty Program**: If the quantum program is empty or has no loops, calling `beginLoop` will still add an entry to the `loops_` vector. However, since there are no instructions to compile, the loop structure will be ignored.
-   
-2. **Nested Loops**: When nested loops are encountered, each call to `beginLoop` should correspond to a new loop entry being added to the `loops_` vector. The compiler must ensure that the correct loop nesting is maintained by properly managing the indices and relationships between loop entries.
-
-3. **Instruction Pointer Overflow**: If the provided `startIp` exceeds the bounds of the quantum program's instruction set, the behavior of the compiler is undefined. It is crucial for the caller to validate the `startIp` before invoking `beginLoop`.
+1. **Empty Program**: If the quantum program is empty or has not been initialized properly, calling `beginLoop` without any valid instructions might lead to undefined behavior.
+2. **Invalid Instruction Pointer**: Providing an invalid or out-of-bounds instruction pointer as `startIp` could cause errors during compilation.
 
 ### Interactions with Other Components
+The `beginLoop` function interacts with the `loops_` vector, which is used to keep track of all loop structures in the quantum program being compiled. Each element in the `loops_` vector represents a loop and contains information about its start point and other relevant details.
 
-- **Control Flow Management**: The `beginLoop` function interacts with the control flow management component of the compiler. It updates the loop stack and records the loop's start point, enabling subsequent jumps and exits to be correctly generated.
-  
-- **Error Handling**: During the loop compilation process, the compiler may encounter errors such as invalid instructions or unsupported operations. The `beginLoop` function should be integrated with error handling mechanisms to report and handle these issues appropriately.
+When `beginLoop` is called, it:
+1. Appends a new empty loop entry to the `loops_` vector using `loops_.push_back({})`.
+2. Sets the `loopStart` attribute of the newly added loop entry to the provided `startIp`.
 
-- **Optimization Passes**: The `beginLoop` function also plays a role in optimization passes. By maintaining accurate loop information, the compiler can apply optimizations like loop unrolling, loop invariant code motion, and other techniques that improve performance.
+This setup allows subsequent functions to access and manipulate the loop structure, such as adding loop conditions, updating the loop end pointers, and optimizing loop operations.
 
-In summary, the `beginLoop` function is essential for initiating the compilation of loop structures in the quantum program. It maintains loop information and interacts with various components of the compiler to ensure proper control flow and optimization. Proper validation and integration with error handling and optimization passes are critical for its effective operation.
+### Example Usage
+Here's an example of how `beginLoop` might be used within the compiler:
+
+```cpp
+// Assuming 'compiler' is an instance of CompilerCore
+int startInstructionPointer = 5; // Example IP where the loop begins
+compiler.beginLoop(startInstructionPointer);
+```
+
+After calling `beginLoop`, the `loops_` vector will contain a new loop entry with the specified `startIp`. Subsequent calls to add loop conditions or update the loop can refer to this entry to ensure proper loop management during compilation.

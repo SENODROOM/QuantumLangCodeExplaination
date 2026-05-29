@@ -2,51 +2,87 @@
 
 ## Overview
 
-The `compileFunctionDecl` function is a crucial component of the Quantum Language compiler, tasked with converting a function declaration into executable bytecode. This transformation facilitates the correct invocation of functions within the program's scope.
+The `compileFunctionDecl` function is a critical component of the Quantum Language compiler, responsible for converting a function declaration into executable bytecode. This process enables the correct invocation of functions throughout the program. The function handles various aspects such as compiling the function body, creating closures, and defining the function in the appropriate scope.
 
-## Parameters and Return Value
+## Parameters
 
-- **Parameters**:
-  - `s.name`: A string representing the name of the function to be compiled.
-  - `s.params`: A vector of strings representing the names of the function parameters.
-  - `s.paramIsRef`: A boolean indicating whether each parameter is passed by reference.
-  - `s.defaultArgs`: An optional vector of default argument values for the function.
-  - `s.body.get()`: A pointer to the body of the function, which contains the statements to be executed.
-  - `line`: The line number in the source code where the function declaration occurs.
+- `s`: A reference to a `FunctionDeclaration` object representing the function declaration to be compiled.
+- `line`: An integer indicating the line number where the function declaration occurs in the source code.
 
-- **Return Value**: None. The function directly emits bytecode instructions to the current compilation context.
+## Return Value
 
-## How It Works
+This function does not explicitly return a value. Instead, it performs several operations that contribute to the overall compilation process:
+- Compiles the function body.
+- Creates a closure template.
+- Emits bytecode instructions to load constants, define local or global variables, and create the function or closure.
 
-1. **Compilation of Function Body**:
-   - The function body (`s.body`) is compiled using the `compileFunction` method, resulting in a `FunctionChunk` object (`fnChunk`). This chunk encapsulates the bytecode generated from the function's body.
+## Edge Cases
 
-2. **Creating Closure Template**:
-   - A `Closure` template is created using the `std::make_shared` function, passing the `fnChunk` as its parameter. This closure will hold the function's bytecode and any upvalues it might need.
-
-3. **Loading Constant**:
-   - The `emit` function is used to load a constant onto the stack. The constant is the `Closure` template created in the previous step. This is done using the `Op::LOAD_CONST` opcode and the index obtained from `addConst`.
-
-4. **Making Function or Closure**:
-   - Depending on whether the `fnChunk` has upvalues (`fnChunk->upvalueCount > 0`), the `emit` function uses either the `Op::MAKE_CLOSURE` or `Op::MAKE_FUNCTION` opcode to create the function or closure. The second argument to `emit` is set to `0`, indicating that there are no additional arguments required for these opcodes.
-
-5. **Global vs Local Declaration**:
-   - If the current scope depth is `0` (`current_->scopeDepth == 0`), the function is declared globally using the `Op::DEFINE_GLOBAL` opcode. The function name is added to the constants table using `addStr`.
-   - If the current scope depth is not `0`, the function attempts to resolve whether the function already exists in the local scope at the same depth using the `resolveLocal` method. If found, it stores the function in the local slot and pops it from the stack. Otherwise, it declares the function locally using the `declareLocal` method and defines it in the local scope using the `Op::DEFINE_LOCAL` opcode.
-
-6. **Edge Cases**:
-   - **Parameter Types**: The function handles both regular and reference parameters, ensuring that the appropriate handling is applied during the compilation process.
-   - **Default Arguments**: If default arguments are provided, they are included in the function's definition, allowing for flexible function calls.
-   - **Scope Management**: The function manages the scope depth effectively, distinguishing between global and local declarations based on the current scope depth.
+1. **Default Arguments**: If the function has default arguments, they are handled during the compilation of the function body. The `defaultArgs` parameter ensures that these defaults are correctly applied when the function is invoked.
+2. **Upvalues**: If the function uses upvalues (i.e., references to variables from an enclosing scope), the `fnChunk->upvalueCount` is checked to determine whether to emit the `Op::MAKE_CLOSURE` instruction instead of `Op::MAKE_FUNCTION`.
+3. **Scope Depth**: The function checks the `current_->scopeDepth` to determine whether to define the function globally or locally. If the scope depth is zero, the function is defined globally using `Op::DEFINE_GLOBAL`. Otherwise, it is either stored in an existing local slot or declared as a new local variable.
 
 ## Interactions with Other Components
 
-- **Constants Table**: The `addConst` function interacts with the constants table to store the `Closure` template as a constant, making it available for use in subsequent bytecode instructions.
-  
-- **Locals Table**: The `resolveLocal` and `declareLocal` methods interact with the locals table to manage local variables and their slots within the current scope.
+- **Compilation Context (`current_`)**: The function interacts with the current compilation context, which includes information about the current scope depth and local variables. This context is used to manage the scope and lifetime of variables.
+- **Bytecode Emission (`emit`)**: The function emits bytecode instructions to represent the compiled function. These instructions include loading constants, defining variables, and creating functions or closures.
+- **Closure Template (`Closure`)**: The function creates a closure template (`std::make_shared<Closure>(fnChunk)`) to encapsulate the function's environment and upvalues. This template is then loaded onto the stack and used to create the actual function or closure.
+- **Constant Pool (`addConst`)**: The function adds constants to the constant pool using the `addConst` method. This includes adding the closure template to the pool.
+- **String Pool (`addStr`)**: If the function is being defined globally, its name is added to the string pool using the `addStr` method. This allows for efficient storage and retrieval of string literals.
 
-- **Bytecode Emission**: The `emit` function is used throughout the process to generate and emit bytecode instructions into the current compilation context.
+## Detailed Explanation
 
-- **Scope Depth Tracking**: The `current_->scopeDepth` variable tracks the depth of the current scope, influencing decisions about whether a function should be defined globally or locally.
+### Step-by-Step Breakdown
 
-This comprehensive approach ensures that function declarations are accurately transformed into executable bytecode, maintaining the integrity and functionality of the quantum program being compiled.
+1. **Compile Function Body**:
+   ```cpp
+   auto fnChunk = compileFunction(s.name, s.params, s.paramIsRef, s.defaultArgs, s.body.get(), line);
+   ```
+   - This step compiles the function body into a chunk of bytecode (`fnChunk`). The `compileFunction` function takes the function's name, parameters, parameter types, default arguments, body, and line number as input.
+
+2. **Create Closure Template**:
+   ```cpp
+   auto closureTpl = std::make_shared<Closure>(fnChunk);
+   ```
+   - After compiling the function body, a closure template is created. This template encapsulates the function's bytecode and any necessary upvalues.
+
+3. **Load Constant**:
+   ```cpp
+   emit(Op::LOAD_CONST, addConst(QuantumValue(closureTpl)), line);
+   ```
+   - The closure template is loaded onto the stack as a constant using the `Op::LOAD_CONST` opcode. The `addConst` method adds the closure template to the constant pool.
+
+4. **Make Function/Closure**:
+   ```cpp
+   emit(fnChunk->upvalueCount > 0 ? Op::MAKE_CLOSURE : Op::MAKE_FUNCTION, 0, line);
+   ```
+   - Depending on whether the function uses upvalues (`fnChunk->upvalueCount > 0`), the appropriate opcode is emitted to create the function or closure. If upvalues are present, `Op::MAKE_CLOSURE` is used; otherwise, `Op::MAKE_FUNCTION` is used.
+
+5. **Define Global/Local Variable**:
+   ```cpp
+   if (current_->scopeDepth == 0)
+   {
+       emit(Op::DEFINE_GLOBAL, addStr(s.name), line);
+   }
+   else
+   {
+       int existingSlot = resolveLocal(current_, s.name);
+       if (existingSlot != -1 && current_->locals[existingSlot].depth == current_->scopeDepth)
+       {
+           emit(Op::STORE_LOCAL, existingSlot, line);
+           emit(Op::POP, 0, line);
+       }
+       else
+       {
+           declareLocal(s.name, line);
+           emit(Op::DEFINE_LOCAL, static_cast<int>(current_->locals.size()) - 1, line);
+       }
+   }
+   ```
+   - Finally, the function defines itself in the appropriate scope:
+     - If the scope depth is zero, it defines the function globally using `Op::DEFINE_GLOBAL` and the function's name from the string pool (`addStr(s.name)`).
+     - If the scope depth is greater than zero, it resolves the local variable slot where the function should be stored:
+       - If the variable already exists at the same scope depth, it stores the function in that slot and pops the closure from the stack.
+       - If the variable does not exist, it declares a new local variable and defines the function in that slot.
+
+By following these steps, the `compileFunctionDecl` function ensures that function declarations
