@@ -1,46 +1,43 @@
 # `readNumber` Function
 
 ## Purpose
-The `readNumber` function is designed to parse numeric literals from the source code input of a quantum language compiler. It identifies both integers and floating-point numbers, including those in hexadecimal format. This function ensures that the numeric values are correctly recognized and returned as tokens.
+The `readNumber` function is designed to parse numeric literals from the source code input of a quantum language compiler. It identifies both integers and floating-point numbers, including those in hexadecimal format. This function ensures that the numeric values are correctly recognized and converted into appropriate token types.
 
 ## Parameters
 - None
 
 ## Return Value
-- Returns a `Token` object representing the parsed number. The token type is set to `TokenType::NUMBER`, and the token's lexeme contains the numeric string.
+- Returns a `Token` object representing the parsed numeric literal. The `TokenType` is set to `NUMBER`, and the `value` contains the string representation of the number.
 
-## How It Works
-The function operates by iterating through the source code starting at the current position (`pos`). It first checks if the current character is '0' followed by either 'x' or 'X', indicating a hexadecimal number. If so, it advances past these characters and continues reading until it encounters a non-hexadecimal digit. For decimal numbers, it reads digits and optionally a single dot ('.') to identify floating-point numbers. After parsing the main number, it strips any common C integer or float suffixes such as 'LL', 'ULL', 'LU', 'L', 'U', 'F', or 'f' (e.g., `1000000007LL`, `3.14f`). Finally, it returns a `Token` object containing the parsed number.
-
-### Detailed Steps:
-1. **Initialization**: The function initializes variables `startLine` and `startCol` to store the starting line and column positions of the token. It also creates an empty string `num` to accumulate the numeric characters and a boolean flag `hasDot` to track whether a dot has been encountered.
+## How it Works
+The function operates as follows:
+1. **Initialization**: It initializes variables `startLine` and `startCol` to store the starting line and column positions of the number being read. It also initializes an empty string `num` to accumulate the characters forming the number and a boolean flag `hasDot` to track whether a decimal point has been encountered.
 
 2. **Hexadecimal Check**:
-   - If the current character is '0' and the next character is either 'x' or 'X', it indicates a hexadecimal number.
-   - The function advances twice to skip over the '0x' prefix and then enters a loop where it reads all subsequent characters that are valid hexadecimal digits (`std::isxdigit(current())`).
+   - If the current character (`current()`) is '0' and the next character (`peek()`) is either 'x' or 'X', indicating a hexadecimal number, the function reads the '0x' prefix and continues reading subsequent characters until it encounters a non-hexadecimal digit.
+   - Each valid hexadecimal digit (0-9, A-F, a-f) is appended to the `num` string.
 
-3. **Decimal Number Parsing**:
-   - If the current character is not '0' followed by 'x' or 'X', the function assumes it is a decimal number.
-   - It enters a loop that continues as long as the current character is either a digit (`std::isdigit(current())`) or a dot ('.').
-   - Inside the loop, if a dot is encountered, it checks if a dot has already been found (`hasDot`). If so, it breaks out of the loop to prevent multiple dots in the same number.
-   - Each valid character is appended to the `num` string.
+3. **Decimal Number Reading**:
+   - If the current character is not '0' followed by 'x' or 'X', the function assumes it's a decimal number.
+   - It reads digits and optionally a single decimal point ('.') from the source code.
+   - If more than one decimal point is found, the loop breaks, preventing further parsing of the fractional part.
 
-4. **Suffix Stripping**:
-   - After parsing the main number, the function enters another loop to strip any common C integer or float suffixes.
-   - Suffixes include 'L', 'l', 'U', 'u', 'F', and 'f'.
-   - These suffixes are consumed without being added to the `num` string.
+4. **Suffix Handling**:
+   - After reading the main number, the function checks for any C-style integer or float suffixes such as 'L', 'l', 'U', 'u', 'F', or 'f'.
+   - These suffixes are consumed but not added to the `num` string, ensuring that only the numeric part is returned as a token.
 
-5. **Return Token**:
-   - Once the parsing and suffix stripping are complete, the function returns a `Token` object with the type set to `TokenType::NUMBER`, the lexeme set to the accumulated `num` string, and the starting line and column positions stored in `startLine` and `startCol`.
+5. **Token Creation**:
+   - Finally, the function returns a `Token` object with the type set to `NUMBER`, the value containing the parsed number, and the original starting line and column positions.
 
 ## Edge Cases
-- **Empty Input**: If the input source code is empty, the function will return a `Token` object with an empty lexeme.
-- **Invalid Hexadecimal**: If the input starts with '0x' but does not contain valid hexadecimal digits after, the function will return a `Token` object with the '0x' prefix included in the lexeme.
-- **Multiple Dots**: If a number contains more than one dot, only the part before the second dot will be considered valid, and the rest will be ignored.
-- **Suffixes**: Any unrecognized suffixes following the number will be stripped, ensuring that only the numeric part is returned.
+- **Empty Input**: If there are no characters left to read, the function will return an empty token.
+- **Invalid Hexadecimal**: If the sequence starts with '0x' but contains invalid hexadecimal digits, the function will stop at the first invalid digit.
+- **Multiple Decimal Points**: Parsing stops after encountering more than one decimal point, treating everything before it as a valid number.
+- **Suffixes**: Suffixes like 'L', 'l', 'U', 'u', 'F', or 'f' are ignored, allowing the function to handle numbers without these additional specifications.
 
-## Interactions With Other Components
-- **Lexer Core**: The `readNumber` function is called by the lexer core when it encounters a potential numeric literal in the source code. It processes the numeric literal and returns a corresponding token.
-- **Tokenization**: This function plays a crucial role in the tokenization process, which involves breaking down the source code into individual tokens. By accurately parsing numeric literals, it helps maintain the integrity of the token stream for further processing by the parser.
+## Interactions with Other Components
+- **Lexer**: The `readNumber` function is called within the lexer component when a potential number is detected. It processes the input stream and determines if the detected sequence is indeed a number.
+- **Tokenization**: Once a number is successfully parsed, it is encapsulated into a `Token` object and passed on to the parser for further processing.
+- **Error Handling**: If the function encounters an unexpected character or reaches the end of the input unexpectedly, it may need to signal an error back to the lexer or parser, depending on the implementation details.
 
-This comprehensive approach ensures that the `readNumber` function can handle various numeric formats and edge cases, making it a robust component of the quantum language compiler's lexer.
+This function plays a crucial role in accurately interpreting numeric literals in the source code, facilitating the conversion of these literals into meaningful tokens for the compiler's subsequent stages.
