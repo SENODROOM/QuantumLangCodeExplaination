@@ -2,57 +2,49 @@
 
 ## Overview
 
-`VmArrayMethods.cpp` is a crucial part of the Quantum Language compiler's virtual machine (VM) subsystem, dedicated to providing comprehensive array manipulation capabilities. This file contains essential methods such as `push`, `pop`, `shift`, `unshift`, `reverse`, `sort`, `join`, `includes`, `contains`, and `indexOf`. These methods enable dynamic array operations within the quantum language environment, ensuring efficient and flexible data handling.
+`VmArrayMethods.cpp` is an integral component of the Quantum Language compiler's virtual machine (VM) subsystem, focusing on providing robust array manipulation functionalities. This file encompasses essential methods like `push`, `pop`, `shift`, `unshift`, `reverse`, `sort`, `join`, `includes`, `contains`, and `indexOf`.
 
 ### Role in Compiler Pipeline
 
-The `VmArrayMethods.cpp` plays a pivotal role in the compiler pipeline, particularly during the execution phase where array manipulations are required. The VM subsystem leverages these methods to execute user-defined scripts that involve arrays, thereby facilitating complex computations and data transformations.
+The `VmArrayMethods.cpp` file plays a pivotal role in the compiler pipeline by facilitating high-level operations on arrays within the quantum language environment. It ensures that these operations are performed efficiently and correctly, thereby enhancing the performance and reliability of the compiled programs.
 
 ### Key Design Decisions and Why
 
-#### Method Overloading with Aliases
+#### Method Overloading
 
-- **Why**: To provide flexibility and ease of use, we have overloaded several methods with aliases (`push`/`append`, `length`/`size`, etc.). This allows users to choose the method name that best suits their coding style or specific requirements.
-  
-#### Exception Handling for Array Operations
-
-- **Why**: Robust error handling is essential for maintaining the stability and reliability of the compiler. By throwing exceptions when invalid operations are attempted (e.g., popping an element from an empty array), we ensure that errors are caught early and handled appropriately, preventing runtime crashes.
-
-#### Use of STL Algorithms for Sorting and Reversing
-
-- **Why**: Leveraging standard library algorithms (`std::sort`, `std::reverse`) simplifies implementation and improves performance. These algorithms are well-tested and optimized, making them ideal choices for common array operations.
-
-### Major Classes/Functions Overview
-
-#### `VM::callArrayMethod`
-
-This function serves as the entry point for executing array methods. It takes a shared pointer to an `Array` object, the method name, and a vector of arguments. Based on the method name, it calls the appropriate internal function to perform the operation.
-
-#### Internal Functions
-
-- **`push`/`append`**: Adds an element to the end of the array. If no argument is provided, an empty value is appended.
-- **`pop`**: Removes and returns the last element of the array. Throws an exception if the array is empty or if the specified index is out of range.
-- **`length`/`size`**: Returns the number of elements in the array.
-- **`shift`**: Removes and returns the first element of the array. Returns an empty value if the array is empty.
-- **`unshift`**: Inserts an element at the beginning of the array. Returns the new length of the array.
-- **`reverse`**: Reverses the order of elements in the array.
-- **`sort`**: Sorts the elements in the array. Uses lexicographical comparison for strings and numerical comparison for numbers.
-- **`join`**: Concatenates the elements of the array into a single string, separated by a specified delimiter (default is comma).
-- **`includes`/`contains`**: Checks whether the array contains a specified element. Returns a boolean value.
-- **`indexOf`**: Finds the index of the first occurrence of a specified element in the array. Returns `-1` if the element is not found.
-
-### Tradeoffs
-
-#### Performance vs. Flexibility
-
-Using STL algorithms for sorting and reversing provides high performance but may limit customization options compared to implementing these functions manually. However, the trade-off is acceptable given the need for robust and efficient array operations.
-
-#### Memory Management
-
-The use of shared pointers (`std::shared_ptr`) ensures automatic memory management for array objects, reducing the risk of memory leaks. While this adds overhead, it significantly simplifies memory management and resource cleanup.
+The implementation includes overloaded versions of certain methods (`push` and `append`) to provide flexibility. This allows users to add elements to the end of an array using either method, making the API more intuitive and user-friendly.
 
 #### Error Handling
 
-Exception-based error handling offers clear and immediate feedback about errors, which aids in debugging and maintaining code quality. However, it can lead to increased complexity in error propagation and recovery mechanisms.
+Comprehensive error handling mechanisms are implemented for methods like `pop`, ensuring that the program does not crash or produce incorrect results due to invalid indices. This enhances the robustness of the compiler.
 
-In conclusion, `VmArrayMethods.cpp` is a vital component of the Quantum Language compiler's VM subsystem, providing essential array manipulation functionalities. Its design decisions focus on balance between performance, flexibility, and robustness, while its implementation leverages industry-standard libraries to ensure efficiency and maintainability.
+#### Type Safety
+
+Type safety is maintained throughout the implementation, particularly in sorting and joining operations. The use of lambda functions in sorting allows for both numeric and string comparisons, ensuring type consistency.
+
+### Major Classes/Functions Overview
+
+#### `class Array`
+- Represents an array data structure used internally by the VM.
+- Provides basic operations like push, pop, shift, unshift, reverse, sort, join, includes, and indexOf.
+
+#### `QuantumValue VM::callArrayMethod(std::shared_ptr<Array> arr, const std::string &m, std::vector<QuantumValue> args)`
+- A central function responsible for calling various array methods based on the method name provided.
+- Handles different types of arguments and performs appropriate actions.
+- Throws runtime errors for invalid operations or indices.
+
+### Tradeoffs
+
+#### Memory Efficiency vs. Performance
+- **Memory Efficiency**: Using shared pointers for arrays minimizes memory usage by allowing multiple references to the same array object.
+- **Performance**: Operations like `push`, `pop`, `shift`, and `unshift` are optimized for common use cases, but may have higher overhead compared to raw arrays due to reference counting and dynamic resizing.
+
+#### Flexibility vs. Complexity
+- **Flexibility**: Providing multiple methods (`push`, `append`, etc.) offers flexibility in how users can manipulate arrays.
+- **Complexity**: Increased flexibility comes with added complexity in the codebase. Users need to be aware of which method to use depending on their requirements.
+
+#### Runtime Errors vs. Compile-Time Checks
+- **Runtime Errors**: Implementing runtime checks for index validity ensures that errors are caught early and handled gracefully.
+- **Compile-Time Checks**: While compile-time checks could offer better safety, they would require significant changes to the current implementation, potentially impacting performance.
+
+In summary, `VmArrayMethods.cpp` is a vital file in the Quantum Language compiler, offering essential array manipulation capabilities while balancing memory efficiency, performance, flexibility, and error handling.
