@@ -1,78 +1,95 @@
 # ParserStatements Component of Quantum Language Compiler
 
-The `ParserStatements` component is a key module in the Quantum Language compiler, responsible for parsing and interpreting various statement types within the quantum programming language. This component handles essential control structures such as loops, conditionals, variable declarations, expressions, and more, ensuring that the code written in the quantum language is correctly parsed and executed.
+The `ParserStatements` component is a crucial module within the Quantum Language compiler, dedicated to parsing and interpreting different statement types in the quantum programming language. This component manages fundamental control structures like loops, conditionals, variable declarations, expressions, and more, ensuring that the code written in the quantum language is accurately parsed and executed.
 
 ## Overview
 
-The `ParserStatements` component consists of several functions and classes that work together to parse different types of statements. Each function is designed to handle specific kinds of statements, from simple expressions to complex control flows.
+The `ParserStatements` component consists of several functions and classes designed to handle specific types of statements:
 
-## Functions
+- **Variable Declarations**: Functions to parse and interpret variable declarations.
+- **Control Structures**: Functions to parse and interpret conditional (`if`) and loop (`while`) statements.
+- **Function Calls**: Functions to parse and interpret function calls.
+- **Expressions**: Functions to parse and evaluate expressions.
 
-### parseBodyOrStatement()
-Parses either a block of statements or a single statement.
+These components work together to form a robust system for parsing and executing quantum programs.
 
-### parseVarDecl()
-Parses a variable declaration statement.
+## Files and Their Roles
 
-### parseIfStmt()
-Parses an if-else conditional statement.
+### parseBodyOrStatement.cpp
+Handles the parsing of either a block of statements or a single statement.
 
-### parseWhileStmt()
-Parses a while loop statement.
+### parseVarDecl.cpp
+Manages the parsing of variable declarations.
 
-### parseReturnStmt()
-Parses a return statement.
+### parseIfStmt.cpp
+Processes the parsing of conditional statements (`if`).
 
-### parsePrintStmt()
-Parses a print statement to output data.
+### parseWhileStmt.cpp
+Interprets the parsing of loop statements (`while`).
 
-### parseInputStmt()
-Parses an input statement to receive data.
+### parseReturnStmt.cpp
+Handles the parsing of return statements.
 
-### parseCoutStmt()
-Parses a cout statement for standard output.
+### parsePrintStmt.cpp
+Manages the parsing of print statements.
 
-### parseCinStmt()
-Parses a cin statement for standard input.
+### parseInputStmt.cpp
+Processes the parsing of input statements.
 
-### parseImportStmt()
-Parses an import statement to include external libraries.
+### parseCoutStmt.cpp
+Interprets the parsing of output statements using `cout`.
 
-### parseExprStmt()
-Parses an expression statement.
+### parseCinStmt.cpp
+Handles the parsing of input statements using `cin`.
 
-### parseExpr()
-Parses an arithmetic or logical expression.
+### parseImportStmt.cpp
+Manages the parsing of import statements.
 
-## File Structure
+### parseExprStmt.cpp
+Processes the parsing of expression statements.
 
-Each function is implemented in its respective file within the `parserstatements` directory:
-
-- `parseBodyOrStatement.cpp`
-- `parseVarDecl.cpp`
-- `parseIfStmt.cpp`
-- `parseWhileStmt.cpp`
-- `parseReturnStmt.cpp`
-- `parsePrintStmt.cpp`
-- `parseInputStmt.cpp`
-- `parseCoutStmt.cpp`
-- `parseCinStmt.cpp`
-- `parseImportStmt.cpp`
-- `parseExprStmt.cpp`
-- `parseExpr.cpp`
-
-These files are organized to maintain clarity and modularity, making it easier to understand and modify individual components of the statement parsing process.
+### parseExpr.cpp
+Interprets the parsing and evaluation of expressions.
 
 ## Overall Flow
 
-1. **Initialization**: The parser initializes itself with the source code to be compiled.
-2. **Tokenization**: Tokens are extracted from the source code, which represent the smallest meaningful units of the language.
-3. **Parsing Statements**:
-   - The `parseBodyOrStatement()` function determines whether to parse a block of statements or a single statement.
-   - Depending on the type of statement, one of the specialized parsing functions (`parseVarDecl()`, `parseIfStmt()`, etc.) is called.
-4. **Expression Parsing**: For statements that involve expressions, the `parseExpr()` function is used to evaluate the expressions.
-5. **Execution**: Once all statements are parsed, they are executed according to the rules defined in the quantum language.
+1. **Lexical Analysis**: The input source code is first analyzed by the lexer to convert it into tokens.
+2. **Parsing**: The tokens are then passed to the `ParserStatements` component, which interprets them according to the rules defined in the quantum programming language.
+3. **Semantic Analysis**: After parsing, the semantic analyzer checks the validity of the parsed statements and ensures they adhere to the language's syntax and semantics.
+4. **Code Generation**: If the semantic analysis is successful, the code generator translates the parsed statements into executable code.
 
-By following this structured approach, the `ParserStatements` component ensures that the quantum code is accurately parsed and executed, facilitating the development and debugging of quantum applications.
+By following this flow, the `ParserStatements` component ensures that the quantum programs are correctly interpreted and compiled.
 
-For further details on each function and its implementation, refer to the individual `.cpp` files in the `parserstatements` directory.
+## Dependencies
+
+- Lexer: Provides tokens for parsing.
+- Semantic Analyzer: Validates the parsed statements.
+- Code Generator: Translates valid statements into executable code.
+
+## Usage
+
+To use the `ParserStatements` component, include the necessary header files and call the appropriate functions with the parsed tokens from the lexer.
+
+```cpp
+#include "parserstatements.h"
+
+int main() {
+    // Assume 'tokens' is a vector of Tokens obtained from the lexer
+    std::vector<Token> tokens;
+
+    // Parse the body or statement
+    Statement* stmt = parseBodyOrStatement(tokens);
+
+    // Perform further processing (e.g., semantic analysis, code generation)
+
+    return 0;
+}
+```
+
+## Contributing
+
+Contributions to the `ParserStatements` component are welcome! Please follow the guidelines provided in the [CONTRIBUTING](../CONTRIBUTING.md) file to ensure your changes are integrated smoothly.
+
+---
+
+This README provides an overview of the `ParserStatements` component, its role in the Quantum Language compiler, and details on the files and their functionalities. It also outlines the overall flow of the component and includes usage instructions and contribution guidelines.
