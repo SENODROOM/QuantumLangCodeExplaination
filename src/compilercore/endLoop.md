@@ -5,24 +5,36 @@ The `endLoop` function manages the termination of a loop in the quantum language
 
 ## Parameters and Return Value
 - **Parameters**: None
-- **Return Value**: None
+- **Return Value**: Void
 
 ## How It Works
-When a loop is encountered during compilation, the compiler records the positions of all break statements within that loop using the `loops_` data structure. The `endLoop` function then iterates over these recorded positions (`breakJumps`) and patches each one to jump to the instruction right after the loop ends. This is achieved by calculating the relative offset between the current position of the break statement and the position of the instruction after the loop, and updating the jump target accordingly.
+When a loop is encountered in the IR, the compiler records its starting point and any break jumps within it. The `endLoop` function is called when the loop ends to finalize the loop structure. Here’s how it works:
 
-### Detailed Steps:
-1. **Record Loop End Position**: Before encountering a loop, the compiler records the current position in the IR as the end of the loop.
-2. **Patch Break Statements**: When a break statement is encountered within the loop, its position is stored in the `breakJumps` list associated with the current loop.
-3. **End of Loop Handling**: Upon exiting the loop, the `endLoop` function is called. It retrieves the position of the instruction immediately following the loop from the current chunk of IR.
-4. **Relative Jump Calculation**: For each recorded break jump position, the function calculates the relative offset from the break position to the position after the loop.
-5. **Update Jump Targets**: Using the calculated offsets, the function updates the jump targets of the break statements to point to the instruction after the loop.
+1. **Record Loop End Position**:
+   ```cpp
+   size_t after = chunk().code.size();
+   ```
+   This line captures the position in the code chunk immediately after the loop has been processed.
+
+2. **Patch Break Statements**:
+   ```cpp
+   for (size_t idx : loops_.back().breakJumps)
+       chunk().patch(idx, static_cast<int32_t>(after) - static_cast<int32_t>(idx) - 1);
+   ```
+   For each recorded break jump index (`idx`) within the last loop, the function patches the jump target. The patching logic calculates the relative offset from the current break statement to the instruction immediately following the loop. This ensures that the break statements correctly redirect control flow to the post-loop instructions.
+
+3. **Pop Last Loop**:
+   ```cpp
+   loops_.pop_back();
+   ```
+   After processing all break jumps and finalizing the loop, the function removes the last loop entry from the `loops_` stack. This stack keeps track of nested loops, and popping the last entry signifies the completion of the current loop level.
 
 ## Edge Cases
-- **No Break Statements**: If there are no break statements within the loop, the `breakJumps` list will be empty, and the function will not perform any patching.
-- **Nested Loops**: In the case of nested loops, the `endLoop` function only affects the breaks within the most recently exited loop. Other loops' break jumps remain unmodified until their respective loops are exited.
+- **No Break Statements**: If there are no break statements within the loop, the `breakJumps` vector will be empty, and the loop will simply pop the last entry from the `loops_` stack without making any changes.
+- **Nested Loops**: The `loops_` stack allows for handling nested loops. When an inner loop ends, the corresponding `endLoop` call will only affect the inner loop and leave outer loops intact.
 
-## Interactions with Other Components
-- **Intermediate Representation (IR)**: The `endLoop` function interacts directly with the IR chunks to record loop end positions and patch break statements.
-- **Loop Stack Management**: The function uses the `loops_` stack to keep track of active loops and their corresponding break jump positions. As loops are exited, the `loops_.pop_back()` call removes the topmost loop from the stack, ensuring that only the break jumps of the current loop are patched.
+## Interactions With Other Components
+- **Code Chunk Management**: The `chunk()` function provides access to the current code chunk being processed. The `patch` method on the code chunk updates the jump targets at specified indices.
+- **Loop Stack**: The `loops_` stack maintains information about the current loop levels. Each element in the stack represents a loop and contains details such as the starting index and a list of break jump indices.
 
-By carefully managing the patching of break statements, the `endLoop` function helps maintain the correct flow control in the compiled quantum program, ensuring that loops terminate as intended without causing runtime errors due to incorrect jump targets.
+In summary, the `endLoop` function is crucial for ensuring that loop structures in the IR are correctly patched and finalized, particularly handling break statements and maintaining the integrity of nested loops.
