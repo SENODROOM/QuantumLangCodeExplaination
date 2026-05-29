@@ -4,34 +4,100 @@
 
 The `parseCTypeVarDecl` function in the Quantum Language compiler is designed to parse variable declarations that adhere to C-like syntax rules. This includes handling declarations of variables that may involve pointers, const qualifiers, and member function pointers.
 
-## Parameters/Return Value
+## Functionality
 
-### Parameters
+The function processes tokens to determine the type and declaration details of a variable. It handles various scenarios such as:
 
-- None
+- Variables declared with pointer types (`int*`, `const int*`, etc.)
+- Member function pointers (`void (Class::*)()`)
 
-### Return Value
+### Parsing Pointer Types
 
-- Returns a parsed `VariableDeclaration` object representing the variable declaration.
+The function first checks for any `STAR` (pointer) or `CONST` (constant qualifier) tokens between the type and the variable name. It iterates through these tokens to set the `isPointer` flag accordingly.
 
-## Detailed Explanation
+```cpp
+bool isPointer = false;
+while (check(TokenType::STAR) || check(TokenType::CONST))
+{
+    if (check(TokenType::STAR))
+        isPointer = true;
+    consume();
+}
+```
 
-The function starts by recording the current line number using `current().line`. It then proceeds to consume any pointer stars (`*`) and `const` qualifiers that appear between the type and the variable name. This allows for declarations such as `int* p`, `int *p`, `int* const p`, and `const int* const p`.
+### Handling Function Pointers
 
-Next, the function checks for an optional opening parenthesis `(`, which might indicate a function pointer declaration. If found, it consumes the parenthesis and continues to process any pointer stars or `const` qualifiers within the parentheses. This step is crucial for distinguishing between regular pointer types and function pointer types.
+If the token sequence indicates a potential function pointer (e.g., `void (*fp)`), the function consumes the `LPAREN` token and continues checking for pointer or constant qualifiers within the parentheses.
 
-After handling potential function pointer syntax, the function looks ahead to see if the next token is an identifier followed by two colons (`::`). This pattern indicates a member function pointer declaration, where the first part before the double colons specifies the class name. The function consumes these tokens but discards the class name since it's not relevant for naming purposes. However, it sets `isPointer` to `true` if any pointer stars are encountered during this process.
+```cpp
+bool hasParen = false;
+if (check(TokenType::LPAREN))
+{
+    hasParen = true;
+    consume();
+    while (check(TokenType::STAR) || check(TokenType::CONST))
+    {
+        if (check(TokenType::STAR))
+            isPointer = true;
+        consume();
+    }
+}
+```
 
-Finally, the function accepts either an `IDENTIFIER` token or a keyword token (`INPUT` or `PRINT`) as the variable or parameter name. If neither is found, it raises an error indicating that a variable name was expected after the type.
+### Processing Class Member Pointers
+
+For class member pointers (e.g., `void (Class::*)()`), the function checks for three consecutive colons (`:::`). If found, it consumes the class name and the two colons, then discards them. The function also sets the `isPointer` flag if there are any pointer qualifiers following the class name.
+
+```cpp
+std::string prefix = "";
+if (check(TokenType::IDENTIFIER))
+{
+    size_t la = pos + 1;
+    if (la < tokens.size() && tokens[la].type == TokenType::COLON)
+    {
+        size_t la2 = la + 1;
+        if (la2 < tokens.size() && tokens[la2].type == TokenType::COLON)
+        {
+            std::string className = consume().value; // eat ClassName (discard for naming)
+            consume();                               // colon
+            consume();                               // colon
+            // prefix is discarded — variable gets just its short name
+            while (check(TokenType::STAR))
+            {
+                isPointer = true;
+                consume();
+            }
+        }
+    }
+}
+```
+
+### Variable Name Consumption
+
+Finally, the function accepts either an `IDENTIFIER` token or specific keywords (`INPUT`, `PRINT`) as valid variable names. If neither is found, it raises an error indicating that a variable name was expected after the type.
+
+```cpp
+Token nameToken = check(TokenType::IDENTIFIER) ? consume() : (check(TokenType::INPUT) || check(TokenType::PRINT)) ? consume()
+                                                                                                                      : expect(TokenType::IDENTIFIER, "Expected variable name after type");
+```
+
+## Parameters and Return Value
+
+- **Parameters**: None explicitly listed in the provided code snippet.
+- **Return Value**: A `Token` representing the parsed variable name.
 
 ## Edge Cases
 
-- **Empty Declaration**: If there are no tokens left to consume or if the tokens do not form a valid variable declaration, the function will raise an appropriate error.
-- **Invalid Pointer Syntax**: If invalid pointer syntax is encountered (e.g., multiple consecutive `*` without spaces), the function will still correctly identify the pointer status.
-- **Member Function Pointers**: The function handles both standalone member function pointers (e.g., `void (Class::*fp)()`) and those embedded within complex expressions.
+- **Empty Declaration**: If the input sequence does not contain a valid variable name, the function will raise an error.
+- **Misplaced Qualifiers**: The function assumes that pointer and const qualifiers are correctly placed between the type and the variable name. Misplacement will lead to incorrect parsing.
+- **Invalid Syntax**: Any deviation from the expected C-like syntax will result in errors during parsing.
 
 ## Interactions with Other Components
 
-The `parseCTypeVarDecl` function interacts closely with the tokenizer component to extract individual tokens. It also utilizes the parser's state management to keep track of the current position in the token stream. After parsing the variable declaration, it may interact with the symbol table to store information about the declared variable. Additionally, it can be invoked by higher-level parsing functions to handle variable declarations within statements or expressions.
+The `parseCTypeVarDecl` function interacts with several other components within the compiler:
 
-This function is essential for accurately interpreting variable declarations in C-like syntax, ensuring that the Quantum Language compiler can correctly generate intermediate code or perform semantic analysis based on the declared variables.
+- **Tokenizer**: Consumes tokens to identify the type, pointer qualifiers, and variable name.
+- **Error Handler**: Raises errors when encountering unexpected tokens or malformed syntax.
+- **Symbol Table**: Used implicitly to store information about the parsed variable, including its type and whether it's a pointer.
+
+This function is crucial for accurately interpreting variable declarations in the Quantum Language source code, ensuring that subsequent phases of compilation can proceed without errors.
