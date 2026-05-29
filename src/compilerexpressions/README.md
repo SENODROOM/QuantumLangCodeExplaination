@@ -2,76 +2,37 @@
 
 ## Overview
 
-The `compilerexpressions` component is an essential part of the Quantum Language compiler, responsible for interpreting and converting various quantum expressions into executable code. This component supports a diverse set of expression types such as binary operations, unary operations, assignments, function calls, indexing, slicing, member access, array creation, dictionary construction, tuple formation, lambda functions, ternary operators, list comprehensions, super calls, new object instantiation, address-of operations, dereferencing, and arrow functions.
-
-### Key Features
-
-- **Binary Operations**: Handles addition, subtraction, multiplication, division, bitwise AND, OR, XOR, etc.
-- **Unary Operations**: Supports negation, increment, decrement, etc.
-- **Assignments**: Manages variable and property assignments.
-- **Function Calls**: Converts function calls into executable quantum instructions.
-- **Indexing & Slicing**: Processes index and slice operations on arrays and dictionaries.
-- **Member Access**: Allows accessing properties and methods of objects.
-- **Array Creation**: Generates code for creating arrays.
-- **Dictionary Construction**: Constructs dictionaries from key-value pairs.
-- **Tuple Formation**: Creates tuples from multiple values.
-- **Lambda Functions**: Translates lambda expressions into anonymous quantum functions.
-- **Ternary Operators**: Handles conditional expressions using the ternary syntax.
-- **List Comprehensions**: Optimizes list comprehensions for efficient execution.
-- **Super Calls**: Processes superclass method calls in derived classes.
-- **Object Instantiation**: Generates code for creating new instances of objects.
-- **Address-of Operations**: Retrieves memory addresses of variables or properties.
-- **Dereferencing**: Dereferences pointers to access their underlying data.
-- **Arrow Functions**: Converts arrow functions into quantum functions.
+The `compilerexpressions` component plays a critical role in the Quantum Language compiler, translating various quantum expressions into executable code. This component handles a wide range of expression types including binary operations, unary operations, assignments, function calls, indexing, slicing, member access, array creation, dictionary creation, tuple creation, lambda functions, ternary operators, list comprehensions, super calls, object instantiation, memory address-of operations, dereferencing, and arrow functions.
 
 ## Directory Structure
 
-```
-compilerexpressions/
-├── compileCall.cpp
-├── compileIndex.cpp
-├── compileSlice.cpp
-├── compileMember.cpp
-├── compileArray.cpp
-├── compileDict.cpp
-├── compileTuple.cpp
-├── compileLambda.cpp
-├── compileTernary.cpp
-├── compileListComp.cpp
-├── compileSuper.cpp
-├── compileNew.cpp
-├── compileAddressOf.cpp
-├── compileDeref.cpp
-└── compileArrow.cpp
-```
+This directory includes several documented functions and files that contribute to the compilation process:
 
-## Files and Their Roles
+- `compileBinary`: Handles binary operations like addition, subtraction, etc.
+- `compileUnary`: Manages unary operations such as negation or increment/decrement.
+- `compileAssign`: Processes assignment statements.
+- `compileCall`: Interprets function call expressions.
+- `compileIndex`: Translates indexing operations.
+- `compileSlice`: Converts slice operations.
+- `compileMember`: Handles member access within objects.
+- `compileArray`: Creates and compiles array literals.
+- `compileDict`: Compiles dictionary literals.
+- `compileTuple`: Processes tuple literals.
+- `compileLambda`: Generates code for lambda functions.
+- `compileTernary`: Translates ternary conditional expressions.
+- `compileListComp`: Handles list comprehensions.
+- `compileSuper`: Processes super calls in class methods.
+- `compileNew`: Instantiates new objects using the 'new' keyword.
+- `compileAddressOf`: Handles memory address-of operations.
+- `compileDeref`: Performs dereferencing on pointers.
+- `compileArrow`: Translates arrow function syntax.
 
-- **compileCall.cpp**: Handles the compilation of function call expressions.
-- **compileIndex.cpp**: Processes index operations on arrays and dictionaries.
-- **compileSlice.cpp**: Compiles slicing operations for arrays and dictionaries.
-- **compileMember.cpp**: Manages member access expressions for objects.
-- **compileArray.cpp**: Generates code for creating arrays.
-- **compileDict.cpp**: Constructs dictionaries from key-value pairs.
-- **compileTuple.cpp**: Creates tuples from multiple values.
-- **compileLambda.cpp**: Translates lambda expressions into anonymous quantum functions.
-- **compileTernary.cpp**: Handles conditional expressions using the ternary syntax.
-- **compileListComp.cpp**: Optimizes list comprehensions for efficient execution.
-- **compileSuper.cpp**: Processes superclass method calls in derived classes.
-- **compileNew.cpp**: Generates code for creating new instances of objects.
-- **compileAddressOf.cpp**: Retrieves memory addresses of variables or properties.
-- **compileDeref.cpp**: Dereferences pointers to access their underlying data.
-- **compileArrow.cpp**: Converts arrow functions into quantum functions.
+## Flow of Compilation
 
-## Overall Flow
+1. **Parsing**: The input quantum source code is parsed into an abstract syntax tree (AST).
+2. **Expression Evaluation**: Each node in the AST is evaluated by the corresponding function in the `compilerexpressions` component.
+3. **Code Generation**: The evaluated expressions are then converted into machine-executable code.
+4. **Optimization**: Optional optimizations may be applied to improve performance.
+5. **Output**: The final executable code is generated and outputted.
 
-1. **Expression Parsing**: The parser identifies the type of quantum expression.
-2. **Dispatch to Handler**: Based on the expression type, control is dispatched to the appropriate handler function in the `compilerexpressions` component.
-3. **Compilation Logic**: Each handler function processes the expression according to its specific rules and generates corresponding quantum machine code.
-4. **Code Generation**: The compiled code is integrated into the broader program structure, ensuring seamless execution.
-
-By leveraging this comprehensive module, the Quantum Language compiler efficiently translates complex quantum expressions into optimized, executable code, enabling developers to write high-performance quantum applications.
-
----
-
-Feel free to update any sections as necessary to better reflect the current state of your project!
+Each function within the `compilerexpressions` component is designed to handle specific types of quantum expressions, ensuring that they are correctly interpreted and compiled. Together, these components form a comprehensive system for compiling quantum language expressions into executable code.
