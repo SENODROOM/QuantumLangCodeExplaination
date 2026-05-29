@@ -2,46 +2,38 @@
 
 ## Overview
 
-The `check` function serves as a pivotal element in the Quantum Language compiler's type-checking phase. Its primary role is to validate that the source code conforms to the language's syntactic and semantic guidelines. The function employs a recursive approach to navigate through the abstract syntax tree (AST) of the program, ensuring each part adheres to the defined rules.
+The `check` function plays a crucial role in the Quantum Language compiler's type-checking phase. Its main objective is to ensure that the source code adheres to the language's syntactic and semantic rules. This function operates recursively, examining each node in the abstract syntax tree (AST) to verify its correctness.
+
+### Why It Works This Way
+
+Using a recursive approach allows the `check` function to traverse through all nodes of the AST, ensuring comprehensive validation. Each node represents a part of the source code, such as expressions, statements, or declarations. By recursively checking each node, the function can handle nested structures and maintain context throughout the entire program.
 
 ## Parameters
 
-- **`node`**: A pointer to the current AST node being evaluated. This parameter can be any type of node, including blocks, expressions, statements, etc.
-- **`globalEnv`**: A reference to the global environment object, which holds information about variables, functions, and types declared at the global scope. This environment is essential for resolving identifiers and validating their usage.
+- **nodes**: A vector containing pointers to the nodes of the abstract syntax tree (AST). These nodes represent various elements of the source code, including expressions, statements, and declarations.
+  
+- **globalEnv**: A reference to the global environment object, which holds information about variables, functions, and types defined at the global scope. This environment is essential for resolving identifiers and validating their usage within the program.
 
 ## Return Value
 
-The `check` function does not return any value explicitly (`void`). However, its execution ensures that all nodes within the AST are properly validated, and any errors or inconsistencies are reported back to the user.
+The `check` function returns nothing (`void`). However, during its execution, it raises exceptions if any type-related errors are detected. For example, if an operation is performed on incompatible types, or if an undefined identifier is used, the function will throw an appropriate exception.
 
 ## Edge Cases
 
-1. **Null Node**: If the input `node` is `nullptr`, the function should handle this case gracefully without causing runtime errors.
-2. **Empty Block Statement**: When encountering an empty block statement (`BlockStmt`), the function should simply proceed without performing any checks on an empty list of statements.
+1. **Empty AST**: If the `nodes` vector is empty, the `check` function will simply return without performing any checks, as there is no source code to validate.
 
-## Interactions with Other Components
+2. **Single Node**: When the `nodes` vector contains only one node, the function will check this single node and then return.
 
-The `check` function interacts closely with several other components within the compiler:
+3. **Nested Structures**: The function handles nested structures gracefully by recursively calling itself for each child node. This ensures that even deeply nested constructs are validated correctly.
 
-1. **Symbol Table**: It uses the symbol table to look up identifiers and ensure they have been declared before use.
-2. **Type System**: The function leverages the type system to verify that operations and assignments are performed between compatible data types.
-3. **Error Reporting**: Upon detecting any issues during the type-checking process, the `check` function reports these errors using the error reporting mechanism provided by the compiler.
+4. **Global Scope Validation**: The `check` function validates identifiers and types defined in the global scope using the `globalEnv`. This includes verifying that all global variables and functions are declared before they are used.
 
-Here's how the function handles different types of AST nodes:
+## Interactions With Other Components
 
-- **Block Statements**: For block statements, the function calls itself recursively to check each individual statement within the block. This ensures that nested structures are also validated correctly.
-  
-  ```cpp
-  if (node && node->is<BlockStmt>()) {
-      check(node->as<BlockStmt>().statements);
-  }
-  ```
+- **Symbol Table**: The `check` function interacts with the symbol table component to resolve identifiers and validate their usage. It uses the `globalEnv` to look up symbols and ensure they are declared and have the correct type.
 
-- **Other Nodes**: For all other types of nodes (expressions, statements, etc.), the function calls `checkNode`, passing the current node and the global environment. This method is responsible for performing the actual validation checks based on the node type.
+- **Error Reporting**: During the type-checking process, the `check` function reports errors to the error reporting component. If any type-related issues are found, it throws exceptions, which are caught and reported back to the user.
 
-  ```cpp
-  else {
-      checkNode(node, globalEnv);
-  }
-  ```
+- **Scope Management**: The function manages scopes by keeping track of the current scope and updating it as it traverses through the AST. This ensures that local variables and functions do not conflict with those in the global scope.
 
-In summary, the `check` function plays a critical role in maintaining the integrity and correctness of the Quantum Language source code. By employing a recursive strategy and interacting with various components such as the symbol table and type system, it ensures that all parts of the program adhere to the language's rules, thereby facilitating efficient compilation and execution.
+In summary, the `check` function is a vital component of the Quantum Language compiler's type-checking phase. By employing a recursive approach, it comprehensively validates the source code against syntactic and semantic rules, ensuring the correctness and reliability of the compiled quantum programs.
