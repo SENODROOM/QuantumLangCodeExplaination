@@ -2,67 +2,42 @@
 
 ## Overview
 
-The `has` function is a member method of the `Value` class located in the Quantum Language compiler's source file `src/Value.cpp`. This function determines whether a variable named `name` is present within the current scope or any of its parent scopes.
+The `has` function is a member method of the `Value` class found in the Quantum Language compiler's source file `src/Value.cpp`. This function checks if a variable named `name` exists within the current scope or any of its parent scopes.
 
 ## What It Does
 
-The `has` function performs a lookup to check if a variable with the specified name (`name`) exists in the `vars` map, which represents the variables defined in the current scope. If the variable is found in the current scope, the function returns `true`.
+The `has` function returns a boolean indicating whether a variable with the specified name (`name`) is available in the current scope or any of its parent scopes. If the variable is found, it returns `true`; otherwise, it returns `false`.
 
-If the variable is not found in the current scope, the function checks if there is a parent scope by examining the `parent` pointer. If a parent scope exists, it recursively calls the `has` function on the parent scope to search for the variable. If the variable is found in any parent scope, the function returns `true`.
+### Implementation Details
 
-If neither the current scope nor any parent scope contains the variable, the function returns `false`.
+Here’s how the `has` function operates:
 
-### Example Usage
+1. **Check Current Scope**: The function first checks if the variable `name` exists in the `vars` map, which represents the variables defined in the current scope. If the variable is found, the function immediately returns `true`.
+   
+2. **Recursive Check Parent Scopes**: If the variable is not found in the current scope, the function checks if there is a parent scope (`if (parent)`). If a parent scope exists, it recursively calls the `has` function on the parent scope to search for the variable. This process continues until either the variable is found or all parent scopes have been checked.
 
-Here's an example demonstrating how the `has` function might be used:
-
-```cpp
-#include "Value.h"
-
-int main() {
-    Value currentScope;
-    currentScope.vars["x"] = 42;
-
-    Value parentScope;
-    parentScope.vars["y"] = 99;
-
-    currentScope.parent = &parentScope;
-
-    // Check if 'x' exists in the current scope or any parent scopes
-    bool xExists = currentScope.has("x"); // Returns true
-    bool yExists = currentScope.has("y"); // Returns true
-    bool zExists = currentScope.has("z"); // Returns false
-
-    return 0;
-}
-```
-
-In this example:
-- The variable `x` is defined in the current scope and is accessible through the `has` function.
-- The variable `y` is defined in the parent scope and is also accessible through the `has` function.
-- The variable `z` is not defined in either the current scope or the parent scope, so the `has` function returns `false`.
-
-## Why It Works This Way
-
-The `has` function works by leveraging the hierarchical nature of scopes in the Quantum Language compiler. By checking both the current scope and its parent scopes, the function ensures that all possible variable definitions are considered. This approach allows for a flexible and dynamic variable lookup mechanism, accommodating nested scopes and variable shadowing.
-
-### Edge Cases
-
-1. **Empty Scope**: If the current scope has no variables defined (`vars` map is empty) and there is no parent scope (`parent` pointer is `nullptr`), the function will correctly return `false`.
-2. **Variable Shadowing**: If a variable with the same name is defined in both the current scope and a parent scope, the function will return `true` for the first occurrence encountered during the lookup process.
+3. **Return False if Not Found**: If the variable is not found in any of the scopes, including the current and all parent scopes, the function returns `false`.
 
 ## Parameters/Return Value
 
-### Parameters
+- **Parameters**:
+  - `name`: A string representing the name of the variable to check.
 
-- `const std::string& name`: A constant reference to the string representing the name of the variable to look up.
+- **Return Value**:
+  - Returns a boolean (`true` or `false`) indicating whether the variable exists in the current scope or any of its parent scopes.
 
-### Return Value
+## Edge Cases
 
-- `bool`: Returns `true` if the variable exists in the current scope or any of its parent scopes; otherwise, returns `false`.
+- **Variable Not Defined**: If the variable `name` is not defined in the current scope or any of its parent scopes, the function correctly returns `false`.
+  
+- **Empty Parent Scope Chain**: If the current scope does not have a parent scope (i.e., `parent` is `nullptr`), the function will stop checking and return `false`, even if the variable might exist in further parent scopes that are not accessible due to the lack of a parent pointer.
 
 ## Interactions With Other Components
 
-The `has` function interacts with the `Value` class's `vars` map and `parent` pointer. The `vars` map stores the variables defined in the current scope, while the `parent` pointer points to the parent scope, allowing for recursive searches when necessary.
+The `has` function interacts with the following components within the Quantum Language compiler:
 
-This function is crucial for resolving variable references in the Quantum Language compiler, ensuring that the correct variable definition is accessed based on the current scope context.
+- **Scope Management**: The function relies on the `parent` pointer to traverse up the scope hierarchy. Each `Value` object can represent a scope, and the `parent` pointer links to the enclosing scope.
+  
+- **Variable Storage**: The `vars` map stores the variables defined in each scope. When calling `has`, the function checks this map to see if the variable exists at the current level.
+
+This function is essential for determining variable accessibility during compilation, ensuring that references to undefined variables are caught early and handled appropriately.
