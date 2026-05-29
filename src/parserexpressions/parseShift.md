@@ -3,30 +3,31 @@
 ## Purpose
 The `parseShift` function is designed to parse shift expressions in the Quantum Language compiler. Shift expressions include bitwise left (`<<`) and right (`>>`) shifts. This function ensures that the correct order of operations is maintained during parsing, particularly when dealing with compound assignment operators like `<<=` and `>>=`.
 
-## Parameters
-- None explicitly stated in the provided code snippet. However, based on typical parser implementations, the function likely takes no parameters directly. Instead, it interacts with global state such as `tokens`, `current()`, and `consume()`.
-
-## Return Value
-- The function returns a unique pointer to an `ASTNode` representing the parsed shift expression. If no shift operation is found, it returns the result of `parseAddSub()`.
+## Parameters/Return Value
+- **Parameters**:
+  - None explicitly listed in the code snippet provided.
+  
+- **Return Value**:
+  - Returns a unique pointer to an `ASTNode` representing the parsed shift expression.
 
 ## How It Works
-The `parseShift` function begins by calling `parseAddSub()` to parse the left-hand side of the shift expression. It then enters a loop that continues as long as the next token is either a left shift (`TokenType::LSHIFT`) or a right shift (`TokenType::RSHIFT`). Inside the loop:
-- It checks if the next token after the current operator is an assignment (`TokenType::ASSIGN`). If so, it breaks out of the loop because these are treated as compound assignment operators (e.g., `<<=`).
-- It records the line number of the current token using `current().line`.
-- It consumes the current token to get the operator value (`op`).
-- It calls `parseAddSub()` again to parse the right-hand side of the shift expression.
-- It constructs a new `ASTNode` containing a `BinaryExpr` with the operator, the left-hand side, and the right-hand side. This node represents the parsed shift expression.
-- It updates the left-hand side (`left`) with the newly constructed node.
+The function starts by calling `parseAddSub()` to parse the left-hand side of the shift expression. It then enters a loop that continues as long as the next token is either a left shift (`<<`) or a right shift (`>>`). Inside the loop:
 
-This process repeats until there are no more shift operators, ensuring that all shift operations are correctly parsed and ordered within the expression.
+1. The function checks if the next token after the current one is an assignment operator (`=`). If so, it breaks out of the loop because these are handled as compound assignment operators by `parseAssignment`.
+2. It records the current line number using `current().line`.
+3. The function consumes the current token (which is either `<<` or `>>`) and stores its value.
+4. Another call to `parseAddSub()` parses the right-hand side of the shift expression.
+5. A new `ASTNode` is created with a `BinaryExpr` containing the operation type, the left-hand side, and the right-hand side. This node represents the parsed shift expression.
+6. The loop repeats until there are no more shift operators.
 
 ## Edge Cases
-- **No Shift Operators**: If there are no shift operators in the input sequence, the function simply returns the result of `parseAddSub()`. This allows for fall-through into subsequent parsing stages.
-- **Compound Assignment Operators**: The function breaks out of the loop when encountering a compound assignment operator immediately following a shift operator. This prevents incorrect parsing of expressions like `a <<= b`.
+- **No Shift Operators**: If the input sequence does not contain any shift operators, the function will simply return the result of `parseAddSub()`, which could be a constant, variable, or another expression.
+- **Compound Assignment Operators**: The function correctly identifies and handles compound assignment operators like `<<=` and `>>=`, ensuring they are not mistakenly interpreted as separate shift and assignment operations.
 
 ## Interactions With Other Components
-- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens (`tokens`). It uses `current()` and `consume()` methods to access and manipulate these tokens.
-- **Parse Tree Construction**: The function constructs an abstract syntax tree (AST) using `ASTNode` and `BinaryExpr`. These structures represent the parsed expression and facilitate further semantic analysis and code generation.
-- **Error Handling**: While not shown in the snippet, the function likely includes error handling mechanisms to manage unexpected tokens or malformed expressions. This could involve reporting errors and possibly recovering from them.
+- **`parseAddSub()`**: This function is called twice within `parseShift`. The first call parses the left-hand side of the shift expression, and the second call parses the right-hand side.
+- **`consume()`**: This function is used to consume the current token, which is either `<<` or `>>`.
+- **`check(TokenType::ASSIGN)`**: This function checks if the next token is an assignment operator, which helps in distinguishing between simple shift operations and compound assignment operations.
+- **`std::make_unique<ASTNode>()`**: This is used to create a new `ASTNode` representing the binary expression formed by the shift operation.
 
-Overall, the `parseShift` function plays a crucial role in accurately parsing shift expressions within the Quantum Language compiler, ensuring that they are correctly represented in the AST and maintaining the proper order of operations.
+Overall, `parseShift` plays a crucial role in maintaining the correct syntax and semantics of shift expressions in the Quantum Language compiler by leveraging existing parsing functions and handling special cases appropriately.
