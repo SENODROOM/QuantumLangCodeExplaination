@@ -1,38 +1,34 @@
 # `compileUnary` Function
 
 ## Purpose
-The `compileUnary` function compiles unary expressions in the Quantum Language compiler. It handles operations such as negation (`-`), logical not (`!`, `not`), bitwise not (`~`), and increment/decrement (`++`, `--`). This function ensures that the correct quantum operation is emitted based on the unary operator encountered.
+The `compileUnary` function is responsible for compiling unary expressions within the Quantum Language compiler. It processes various unary operators including negation (`-`), logical not (`!`, `not`), bitwise not (`~`), and increment/decrement (`++`, `--`). The function ensures that the appropriate quantum operation is emitted based on the operator encountered.
 
-## Parameters
-- `e`: A reference to a `UnaryExpression` object representing the unary expression to be compiled.
-
-## Return Value
-This function does not explicitly return a value; instead, it modifies the internal state of the compiler by emitting appropriate quantum operations.
+## Parameters/Return Value
+- **Parameters**:
+  - `e`: A reference to an `Expression` object representing the unary expression to be compiled.
+  
+- **Return Value**: None. The function directly modifies the output stream by emitting quantum operations.
 
 ## How It Works
-1. **Check for Ellipsis Operator**: The function first checks if the unary operator is an ellipsis (`...`). If so, it compiles the operand expression and returns immediately. This special case might be used to denote a sequence or spread operator in the language.
+The function first checks if the unary operator is the spread operator (`...`). If so, it compiles the operand expression without any additional processing. For other unary operators, it proceeds as follows:
 
-2. **Compile Operand Expression**: Regardless of the operator, the function compiles the operand expression using `compileExpr(*e.operand)`.
-
-3. **Emit Appropriate Operation**:
-   - For negation (`-`), it emits the `Op::NEG` operation.
-   - For logical not (`!` or `not`), it emits the `Op::NOT` operation.
-   - For bitwise not (`~`), it emits the `Op::BIT_NOT` operation.
-   - For increment (`++`) or decrement (`--`), it follows these steps:
-     - Emits a constant value `1.0` using `emit(Op::LOAD_CONST, addConst(QuantumValue(1.0)), line)`.
-     - Depending on whether it's an increment or decrement, it either adds or subtracts the constant value using `emit(e.op == "++" ? Op::ADD : Op::SUB, 0, line)`.
-     - If the operand is an identifier (variable), it duplicates the result using `emit(Op::DUP, 0, line)`, stores the new value back into the variable using `emitStore(e.operand->as<Identifier>().name, line)`, and pops the duplicate using `emit(Op::POP, 0, line)`. This ensures that the original value is preserved before updating it.
-
-4. **Handle Unknown Operators**: If the unary operator is not recognized, the function throws a `std::runtime_error` indicating an unknown unary operation.
+1. **Compile Operand Expression**: The function calls `compileExpr(*e.operand)` to recursively compile the operand of the unary expression.
+2. **Emit Appropriate Operation**:
+   - If the operator is `-`, it emits the `Op::NEG` operation to perform negation.
+   - If the operator is `!` or `not`, it emits the `Op::NOT` operation to perform logical negation.
+   - If the operator is `~`, it emits the `Op::BIT_NOT` operation to perform bitwise negation.
+   - If the operator is `++` or `--`, it performs the following steps:
+     - Emits the `Op::LOAD_CONST` operation to load the constant value `1.0` onto the stack.
+     - Depending on whether the operator is `++` or `--`, it either emits the `Op::ADD` or `Op::SUB` operation to increment or decrement the top value on the stack.
+     - If the operand is an identifier (i.e., a variable), it duplicates the top value on the stack using `Op::DUP`, stores it back into the variable using `emitStore()`, and then pops the duplicated value off the stack using `Op::POP`.
 
 ## Edge Cases
-- **Ellipsis Operator**: The function correctly handles the ellipsis operator without performing any additional operations.
-- **Increment/Decrement**: When dealing with variables, the function ensures that the original value is preserved before updating it, preventing unintended side effects.
-- **Unknown Operators**: The function gracefully handles unrecognized operators by throwing an error, ensuring robustness against invalid input.
+- **Spread Operator (`...`)**: When encountering the spread operator, the function simply compiles the operand without any modification, as it represents a different type of operation (e.g., unpacking elements).
+- **Unknown Unary Operator**: If the function encounters an unknown unary operator, it throws a `std::runtime_error` indicating that the compiler does not support the specified operator.
 
-## Interactions with Other Components
-- **Compilation Context**: The function interacts with the compilation context to access and modify the current state of the program being compiled.
-- **Emission Engine**: It uses the emission engine to output quantum operations, which are then executed during the simulation or actual quantum computation.
-- **Error Handling**: The function includes error handling to manage unexpected unary operators, ensuring the compiler can handle errors gracefully.
+## Interactions With Other Components
+- **Expression Compilation**: The `compileUnary` function relies on the `compileExpr` function to handle the compilation of the operand expression. This recursive approach allows the compiler to break down complex expressions into simpler sub-expressions.
+- **Stack Operations**: The function uses stack-based operations (`Op::LOAD_CONST`, `Op::ADD`, `Op::SUB`, `Op::DUP`, `Op::POP`) to manipulate values during compilation. These operations ensure that the correct order of evaluation and manipulation is maintained.
+- **Variable Storage**: When dealing with increment/decrement operations on identifiers, the function interacts with the storage system to update the variable's value. This involves duplicating the current value, storing the new incremented/decremented value, and then popping the old value from the stack.
 
-Overall, the `compileUnary` function plays a crucial role in compiling unary expressions within the Quantum Language compiler, ensuring that the correct quantum operations are generated and that the program's state is accurately updated.
+Overall, the `compileUnary` function plays a crucial role in handling unary operations within the Quantum Language compiler, ensuring that the correct quantum operations are emitted and that the program state is updated appropriately.
