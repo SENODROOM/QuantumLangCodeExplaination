@@ -1,51 +1,86 @@
 # ParserLiterals Component
 
-The `ParserLiterals` component is a crucial part of the Quantum Language (QL) compiler, responsible for parsing and interpreting different literal types as defined in the language's syntax. These include array literals, dictionary literals, lambda expressions, arrow functions, argument lists, parameter lists, C type keywords, and C-type variable declarations.
+The `ParserLiterals` component is an essential part of the Quantum Language (QL) compiler, designed to parse and interpret various literal types according to the language's syntax rules. This includes handling array literals, dictionary literals, lambda expressions, arrow functions, argument lists, parameter lists, C type keywords, and C-type variable declarations.
 
 ## Overview
 
-### Functionality
+The `ParserLiterals` component consists of several functions that work together to process these literal types during the compilation process. Each function is tailored to handle specific aspects of the literals:
+
 - **parseArrayLiteral**: Parses array literals from the source code.
 - **parseDictLiteral**: Parses dictionary literals from the source code.
 - **parseLambda**: Parses lambda expressions from the source code.
 - **parseArrowFunction**: Parses arrow functions from the source code.
-- **parseArgList**: Parses argument lists from function calls or definitions.
-- **parseParamList**: Parses parameter lists from function definitions.
-- **isCTypeKeyword**: Determines if a given token is a C type keyword.
-- **parseCTypeVarDecl**: Parses C-type variable declarations from the source code.
+- **parseArgList**: Parses argument lists within function definitions or calls.
+- **parseParamList**: Parses parameter lists within function definitions.
+- **isCTypeKeyword**: Checks if a given token is a C type keyword.
+- **parseCTypeVarDecl**: Parses C-type variable declarations.
 
-### File Structure
-- Each function or feature is encapsulated in its own file within this directory.
-- The files are named according to their functionality, making it easy to locate specific implementations.
+These functions are interconnected, forming a cohesive system that ensures accurate parsing and interpretation of literals in the Quantum Language.
 
-### Flow
-1. **Tokenization**: Before parsing literals, tokens are generated from the source code using a tokenizer.
-2. **Parsing**:
-   - **parseArrayLiteral**: Reads tokens until it encounters the closing bracket `[ ]`.
-   - **parseDictLiteral**: Reads tokens until it encounters the closing brace `{ }`.
-   - **parseLambda**: Identifies the lambda keyword and then parses the parameters and body.
-   - **parseArrowFunction**: Recognizes the arrow function syntax and processes accordingly.
-   - **parseArgList**: Parses arguments separated by commas.
-   - **parseParamList**: Parses parameters separated by commas.
-3. **Validation**: After parsing, the literals are validated against the language's rules.
-4. **Interpretation**: Validated literals are interpreted into a structured format suitable for further compilation steps.
+## Files and Functions
 
-### Usage
-To use the `ParserLiterals` component, simply include the appropriate header file and call the relevant function with the current token stream:
+### parseArrayLiteral
+- **Purpose**: Parses array literals from the source code.
+- **Parameters**:
+  - `sourceCode`: The string containing the source code.
+  - `startIndex`: The index at which to start parsing.
+- **Returns**: A parsed representation of the array literal.
 
-```cpp
-#include "ParserLiterals.h"
+### parseDictLiteral
+- **Purpose**: Parses dictionary literals from the source code.
+- **Parameters**:
+  - `sourceCode`: The string containing the source code.
+  - `startIndex`: The index at which to start parsing.
+- **Returns**: A parsed representation of the dictionary literal.
 
-// Example usage
-if (isCTypeKeyword(currentToken)) {
-    parseCTypeVarDecl();
-} else if (currentToken == "[") {
-    parseArrayLiteral();
-}
-```
+### parseLambda
+- **Purpose**: Parses lambda expressions from the source code.
+- **Parameters**:
+  - `sourceCode`: The string containing the source code.
+  - `startIndex`: The index at which to start parsing.
+- **Returns**: A parsed representation of the lambda expression.
 
-## Contributing
-Contributions to the `ParserLiterals` component are welcome! Please ensure your changes are well-documented and tested before submitting a pull request.
+### parseArrowFunction
+- **Purpose**: Parses arrow functions from the source code.
+- **Parameters**:
+  - `sourceCode`: The string containing the source code.
+  - `startIndex`: The index at which to start parsing.
+- **Returns**: A parsed representation of the arrow function.
 
-## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+### parseArgList
+- **Purpose**: Parses argument lists within function definitions or calls.
+- **Parameters**:
+  - `sourceCode`: The string containing the source code.
+  - `startIndex`: The index at which to start parsing.
+- **Returns**: A parsed representation of the argument list.
+
+### parseParamList
+- **Purpose**: Parses parameter lists within function definitions.
+- **Parameters**:
+  - `sourceCode`: The string containing the source code.
+  - `startIndex`: The index at which to start parsing.
+- **Returns**: A parsed representation of the parameter list.
+
+### isCTypeKeyword
+- **Purpose**: Checks if a given token is a C type keyword.
+- **Parameters**:
+  - `token`: The token to check.
+- **Returns**: `true` if the token is a C type keyword, otherwise `false`.
+
+### parseCTypeVarDecl
+- **Purpose**: Parses C-type variable declarations.
+- **Parameters**:
+  - `sourceCode`: The string containing the source code.
+  - `startIndex`: The index at which to start parsing.
+- **Returns**: A parsed representation of the C-type variable declaration.
+
+## Overall Flow
+
+1. **Initialization**: The parser initializes by setting up the necessary data structures and variables.
+2. **Tokenization**: The source code is tokenized into individual elements.
+3. **Parsing Literals**: The parser iterates through the tokens, identifying and processing literal types using the functions in the `ParserLiterals` component.
+4. **Building Abstract Syntax Tree (AST)**: As literals are parsed, they are added to the AST, representing their structure and relationships within the program.
+5. **Validation and Error Handling**: The parser validates the parsed literals and handles any errors that arise during the parsing process.
+6. **Completion**: Once all literals have been successfully parsed and added to the AST, the parser completes its task, providing a structured representation of the source code.
+
+By following this flow, the `ParserLiterals` component ensures that the Quantum Language compiler accurately parses and interprets literals, facilitating the construction of a robust and error-free AST.
