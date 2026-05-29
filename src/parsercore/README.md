@@ -2,81 +2,61 @@
 
 ## Overview
 
-The `ParserCore` component is a fundamental module in the Quantum Language (QL) compiler, designed to convert input source code into an Abstract Syntax Tree (AST). This transformation is essential for ensuring that the source code adheres strictly to the language's syntactical rules, thereby enabling accurate and efficient execution during subsequent compilation phases.
+The `ParserCore` component is a critical module within the Quantum Language (QL) compiler, responsible for converting input source code into an Abstract Syntax Tree (AST). This process ensures that the source code strictly conforms to the language’s syntactical rules, facilitating subsequent compilation steps and enhancing error detection during the parsing phase.
 
-## Files and Functions
+### Key Features
 
-### check
-
-- **Purpose**: Validates whether the current token matches the expected type.
-- **Parameters**:
-  - `expectedType`: The type of token expected.
-- **Returns**: A boolean indicating whether the current token matches the expected type.
-
-### match
-
-- **Purpose**: Consumes the current token if it matches the expected type.
-- **Parameters**:
-  - `expectedType`: The type of token expected.
-- **Returns**: A boolean indicating whether the current token was successfully consumed.
-
-### atEnd
-
-- **Purpose**: Determines if the end of the input stream has been reached.
-- **Parameters**: None.
-- **Returns**: A boolean indicating whether the end of the input stream has been reached.
-
-### skipNewlines
-
-- **Purpose**: Skips over any newline characters in the input stream.
-- **Parameters**: None.
-- **Returns**: None.
-
-### parse
-
-- **Purpose**: Initiates the parsing process, converting the input source code into an AST.
-- **Parameters**: None.
-- **Returns**: A pointer to the root node of the generated AST.
+- **Syntax Checking**: Validates the input source code against the defined syntax rules.
+- **Token Matching**: Identifies and matches tokens based on their type and value.
+- **Error Handling**: Detects and reports syntax errors in the source code.
+- **AST Generation**: Constructs an AST from the validated and matched tokens, representing the structure of the quantum program.
 
 ## Directory Structure
 
 ```
 parsercore/
-├── include/
-│   ├── parsercore.hpp
-│   └── ...
-├── src/
-│   ├── parsercore.cpp
-│   └── ...
-└── tests/
-    ├── test_parsercore.cpp
-    └── ...
+├── check.cpp
+├── check.h
+├── match.cpp
+├── match.h
+├── atEnd.cpp
+├── atEnd.h
+├── skipNewlines.cpp
+├── skipNewlines.h
+└── parse.cpp
+    └── parse.h
 ```
 
-### include/
+### Files and Their Functions
 
-Contains header files defining the public interface of the `ParserCore` component.
+#### `check.cpp` / `check.h`
 
-- `parsercore.hpp`: Main header file for the `ParserCore` component.
+These files contain functions related to syntax checking. They validate individual tokens and ensure they adhere to the syntactical rules of the Quantum Language.
 
-### src/
+#### `match.cpp` / `match.h`
 
-Contains source files implementing the functionality of the `ParserCore` component.
+These files include functions for token matching. They identify specific tokens or patterns within the source code and prepare them for further processing.
 
-- `parsercore.cpp`: Source file containing the implementation of the core parsing logic.
+#### `atEnd.cpp` / `atEnd.h`
 
-### tests/
+These functions determine whether the end of the input source code has been reached. This is crucial for controlling the flow of parsing operations and handling edge cases.
 
-Contains unit tests for verifying the correctness of the `ParserCore` component.
+#### `skipNewlines.cpp` / `skipNewlines.h`
 
-- `test_parsercore.cpp`: Unit test file for testing various aspects of the parsing functionality.
+These files provide functionality to skip over newline characters in the source code. Newline characters often do not affect the syntax but can complicate parsing logic, so this feature helps streamline the process.
+
+#### `parse.cpp` / `parse.h`
+
+The primary file for parsing the input source code. It orchestrates the entire parsing process, utilizing the functionalities provided by the other files to construct the AST.
 
 ## Overall Flow
 
-1. **Initialization**: The `ParserCore` component initializes with the input source code.
-2. **Tokenization**: The input source code is tokenized into individual tokens.
-3. **Parsing**: Tokens are parsed according to the defined grammar rules, constructing an AST.
-4. **Validation**: The AST is validated to ensure it conforms to the language's syntactical rules.
-5. **Output**: The valid AST is outputted for further processing by the compiler.
+1. **Initialization**: The parser initializes itself by setting up necessary data structures and reading the input source code.
+2. **Tokenization**: The input source code is broken down into tokens using lexical analysis tools.
+3. **Syntax Checking**: Each token is checked against predefined syntax rules to ensure its validity.
+4. **Token Matching**: Tokens are matched according to their type and value, forming valid sequences.
+5. **Skipping Newlines**: The parser skips over any unnecessary newline characters to maintain focus on significant syntax elements.
+6. **Parsing**: The parsed tokens are then used to construct the AST through recursive descent parsing or another suitable algorithm.
+7. **Completion**: Once the parsing is complete, the AST represents the structured form of the quantum program, ready for further compilation stages.
 
-By following this structured approach, the `ParserCore` component ensures robust and reliable parsing of Quantum Language source code, setting the foundation for successful compilation.
+By following this flow, the `ParserCore` component ensures that the input source code is accurately converted into an AST, providing a solid foundation for the rest of the Quantum Language compiler.
