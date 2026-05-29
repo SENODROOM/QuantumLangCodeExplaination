@@ -2,38 +2,36 @@
 
 ## Role in Compiler Pipeline
 
-`Disassembler.cpp` is a crucial part of the Quantum Language compiler's backend, responsible for converting bytecode back into human-readable assembly-like instructions. This disassembly process aids in debugging, comprehension, and optimization of the compiled code. By reversing the compilation steps, developers can gain deeper insights into the operations performed during execution and make informed optimizations.
+`Disassembler.cpp` plays a critical role in the Quantum Language compiler's backend by converting bytecode back into human-readable assembly-like instructions. This disassembly process facilitates debugging, comprehension, and optimization of the compiled code. It reverses the compilation steps, allowing developers to gain deeper insights into the operations performed during execution.
 
-## Key Design Decisions and Why
+## Key Design Decisions and WHY
 
-1. **Bytecode Representation**: The compiler uses a custom bytecode format to represent intermediate code. Each operation is encoded as a single byte followed by any necessary operands. This representation is efficient and compact, making it easy to decode and execute at runtime.
+1. **Bytecode Representation**: The disassembler operates on a predefined set of bytecode instructions (`Op`). Each instruction corresponds to a specific operation that the virtual machine (VM) can execute. This representation ensures consistency and predictability in the disassembly process.
 
-2. **Human-Readable Output**: The `Disassembler` class translates each bytecode instruction into a corresponding assembly-like string. This output includes the operation name and its operands, providing a clear picture of what the code does.
+2. **Human-Readable Output**: To aid developers, the output is formatted in an assembly-like style with clear labels and comments. This makes it easier to understand the sequence of operations and their impact on the program state.
 
-3. **Debugging Support**: The disassembled output is designed to be easily readable and understandable, which makes it ideal for debugging purposes. Developers can quickly identify the source of errors or inefficiencies in the compiled code.
+3. **Efficient Parsing**: The disassembler efficiently parses bytecode by using a switch statement to map each opcode to its corresponding instruction name. This approach minimizes runtime overhead and improves performance.
 
-4. **Optimization Opportunities**: By understanding the sequence of operations in the disassembled form, developers can identify potential areas for optimization. For example, redundant operations can be eliminated, and more efficient algorithms can be applied.
+4. **Flexibility and Extensibility**: The disassembler is designed to be flexible and extensible, allowing for easy addition of new bytecode instructions or modifications to existing ones without significant changes to the core logic.
 
 ## Major Classes/Functions Overview
 
-### Disassembler Class
+### `Disassembler`
+- **Purpose**: Converts bytecode into human-readable assembly-like instructions.
+- **Methods**:
+  - `disassemble(const Bytecode &bc)`: Main method that takes a `Bytecode` object as input and outputs the disassembled instructions.
+  - `printInstruction(std::ostream &os, uint8_t opCode, size_t offset)`: Helper method to print individual instructions.
 
-The `Disassembler` class is the primary component responsible for translating bytecode into human-readable assembly-like instructions. It contains several member functions:
-
-- **disassemble(const Bytecode &bytecode)**: This function takes a `Bytecode` object as input and returns a string representing the disassembled instructions.
-  
-- **disassembleInstruction(Bytecode::iterator &it)**: This helper function decodes a single bytecode instruction and appends its disassembled form to the output string.
-
-### Helper Functions
-
-- **opName(Op op)**: A static function that maps an `Op` enum value to its corresponding string representation. This function is used by `Disassembler` to generate the operation names in the disassembled output.
+### `opName`
+- **Purpose**: Maps an `Op` enum value to its corresponding string representation.
+- **Usage**: Used within the `Disassembler` class to retrieve the names of bytecode instructions.
 
 ## Tradeoffs
 
-1. **Performance vs. Readability**: While the disassembled output is highly readable, decoding bytecode can introduce some performance overhead. However, this tradeoff is acceptable given the benefits for debugging and optimization.
+1. **Performance vs. Readability**: While the disassembler aims for readability, there might be a slight performance hit due to the use of a switch statement for parsing opcodes. However, this tradeoff is generally acceptable given the benefits for debugging and comprehension.
 
-2. **Complexity vs. Simplicity**: Implementing a full disassembler requires handling various edge cases and ensuring accurate translation of all bytecode instructions. This complexity adds to the development time but results in a robust tool for debugging and optimization.
+2. **Complexity vs. Maintainability**: Keeping the disassembler simple and focused on a single task enhances maintainability. Any additional complexity would need to be justified by substantial benefits.
 
-3. **Memory Usage**: Storing the disassembled output in memory consumes additional space. However, this is generally manageable and provides significant benefits for readability and debugging.
+3. **Memory Usage**: Storing the string representations of opcodes in memory increases memory usage slightly. However, this is a minor concern compared to the benefits gained from having human-readable disassembly.
 
-In conclusion, `Disassembler.cpp` plays a vital role in the Quantum Language compiler by facilitating debugging, comprehension, and optimization through the conversion of bytecode into human-readable assembly-like instructions. Its design decisions prioritize readability and debugging support while acknowledging the associated performance and complexity tradeoffs.
+In conclusion, `Disassembler.cpp` is an essential component of the Quantum Language compiler, providing developers with valuable insights into the compiled code through human-readable assembly-like instructions. Its design decisions focus on efficiency, flexibility, and readability, making it a robust solution for the backend of the compiler.
