@@ -2,61 +2,41 @@
 
 ## Overview
 
-The `Token.cpp` file plays a pivotal role in the Quantum Language compiler by parsing and converting individual lexical elements from the source code into structured token objects. These tokens serve as the building blocks for subsequent phases such as syntax analysis and code generation.
+The `Token.cpp` file is essential to the Quantum Language compiler, responsible for parsing and converting individual lexical elements from the source code into structured token objects. These tokens form the foundation for further processing stages like syntax analysis and code generation.
 
 ## Role in Compiler Pipeline
 
 ### Parsing Lexical Elements
 
-The primary function of `Token.cpp` is to tokenize the input source code. This involves breaking down the text into meaningful units called tokens, which include keywords, identifiers, literals, operators, and punctuation marks. Each token is represented by an instance of the `Token` class.
+The main function here is to parse lexical elements from the source code and convert them into `Token` objects. Each `Token` object encapsulates information about its type, value, and position in the source code (line and column numbers).
 
-### Representing Tokens
+### Key Design Decisions
 
-Each token object contains essential information such as its type, value, line number, and column position within the source code. The `Token` class provides methods to access these properties, ensuring that they can be utilized effectively throughout the compilation process.
+1. **Token Structure**: The `Token` class is designed with a simple structure that includes fields for the token's type, value, line number, and column number. This design ensures clarity and ease of use throughout the compiler.
 
-### Syntax Tree Construction
+2. **Efficient String Handling**: To handle string values efficiently, the `Token` class uses `std::string`. This choice provides flexibility and performance benefits while managing text data.
 
-Tokens extracted by `Token.cpp` are fed into the syntax tree builder. This phase constructs a hierarchical representation of the source code's structure, facilitating easier parsing and understanding during later stages of compilation.
+3. **Position Tracking**: Keeping track of the line and column numbers helps in error reporting and debugging. It allows the compiler to pinpoint where an issue occurred in the source code.
 
-## Key Design Decisions and Why
-
-1. **Encapsulation**: By encapsulating token details within the `Token` class, we ensure that each token is self-contained and easy to manage. This approach simplifies the interaction between different parts of the compiler.
-
-2. **Flexibility**: The `Token` class allows for easy extension to support new token types or modifications to existing ones. This flexibility ensures that the compiler can adapt to changes in the language specification without significant refactoring.
-
-3. **Performance**: Efficient tokenization is critical for the performance of the compiler. By using fast string processing techniques and minimizing memory allocations, `Token.cpp` aims to provide optimal performance.
-
-4. **Error Handling**: The `Token.cpp` implementation includes robust error handling mechanisms to identify and report lexical errors. This helps in diagnosing issues early in the compilation process, improving overall reliability.
+4. **Stream Conversion**: The `toString()` method converts the `Token` object into a string format using `std::ostringstream`. This makes it easier to log or display token details during development and debugging.
 
 ## Major Classes/Functions Overview
 
-### Token Class
+- **Token Class**:
+  - Represents a single lexical element from the source code.
+  - Contains attributes for token type, value, line number, and column number.
+  - Provides methods to create tokens and convert them to string representations.
 
-- **Purpose**: Represents a single lexical token with attributes like type, value, line number, and column position.
-- **Methods**:
-  - `getType()`: Returns the type of the token.
-  - `getValue()`: Returns the value associated with the token.
-  - `getLine()`: Returns the line number where the token was found.
-  - `getColumn()`: Returns the column position within the line where the token starts.
-  - `toString()`: Converts the token to a string representation for debugging purposes.
-
-### Tokenizer Function
-
-- **Purpose**: Parses the input source code and generates a sequence of token objects.
-- **Process**:
-  - Reads the input character by character.
-  - Identifies and categorizes characters into token types.
-  - Constructs token objects based on identified patterns.
-  - Handles whitespace and comments appropriately.
+- **toString() Method**:
+  - Converts a `Token` object into a human-readable string format.
+  - Uses `std::ostringstream` to format the output, including the token's position (line and column) and its value.
 
 ## Tradeoffs
 
-1. **Complexity vs. Simplicity**: While encapsulation enhances simplicity and maintainability, it may introduce additional complexity in managing token interactions across different compiler components.
+- **Memory Usage**: Using `std::string` for token values can lead to higher memory usage compared to fixed-size arrays or other data structures. However, this tradeoff is justified by the need for flexible string handling.
 
-2. **Memory Usage vs. Performance**: Efficient tokenization requires careful management of memory allocations. Overusing dynamic memory can lead to increased overhead, potentially impacting performance.
+- **Performance**: While `std::ostringstream` is convenient for formatting strings, it might introduce some performance overhead compared to manual string concatenation. However, this impact is generally minimal and outweighed by the readability and maintainability benefits.
 
-3. **Extensibility vs. Stability**: Allowing extensive customization through the `Token` class improves stability but may make future updates more challenging due to potential conflicts with existing implementations.
+- **Error Reporting**: Precise tracking of token positions enhances error reporting capabilities. This can be particularly useful in complex programs where errors may occur at various locations.
 
-4. **Error Reporting vs. User Experience**: Robust error handling is crucial for identifying issues early, but overly verbose error messages might overwhelm users. Balancing these aspects ensures a good user experience while maintaining high-quality diagnostics.
-
-By addressing these tradeoffs, the `Token.cpp` file contributes significantly to the overall efficiency and effectiveness of the Quantum Language compiler.
+In conclusion, the `Token.cpp` file is a crucial component of the Quantum Language compiler, ensuring efficient and accurate lexical analysis. Its design choices balance functionality, performance, and readability, making it a solid foundation for the rest of the compiler's operations.
