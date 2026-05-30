@@ -2,127 +2,103 @@
 
 ## Overview
 
-The `parseDictLiteral` function in the Quantum Language compiler is designed to parse dictionary literals from the source code. Dictionary literals are enclosed within curly braces `{}` and consist of key-value pairs. This function ensures that the parsed dictionary literal is correctly structured and handles various syntax cases such as shorthand properties and spread operators.
+The `parseDictLiteral` function in the Quantum Language compiler is responsible for parsing dictionary literals from the source code. Dictionary literals are defined using curly braces `{}`, containing key-value pairs. The function ensures accurate parsing of these structures, handling various syntax cases including shorthand properties and spread operators.
 
-### Parameters
+## Parameters
 
-- **None**: The function operates directly on the global state of the parser, which includes the current position (`pos`) in the token stream and the list of tokens (`tokens`). It does not take any explicit parameters.
+- **None**: The function operates directly on the global state of the parser, accessing the current token position and modifying it as necessary.
 
-### Return Value
+## Return Value
 
-- **`DictLiteral`**: The function returns an instance of `DictLiteral`, which represents the parsed dictionary literal. This object contains a vector of pairs, where each pair consists of a key and its corresponding value.
+- **`DictLiteral`**: A structure representing the parsed dictionary literal. It contains a vector of pairs, where each pair consists of an optional key and a corresponding value expression.
 
-### Edge Cases
+## Edge Cases
 
-- **Empty Dictionary**: If the parser encounters an empty dictionary literal `{}`, it will return an empty `DictLiteral`.
-- **Spread Operator**: The function supports the spread operator `{...obj, key: val}`, allowing dictionaries to be dynamically constructed from existing objects.
-- **Syntax Errors**: If the parser encounters unexpected tokens or malformed syntax, it will throw an appropriate error message indicating the issue.
+- **Empty Dictionary**: If the dictionary is empty (`{}`), the function will return an empty `DictLiteral`.
+- **Invalid Syntax**: The function checks for proper syntax, such as missing closing braces (`}`) or misplaced commas. If invalid syntax is detected, it throws an error.
+- **Spread Operator**: The function supports the spread operator (`...`) to allow merging of dictionaries. For example, `{ ...obj, key: val }`.
 
-### Interactions with Other Components
+## Interactions with Other Components
 
-- **Token Stream**: The function relies on the global token stream (`tokens`) to extract and process tokens. It uses functions like `current()` to get the current token and `consume()` to advance the token pointer.
-- **Error Handling**: The function interacts with the error handling mechanism of the compiler to report syntax errors when necessary. Functions like `expect()` and `match()` are used to validate the expected tokens.
-- **AST Construction**: The function constructs an Abstract Syntax Tree (AST) representation of the parsed dictionary literal. It creates instances of `ASTNode` and assigns them to the `dict.pairs` vector.
+- **Token Stream**: The function interacts with the token stream managed by the parser. It consumes tokens based on their type and constructs the dictionary literal accordingly.
+- **Error Handling**: Errors related to syntax issues are handled through the parser's error reporting mechanism, which may involve throwing exceptions or updating the error log.
+- **AST Construction**: The function constructs an Abstract Syntax Tree (AST) node for each key-value pair in the dictionary. These nodes are then added to the `dict.pairs` vector.
 
-### Detailed Explanation
+## Detailed Explanation
 
-The `parseDictLiteral` function begins by recording the current line number (`ln`) for error reporting purposes. It then expects the opening brace `{` token, throwing an error if it is not found.
+### Parsing Process
+
+1. **Initialization**:
+   - The function starts by recording the current line number (`ln`).
+   - It expects a left brace (`{`) at the current token position and skips any newlines before proceeding.
+
+2. **Dictionary Literal Creation**:
+   - An instance of `DictLiteral` named `dict` is created to store the parsed key-value pairs.
+
+3. **Main Loop**:
+   - The function enters a loop that continues until either a right brace (`}`) is encountered or the end of the input is reached.
+   
+4. **Handling Spread Operator**:
+   - If the current token is an identifier followed by three dots (`...`), indicating a spread operator, the function consumes the spread operator and parses the subsequent expression using `parseUnary()`. This expression is then added to the dictionary with a `nullptr` key, serving as a sentinel to indicate a spread operation.
+   - After consuming the spread operator, the function skips any newlines and checks if a comma follows. If not, it breaks out of the loop.
+
+5. **Parsing Keys**:
+   - The function attempts to parse keys for the dictionary. Keys can be:
+     - Quoted strings (`"key"`).
+     - Numbers (`42`).
+     - Bare identifiers (`key`).
+     - Type keywords (`Int`, `Float`).
+
+6. **Constructing AST Nodes**:
+   - For each valid key, the function creates an `ASTNode` containing a `StringLiteral` representation of the key.
+   - If the key is followed immediately by a colon (`:`), it is treated as a normal key-value pair.
+   - If the key is followed by a comma or a closing brace without a colon, it is considered a shorthand property, where the key name is used both as the key and the value.
+
+7. **Loop Continuation**:
+   - After processing each key-value pair, the function skips any newlines and checks if a comma follows. If so, it continues to the next pair; otherwise, it breaks out of the loop.
+
+8. **Finalization**:
+   - Once the loop completes, the function returns the constructed `DictLiteral`.
+
+### Code Breakdown
 
 ```cpp
-int ln = current().line;
-expect(TokenType::LBRACE, "Expected '{'");
-```
+int ln = current().line; // Record the current line number
+expect(TokenType::LBRACE, "Expected '{'"); // Expect a left brace
+skipNewlines(); // Skip any newlines before proceeding
+DictLiteral dict; // Create a dictionary literal to store pairs
 
-After consuming the opening brace, the function skips any newlines to ensure proper parsing of the dictionary content.
-
-```cpp
-skipNewlines();
-```
-
-A `DictLiteral` object is initialized to store the parsed key-value pairs.
-
-```cpp
-DictLiteral dict;
-```
-
-The function enters a loop that continues until either the closing brace `}` is encountered or the end of the token stream is reached.
-
-```cpp
-while (!check(TokenType::RBRACE) && !atEnd())
-```
-
-Inside the loop, the function checks for the spread operator `{...obj, key: val}`. If found, it consumes the spread operator token, parses the expression following it, and adds a special sentinel pair to the dictionary.
-
-```cpp
-if (check(TokenType::IDENTIFIER) && current().value == "...")
+while (!check(TokenType::RBRACE) && !atEnd()) // Continue until a right brace or end of input
 {
-    consume(); // eat "..."
-    auto spreadExpr = parseUnary();
-    dict.pairs.emplace_back(nullptr, std::move(spreadExpr));
-    skipNewlines();
-    if (!match(TokenType::COMMA))
-        break;
-    skipNewlines();
-    if (check(TokenType::RBRACE))
-        break;
-    continue;
-}
-```
-
-If the spread operator is not present, the function proceeds to parse the key. The key can be a quoted string, a number, a bare identifier, or a type keyword.
-
-```cpp
-// Key: accept quoted string, number, bare identifier, or type keyword
-// e.g.  "name": ...   or   firstName: ...   or   42: ...
-ASTNodePtr key;
-bool isShorthand = false;
-if (check(TokenType::IDENTIFIER) || isCTypeKeyword(current().type) || check(TokenType::TYPE_STRING))
-{
-    // Peek ahead — if next token after this is COLON, treat as bare string key
-    size_t la = pos + 1;
-    while (la < tokens.size() && tokens[la].type == TokenType::NEWLINE)
-        la++;
-
-    if (la < tokens.size() && tokens[la].type == TokenType::COLON)
+    // Handle spread operator
+    if (check(TokenType::IDENTIFIER) && current().value == "...") 
     {
-        // Bare identifier key: firstName → StringLiteral "firstName"
-        auto keyName = consume().value;
-        key = std::make_unique<ASTNode>(StringLiteral{keyName}, ln);
+        consume(); // Eat "..."
+        auto spreadExpr = parseUnary(); // Parse the spread expression
+        dict.pairs.emplace_back(nullptr, std::move(spreadExpr)); // Add to dictionary with null key
+        skipNewlines(); // Skip any newlines
+        if (!match(TokenType::COMMA)) // Check for comma
+            break; // Break if no comma found
+        skipNewlines(); // Skip any newlines
+        if (check(TokenType::RBRACE)) // Check for closing brace
+            break; // Break if closing brace found
+        continue; // Continue to next iteration
     }
-    else if (la < tokens.size() && (tokens[la].type == TokenType::COMMA || tokens[la].type == TokenType::RBRACE))
+
+    // Parse keys
+    ASTNodePtr key;
+    bool isShorthand = false;
+    if (check(TokenType::IDENTIFIER) || isCTypeKeyword(current().type) || check(TokenType::TYPE_STRING)) 
     {
-        // Shorthand property: { x } or { x, y }
-        auto keyName = consume().value;
-        key = std::make_unique<ASTNode>(StringLiteral{keyName}, ln);
-        isShorthand = true;
-    }
-    else
-        key = parseExp();
-```
+        // Peek ahead to determine if it's a bare string key
+        size_t la = pos + 1;
+        while (la < tokens.size() && tokens[la].type == TokenType::NEWLINE)
+            la++;
 
-For non-shorthand keys, the function calls `parseExp()` to parse the value associated with the key.
-
-```cpp
-if (!isShorthand)
-    dict.pairs.emplace_back(std::move(key), parseExp());
-else
-    dict.pairs.emplace_back(std::move(key), nullptr);
-```
-
-After processing a key-value pair, the function skips any newlines and checks for a comma `,`. If a comma is found, it continues to the next key-value pair; otherwise, it breaks out of the loop.
-
-```cpp
-skipNewlines();
-if (!match(TokenType::COMMA))
-    break;
-skipNewlines();
-```
-
-Finally, the function consumes the closing brace `}` token and returns the parsed `DictLiteral`.
-
-```cpp
-consume(); // eat '}'
-return dict;
-```
-
-This comprehensive approach ensures that the `parseDictLiteral` function accurately handles various dictionary
+        if (la < tokens.size() && tokens[la].type == TokenType::COLON) 
+        {
+            // Normal key-value pair
+            auto keyName = consume().value;
+            key = std::make_unique<ASTNode>(StringLiteral{keyName}, ln);
+        }
+        else if (la < tokens.size() &&
