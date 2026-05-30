@@ -2,44 +2,46 @@
 
 ## Role in Compiler Pipeline
 
-`LexerTokenize.cpp` plays a pivotal role in the Quantum Language compiler's pipeline by performing lexical analysis. This critical phase transforms the source code into a sequence of tokens, which are essential for subsequent parsing and semantic analysis stages. The main function, `Lexer::tokenize()`, orchestrates the entire tokenization process, meticulously handling various characters and patterns to ensure accurate token generation.
+`LexerTokenize.cpp` is a crucial component of the Quantum Language compiler, responsible for the initial step of lexical analysis. This stage converts the source code into a series of tokens that serve as the foundation for further parsing and semantic analysis. The primary function, `Lexer::tokenize()`, manages the overall tokenization process.
 
 ## Key Design Decisions and Why
 
-1. **Character Handling**: The lexer processes individual characters to identify different types of tokens such as keywords, identifiers, numbers, strings, and operators. Each character type has specific rules for tokenization, making it necessary to handle them distinctly.
+The lexer is designed to handle various types of characters and sequences within the source code, including identifiers, numbers, strings, and special symbols like comments and preprocessor directives. Here are some key design decisions:
 
-2. **Skip Whitespace**: To maintain clean token streams, the lexer includes functionality to skip over whitespace characters (`' '` and `'\t'`). This ensures that tokens are not affected by formatting issues in the source code.
+- **Character Classification**: Utilizes character classification functions (`std::isspace`, `std::isdigit`, etc.) to identify different types of characters efficiently.
+- **State Machine Approach**: Implements a state machine to manage transitions between different states during tokenization. This approach ensures that complex patterns can be accurately recognized without significant overhead.
+- **Preprocessor Handling**: Specifically handles preprocessor directives such as `#define`. It reads these directives and processes their arguments, expanding macros where necessary.
+- **Error Reporting**: Integrates error reporting mechanisms to handle syntax errors gracefully, providing clear feedback on issues encountered during tokenization.
 
-3. **Directive Parsing**: The lexer supports parsing preprocessor directives like `#define`. Upon encountering a `#`, it reads the following text until a newline character is found, identifying the directive type and extracting relevant information such as macro names and their values.
-
-4. **Macro Expansion**: Although not fully implemented in the provided snippet, the lexer's design anticipates future support for macro expansion. This involves recognizing macros and expanding them with their corresponding values before further processing.
-
-5. **Error Handling**: The lexer incorporates error handling mechanisms to manage unexpected characters or malformed input gracefully. By throwing exceptions or returning error tokens, the lexer ensures that any issues during the tokenization process are promptly identified and addressed.
+These decisions were made to ensure robustness, efficiency, and ease of maintenance in the lexer implementation.
 
 ## Major Classes/Functions Overview
 
-- **Lexer Class**:
-  - **Constructor**: Initializes the lexer with the source code string.
-  - **tokenize Function**: Orchestrates the tokenization process, iterating through the source code and generating tokens based on character patterns.
+### Lexer Class
 
-- **skipWhitespace Function**:
-  - Skips over consecutive whitespace characters (`' '` and `'\t'`) in the source code, updating the position accordingly.
+The `Lexer` class encapsulates the logic for reading and processing the source code. It contains member variables to track the current position (`pos`), line number (`line`), and column number (`col`). The class provides methods for advancing the position, skipping whitespace, and identifying different token types.
 
-- **readNumber Function**:
-  - Reads a numeric literal from the source code, handling both integers and floating-point numbers. It returns a `Token` object representing the number.
+#### Methods
 
-- **readString Function**:
-  - Reads a string literal from the source code, supporting both single quotes (`'`') and double quotes (`"`"). It returns a `Token` object representing the string.
+- `void Lexer::advance()`: Advances the current position in the source code by one character.
+- `char Lexer::current() const`: Returns the character at the current position.
+- `void Lexer::skipWhitespace()`: Skips over any whitespace characters at the current position.
+- `std::vector<Token> Lexer::tokenize()`: Orchestrates the tokenization process, returning a vector of `Token` objects.
 
-- **advance Function**:
-  - Advances the lexer's position in the source code by one character, updating the line and column counters as well.
+### Token Class
+
+The `Token` class represents an individual token produced by the lexer. Each token has a type (`TokenType`), a lexeme (the actual text of the token), and positional information (`startLine`, `startCol`) to help with error reporting and debugging.
+
+### Error Class
+
+The `Error` class is used to report syntax errors encountered during tokenization. It provides methods for creating and displaying error messages, ensuring that the compiler can provide useful feedback to the user.
 
 ## Tradeoffs
 
-1. **Complexity vs. Performance**: Implementing comprehensive error handling and detailed directive parsing adds complexity to the lexer but enhances its robustness and usability. Balancing these features against performance considerations is an ongoing challenge.
+While the lexer is designed to handle a wide range of cases, there are some inherent tradeoffs:
 
-2. **Flexibility vs. Simplicity**: Supporting macro expansion requires additional logic and state management, increasing the lexer's complexity. However, this flexibility allows for more powerful preprocessing capabilities, which can simplify higher-level language constructs.
+- **Complexity vs. Performance**: The use of a state machine adds complexity but improves performance by allowing efficient recognition of token patterns.
+- **Flexibility vs. Simplicity**: Supporting advanced features like macro expansion requires additional complexity compared to a simpler lexer.
+- **Memory Usage**: Storing intermediate tokens and handling large source files can lead to increased memory usage.
 
-3. **Readability vs. Efficiency**: The implementation uses straightforward loops and conditionals for readability, but this can sometimes lead to less efficient code. Optimizing for efficiency might involve using more advanced data structures or algorithms.
-
-In conclusion, `LexerTokenize.cpp` is a vital component of the Quantum Language compiler, designed to accurately tokenize source code while handling various complexities and edge cases. Its role in the pipeline is foundational, setting the stage for successful parsing and semantic analysis.
+Despite these tradeoffs, the lexer remains a vital and efficient part of the Quantum Language compiler, enabling accurate and reliable parsing of the source code.
