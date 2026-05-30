@@ -2,118 +2,124 @@
 
 ## Description
 
-The `parseVarDecl` function in the Quantum Language compiler's parser module (`src/parser/ParserStatements.cpp`) is designed to handle the parsing of variable declarations. This function supports both single and multiple variable declarations, allowing for optional type hints and initializers. The primary goal is to accurately convert the source code into an Abstract Syntax Tree (AST) that represents the structure of the program.
+The `parseVarDecl` function in the Quantum Language compiler's parser module (`src/parser/ParserStatements.cpp`) is responsible for parsing variable declarations. It handles both single and multiple variable declarations, supporting optional type hints and initialization expressions. The function ensures that the syntax of variable declarations adheres to the language rules, throwing errors if unexpected tokens are encountered.
 
-## Parameters/Return Value
+## Parameters
 
-- **Parameters**:
-  - None explicitly listed in the provided code snippet; however, it implicitly relies on global state managed by the parser, such as the current token being processed.
-  
-- **Return Value**:
-  - An `ASTNodePtr`, which is a smart pointer to an `ASTNode`. This node represents either a single or multiple variable declarations within the quantum language context.
+- **None**: The function does not accept any parameters directly. Instead, it relies on the global state managed by the parser, such as the current token being processed.
 
-## Why It Works This Way
+## Return Value
 
-The function operates by first identifying whether the declaration is constant (`const`) or not based on the preceding keyword. It then proceeds to parse the variable names and optionally their types and initializers. For multi-variable declarations, it enters a loop where each subsequent variable is parsed until a comma is encountered followed by a newline or semicolon, indicating the end of the declaration block.
-
-### Detailed Breakdown:
-
-1. **Initialization**:
-   ```cpp
-   int ln = current().line;
-   ```
-   Stores the line number of the current token to maintain accurate error reporting and AST node placement.
-
-2. **Variable Name Parsing**:
-   ```cpp
-   std::string name;
-   if (check(TokenType::IDENTIFIER))
-       name = consume().value;
-   else if (isCTypeKeyword(current().type))
-       name = consume().value;
-   else
-       throw ParseError("Expected variable name (got '" + current().value + "')", current().line, current().col);
-   ```
-   Checks if the next token is an identifier or a C-type keyword (like `int`, `float`). If so, it consumes the token and assigns its value to `name`. Otherwise, it throws a `ParseError`.
-
-3. **Type Hint Parsing**:
-   ```cpp
-   std::string typeHint;
-   if (check(TokenType::COLON))
-   {
-       consume(); // eat :
-       if (check(TokenType::IDENTIFIER) || isCTypeKeyword(current().type))
-           typeHint = consume().value;
-   }
-   ```
-   If a colon (`:`) is found after the variable name, it indicates a type hint. The function consumes the colon and checks if the next token is an identifier or a C-type keyword. If so, it consumes the token and assigns its value to `typeHint`.
-
-4. **Initializer Parsing**:
-   ```cpp
-   ASTNodePtr init;
-   if (match(TokenType::ASSIGN))
-       init = parseExpr();
-   ```
-   If an assignment operator (`=`) is found immediately after the variable name, the function parses the expression following it as the initializer for the variable.
-
-5. **Multi-Variable Declaration Handling**:
-   ```cpp
-   if (check(TokenType::COMMA))
-   {
-       auto block = std::make_unique<ASTNode>(BlockStmt{}, ln);
-       block->as<BlockStmt>().statements.push_back(
-           std::make_unique<ASTNode>(VarDecl{isConst, name, std::move(init), typeHint}, ln));
-       while (match(TokenType::COMMA))
-       {
-           skipNewlines();
-           if (atEnd() || check(TokenType::NEWLINE) || check(TokenType::SEMICOLON))
-               break;
-           std::string n2;
-           if (check(TokenType::IDENTIFIER))
-               n2 = consume().value;
-           else if (isCTypeKeyword(current().type))
-               n2 = consume().value;
-           else
-               break;
-           
-           std::string h2;
-           if (check(TokenType::COLON))
-           {
-               consume();
-               if (check(TokenType::IDENTIFIER) || isCTypeKeyword(current().type))
-                   h2 = consume().value;
-           }
-
-           ASTNodePtr init2;
-           if (match(TokenType::ASSIGN))
-               init2 = parseExpr();
-           block->as<BlockStmt>().statements.push_back(
-               std::make_unique<ASTNode>(VarDecl{isConst, n2, std::move(init2), h2}, ln));
-       }
-       while (check(TokenType::NEWLINE) || check(TokenType::SEMICOLON))
-           consume();
-   ```
-   If a comma is detected, the function enters a loop to handle multiple variables. Each iteration of the loop processes another variable, including its name, type hint, and initializer. The loop continues until a comma is followed by a newline or semicolon, signaling the end of the declaration block.
-
-6. **Final Consumption**:
-   ```cpp
-   while (check(TokenType::NEWLINE) || check(TokenType::SEMICOLON))
-       consume();
-   ```
-   Consumes any remaining newlines or semicolons to ensure proper parsing of the statement block.
+- **ASTNodePtr**: The function returns an `ASTNodePtr`, which points to an abstract syntax tree node representing the parsed variable declaration. If multiple variables are declared, it returns a `BlockStmt` containing all the individual variable declarations.
 
 ## Edge Cases
 
-- **Single Variable Declaration**: Handles cases where only one variable is declared without additional commas.
-- **Multiple Variables Declaration**: Correctly parses sequences of variable declarations separated by commas, ensuring they are grouped together in the AST.
-- **Missing Type Hint**: Allows for variable declarations without a specified type hint.
-- **Missing Initializer**: Supports variable declarations without initializers.
-- **Unexpected Token**: Throws a `ParseError` when encountering unexpected tokens during parsing.
+1. **Single Variable Declaration**:
+   - The function can handle a simple variable declaration like `let x = 5`.
+   - If the variable type is not explicitly specified, the function assumes a default type based on the context or language rules.
+
+2. **Multiple Variable Declarations**:
+   - The function supports multi-variable declarations separated by commas, such as `const W = 60, H = 24`.
+   - Each variable in the list must follow the same syntax rules as a single variable declaration.
+
+3. **Missing Initialization**:
+   - If the variable declaration does not include an initialization expression, the function sets the initialization pointer to `nullptr`.
+
+4. **Invalid Token Sequence**:
+   - The function throws a `ParseError` if the expected token sequence is not met, such as expecting a variable name but encountering a different token.
 
 ## Interactions with Other Components
 
-- **Tokenizer**: The function depends on the tokenizer to provide the sequence of tokens for parsing.
-- **Error Reporting**: Utilizes the error reporting mechanism to handle syntax errors gracefully.
-- **AST Construction**: Builds an AST by creating nodes representing variable declarations and adding them to the appropriate parent node.
+- **Tokenizer**: The function uses the tokenizer to retrieve the current token and advance through the input stream.
+- **Error Handling**: The function interacts with the error handling mechanism to report parsing errors, ensuring the compiler provides meaningful feedback to the user.
+- **Abstract Syntax Tree (AST)**: The function constructs an AST by creating nodes for each variable declaration and potentially wrapping them in a `BlockStmt` if multiple declarations are found.
 
-This comprehensive approach ensures robust parsing of variable
+### Example Usage
+
+Here’s how you might use the `parseVarDecl` function within the parser:
+
+```cpp
+void Parser::parseStatement()
+{
+    switch (current().type)
+    {
+        case TokenType::LET:
+        case TokenType::CONST:
+        {
+            bool isConst = current().type == TokenType::CONST;
+            consume(); // eat LET or CONST
+            auto varDecl = parseVarDecl(isConst);
+            addStatement(std::move(varDecl));
+            break;
+        }
+        // ... other statement types ...
+    }
+}
+
+ASTNodePtr Parser::parseVarDecl(bool isConst)
+{
+    int ln = current().line;
+    std::string name;
+    if (check(TokenType::IDENTIFIER))
+        name = consume().value;
+    else if (isCTypeKeyword(current().type))
+        name = consume().value;
+    else
+        throw ParseError("Expected variable name (got '" + current().value + "')", current().line, current().col);
+
+    std::string typeHint;
+    if (check(TokenType::COLON))
+    {
+        consume(); // eat :
+        if (check(TokenType::IDENTIFIER) || isCTypeKeyword(current().type))
+            typeHint = consume().value;
+    }
+
+    ASTNodePtr init;
+    if (match(TokenType::ASSIGN))
+        init = parseExpr();
+
+    if (check(TokenType::COMMA))
+    {
+        auto block = std::make_unique<ASTNode>(BlockStmt{}, ln);
+        block->as<BlockStmt>().statements.push_back(
+            std::make_unique<ASTNode>(VarDecl{isConst, name, std::move(init), typeHint}, ln));
+        while (match(TokenType::COMMA))
+        {
+            skipNewlines();
+            if (atEnd() || check(TokenType::NEWLINE) || check(TokenType::SEMICOLON))
+                break;
+            std::string n2;
+            if (check(TokenType::IDENTIFIER))
+                n2 = consume().value;
+            else if (isCTypeKeyword(current().type))
+                n2 = consume().value;
+            else
+                break;
+            
+            std::string h2;
+            if (check(TokenType::COLON))
+            {
+                consume();
+                if (check(TokenType::IDENTIFIER) || isCTypeKeyword(current().type))
+                    h2 = consume().value;
+            }
+
+            ASTNodePtr init2;
+            if (match(TokenType::ASSIGN))
+                init2 = parseExpr();
+            block->as<BlockStmt>().statements.push_back(
+                std::make_unique<ASTNode>(VarDecl{isConst, n2, std::move(init2), h2}, ln));
+        }
+        while (check(TokenType::NEWLINE) || check(TokenType::SEMICOLON))
+            consume();
+        return block;
+    }
+    else
+    {
+        return std::make_unique<ASTNode>(VarDecl{isConst, name, std::move(init), typeHint}, ln);
+    }
+}
+```
+
+In this example, `parseVarDecl` is called when a `LET` or `CONST` keyword is encountered, indicating the start of a variable declaration. The function then parses the variable(s), their type hint (if provided), and initialization expression (if present). If multiple variables are declared, they are wrapped into a `BlockStmt`. Finally, the parsed variable declaration(s) are added to the AST using the `addStatement` method.
