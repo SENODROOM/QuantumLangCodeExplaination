@@ -2,33 +2,51 @@
 
 ## Overview
 
-The `check` function is a crucial component of the Quantum Language compiler's type-checking phase. Its main purpose is to ensure that the source code adheres to the language's syntactic and semantic rules. The function uses a recursive approach to traverse the abstract syntax tree (AST) and perform type checking on each node.
-
-### Why It Works This Way
-
-The recursive nature of the `check` function allows it to handle nested structures within the AST efficiently. By breaking down the problem into smaller subproblems, it ensures that all parts of the code are checked comprehensively. This method also facilitates error handling at multiple levels, making it easier to pinpoint issues in complex programs.
+The `check` function is an essential part of the Quantum Language compiler's type-checking phase. It ensures that the source code complies with the language's syntactic and semantic rules. This function operates recursively to traverse the abstract syntax tree (AST) of the source code.
 
 ## Parameters
 
-- **`node`**: A pointer to the current AST node being processed. If the node is a block statement (`BlockStmt`), the function will recursively check its statements.
-- **`globalEnv`**: A reference to the global environment, which contains information about types, variables, and functions available throughout the program.
+- `node`: A pointer to the current AST node being checked.
+- `globalEnv`: A reference to the global environment containing information about types, variables, and functions defined in the program.
 
 ## Return Value
 
-The `check` function does not return any value explicitly. Instead, it performs type checking and raises errors or warnings when necessary. If an error is detected, the compilation process is halted, and an appropriate error message is displayed.
+This function does not return any value; its primary role is to enforce type safety and catch errors during the compilation process.
 
 ## Edge Cases
 
-1. **Empty Block Statement**: If the node is a block statement but contains no statements, the function should proceed without raising an error.
-2. **Null Node Pointer**: If the `node` parameter is `nullptr`, the function should handle this case gracefully, possibly indicating an unexpected condition during the traversal.
-3. **Unsupported Node Types**: If the node type is not recognized or supported by the type checker, the function should raise an error indicating that the node type is invalid.
+1. **Null Node**: If the `node` parameter is `nullptr`, the function should handle this case gracefully without causing runtime errors.
+2. **Non-Block Statement Nodes**: When encountering nodes that are not block statements (`BlockStmt`), the function calls `checkNode` to perform type checking on individual nodes.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-The `check` function interacts closely with several other components of the Quantum Language compiler:
+- **Type Checker**: The `check` function interacts directly with the type checker to validate expressions, declarations, and function calls within the AST.
+- **Global Environment**: It utilizes the `globalEnv` to look up predefined types, variables, and functions, ensuring consistency across the entire program.
+- **Recursive Traversal**: By calling itself recursively, the function can handle nested structures in the AST, such as blocks within blocks or loops containing conditional statements.
 
-1. **Symbol Table**: The global environment (`globalEnv`) acts as a symbol table, storing information about identifiers such as variables, functions, and types. The `check` function uses this information to resolve references and enforce type consistency.
-2. **Error Reporting**: When an error is encountered during type checking, the `check` function reports it using the compiler's error reporting mechanism. This helps developers understand where and why their code violates the language's rules.
-3. **Scope Management**: The function manages scopes by keeping track of the current context. For example, when entering a new block statement, the scope is updated to include the block's local variables. This ensures that type checking respects variable visibility and scoping rules.
+## Implementation Details
 
-By leveraging these interactions, the `check` function provides robust type checking capabilities, helping to catch and fix errors early in the development process.
+Here's a breakdown of how the `check` function works:
+
+```cpp
+void check(ASTNode* node, GlobalEnvironment& globalEnv) {
+    // Check if the current node is a block statement
+    if (node && node->is<BlockStmt>()) {
+        // Recursively check each statement inside the block
+        BlockStmt* block = node->as<BlockStmt>();
+        for (auto stmt : block->statements) {
+            check(stmt, globalEnv);
+        }
+    } else {
+        // Otherwise, check the current node individually
+        checkNode(node, globalEnv);
+    }
+}
+```
+
+### Key Points
+
+- **Block Statements**: If the current node is a block statement, the function iterates through each statement contained within the block and recursively calls `check` on them. This allows for comprehensive type checking of compound statements.
+- **Individual Nodes**: For all other types of nodes, the function invokes `checkNode`, which performs more granular type checking based on the specific nature of the node.
+
+By leveraging recursion and interacting with the global environment, the `check` function efficiently traverses the AST and ensures that all elements adhere to the Quantum Language's type system, thereby preventing runtime errors and improving the reliability of the compiled code.

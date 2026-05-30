@@ -2,54 +2,39 @@
 
 The `isTruthy` function in the Quantum Language compiler evaluates whether a given quantum value is considered "truthy" or "falsy." This determination is crucial for controlling the execution flow of the language through conditional statements and logical operations.
 
-## What It Does
+## What it Does
 
-The `isTruthy` function takes a quantum value as input and returns a boolean indicating whether the value is truthy (`true`) or falsy (`false`). The function uses `std::visit` to handle different types of quantum values, applying appropriate logic to determine their truthiness based on their type.
+The `isTruthy` function checks the truthiness of different types of quantum values. In many programming languages, certain values are considered "truthy," meaning they evaluate to `true` in boolean contexts, while others are considered "falsy," meaning they evaluate to `false`. The `isTruthy` function implements these rules for various types of quantum values.
 
-## Why It Works This Way
+## Why it Works This Way
 
-The current implementation ensures that each type of quantum value has a consistent and intuitive definition of truthiness:
+The function uses `std::visit` to apply a lambda function that matches the type of the quantum value stored in the `data` member variable. Each case within the lambda function defines how to determine the truthiness of a specific type:
 
-- **QuantumNil**: Always returns `false`. In many programming languages, `nil` or `None` represents an empty or null value, which is inherently falsy.
-  
-- **bool**: Directly returns the value of the boolean. A `true` value is considered truthy, while `false` is considered falsy.
-  
-- **double**: Returns `true` if the value is not equal to `0.0`, and `false` otherwise. This aligns with common behavior where non-zero numeric values are considered truthy.
-  
-- **std::string**: Returns `true` if the string is neither empty nor contains only a single null character (`'\0'`). An empty string or a string containing only a null character is considered falsy.
-  
-- **std::shared_ptr<Array>**: Returns `true` if the array pointed to by the shared pointer is not empty. An empty array is considered falsy.
-  
-- **std::shared_ptr<QuantumPointer>**: Returns `true` if the shared pointer is not null and the pointer it points to is not null. Both conditions must be met for the value to be considered truthy.
+- **QuantumNil**: Always returns `false`, as `nil` represents an empty or null value.
+- **bool**: Returns the value directly, since booleans are already truthy/falsy.
+- **double**: Returns `true` if the value is not zero (`!= 0.0`). Zero is considered falsy.
+- **std::string**: Returns `true` if the string is non-empty and not just a single null character (`'\0'`). An empty string or a string containing only a null character is considered falsy.
+- **std::shared_ptr<Array>**: Returns `true` if the array pointer is not empty (`!v->empty()`). An empty array is considered falsy.
+- **std::shared_ptr<QuantumPointer>**: Returns `true` if the quantum pointer is not null (`v`) and its target value is not null (`!v->isNull()`). A null quantum pointer or one pointing to a null value is considered falsy.
 
-For any other type of quantum value, the function defaults to returning `true`. This default behavior can be useful for future extensions or when new types are introduced without explicit handling.
+For all other types, the function defaults to returning `true`, assuming they are generally considered truthy.
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - `data`: A variant type (`std::variant`) representing the quantum value to be evaluated.
+  - None. The function operates on the `data` member variable of the class it belongs to.
 
 - **Return Value**:
-  - A boolean indicating whether the quantum value is truthy (`true`) or falsy (`false`).
+  - `bool`: A boolean indicating whether the quantum value is considered truthy.
 
 ## Edge Cases
 
-- **Empty String**: An empty string (`""`) is considered falsy because it has no content.
-  
-- **String with Null Character**: A string containing only a null character (`"\0"`) is also considered falsy due to its lack of meaningful content.
-  
-- **Zero Double**: A double value of `0.0` is considered falsy because it represents the absence of a numerical value.
-  
-- **Null Shared Pointer**: A shared pointer that is null (`nullptr`) is considered falsy because it does not point to any valid object.
+- **Empty String**: An empty string or a string containing only a null character (`'\0'`) is considered falsy.
+- **Zero Double**: A double value of zero is considered falsy.
+- **Null Array Pointer**: An array pointer that points to an empty array is considered falsy.
+- **Null Quantum Pointer**: A quantum pointer that is either null or points to a null value is considered falsy.
+- **Other Types**: All other types are considered truthy by default.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-The `isTruthy` function interacts with various components within the Quantum Language compiler:
-
-- **Variant Handling**: It utilizes `std::visit` to dispatch the evaluation logic based on the actual type of the quantum value contained within the variant.
-  
-- **Array Evaluation**: For arrays, it checks if the array is empty, which is determined by the `isEmpty()` method of the `Array` class.
-  
-- **Pointer Evaluation**: For pointers, it checks if both the shared pointer itself and the pointer it points to are non-null, utilizing methods like `isNull()` from the `QuantumPointer` class.
-
-This function is essential for ensuring that conditional statements and logical operations behave correctly across different types of quantum values, maintaining consistency and predictability in the language's execution flow.
+The `isTruthy` function interacts with the `data` member variable, which holds the quantum value being evaluated. It also indirectly interacts with other classes like `Array` and `QuantumPointer` when evaluating their respective types. This function is used extensively throughout the compiler's logic handling conditional expressions and control flow structures.

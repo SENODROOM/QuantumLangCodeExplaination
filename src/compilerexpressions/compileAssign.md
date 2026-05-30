@@ -2,105 +2,60 @@
 
 ## Overview
 
-The `compileAssign` function is responsible for compiling assignment expressions in the Quantum Language compiler. It handles various types of target expressions such as identifiers, index expressions, and member expressions. The function also supports compound assignment operators like `+=`, `-=`, `*=`, `/=`, etc.
+The `compileAssign` function is responsible for compiling assignment expressions in the Quantum Language compiler. It handles various types of target expressions such as identifiers, index expressions, and member expressions. The function also supports compound assignment operators like `+=`, `-=` etc., which perform an operation followed by an assignment.
 
-### Why It Works This Way
+## Parameters
 
-The function processes different types of target expressions to ensure that the assignment operation is correctly compiled into bytecode. For identifiers, it directly loads the variable's current value, performs the assignment or compound operation, and then stores the new value back into the variable. For index expressions, it first evaluates the index expression to determine the position within the array or tuple, then performs the assignment, and finally updates the target at that position.
+- `e`: An `AssignmentExpr` object representing the assignment expression to be compiled.
 
-## Parameters/Return Value
+## Return Value
 
-- **Parameters**:
-  - `e`: An `AssignmentExpr` object representing the assignment expression to be compiled.
-  - `line`: An integer representing the source code line number where the assignment occurs.
-
-- **Return Value**:
-  - None. The function emits bytecode instructions to perform the assignment.
+This function does not explicitly return a value. Instead, it emits quantum instructions to represent the assignment operation.
 
 ## Edge Cases
 
-1. **Compound Assignment Operators**: The function correctly handles compound assignment operators by loading the existing value, performing the specified operation, and storing the result back into the target variable.
-2. **Postfix Compound Assignment Operators**: When dealing with postfix compound assignment operators (`post+=`, `post-=`), the function ensures that the original value is not overwritten until after the operation has been performed.
-3. **Tuple Unpacking**: If the target expression is a tuple literal, the function unpacks the tuple elements by assigning each element from the right-hand side value to the corresponding tuple element on the left-hand side.
+1. **Compound Assignment**: If the assignment operator is one of the compound operators (`+=`, `-=` etc.), the function first loads the current value of the target variable, performs the specified operation with the right-hand side expression, and then stores the result back into the target variable.
+2. **Postfix Compound Assignment**: For postfix compound assignments (`post+=`, `post-=`), the function duplicates the current value, performs the operation, updates the target variable, and finally pops the duplicated value off the stack.
+3. **Tuple Unpacking**: If the target is a tuple literal and the operator is `unpack`, the function unpacks the elements of the tuple from the right-hand side expression. Each element is assigned to its corresponding position in the tuple.
+4. **Non-Identifier Targets**: The function currently only handles targets that are identifiers or index expressions. Other types of targets (like member expressions) are not supported.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Expression Compilation**: The function calls `compileExpr` to compile the right-hand side value of the assignment expression.
-- **Bytecode Emission**: The function uses `emit` to generate bytecode instructions for loading values, performing operations, and storing results. These instructions are emitted based on the type of target expression and the operator used in the assignment.
-- **Variable Management**: The function interacts with the variable management system to load and store values associated with identifiers. This ensures that the correct variables are updated during compilation.
+- **Emission of Instructions**: This function interacts with the instruction emission component of the compiler. It uses the `emit` function to generate quantum instructions based on the type of assignment and the target expression.
+- **Constant Pool Management**: When dealing with numeric constants in compound assignments, the function uses the constant pool management component to ensure that these constants are efficiently stored and retrieved.
+- **Error Handling**: Although not shown in the provided code snippet, this function likely interacts with error handling mechanisms to manage any issues related to invalid assignment operations or unsupported target types.
 
-Here is the complete implementation of the `compileAssign` function:
+## Detailed Explanation
 
-```cpp
-void compileAssign(const AssignmentExpr &e, int line) {
-    const std::string normalizedOp =
-        e.op == "post+=" ? "+=" : e.op == "post-=" ? "-="
-                                                   : e.op;
-    bool compound = (normalizedOp != "=");
+### Step-by-Step Compilation Process
 
-    static const std::unordered_map<std::string, Op> cops = {
-        {"+=", Op::ADD},
-        {"-=", Op::SUB},
-        {"*=", Op::MUL},
-        {"/=", Op::DIV},
-        {"%=", Op::MOD},
-        {"&=", Op::BIT_AND},
-        {"|=", Op::BIT_OR},
-        {"^=", Op::BIT_XOR},
-    };
+1. **Normalization of Operator**:
+   - The function normalizes the assignment operator (`e.op`) to handle both standard and postfix compound assignments. For example, `"post+="` is converted to `"+"`.
 
-    if (e.op == "unpack" && e.target->is<TupleLiteral>()) {
-        compileExpr(*e.value);
-        for (size_t i = 0; i < e.target->as<TupleLiteral>().elements.size(); ++i) {
-            auto &target = e.target->as<TupleLiteral>().elements[i];
-            if (!target->is<Identifier>())
-                continue;
-            emit(Op::DUP, 0, line);
-            emit(Op::LOAD_CONST, addConst(QuantumValue(static_cast<double>(i))), line);
-            emit(Op::GET_INDEX, 0, line);
-            emitStore(target->as<Identifier>().name, line);
-            emit(Op::POP, 0, line);
-        }
-        return;
-    }
+2. **Check for Compound Assignment**:
+   - If the normalized operator is not `"="`, the function sets the `compound` flag to `true`. This indicates that the assignment involves an operation followed by an assignment.
 
-    if (e.target->is<Identifier>()) {
-        const std::string &name = e.target->as<Identifier>().name;
-        if (e.op == "post+=" || e.op == "post-=") {
-            emitLoad(name, line);
-            emit(Op::DUP, 0, line);
-            compileExpr(*e.value);
-            emit(e.op == "post+=" ? Op::ADD : Op::SUB, 0, line);
-            emitStore(name, line);
-            emit(Op::POP, 0, line);
-            return;
-        }
-        if (compound)
-            emitLoad(name, line);
-        compileExpr(*e.value);
-        if (compound) {
-            auto it = cops.find(normalizedOp);
-            if (it != cops.end())
-                emit(it->second, 0, line);
-        }
-        emit(Op::DUP, 0, line);
-        emitStore(name, line);
-        emit(Op::POP, 0, line);
-        return;
-    }
+3. **Mapping Compound Operators to Quantum Operations**:
+   - A static unordered map (`cops`) is used to map string representations of compound operators to their corresponding quantum operations (`Op`). For instance, `"+="` maps to `Op::ADD`.
 
-    if (e.target->is<IndexExpr>()) {
-        auto &idx = e.target->as<IndexExpr>();
-        // Emit code to evaluate the index expression
-        compileExpr(*idx.index);
-        // Emit code to get the value at the index
-        compileExpr(*idx.value);
-        emit(Op::SET_INDEX, 0, line);
-        return;
-    }
+4. **Handling Tuple Unpacking**:
+   - If the operator is `"unpack"` and the target is a tuple literal (`e.target->is<TupleLiteral>()`), the function proceeds to unpack the tuple elements.
+   - It first compiles the right-hand side expression (`compileExpr(*e.value)`).
+   - Then, for each element in the tuple, it checks if the element is an identifier. If so, it duplicates the top value from the stack, pushes the index of the element onto the stack, retrieves the indexed value, assigns it to the identifier, and pops the duplicated value off the stack.
 
-    // Handle other types of target expressions if necessary
-}
-```
+5. **Handling Identifier Targets**:
+   - If the target is an identifier (`e.target->is<Identifier>()`), the function proceeds to compile the right-hand side expression.
+   - Depending on whether it's a standard assignment or a postfix compound assignment, it either loads the current value of the identifier or duplicates it.
+   - After compiling the right-hand side expression, if it's a compound assignment, it looks up the corresponding quantum operation in the `cops` map and emits it.
+   - Finally, it duplicates the result again and stores it back into the identifier before popping the duplicated value off the stack.
 
-This implementation ensures that all types of assignment expressions are handled correctly, providing flexibility and support for both simple and complex assignments within the Quantum Language compiler.
+6. **Handling Index Expressions**:
+   - If the target is an index expression (`e.target->is<IndexExpr>()`), the function would proceed to compile the index expression and the right-hand side expression, and then emit instructions to store the value at the specified index.
+
+### Why It Works This Way
+
+- **Efficiency**: By using compound assignments and emitting efficient quantum instructions, the function reduces the number of operations required to perform an assignment, thereby optimizing the generated quantum circuit.
+- **Flexibility**: The function can handle different types of targets (identifiers, tuples, etc.) and operators (`=`, `+=`, `-=` etc.), making it versatile for various assignment scenarios in the Quantum Language.
+- **Readability**: The use of clear steps and conditional logic makes the function easy to understand and maintain.
+
+In summary, the `compileAssign` function is crucial for translating high-level Quantum Language assignment expressions into low-level quantum instructions, ensuring efficient and flexible compilation while maintaining readability and maintainability.

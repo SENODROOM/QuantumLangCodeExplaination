@@ -1,95 +1,105 @@
 # ParserStatements Component of Quantum Language Compiler
 
-The `ParserStatements` component is a crucial module within the Quantum Language compiler, dedicated to parsing and interpreting different statement types in the quantum programming language. This component manages fundamental control structures like loops, conditionals, variable declarations, expressions, and more, ensuring that the code written in the quantum language is accurately parsed and executed.
+The `ParserStatements` component is a critical module within the Quantum Language compiler, responsible for parsing and interpreting various statement types in the quantum programming language. This component handles fundamental control structures such as loops, conditionals, variable declarations, expressions, and more, ensuring that the code adheres to the language's syntax and semantics.
 
 ## Overview
 
-The `ParserStatements` component consists of several functions and classes designed to handle specific types of statements:
+- **parseBodyOrStatement**: Parses either a block body or a single statement.
+- **parseVarDecl**: Parses variable declarations.
+- **parseIfStmt**: Parses conditional statements (`if`, `else`, `elif`).
+- **parseWhileStmt**: Parses loop statements (`while`).
+- **parseReturnStmt**: Parses return statements.
+- **parsePrintStmt**: Parses print statements.
+- **parseInputStmt**: Parses input statements.
+- **parseCoutStmt**: Parses output statements using `cout`.
+- **parseCinStmt**: Parses input statements using `cin`.
+- **parseImportStmt**: Parses import statements.
+- **parseExprStmt**: Parses expression statements.
+- **parseExpr**: Parses expressions within statements.
 
-- **Variable Declarations**: Functions to parse and interpret variable declarations.
-- **Control Structures**: Functions to parse and interpret conditional (`if`) and loop (`while`) statements.
-- **Function Calls**: Functions to parse and interpret function calls.
-- **Expressions**: Functions to parse and evaluate expressions.
+## Directory Structure
 
-These components work together to form a robust system for parsing and executing quantum programs.
+```
+parserstatements/
+├── include/
+│   ├── parserstatements.h
+│   └── ...
+├── src/
+│   ├── parserstatements.cpp
+│   └── ...
+└── tests/
+    ├── test_parserstatements.cpp
+    └── ...
+```
 
-## Files and Their Roles
+## How It Works
 
-### parseBodyOrStatement.cpp
-Handles the parsing of either a block of statements or a single statement.
-
-### parseVarDecl.cpp
-Manages the parsing of variable declarations.
-
-### parseIfStmt.cpp
-Processes the parsing of conditional statements (`if`).
-
-### parseWhileStmt.cpp
-Interprets the parsing of loop statements (`while`).
-
-### parseReturnStmt.cpp
-Handles the parsing of return statements.
-
-### parsePrintStmt.cpp
-Manages the parsing of print statements.
-
-### parseInputStmt.cpp
-Processes the parsing of input statements.
-
-### parseCoutStmt.cpp
-Interprets the parsing of output statements using `cout`.
-
-### parseCinStmt.cpp
-Handles the parsing of input statements using `cin`.
-
-### parseImportStmt.cpp
-Manages the parsing of import statements.
-
-### parseExprStmt.cpp
-Processes the parsing of expression statements.
-
-### parseExpr.cpp
-Interprets the parsing and evaluation of expressions.
-
-## Overall Flow
-
-1. **Lexical Analysis**: The input source code is first analyzed by the lexer to convert it into tokens.
-2. **Parsing**: The tokens are then passed to the `ParserStatements` component, which interprets them according to the rules defined in the quantum programming language.
-3. **Semantic Analysis**: After parsing, the semantic analyzer checks the validity of the parsed statements and ensures they adhere to the language's syntax and semantics.
-4. **Code Generation**: If the semantic analysis is successful, the code generator translates the parsed statements into executable code.
-
-By following this flow, the `ParserStatements` component ensures that the quantum programs are correctly interpreted and compiled.
+1. **Initialization**: The component initializes itself with necessary data structures and configurations required for parsing.
+2. **Parsing Statements**:
+   - **parseBodyOrStatement**: Determines whether to parse a block body or a single statement based on the context.
+   - **parseVarDecl**: Processes variable declarations, extracting their names and types.
+   - **parseIfStmt**: Handles conditional logic, including multiple conditions (`elif`) and an optional else block.
+   - **parseWhileStmt**: Manages loop constructs, processing the condition and the loop body.
+   - **parseReturnStmt**: Extracts the value to be returned from a function.
+   - **parsePrintStmt**: Parses print statements to determine the values to be printed.
+   - **parseInputStmt**: Handles user input, determining the variables to store the input values.
+   - **parseCoutStmt**: Processes output statements using `cout`, formatting the output as specified.
+   - **parseCinStmt**: Parses input statements using `cin`, handling the extraction of input values into variables.
+   - **parseImportStmt**: Manages the importation of modules or libraries.
+   - **parseExprStmt**: Parses statements containing expressions, evaluating them if necessary.
+   - **parseExpr**: Recursively parses expressions, handling operators, operands, and function calls.
+3. **Error Handling**: The component includes mechanisms to handle errors during parsing, providing meaningful error messages and stopping the compilation process if necessary.
+4. **Output**: After successful parsing, the component generates intermediate representation (IR) or directly translates the parsed statements into executable code.
 
 ## Dependencies
 
-- Lexer: Provides tokens for parsing.
-- Semantic Analyzer: Validates the parsed statements.
-- Code Generator: Translates valid statements into executable code.
+- **Lexer**: Provides tokens for parsing.
+- **SymbolTable**: Manages symbols and their scopes.
+- **ErrorManager**: Handles reporting and managing errors during parsing.
 
 ## Usage
 
-To use the `ParserStatements` component, include the necessary header files and call the appropriate functions with the parsed tokens from the lexer.
+To use the `ParserStatements` component, you typically integrate it into the main compiler pipeline after tokenization. Here’s a simplified example:
 
 ```cpp
 #include "parserstatements.h"
 
 int main() {
-    // Assume 'tokens' is a vector of Tokens obtained from the lexer
-    std::vector<Token> tokens;
+    // Initialize lexer and symbol table
+    Lexer lexer("input.q");
+    SymbolTable symbolTable;
 
-    // Parse the body or statement
-    Statement* stmt = parseBodyOrStatement(tokens);
+    // Create parser instance
+    ParserStatements parser(lexer, symbolTable);
 
-    // Perform further processing (e.g., semantic analysis, code generation)
+    // Parse the entire file
+    parser.parseFile();
+
+    // Output IR or generate executable code
+    // ...
 
     return 0;
 }
 ```
 
-## Contributing
+## Testing
 
-Contributions to the `ParserStatements` component are welcome! Please follow the guidelines provided in the [CONTRIBUTING](../CONTRIBUTING.md) file to ensure your changes are integrated smoothly.
+Unit tests for the `ParserStatements` component are located in the `tests/` directory. These tests ensure that individual functions correctly parse and interpret different types of statements. To run the tests, execute:
 
----
+```sh
+make test
+```
 
-This README provides an overview of the `ParserStatements` component, its role in the Quantum Language compiler, and details on the files and their functionalities. It also outlines the overall flow of the component and includes usage instructions and contribution guidelines.
+This will compile and run all the unit tests, verifying the functionality of the parser statements.
+
+## Contribution
+
+Contributions to the `ParserStatements` component are welcome! If you find bugs, have suggestions for improvements, or want to add new features, please follow these steps:
+
+1. Fork the repository.
+2. Create a new branch for your changes.
+3. Make your modifications.
+4. Write unit tests for your new functionality.
+5. Submit a pull request.
+
+By following these guidelines, you can help enhance the robustness and capabilities of the Quantum Language compiler.

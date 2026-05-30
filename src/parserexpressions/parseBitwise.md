@@ -1,35 +1,30 @@
 # `parseBitwise` Function
 
 ## Purpose
-The `parseBitwise` function is designed to parse expressions involving bitwise operations like AND (`&`), OR (`|`), and XOR (`^`). It leverages an existing parser infrastructure for equality expressions and extends it to handle these additional bitwise operators.
+The `parseBitwise` function is designed to parse expressions that involve bitwise operations such as AND (`&`), OR (`|`), and XOR (`^`). This function builds upon an existing parser infrastructure for equality expressions, extending its capabilities to include handling of bitwise operators.
 
 ## Parameters/Return Value
-- **Parameters**: None explicitly listed in the provided code snippet.
-- **Return Value**: A unique pointer to an `ASTNode` representing the parsed bitwise expression.
+- **Parameters**: None explicitly listed in the provided code snippet; however, it relies on global variables or functions within the same scope to access the current token and perform checks and consumption.
+- **Return Value**: The function returns a unique pointer to an ASTNode representing the parsed expression. This node can be either a simple equality expression or a binary expression combining equality expressions with bitwise operators.
 
 ## How It Works
-1. **Initial Parsing**: The function starts by calling `parseEquality()`, which parses the initial part of the expression up to the first equality operator (`==` or `!=`). This result is stored in the variable `left`.
-
-2. **Loop for Bitwise Operations**: The function then enters a loop that continues as long as the next token is one of the bitwise operators (`TokenType::BIT_AND`, `TokenType::BIT_OR`, or `TokenType::BIT_XOR`).
-
-3. **Consuming Operator**: Inside the loop, the function consumes the current bitwise operator token using `consume()` and retrieves its value (e.g., `"&"`, `"|"`, `"^"`).
-
-4. **Recursive Parsing**: The function recursively calls `parseEquality()` again to parse the right-hand side of the bitwise operation. This result is stored in the variable `right`.
-
-5. **Building AST Node**: After parsing both sides, the function creates a new `ASTNode` containing a `BinaryExpr` object. This `BinaryExpr` object holds the operator value and pointers to the left and right sub-expressions. The line number of the current token is also passed to the `ASTNode` constructor.
-
-6. **Updating Left Expression**: The newly created `ASTNode` becomes the new `left` expression, and the process repeats with the updated `left` until there are no more bitwise operators in the sequence.
-
-7. **Returning Final Expression**: Once the loop ends, the function returns the final `left` expression, which now represents the entire bitwise expression tree.
+1. **Initialization**: The function starts by parsing the left-hand side of the bitwise expression using the `parseEquality()` function. This function call retrieves the first operand of the bitwise operation.
+2. **Loop Through Bitwise Operators**: The function then enters a loop that continues as long as the next token is one of the bitwise operators (`TokenType::BIT_AND`, `TokenType::BIT_OR`, `TokenType::BIT_XOR`). Inside the loop:
+   - **Line Number**: The line number of the current token is captured and stored in the variable `ln`.
+   - **Operator Consumption**: The current token (which is a bitwise operator) is consumed using the `consume()` function, and its value (e.g., `"&"`) is retrieved and stored in the variable `op`.
+   - **Right Hand Side Parsing**: Another call to `parseEquality()` is made to parse the right-hand side of the bitwise expression, retrieving the second operand.
+   - **Binary Expression Construction**: A new `BinaryExpr` object is constructed with the operator `op`, the previously parsed left-hand side (`left`), and the newly parsed right-hand side (`right`). This new binary expression becomes the new left-hand side for the next iteration of the loop.
+3. **Loop Exit**: Once there are no more bitwise operators following the current expression, the loop exits, and the final parsed expression (now stored in `left`) is returned.
 
 ## Edge Cases
-- **No Bitwise Operators**: If the input expression contains no bitwise operators after the initial call to `parseEquality()`, the function will simply return the result of `parseEquality()`.
-- **Nested Expressions**: The function can handle nested bitwise expressions due to its recursive nature. For example, `a & b | c ^ d` would be correctly parsed as `(a & (b | (c ^ d)))`.
-- **Invalid Tokens**: If the next token is not a valid bitwise operator, the loop condition will fail, and the function will return the initial parsed expression without any modifications.
+- **No Bitwise Operations**: If the input expression does not contain any bitwise operators, the function will simply return the result of `parseEquality()`, which could be a single equality expression or a combination of equality expressions without any modifications.
+- **Nested Bitwise Expressions**: The function handles nested bitwise expressions correctly by recursively calling itself. For example, the expression `(a & b) | c` would be parsed as follows:
+  - First, `(a & b)` is parsed as a binary expression.
+  - Then, `| c` is parsed as another binary expression combining the previous result with `c`.
 
-## Interactions with Other Components
-- **Parser Infrastructure**: The `parseBitwise` function relies on the existing parser infrastructure, particularly the `parseEquality()` function, to handle the base case of equality expressions.
-- **Token Stream**: The function uses the global token stream (`current()`, `consume()`) to read and consume tokens. These tokens represent the different parts of the expression being parsed.
-- **AST Construction**: The function constructs an Abstract Syntax Tree (AST) using `std::make_unique<ASTNode>` and `BinaryExpr`. This AST represents the hierarchical structure of the bitwise expression, making it easier to evaluate and manipulate programmatically.
+## Interactions With Other Components
+- **Parser Infrastructure**: The `parseBitwise` function interacts with the parser infrastructure by leveraging the `parseEquality()` function. This means that any changes or enhancements made to the `parseEquality` function will also affect how `parseBitwise` parses expressions.
+- **Token Stream**: The function uses the global token stream to check and consume tokens. This interaction ensures that the parser processes tokens in sequence according to their appearance in the source code.
+- **Error Handling**: While not shown in the provided code snippet, the function likely integrates with the error handling mechanisms of the parser. If a syntax error occurs during the parsing of a bitwise expression, appropriate error messages should be generated and propagated up the call stack.
 
-Overall, the `parseBitwise` function provides a robust mechanism for parsing complex bitwise expressions within the Quantum Language compiler, ensuring that the resulting AST accurately reflects the intended computation.
+In summary, the `parseBitwise` function efficiently extends the parser's capabilities to handle bitwise operations, building upon an existing foundation for equality expressions. Its design allows for easy integration with other parts of the parser and robust handling of various edge cases.

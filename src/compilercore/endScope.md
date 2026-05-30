@@ -1,29 +1,49 @@
 # `endScope` Function
 
 ## Purpose
-The `endScope` function is crucial for managing the end of a scope within the Quantum Language compiler. It primarily decrements the scope depth and handles the cleanup of local variables that have fallen out of scope. This ensures that resources are properly released and upvalues are closed when necessary.
+The `endScope` function is essential for managing the termination of a scope within the Quantum Language compiler. Its primary role is to decrement the scope depth and handle the cleanup of local variables that have become inaccessible due to exiting their scope. This process ensures that resources associated with these local variables are properly released, preventing memory leaks and maintaining the integrity of the program's state.
 
 ## Parameters/Return Value
 - **Parameters**: None
-- **Return Value**: Void
+- **Return Value**: None
 
 ## How It Works
-1. **Decrement Scope Depth**: The function first decrements the `scopeDepth` member variable of the current compilation context (`current_`). This step indicates that one level of scope has ended.
+1. **Decrement Scope Depth**:
+   ```cpp
+   current_->scopeDepth--;
+   ```
+   The function first decreases the `scopeDepth` counter in the current compilation context (`current_`). This indicates that one level of scope has been exited.
 
 2. **Cleanup Local Variables**:
-   - A `while` loop checks if there are any local variables in the `locals` stack that belong to the now-ended scope.
-   - For each local variable, it determines whether the variable is captured or not using the `isCaptured` flag.
-     - If the variable is captured, it emits an `Op::CLOSE_UPVALUE` operation. Upvalues are special references to variables in outer scopes that are used in closures. Closing an upvalue means that the reference is no longer needed and can be safely removed.
-     - If the variable is not captured, it emits an `Op::POP` operation. This operation removes the variable from the stack, freeing up its memory.
-   - After handling the variable, it pops the variable from the `locals` stack.
+   ```cpp
+   while (!current_->locals.empty() &&
+          current_->locals.back().depth > current_->scopeDepth)
+   {
+       if (current_->locals.back().isCaptured)
+           emit(Op::CLOSE_UPVALUE, 0, line);
+       else
+           emit(Op::POP, 0, line);
+       current_->locals.pop_back();
+   }
+   ```
+   The function then enters a loop to clean up any local variables that have fallen out of scope. These variables are stored in the `locals` vector of the current compilation context.
 
-3. **Edge Cases**:
-   - **No Locals**: If there are no local variables in the `locals` stack, the function simply returns without doing anything.
-   - **Nested Scopes**: When dealing with nested scopes, the function only cleans up variables that belong to the immediately ended scope. Variables in outer scopes remain intact until their respective scopes end.
+   - If the variable at the back of the `locals` vector (`current_->locals.back()`) was captured (i.e., used outside its original scope), the function emits an `Op::CLOSE_UPVALUE` operation. This operation closes over the upvalue, ensuring that it remains accessible even after the scope has ended.
+   
+   - If the variable was not captured, the function emits an `Op::POP` operation. This operation removes the variable from the stack, effectively freeing up its resources.
+   
+   - After emitting the appropriate operation, the variable is removed from the `locals` vector using `pop_back()`.
 
-## Interactions with Other Components
-- **Compilation Context (`current_`)**: The function operates on the `current_` compilation context, which holds information about the current state of the compilation process, including the scope depth and the list of local variables.
-- **Emitting Operations**: The function uses the `emit` method to generate bytecode operations. These operations include `Op::CLOSE_UPVALUE` and `Op::POP`, which are responsible for closing upvalues and popping variables from the stack, respectively.
-- **Local Variable Management**: The function manages the `locals` stack, which stores information about local variables. Each local variable includes its depth and whether it is captured.
+## Edge Cases
+- **Empty Locals Vector**: If the `locals` vector is empty when `endScope` is called, the function will simply return without performing any operations. This case should not occur during normal execution but can be handled gracefully to avoid errors.
+  
+- **Scope Depth Mismatch**: If there is a mismatch between the expected scope depth and the actual depth of the `locals` vector, the function may behave unpredictably. However, since the scope depth is always decremented before attempting to clean up variables, this scenario is unlikely under normal circumstances.
 
-By following these steps, the `endScope` function ensures that the Quantum Language compiler correctly handles the end of a scope, releasing resources and maintaining the integrity of the compiled code.
+## Interactions With Other Components
+- **Compilation Context (`current_`)**: The `endScope` function operates on the current compilation context, which contains information about the current scope depth and the list of local variables. Changes made to this context affect the overall state of the compilation process.
+
+- **Emission of Operations**: The function interacts with the emission mechanism of the compiler by calling `emit`, which adds new instructions to the bytecode being generated. These operations include `Op::CLOSE_UPVALUE` and `Op::POP`, which are critical for proper resource management and code generation.
+
+- **Error Handling**: While not explicitly shown in the provided code snippet, the `endScope` function likely plays a role in error handling by ensuring that all resources are properly cleaned up even if an error occurs during the compilation process.
+
+In summary, the `endScope` function is vital for managing the end of a scope in the Quantum Language compiler. By decrementing the scope depth and cleaning up local variables, it helps maintain the integrity of the program's state and prevents potential issues such as memory leaks.

@@ -2,42 +2,45 @@
 
 ## Purpose
 
-The `parseArrowFunction` method is responsible for parsing arrow functions within the Quantum Language compiler. Arrow functions provide a concise syntax for defining anonymous functions, commonly used for tasks like creating callbacks or simple transformations.
+The `parseArrowFunction` method is designed to handle the parsing of arrow functions within the Quantum Language compiler. Arrow functions offer a more concise syntax compared to traditional function declarations, making them ideal for quick and simple operations such as creating callbacks or performing basic transformations.
 
-## Parameters
+## Parameters/Return Value
 
-- **params**: A vector of `Parameter` objects representing the parameters of the arrow function being parsed.
-- **ln**: An integer indicating the line number where the arrow function begins.
+- **Parameters**: 
+  - `params`: A vector containing the parsed parameters of the arrow function.
+  - `ln`: The line number where the arrow function starts.
 
-## Return Value
-
-The method returns a unique pointer to an `ASTNode` object, encapsulating the parsed arrow function. The returned node contains a `LambdaExpr` object, which holds the parameters and the body of the function.
+- **Return Value**:
+  - Returns a unique pointer to an `ASTNode`, which represents the abstract syntax tree node corresponding to the parsed arrow function.
 
 ## How It Works
 
 1. **Token Matching**:
-   - The method first checks if the current token is either `FAT_ARROW` (`=>`) or `ARROW` (`->`). If neither token is found, it throws a `ParseError`, indicating that an expected token was not encountered.
+   - The method first checks if the next token matches either `TokenType::FAT_ARROW` (i.e., `=>`) or `TokenType::ARROW` (i.e., `->`). If neither token is found, it throws a `ParseError` indicating that the expected tokens were not encountered at the current position.
 
 2. **Skipping Newlines**:
-   - After matching the fat arrow or regular arrow token, the method calls `skipNewlines()` to ensure that any newlines following the token are skipped over.
+   - After matching the fat or thin arrow, the method skips any newline characters (`skipNewlines()`) to ensure proper parsing of the function's body.
 
 3. **Parsing Function Body**:
-   - The method then checks if the next token is either `LBRACE` (`{`) or `INDENT`. This indicates whether the function body consists of multiple statements enclosed in curly braces or a single statement.
-     - If the body is a block, it calls `parseBlock()` to parse the block of statements and constructs a `LambdaExpr` object with these parameters and the parsed block.
-     - If the body is a single expression, it parses the expression using `parseExpr()`. To make it compatible with the lambda syntax, it wraps the expression in an implicit return statement (`ReturnStmt`). This wrapped statement is then placed inside a block (`BlockStmt`). Finally, it constructs a `LambdaExpr` object with these parameters and the implicit return block.
+   - The method then determines whether the function body is a block or a single expression.
+     - If the next token is either `{` (indicating a block) or `INDENT` (indicating an indented block), it calls `parseBlock()` to parse the entire block of statements as the body of the arrow function.
+     - If the next token is not a block delimiter, it assumes the body is a single expression. In this case, it parses the expression using `parseExpr()`.
 
-4. **Returning the ASTNode**:
-   - Regardless of whether the body was a block or a single expression, the method creates an `ASTNode` containing the constructed `LambdaExpr` and returns it.
+4. **Creating ASTNode**:
+   - Regardless of whether the body is a block or a single expression, the method constructs a `LambdaExpr` object. This object contains the parsed parameters and the function body.
+   - If the body was a single expression, it wraps the expression in a `ReturnStmt` to create an implicit return statement. Then, it creates a `BlockStmt` containing just this return statement.
+   - Finally, it constructs an `ASTNode` representing the lambda expression and returns it.
 
 ## Edge Cases
 
-- **Missing Fat Arrow or Regular Arrow Token**: If the parser encounters a token sequence that does not start with `=>` or `->`, it will throw a `ParseError`.
-- **Empty Function Body**: While the method does not explicitly handle empty function bodies, the logic for parsing blocks or expressions ensures that the absence of content results in appropriate handling (e.g., an empty block or an expression resulting in `nullptr`).
+- **Empty Arrow Function**: If there is no body after the arrow symbol, the parser will throw an error because it expects either a block or an expression.
+- **Single Parameter Without Parentheses**: While not strictly an arrow function feature, the parser should handle cases where a single parameter is provided without parentheses, e.g., `(x) => x + 1`. However, in the given code snippet, it seems the parser expects parameters to always be enclosed in parentheses.
+- **Implicit Return**: When a single expression is used as the body, the parser automatically wraps it in a return statement, which might lead to unexpected behavior if the user intends to perform multiple actions within the function.
 
 ## Interactions with Other Components
 
-- **Tokenizer**: The method relies on the tokenizer to identify and return tokens such as `FAT_ARROW`, `ARROW`, `LBRACE`, and `INDENT`.
-- **Expression Parser**: For single-expression bodies, the method utilizes the `parseExpr()` function to parse the expression into an AST node.
-- **Block Parser**: When dealing with block bodies, the method invokes `parseBlock()` to parse the series of statements within the curly braces.
+- **Tokenizer**: The `parseArrowFunction` method relies on the tokenizer to identify the correct tokens (e.g., `=>`, `{`, `INDENT`, etc.) during parsing.
+- **Expression Parser**: For single-expression bodies, the method uses the `parseExpr` function to parse the expression into an ASTNode.
+- **Block Parser**: For block bodies, the method utilizes the `parseBlock` function to parse the entire block of statements.
 
-This method plays a crucial role in interpreting the quantum language's syntax for arrow functions, ensuring they are correctly translated into their corresponding abstract syntax tree nodes.
+This method plays a crucial role in the Quantum Language compiler by providing a streamlined way to define anonymous functions, enhancing readability and conciseness in the codebase.

@@ -1,32 +1,37 @@
 # `compileArrow` Function
 
 ## Purpose
-The `compileArrow` function compiles arrow expressions in the Quantum Language compiler. Arrow expressions enable accessing members of an object using the arrow operator (`->`). This function ensures that the member access operation is correctly compiled and executed.
+The `compileArrow` function compiles arrow expressions in the Quantum Language compiler. Arrow expressions allow accessing members of an object using the arrow operator (`->`). This function ensures that the member access operation is correctly compiled and executed.
 
 ## Parameters
-- `e`: A reference to an `Expression` object representing the arrow expression to be compiled. The `Expression` object contains information about the object being accessed and the member to be retrieved.
+- `e`: An instance of the `ArrowExpression` class representing the arrow expression to be compiled.
 
 ## Return Value
-This function does not explicitly return a value. Instead, it performs operations on the compilation stack to generate machine code or intermediate representation that represents the arrow expression.
+This function does not explicitly return any value. Instead, it performs operations to compile the arrow expression.
 
-## How It Works
-1. **Compile Object Expression**: 
-   - The function first calls `compileExpr(*e.object)` to compile the expression that evaluates to the object whose member needs to be accessed. This step prepares the object's address on the compilation stack.
+## Detailed Explanation
+### Steps Taken
+1. **Compile Object Expression**: The first step involves compiling the expression on the left-hand side of the arrow (`e.object`). This is done by calling `compileExpr(*e.object)`, which recursively processes the sub-expression until it is fully compiled into machine code or bytecode.
 
-2. **Dereference Object**:
-   - After compiling the object expression, the function emits an `Op::DEREF` instruction. This instruction dereferences the top element of the stack, effectively converting the pointer to the actual object.
+2. **Emit Dereference Operation**: After compiling the object expression, the function emits an `Op::DEREF` instruction. This operation dereferences the pointer obtained from the compiled object expression, ensuring that subsequent member accesses operate on the actual object rather than the pointer itself.
 
-3. **Get Member**:
-   - Finally, the function emits an `Op::GET_MEMBER` instruction. This instruction takes the name of the member as an argument (obtained using `addStr(e.member)`) and retrieves the value of that member from the object. The result is pushed onto the stack.
+3. **Emit Get Member Operation**: Finally, the function emits an `Op::GET_MEMBER` instruction. This instruction takes the name of the member to be accessed as a parameter (`addStr(e.member)`). It retrieves the member from the dereferenced object and prepares it for further processing.
 
-## Edge Cases
-- **Null Pointers**: If the object being accessed is a null pointer, the `Op::DEREF` instruction will likely cause a runtime error or exception, depending on the implementation.
-- **Invalid Members**: Accessing a non-existent member of an object can lead to undefined behavior or runtime errors. The `Op::GET_MEMBER` instruction assumes that the member exists; if it doesn't, the behavior is unpredictable.
-- **Performance Considerations**: Dereferencing and member access operations can be costly in terms of performance, especially if they involve complex data structures or large objects. Optimizing these operations is crucial for maintaining good performance in the compiler.
+### Why It Works This Way
+- **Dereferencing**: By emitting an `Op::DEREF` instruction before accessing the member, the function ensures that the pointer returned by the object expression is properly dereferenced. This is crucial because the arrow operator (`->`) is used to access members of objects through pointers.
+  
+- **Member Access**: Emitting an `Op::GET_MEMBER` instruction allows the compiler to handle the actual retrieval of the member from the object. This instruction is responsible for navigating the memory layout of the object to find the specified member.
 
-## Interactions With Other Components
-- **Compilation Stack**: The `compileArrow` function interacts with the compilation stack to manage memory and operands. It pushes the object's address onto the stack, dereferences it, and then retrieves the member value.
-- **Instruction Emitter**: The function uses the `emit` method to generate instructions for the target machine or intermediate representation. These instructions include `Op::DEREF` and `Op::GET_MEMBER`, which are essential for handling arrow expressions.
-- **Symbol Table**: While not directly shown in the provided code snippet, the `compileArrow` function likely relies on the symbol table to resolve the names of the objects and their members. This helps ensure that the correct addresses and values are accessed during compilation.
+### Edge Cases
+- **Null Pointers**: If the object expression evaluates to a null pointer, attempting to dereference it would result in undefined behavior. However, since the Quantum Language compiler likely includes checks for null pointers, this scenario should be handled gracefully without causing runtime errors.
+  
+- **Non-existent Members**: If the member being accessed does not exist within the object, the `Op::GET_MEMBER` instruction might throw an error or produce unexpected results. The Quantum Language compiler should include robust error handling mechanisms to manage such cases.
 
-In summary, the `compileArrow` function is a critical component of the Quantum Language compiler, responsible for correctly compiling and executing arrow expressions. By interacting with the compilation stack and emitting appropriate instructions, it ensures that member access operations are performed efficiently and safely.
+### Interactions With Other Components
+- **Expression Compiler**: The `compileArrow` function interacts with the `compileExpr` function to compile the sub-expression representing the object. This interaction ensures that the object's state is correctly evaluated before member access.
+
+- **Instruction Emitter**: The function uses the `emit` method to generate instructions in the target machine code or bytecode format. This method is essential for translating high-level language constructs into executable form.
+
+- **Symbol Table**: The `addStr(e.member)` call suggests that the function uses a symbol table to resolve member names. This interaction helps in mapping the abstract syntax tree (AST) member names to their corresponding machine representations.
+
+By following these steps, the `compileArrow` function effectively handles the compilation of arrow expressions, ensuring that member access operations are performed safely and efficiently within the Quantum Language compiler.

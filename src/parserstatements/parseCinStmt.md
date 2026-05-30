@@ -7,33 +7,37 @@ The `parseCinStmt` function is designed to handle input statements in the Quantu
 - None
 
 ## Return Value
-- Returns a unique pointer to an `ASTNode` representing the parsed input statement. If the statement involves calling methods like `cin.ignore()` or `cin.get(...)`, it returns a `BlockStmt` node containing no operations.
+- Returns a unique pointer to an `ASTNode` representing the parsed input statement. If the statement involves `cin.ignore()`, `cin.get(...)`, `cin.getline(...)`, or similar methods, it returns a `BlockStmt` node containing no operations (effectively treating these as no-ops).
+
+## Edge Cases
+- The function handles various forms of input expressions, including those involving arrays (`arr[i]`) and pointers (`*(ptr+i)`).
+- It correctly identifies and parses nested expressions within parentheses.
+- The function gracefully handles cases where there might be multiple consecutive input operators (`cin >> var1 >> var2;`), parsing each one individually.
+
+## Interactions with Other Components
+- **Tokenizer**: The function relies on the tokenizer to identify tokens such as `cin`, `>>`, `*`, `(`, `)`, `[`, `]`, `&`, and identifiers like `var`, `arr`, and `ptr`.
+- **Expression Parser**: For handling expressions within parentheses, the function calls `parseExpr()` which is responsible for parsing arithmetic and logical expressions.
+- **Error Handling**: The function uses `expect()` to ensure that certain tokens are present at expected positions, providing clear error messages if they are not found.
 
 ## How It Works
-1. **Initialization**: The function initializes the line number (`ln`) where the current token is located using `current().line`.
+The function operates under a strategy that distinguishes between simple postfix expressions (`cin >> var`) and more complex expressions involving dereferences (`cin >> *(ptr+i)`). Here’s how it breaks down:
 
-2. **Handling Methods**: 
-   - If the next token is a dot (`.`), indicating a method call on `cin`, the function consumes the dot and checks if the following token is an identifier (e.g., `ignore`, `get`, `getline`). If so, it consumes the identifier.
-   - It then checks if there is an argument list following the method name. If an argument list is found, it consumes all tokens within the parentheses until it reaches the closing parenthesis. This strategy treats methods like `cin.ignore()`, `cin.get(...)`, and `cin.getline(...)` as no-operations since they do not assign values to variables.
-   - After handling the method call and its arguments, the function skips any newlines or semicolons that might follow, returning a `BlockStmt` node.
+1. **Initial Token Check**:
+   - The function first checks if the current token is a dot (`.`), indicating a method call on `cin`. If so, it treats the entire statement as a no-op (ignoring common I/O methods like `cin.ignore()`, `cin.get(...)`, etc.) and returns a `BlockStmt`.
 
-3. **Parsing Input Statements**:
-   - If the next token is not a dot, the function enters a loop to parse multiple input statements separated by `>>`.
-   - Inside the loop, it first skips any newlines using `skipNewlines()`.
-   - It then checks if the next token is the `>>` operator. If not, it breaks out of the loop.
-   - Once the `>>` operator is encountered, the function consumes it and strips any optional `&` character that might precede the variable being assigned.
-   - Depending on whether the next token is a star (`*`), the function either parses a dereferenced expression or a simple postfix expression.
-     - If a star is found, it indicates a dereferenced expression. The function consumes the star, checks for an opening parenthesis, and then calls `parseExpr()` to safely parse the expression inside the parentheses. After parsing the inner expression, it expects a closing parenthesis and wraps the result in a `DerefExpr` node.
-     - If no star is found, it simply parses a postfix expression using `parsePostfixExpr()`.
+2. **Parsing Input Statements**:
+   - If the current token is not a dot, the function enters a loop to parse individual input statements.
+   - Inside the loop, it skips any newlines using `skipNewlines()` to ensure continuous parsing.
+   - It consumes the `>>` token, stripping any optional `&` character that precedes it.
 
-4. **Edge Cases**:
-   - The function handles multiple input statements separated by `>>`.
-   - It correctly identifies and parses expressions involving pointers and arrays.
-   - It treats methods like `cin.ignore()`, `cin.get(...)`, and `cin.getline(...)` as no-operations.
+3. **Handling Dereferences**:
+   - If the next token is a star (`*`), indicating a dereference operation, the function consumes the star and then checks if the following token is a left parenthesis (`(`). If so, it calls `parseExpr()` to safely parse the enclosed expression, ensuring balanced parentheses.
+   - After parsing the inner expression, it expects a right parenthesis (`)`), wrapping the result in a `DerefExpr` to represent the dereference operation.
 
-5. **Interactions with Other Components**:
-   - The function interacts with the lexer to consume tokens and determine their type.
-   - It uses helper functions like `check()`, `consume()`, `expect()`, and `skipNewlines()` to manage token consumption and error checking.
-   - The parsed `ASTNode` can be used by other parts of the compiler to generate executable code or perform semantic analysis.
+4. **Postfix Expressions**:
+   - If the next token is not a star, the function assumes a simple postfix expression (`cin >> var`). It continues parsing until a newline or semicolon is encountered, consuming them as well.
 
-This function is crucial for accurately parsing input statements in the Quantum Language, ensuring that the `>>` operator is interpreted correctly as part of the input syntax rather than a bitwise shift operation.
+5. **Constructing the AST Node**:
+   - Once all input statements are parsed, the function constructs an `ASTNode` using the collected elements. If the statement involved `cin.ignore()`, `cin.get(...)`, etc., it returns a `BlockStmt` node. Otherwise, it returns a `BlockStmt` containing the parsed input expressions.
+
+This approach ensures that the parser can accurately handle different types of input statements in the Quantum Language, maintaining correct semantics and avoiding potential errors related to operator precedence and method invocation.

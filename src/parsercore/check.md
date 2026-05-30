@@ -1,43 +1,32 @@
 # `check` Function
 
 ## Purpose
-The `check` function is an essential utility within the Quantum Language compiler's parsing process. It validates whether the current token in the parser's token stream matches a specified token type. This verification ensures that the expected syntax is encountered during parsing, preventing errors and allowing for more accurate compilation.
+The `check` function is an essential utility within the Quantum Language compiler's parsing process. It validates whether the current token in the parser's token stream matches a specified token type. This verification ensures that the expected syntax is encountered during the compilation of quantum programs.
 
 ## Parameters
-- `t`: The token type to be checked against the current token in the parser's token stream. This parameter is of type `TokenType`.
+- `t`: An enumeration representing the token type to be checked against the current token in the parser's token stream.
 
 ## Return Value
-The function returns a boolean value:
-- `true` if the current token's type matches the specified token type (`t`).
-- `false` otherwise.
+- Returns `true` if the current token's type matches the specified token type (`t`).
+- Returns `false` if the current token's type does not match the specified token type (`t`).
 
 ## Edge Cases
-1. **Empty Token Stream**: If the parser's token stream is empty or has not been initialized, calling `check(t)` will result in undefined behavior because there is no current token to compare.
-2. **Token Type Mismatch**: If the current token's type does not match the specified token type (`t`), the function correctly returns `false`.
-3. **End of File (EOF)**: When the end of the file is reached, the token stream might contain a special EOF token. Calling `check(t)` with any token type except EOF should return `false`, indicating the unexpected end of input.
+1. **Empty Token Stream**: If the parser's token stream is empty and `pos` is 0, calling `check(t)` will result in undefined behavior because `tokens[pos]` will access an invalid memory location. However, in practice, the parser should handle such cases gracefully before reaching the `check` function.
+2. **Invalid Position**: If `pos` is out of bounds (i.e., less than 0 or greater than or equal to the size of the token stream), accessing `tokens[pos]` will also lead to undefined behavior. The parser should ensure that `pos` remains within valid range throughout its operation.
+3. **Token Type Mismatch**: When the current token's type does not match the specified token type (`t`), the function returns `false`. This is the intended behavior, as it allows the parser to continue processing subsequent tokens or report a syntax error.
 
 ## Interactions with Other Components
-The `check` function interacts closely with the parser's internal state, specifically with the `tokens` array and the `pos` variable. Here’s how it fits into the broader context:
+- **Token Stream**: The `check` function interacts directly with the token stream managed by the parser. It accesses the current token at position `pos` and compares its type with the specified token type (`t`). The token stream is typically populated by the lexer, which scans the input source code and generates tokens based on the language grammar.
+- **Parsing Logic**: The `check` function is used extensively throughout the parsing logic of the Quantum Language compiler. It helps in validating the sequence of tokens according to the language's syntax rules. For example, when parsing a quantum gate declaration, the parser might use `check(QT_GATE)` to ensure that the next token is indeed a gate keyword before proceeding with further parsing.
+- **Error Handling**: In scenarios where the `check` function returns `false`, indicating a mismatch between the expected and actual token types, the parser can trigger appropriate error handling mechanisms. This might involve reporting a syntax error, rolling back to a previous state, or attempting alternative parsing strategies.
 
-- **Tokenization**: Before the `check` function can be used, the source code must be tokenized into individual tokens. These tokens are stored in the `tokens` array.
-  
-- **Position Tracking**: The `pos` variable keeps track of the current position within the `tokens` array. The `check` function uses this position to access the current token for comparison.
-
-- **Parsing Logic**: The `check` function is typically invoked at various points within the parsing logic to verify the correct sequence of tokens. For example, before expecting a keyword like "qubit", the parser would call `check(TokenType::KeywordQubit)`. If the current token does not match, the parser may raise an error or attempt to recover gracefully.
-
-Here is a simplified example of how `check` might be used within a parsing method:
-
+## Implementation Details
+The implementation of the `check` function is straightforward and efficient:
 ```cpp
-bool ParserCore::parseStatement() {
-    // Check if the current token is 'qubit'
-    if (!check(TokenType::KeywordQubit)) {
-        // Raise an error or handle the unexpected token
-        throw std::runtime_error("Expected 'qubit' keyword but found something else.");
-    }
-
-    // Proceed with parsing the statement assuming 'qubit' was found
-    // ...
+bool ParserCore::check(TokenType t) {
+    return tokens[pos].type == t;
 }
 ```
+This function simply checks if the type of the token at the current position (`pos`) in the token stream matches the specified token type (`t`). If they match, it returns `true`; otherwise, it returns `false`.
 
-In summary, the `check` function is a vital component of the Quantum Language compiler's parsing mechanism, ensuring syntactic correctness and guiding the parsing process towards successful compilation. By comparing the current token's type against expected types, it facilitates robust error handling and maintains the integrity of the parsed code.
+By providing a clear and concise interface for checking token types, the `check` function facilitates robust and maintainable parsing logic within the Quantum Language compiler. Its simplicity and direct interaction with the token stream make it an integral part of ensuring syntactic correctness during the compilation process.

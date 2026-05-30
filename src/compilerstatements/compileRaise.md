@@ -1,45 +1,43 @@
 # `compileRaise`
 
-The `compileRaise` function is an essential part of the Quantum Language compiler, tailored to handle the `raise` statement within quantum programs. This function plays a pivotal role in managing exceptions and errors, thereby enhancing the robustness of the quantum code execution process.
+The `compileRaise` function is a crucial component of the Quantum Language compiler designed to manage exception handling within quantum programs. It specifically processes the `raise` statement, which is used to throw exceptions when certain conditions are met.
 
-## Function Purpose
+## What It Does
 
-The primary purpose of the `compileRaise` function is to throw exceptions or errors when specified conditions occur during the execution of a quantum program. By invoking this function, developers can ensure that their quantum applications gracefully handle unexpected situations and provide meaningful feedback to users or system administrators.
+When encountered during compilation, the `compileRaise` function takes care of throwing exceptions. If the `raise` statement includes an error message or expression, it compiles that expression first. Then, it emits an `Op::RAISE` operation to actually throw the exception.
+
+If the `raise` statement does not include any error message or expression, it loads `nil` onto the stack using the `Op::LOAD_NIL` operation before emitting the `Op::RAISE`.
 
 ## Why It Works This Way
 
-The `compileRaise` function operates under the principle of conditional exception handling. If a value is provided with the `raise` statement, it compiles the expression associated with that value. If no value is provided, it emits a nil value onto the stack before raising the exception. The use of `Op::RAISE` ensures that the exception is thrown at the correct point in the program flow.
+This approach ensures that the Quantum Language compiler can handle both explicit and implicit exceptions gracefully:
 
-This design allows for flexible error management:
-- When a specific error condition is met, the associated message or data is compiled and raised.
-- In cases where no additional information is required, a default nil value is used, simplifying the error handling process.
+1. **Explicit Exceptions**: When a programmer uses the `raise` statement with an error message or expression, it means they want to signal an error condition explicitly. The `compileRaise` function compiles the provided expression to compute the error value, ensuring that the correct error information is available at runtime.
+
+2. **Implicit Exceptions**: In cases where the `raise` statement is used without any accompanying error message or expression, it implies that the compiler should raise a default error condition. By loading `nil`, the function provides a neutral value, allowing the runtime environment to handle the error as per its predefined rules.
 
 ## Parameters/Return Value
 
-### Parameters
+- **Parameters**:
+  - `s`: A reference to a `Statement` object representing the `raise` statement to be compiled. The `Statement` object may contain an optional `value` member, which holds the error message or expression to be thrown.
 
-- `s`: A reference to a `Statement` object representing the `raise` statement. This parameter contains either a value to be raised as an exception or no value at all.
-
-### Return Value
-
-- None. The function directly interacts with the compiler's internal state through calls to `emit`, and does not return any values.
+- **Return Value**:
+  - None (`void`). The function directly interacts with the bytecode generation process, adding operations to the current bytecode stream.
 
 ## Edge Cases
 
-1. **No Exception Value**: If the `raise` statement does not include a value, the function emits a nil value onto the stack. This scenario is useful for general error handling without providing specific details.
-   
-2. **Exception Value Compilation Failure**: If the compilation of the exception value fails due to invalid syntax or other issues, the function should handle this failure gracefully, possibly by emitting a generic error message or terminating the compilation process.
+1. **No Error Message/Expression**: If the `raise` statement does not have an associated error message or expression, the function will load `nil`. This scenario should be handled by the runtime environment to ensure appropriate error handling.
 
-3. **Memory Management**: During the emission of instructions, the function must ensure proper memory management. For instance, if the exception value involves dynamic memory allocation, the function should release any allocated resources upon encountering an error.
+2. **Empty Expression**: If the `value` member of the `Statement` object is empty (i.e., `nullptr`), the function will also load `nil` before raising the exception. This prevents potential issues related to uninitialized values.
 
-4. **Interoperability with Other Components**: The `compileRaise` function interacts closely with the compiler's instruction set and error reporting mechanisms. Any changes or updates to these components may require corresponding modifications to the `compileRaise` function to maintain compatibility.
+3. **Complex Expressions**: The function handles complex expressions passed to the `raise` statement by compiling them fully. This ensures that the error value computed at runtime accurately reflects the intended error condition.
 
 ## Interactions With Other Components
 
-- **Instruction Set**: The `compileRaise` function uses the `Op::RAISE` operation to signal the occurrence of an exception. This operation is defined in the compiler's instruction set and is responsible for halting the current execution context and transferring control to the appropriate error handler.
+- **Bytecode Generation**: The `compileRaise` function interacts closely with the bytecode generation system. It adds `Op::LOAD_NIL` and `Op::RAISE` operations to the bytecode stream, which are executed by the runtime interpreter to handle exceptions.
 
-- **Error Reporting**: Upon raising an exception, the `compileRaise` function typically triggers the error reporting mechanism. This mechanism collects and displays error messages, stack traces, and other relevant information to help diagnose and resolve issues.
+- **Error Handling Mechanism**: During the execution phase, the `Op::RAISE` operation triggers the quantum program's error handling mechanism. This mechanism may involve logging the error, rolling back operations, or terminating the program depending on the context and configuration.
 
-- **Stack Operations**: The function may also interact with stack operations, such as loading nil values or pushing exception-related data onto the stack. These operations are crucial for maintaining the integrity of the program's execution context during error handling.
+- **Symbol Table Management**: Although not directly shown in the provided code snippet, the `compileRaise` function likely interacts with the symbol table to resolve any variables or constants used in the error expression. This ensures that the error value is correctly computed based on the program's state.
 
-In summary, the `compileRaise` function is a fundamental tool in the Quantum Language compiler, enabling developers to implement effective exception handling strategies. Its design, which balances flexibility with simplicity, ensures that quantum applications can respond appropriately to various error scenarios, improving both usability and reliability.
+In summary, the `compileRaise` function is integral to the Quantum Language compiler's ability to manage exceptions effectively. Its design allows for both explicit and implicit error signaling, ensuring that quantum programs can handle unexpected situations robustly.

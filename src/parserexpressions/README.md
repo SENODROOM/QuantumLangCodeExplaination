@@ -1,56 +1,81 @@
 # ParserExpressions
 
-The `ParserExpressions` component is a crucial module within the Quantum Language compiler, designed to parse and interpret expressions encountered in quantum programs. This ensures that quantum code adheres to proper syntax and semantics during its execution.
+The `ParserExpressions` component is an essential module within the Quantum Language compiler, responsible for parsing and interpreting various types of expressions found in quantum programs. This ensures that quantum code adheres to proper syntax and semantics during its execution.
 
 ## Overview
 
-The `ParserExpressions` module consists of several functions that manage different types of expression parsing:
+The `ParserExpressions` module includes several functions tailored to handle different aspects of expression parsing:
 
-- **parseAssignment**: Parses assignment statements.
+- **parseAssignment**: Parses assignment expressions like `a = b`.
 - **parseOr**: Handles logical OR operations.
 - **parseAnd**: Manages logical AND operations.
-- **parseBitwise**: Processes bitwise operations.
-- **parseEquality**: Interprets equality comparisons.
-- **parseComparison**: Parses comparison operators (e.g., >, <).
-- **parseShift**: Handles shift operations.
-- **parseAddSub**: Manages addition and subtraction operations.
-- **parseMulDiv**: Processes multiplication and division operations.
-- **parsePower**: Interprets power operations.
-- **parseUnary**: Parses unary operations.
+- **parseBitwise**: Processes bitwise operations such as AND (`&`), OR (`|`), XOR (`^`).
+- **parseEquality**: Interprets equality checks using operators like `==` and `!=`.
+- **parseComparison**: Evaluates comparison expressions with `<`, `>`, `<=`, and `>=`.
+- **parseShift**: Parses shift operations including left shift (`<<`) and right shift (`>>`).
+- **parseAddSub**: Handles addition and subtraction operations.
+- **parseMulDiv**: Manages multiplication and division operations.
+- **parsePower**: Processes power operations using the `**` operator.
+- **parseUnary**: Interprets unary operations like negation (`-`) and increment/decrement (`++`, `--`).
 
-These functions work together to form a comprehensive parsing system for quantum expressions. The overall flow starts with the input quantum program being broken down into tokens. Each token is then passed through the appropriate function based on its type. The results are combined to produce a structured representation of the quantum program, which can be further processed by the compiler's other components.
+These functions work together to form a comprehensive expression parsing system, ensuring that all quantum program expressions are correctly interpreted and executed according to their intended logic.
 
-## Files
+## Directory Structure
 
-Each function is implemented in its own file within this directory, ensuring modularity and ease of maintenance. Here’s a brief overview of the files:
+```
+parserexpressions/
+├── include/
+│   ├── parserexpressions.h
+│   └── ...
+├── src/
+│   ├── parserexpressions.cpp
+│   └── ...
+└── tests/
+    ├── test_parserexpressions.cpp
+    └── ...
+```
 
-- `parseAssignment.cpp`: Contains the implementation of the `parseAssignment` function.
-- `parseOr.cpp`: Implements the `parseOr` function.
-- `parseAnd.cpp`: Contains the implementation of the `parseAnd` function.
-- `parseBitwise.cpp`: Implements the `parseBitwise` function.
-- `parseEquality.cpp`: Contains the implementation of the `parseEquality` function.
-- `parseComparison.cpp`: Implements the `parseComparison` function.
-- `parseShift.cpp`: Contains the implementation of the `parseShift` function.
-- `parseAddSub.cpp`: Implements the `parseAddSub` function.
-- `parseMulDiv.cpp`: Contains the implementation of the `parseMulDiv` function.
-- `parsePower.cpp`: Implements the `parsePower` function.
-- `parseUnary.cpp`: Contains the implementation of the `parseUnary` function.
+### Include Files
+
+- `parserexpressions.h`: Contains declarations for all public functions and classes in the `ParserExpressions` module.
+
+### Source Files
+
+- `parserexpressions.cpp`: Implements the core functionality of the `ParserExpressions` module, including the parsing logic for each type of expression.
+
+### Test Files
+
+- `test_parserexpressions.cpp`: Includes unit tests to validate the correctness of the expression parsing functions.
 
 ## Usage
 
-To use the `ParserExpressions` component, include the necessary header files and call the appropriate functions with the parsed tokens from your quantum program. For example:
+To use the `ParserExpressions` component in your Quantum Language compiler project, simply include the appropriate header file and call the relevant parsing function. For example:
 
 ```cpp
-#include "parserexpressions/parseAssignment.h"
-#include "parserexpressions/parseOr.h"
+#include "parserexpressions.h"
 
-// Example usage
-std::vector<Token> tokens = tokenizeQuantumProgram("q1 := 0 | q2 := 1");
-ExpressionNode* rootNode = parseAssignment(tokens);
-if (rootNode) {
-    ExpressionNode* orNode = parseOr(*rootNode);
-    // Continue processing the AST as needed
+int main() {
+    // Example usage of parseAssignment
+    Expression* expr = parseAssignment("a = b");
+    
+    // Further processing of the parsed expression
+    
+    return 0;
 }
 ```
 
-This component is integral to the Quantum Language compiler, providing robust support for expression parsing and interpretation. By leveraging these functions, developers can ensure that their quantum programs are correctly formatted and semantically valid.
+Ensure you have linked against the necessary libraries and included any required dependencies when compiling your project.
+
+## Development
+
+If you are contributing to the development of the Quantum Language compiler, you can clone this repository and build the `ParserExpressions` component using your preferred build system. The provided source files should be sufficient to get started, but additional documentation and examples may be available in the repository's wiki or issue tracker.
+
+For more detailed information on contributing to the project, please refer to the [CONTRIBUTING.md](https://github.com/your-repo/quantum-language/blob/main/CONTRIBUTING.md) file.
+
+## License
+
+The `ParserExpressions` component is released under the MIT License. See the [LICENSE](https://github.com/your-repo/quantum-language/blob/main/LICENSE) file for details.
+
+---
+
+Feel free to update the content based on your specific requirements and project structure.

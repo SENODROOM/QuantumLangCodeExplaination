@@ -2,50 +2,45 @@
 
 ## Role in Compiler Pipeline
 
-`VmStringMethods.cpp` plays a crucial role in the Quantum Language compiler's virtual machine (VM) layer. It contains implementations of various string manipulation methods that operate on `QuantumValue` objects, representing strings within the quantum program context. These methods are invoked during the runtime execution of quantum programs to perform operations such as length calculation, case conversion, trimming, substring checks, splitting, and more. The primary purpose is to provide a comprehensive set of string handling capabilities directly within the quantum environment.
+`VmStringMethods.cpp` is an essential component of the Quantum Language compiler's virtual machine (VM) layer. This file houses the implementation of various string manipulation methods that operate on `QuantumValue` objects, which represent strings within the quantum program context. These methods are invoked during the runtime execution of quantum programs to perform operations such as length calculation, case transformation, trimming, substring checks, splitting, and more. By providing these functionalities, `VmStringMethods.cpp` ensures that quantum programs can handle string data effectively, facilitating complex operations necessary for their execution.
 
 ## Key Design Decisions and Why
 
-### Method Overloading and Naming Conventions
+1. **Unified Method Invocation**: The primary design decision is to provide a unified interface for invoking string methods through the `callStringMethod` function. This approach simplifies the management of string operations and allows for easy extension and maintenance of new string methods without altering existing code paths.
 
-The methods are designed with overloading and naming conventions to ensure clarity and ease of use. For instance, both "length" and "size" methods return the length of the string, allowing users to choose based on preference or readability. Similarly, "toUpperCase" and "upper" serve the same purpose but differ slightly in naming convention. This approach enhances usability and reduces cognitive load for developers.
+2. **Efficient String Handling**: To ensure efficient handling of strings, the implementation uses standard library functions like `std::transform`, `std::isspace`, and `std::find`. These functions are optimized for performance and are well-suited for processing string data at runtime.
 
-### Exception Handling and Error Reporting
+3. **Pattern Matching with Regular Expressions**: For advanced string operations, such as splitting using regular expressions, the implementation leverages the `<regex>` header. This choice provides powerful pattern matching capabilities, enabling quantum programs to split strings based on complex patterns efficiently.
 
-To maintain robustness, `VmStringMethods.cpp` includes exception handling mechanisms. If a method encounters an error, such as attempting to call a non-existent method or passing invalid arguments, it throws appropriate exceptions. These exceptions are then caught and handled by higher layers of the compiler, ensuring that errors are reported accurately and the program can handle them gracefully.
-
-### Regular Expression Support
-
-Regular expression support is integrated into the `split` method. This allows users to split strings using complex patterns, including those with special characters or flags like 'i' for case-insensitive matching. By leveraging regular expressions, the method provides powerful and flexible string manipulation capabilities.
+4. **Error Handling**: Robust error handling is implemented to manage cases where invalid arguments or unexpected situations arise during method invocation. This includes checking for empty arguments and catching exceptions related to regular expression usage, ensuring the stability and reliability of the VM layer.
 
 ## Major Classes/Functions Overview
 
-### `class Array`
+### Class: VM
+- **Function: callStringMethod**
+  - **Parameters**:
+    - `const std::string &str`: The input string on which the method will be applied.
+    - `const std::string &m`: The name of the string method to invoke.
+    - `std::vector<QuantumValue> args`: A vector containing the arguments required by the string method.
+  - **Description**: This function serves as the entry point for invoking string methods. It dispatches calls to specific string manipulation functions based on the method name provided.
 
-- **Overview**: Represents an array data structure used to store the results of the `split` method.
-- **Purpose**: To encapsulate the logic for managing an array of `QuantumValue` objects, facilitating easy access and modification of its elements.
-
-### `QuantumValue VM::callStringMethod(const std::string &str, const std::string &m, std::vector<QuantumValue> args)`
-
-- **Overview**: A central function responsible for calling different string manipulation methods based on the provided method name (`m`) and arguments.
-- **Parameters**:
-  - `const std::string &str`: The input string on which the method will be applied.
-  - `const std::string &m`: The name of the method to be called.
-  - `std::vector<QuantumValue> args`: A vector containing the arguments required by the method.
-- **Return Value**: Returns a `QuantumValue` object representing the result of the method call.
+### Functions for Specific String Operations
+- **length() / size()**: Returns the length of the input string as a `QuantumValue`.
+- **toUpperCase() / upper()**: Converts the input string to uppercase and returns the result as a `QuantumValue`.
+- **toLowerCase() / lower()**: Converts the input string to lowercase and returns the result as a `QuantumValue`.
+- **trim() / strip()**: Removes leading and trailing whitespace characters from the input string and returns the trimmed version.
+- **startsWith() / startswith()**: Checks if the input string starts with a specified substring and returns a boolean value as a `QuantumValue`.
+- **endsWith() / endswith()**: Checks if the input string ends with a specified substring and returns a boolean value as a `QuantumValue`.
+- **includes() / contains()**: Determines whether the input string contains a specified substring and returns a boolean value as a `QuantumValue`.
+- **indexOf() / index()**: Finds the position of the first occurrence of a specified substring within the input string and returns the position as a `QuantumValue`.
+- **split()**: Splits the input string into substrings based on a specified delimiter or regular expression pattern and returns an array of `QuantumValue` objects representing the resulting substrings.
 
 ## Tradeoffs
 
-### Performance vs. Flexibility
+1. **Performance vs. Flexibility**: While the use of standard library functions ensures good performance, the flexibility offered by regular expressions may come at the cost of increased computational overhead. However, for many applications, the benefits of advanced pattern matching outweigh the potential performance impact.
 
-While the integration of regular expressions offers significant flexibility in string manipulation, it also comes at the cost of performance. Complex regex patterns can lead to slower execution times compared to simpler string operations. However, the tradeoff is deemed acceptable given the potential benefits in terms of functionality and developer productivity.
+2. **Complexity vs. Simplicity**: Providing a wide range of string manipulation methods increases the complexity of the codebase. On the other hand, this approach simplifies the process of implementing and maintaining string operations for quantum programs.
 
-### Memory Usage
+3. **Memory Usage**: Splitting strings using regular expressions can lead to higher memory usage due to the creation of intermediate string objects and regex match results. However, modern compilers and runtimes are designed to manage memory efficiently, making this tradeoff less critical in practice.
 
-The `Array` class used in the `split` method requires additional memory to store the resulting substrings. While this increases memory usage, it ensures that the split operation can handle large strings and complex patterns without compromising on functionality.
-
-### Complexity vs. Usability
-
-The inclusion of multiple method names (e.g., "length", "size", "toUpperCase", "upper") adds complexity to the codebase. However, this complexity is mitigated by providing clear and intuitive method names, enhancing the usability of the string manipulation features for developers.
-
-In conclusion, `VmStringMethods.cpp` is a vital component of the Quantum Language compiler, offering a wide range of string manipulation methods that enhance the functionality and usability of quantum programs. Through strategic design decisions and careful consideration of tradeoffs, the file ensures robustness, performance, and flexibility in handling string data within the quantum environment.
+Overall, `VmStringMethods.cpp` is a vital part of the Quantum Language compiler's VM layer, offering essential string manipulation capabilities that enhance the functionality and usability of quantum programs. Through careful design and implementation, it balances performance, flexibility, and simplicity to meet the needs of its users.

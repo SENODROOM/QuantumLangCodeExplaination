@@ -1,30 +1,39 @@
 # `parseBodyOrStatement` Function
 
 ## Overview
-The `parseBodyOrStatement` function plays a pivotal role in determining whether the next sequence of tokens in the source code represents either a statement body or a standalone statement. This function is essential within the Quantum Language compiler's parser module, ensuring that the correct syntax structures are constructed accurately.
+The `parseBodyOrStatement` function determines whether the next sequence of tokens in the source code represents either a statement body or a standalone statement. This function is crucial within the Quantum Language compiler as it helps in parsing control flow structures like loops and conditionals correctly.
 
-### Why It Works This Way
-This function operates based on the lookahead mechanism provided by the tokenizer. It checks the current token and decides how to proceed accordingly:
-- If the current token is a semicolon (`TokenType::SEMICOLON`), it indicates an empty body, such as `while(cond);` or `for(...);`. In such cases, the function consumes the semicolon and returns an AST node representing an empty block statement.
-- If the current token is an opening brace (`TokenType::LBRACE`) or an indentation marker (`TokenType::INDENT`), it signifies the start of a block, which could be part of a control structure like `if`, `else`, `while`, or `for`. The function then calls `parseBlock()` to handle the parsing of the block.
-- For all other cases, the function assumes that the next tokens form a single statement. It parses this statement using `parseStatement()`, adds it to a new `BlockStmt`, and returns an AST node containing this block.
+### Parameters
+- None
 
-### Parameters/Return Value
-- **Parameters**: None
-- **Return Value**:
-  - A unique pointer to an `ASTNode` object. The type of `ASTNode` depends on the parsed content:
-    - If an empty body is detected (semicolon followed by nothing else), it returns a `BlockStmt`.
-    - If a block is detected (opening brace or indentation), it returns the result of `parseBlock()`.
-    - Otherwise, it returns a `BlockStmt` containing a single statement parsed by `parseStatement()`.
+### Return Value
+- Returns a unique pointer to an `ASTNode` object representing either a `BlockStmt` or a single `Statement`.
 
-### Edge Cases
-- **Empty Body**: When encountering a semicolon immediately after a control structure without any following statements, the function correctly identifies it as an empty body.
-- **Single Statement**: For simple statements not enclosed in braces, the function handles them appropriately by wrapping them in a `BlockStmt`.
-- **Nested Blocks**: Although not explicitly handled in this snippet, the function's design allows for nested blocks to be parsed correctly when encountered.
+## Detailed Explanation
+The function operates based on the type of token that follows immediately after the initial token being parsed. Here’s how it works:
 
-### Interactions With Other Components
-- **Tokenizer**: The function relies on the tokenizer to provide the current and subsequent tokens. It uses methods like `current()` and `consume()` to interact with the tokenizer.
-- **AST Construction**: The function constructs abstract syntax tree nodes (`ASTNode`) based on the parsed content. These nodes include `BlockStmt` and `Statement`, depending on the input.
-- **Error Handling**: While not shown in this snippet, the parser typically includes error handling mechanisms to manage unexpected token sequences gracefully.
+1. **Check for Empty Body**:
+   - If the next token is a semicolon (`TokenType::SEMICOLON`), it indicates an empty body for control flow statements such as `while` or `for`.
+   - The function consumes the semicolon and returns a `BlockStmt` node wrapped in an `ASTNode`. This effectively means that the loop or conditional has no body, and its execution will be determined solely by its condition.
 
-In summary, `parseBodyOrStatement` is a fundamental function in the Quantum Language compiler's parser, responsible for distinguishing between different types of syntax structures and constructing appropriate AST nodes. Its implementation leverages the tokenizer's lookahead capabilities and ensures robust parsing of both complex and simple control flow elements.
+2. **Check for Block Start**:
+   - If the next token is an opening brace (`TokenType::LBRACE`) or an indentation (`TokenType::INDENT`), it signifies the start of a block, which contains multiple statements.
+   - The function calls `parseBlock()` to handle the parsing of the block. This method processes all tokens until it encounters a closing brace or unindentation, building up a list of statements within the block.
+
+3. **Single Statement**:
+   - If neither an empty body nor a block start is detected, the function assumes that the next sequence of tokens forms a single standalone statement.
+   - It initializes a `BlockStmt` and pushes the result of calling `parseStatement()` into the `statements` vector of the `BlockStmt`.
+   - Finally, it wraps the `BlockStmt` in an `ASTNode` and returns it.
+
+## Edge Cases
+- **Empty Body**: When encountering a semicolon directly after a control structure keyword, indicating an empty body.
+- **Block Start**: Handling both opening braces and indentation to identify the beginning of a block containing multiple statements.
+- **Single Statement**: Parsing scenarios where only one statement exists without any blocks or additional tokens.
+
+## Interactions with Other Components
+- **Tokenizer**: The function relies on the tokenizer to provide the next token for analysis.
+- **ASTNode**: Used to construct the abstract syntax tree (AST) nodes representing the parsed statements or blocks.
+- **parseBlock()**: Invoked when a block start is detected, ensuring proper handling of multiple statements within a block.
+- **parseStatement()**: Called when parsing a single standalone statement, ensuring correct statement construction.
+
+This function is integral to the parser's ability to accurately interpret and construct the AST for Quantum Language programs, facilitating subsequent compilation steps.

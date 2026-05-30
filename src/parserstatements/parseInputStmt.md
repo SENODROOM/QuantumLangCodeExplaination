@@ -1,37 +1,47 @@
 # `parseInputStmt` Function
 
-The `parseInputStmt` function in the Quantum Language compiler's parser is designed to handle different types of input statements encountered during the parsing process. These statements can be either C-style input using format strings or custom syntax that includes prompts for user input.
+The `parseInputStmt` function in the Quantum Language compiler's parser is responsible for handling various types of input statements encountered during the parsing process. These statements include both C-style input using format strings and custom syntax that allows for prompts along with target variables.
 
 ## What It Does
 
-The primary role of `parseInputStmt` is to parse input statements and construct an Abstract Syntax Tree (AST) node representing these statements. The function supports three forms of input statements:
-
-1. **C-style Input**: This form uses a format string followed by a target variable. For example, `scanf("%d", &var);`.
-2. **Custom Prompt Input**: This form includes a prompt message followed by a target variable. For example, `input("Enter a number:", var);`.
-3. **Variable-only Input**: This form simply takes a target variable without any additional information. For example, `input(var);`.
+The primary purpose of `parseInputStmt` is to parse input statements into an abstract syntax tree (AST). This AST represents the structure of the input statement, which can then be used for further processing or code generation.
 
 ## Why It Works This Way
 
-The function works by first identifying the type of input statement based on the tokens it encounters. If the token sequence starts with a left parenthesis (`(`), it indicates a C-style input or a custom prompt input. If the next token is a string literal, it is assumed to be a format string or a prompt message. Depending on whether a comma is found, the function determines whether there is a target variable specified. If a comma is present, it expects another identifier as the target variable. If no comma is present, it assumes that the entire statement is a prompt-only input. After parsing the input statement, the function consumes any trailing newline characters or semicolons before returning the constructed AST node.
+The function works by checking the type of tokens encountered and deciding how to parse them accordingly:
+
+1. **C-Style Input**: If the token sequence starts with an opening parenthesis (`(`), it indicates a C-style input statement. The function expects a string literal followed by a comma and then an identifier representing the target variable. Optionally, an ampersand (`&`) can precede the identifier, but it is stripped off before storing the target variable name.
+
+2. **Custom Syntax**: If the token sequence does not start with an opening parenthesis, it could be either a prompt-only statement or a statement without a prompt. In these cases, the function expects an identifier representing the target variable. If a string literal is found before the identifier, it is treated as a prompt.
+
+3. **Line and Token Consumption**: The function consumes newline characters (`\n`) and semicolons (`;`) until it encounters a valid input statement. This ensures that any trailing whitespace or punctuation is skipped over.
+
+4. **Error Handling**: The function includes error handling to ensure that the expected tokens are present. For example, it checks for the presence of a closing parenthesis (`)`), a comma, and an identifier. If any of these tokens are missing, appropriate error messages are generated.
 
 ## Parameters/Return Value
 
-- **Parameters**:
-  - None explicitly declared, but relies on global state managed by the parser (e.g., `current()`, `consume()`).
+### Parameters
+- None
 
-- **Return Value**:
-  - Returns a unique pointer to an `ASTNode` object containing an `InputStmt`. The `InputStmt` encapsulates the target variable and the optional prompt message.
+### Return Value
+- An `ASTNodePtr` pointing to a new `InputStmt` node containing the parsed target variable and prompt.
 
 ## Edge Cases
 
-- **Empty Target Variable**: When encountering a `input("prompt");` statement, the function sets the target variable to an empty string.
-- **Missing Tokens**: If the expected tokens (e.g., string literal, identifier, parentheses) are not found, the function throws an error indicating the missing element.
-- **Trailing Characters**: Any trailing newline characters or semicolons are consumed to ensure proper parsing of subsequent statements.
+1. **Missing Parentheses**: If the input statement does not have matching parentheses, the function will generate an error message indicating that a closing parenthesis is expected.
+
+2. **Incorrect Token Sequence**: If the token sequence does not match the expected patterns for C-style input or custom syntax, the function will generate appropriate error messages.
+
+3. **Empty Prompt**: If the input statement contains only a target variable without a prompt, the function returns an empty `prompt`.
 
 ## Interactions With Other Components
 
-- **Token Stream Management**: The function interacts with the token stream managed by the parser to identify and consume tokens.
-- **Error Handling**: The function includes error handling mechanisms to manage unexpected token sequences and provide meaningful error messages.
-- **AST Construction**: The parsed input statements are used to construct an AST, which is essential for further compilation steps such as semantic analysis and code generation.
+The `parseInputStmt` function interacts with several other components within the Quantum Language compiler's parser:
 
-This comprehensive approach ensures that the `parseInputStmt` function can accurately handle various input statement formats and contribute effectively to the overall parsing process of the Quantum Language compiler.
+1. **Token Stream**: The function uses the token stream provided by the parser to read and consume tokens. Tokens such as `LPAREN`, `RPAREN`, `COMMA`, `STRING`, and `IDENTIFIER` are checked and consumed as part of the parsing process.
+
+2. **Error Reporting**: The function reports errors using the parser's error reporting mechanism. If any unexpected tokens are encountered, error messages are generated and reported back to the user.
+
+3. **Abstract Syntax Tree (AST)**: The function constructs an AST by creating nodes for the input statement, including the target variable and prompt. These nodes are then returned to the parser for further use.
+
+Overall, the `parseInputStmt` function plays a crucial role in parsing input statements in the Quantum Language compiler, ensuring that they are correctly represented in the AST for subsequent processing.

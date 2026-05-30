@@ -2,7 +2,7 @@
 
 ## Description
 
-The `parsePower` function is a crucial component of the parser within the Quantum Language compiler. Its primary role is to interpret and construct Abstract Syntax Tree (AST) nodes representing expressions involving the power operator (`**`). This function facilitates the parsing process by recursively handling nested power operations, ensuring they are evaluated correctly according to their right-associativity.
+The `parsePower` function is a key part of the parser in the Quantum Language compiler. It is responsible for interpreting and constructing Abstract Syntax Tree (AST) nodes that represent expressions using the power operator (`**`). This function ensures that the parsing process correctly handles expressions involving powers, particularly when dealing with nested power operations.
 
 ## Parameters/Return Value
 
@@ -10,47 +10,20 @@ The `parsePower` function is a crucial component of the parser within the Quantu
 - None
 
 ### Return Value
-- Returns a unique pointer to an `ASTNode` object representing the parsed power expression. If no power operation is found, it returns the result of `parseUnary()`.
+- Returns a unique pointer to an `ASTNode` object representing the parsed expression. If there is no power operation, it returns the result of `parseUnary()`.
 
 ## Edge Cases
 
-1. **No Power Operator**: If the input stream does not contain any power operators (`**`), the function will simply return the result of `parseUnary()`, which could be a number, variable, or another unary expression.
-2. **Nested Powers**: The function handles nested power operations correctly due to its recursive nature. For example, the expression `a ** b ** c` would be interpreted as `a ** (b ** c)`.
+1. **No Power Operator**: If the current token is not a power operator (`**`), the function simply returns the result of `parseUnary()`. This allows for the parsing of simpler expressions without interruption.
+2. **Nested Powers**: The function uses recursion to handle nested power operations. For example, the expression `a ** b ** c` would be parsed as `a ** (b ** c)`, ensuring correct precedence and associativity.
+3. **Invalid Tokens**: If at any point during the parsing of the power operation, an invalid token is encountered, the function will throw an exception or handle it appropriately based on the error handling strategy implemented in the compiler.
 
 ## Interactions with Other Components
 
-- **parseUnary()**: This function is called at the beginning of `parsePower()`. It parses expressions that can occur before a power operator, such as numbers, variables, or parentheses enclosing an expression.
-  
-- **check(TokenType::POWER)**: This method checks whether the current token in the input stream is a power operator (`**`). If it is, the function proceeds to parse the right-hand side of the power expression.
-
-- **consume()**: After identifying a power operator, this method consumes the current token, advancing the input stream to the next token for further parsing.
-
-- **std::make_unique<ASTNode>()**: This utility function creates a new `ASTNode` object with a `BinaryExpr` type, setting the operator to `"**"`, and moving the parsed left and right operands into the node. The line number (`ln`) is also stored to maintain context in the source code.
+- **parseUnary()**: This function is called before checking for the power operator. It parses expressions that may start with unary operators such as `-` or `+`.
+- **consume()**: When the power operator is detected, this function consumes the token, advancing the parser's position to the next token in the input stream.
+- **BinaryExpr**: An AST node type used to represent binary operations, including the power operation. The `BinaryExpr` constructor takes the operator string `"**"`, along with pointers to the left and right operands, which are constructed by recursively calling `parsePower()`.
 
 ## Why It Works This Way
 
-The design of `parsePower` follows a top-down approach to parsing expressions, where each function is responsible for parsing a specific type of expression. By calling `parseUnary()` first, we ensure that any valid unary expression can be parsed before encountering a power operator. 
-
-The use of recursion allows `parsePower` to handle nested power operations naturally. When a power operator is encountered, the function calls itself again to parse the right-hand side of the expression, effectively creating a tree structure where powers are applied from right to left.
-
-This approach ensures that the parser correctly interprets complex expressions involving multiple power operations, adhering to the rules of operator precedence and associativity in mathematics.
-
-## Example Usage
-
-Here's how you might use `parsePower()` in the context of parsing a quantum language expression:
-
-```cpp
-auto expr = parsePower();
-if (expr)
-{
-    // Process the AST node representing the power expression
-    // ...
-}
-else
-{
-    // Handle the case where no valid expression was parsed
-    // ...
-}
-```
-
-In this example, `parsePower()` is invoked to parse a quantum language expression. If a valid expression is successfully parsed, it is returned as a unique pointer to an `ASTNode`. Otherwise, appropriate error handling is performed.
+The design of `parsePower` follows a recursive descent approach, which is common in parsers. By first parsing the left-hand side of the power operation with `parseUnary()`, the function sets up the initial operand. Then, it checks for the presence of the power operator using `check(TokenType::POWER)`. If found, it consumes the operator and recursively calls itself to parse the right-hand side, ensuring that the rightmost operand is evaluated first due to the right-associative nature of the power operator. Finally, it constructs an `ASTNode` with a `BinaryExpr` representing the power operation and returns it. This structure allows for the clear representation and evaluation of complex power expressions within the Quantum Language compiler.

@@ -2,29 +2,40 @@
 
 ## Overview
 
-The `compileIdentifier` function plays a pivotal role in the Quantum Language (QL) compiler by handling the compilation of identifier expressions found within the source code. This function ensures that the high-level quantum constructs are accurately translated into lower-level representations suitable for execution on quantum hardware or simulators.
+The `compileIdentifier` function is an essential component of the Quantum Language (QL) compiler responsible for translating high-level quantum identifiers into their corresponding machine-level representations. This function facilitates the accurate execution of quantum programs by ensuring that all references to variables and constants are correctly resolved during the compilation process.
 
-### Parameters/Return Value
+### Parameters and Return Value
 
 - **Parameters**:
   - `e`: A reference to an `Expression` object representing the identifier expression to be compiled.
-  - `line`: An integer indicating the current line number in the source code where the identifier expression appears.
+  - `line`: An integer indicating the line number in the source code where the identifier appears, used for error reporting and debugging purposes.
 
-- **Return Value**: 
-  - The function does not return any value explicitly (`void`). However, it performs actions such as emitting load instructions which indirectly contribute to the overall compilation process.
+- **Return Value**:
+  The function does not explicitly return any value but performs actions directly on the output stream or other relevant data structures to generate machine code.
 
 ### Edge Cases
 
-1. **Undefined Identifier**: If the identifier referenced in the expression has not been previously defined in the scope, the function should raise an error or handle it appropriately to prevent undefined behavior during compilation.
-2. **Scope Issues**: The function must correctly manage variable scopes to ensure that identifiers are resolved according to their declared scope. This involves checking local, global, and possibly nested scopes.
-3. **Type Mismatch**: Although type checking might occur earlier in the compilation pipeline, the `compileIdentifier` function should still verify that the type of the identifier matches its expected usage context to avoid runtime errors.
+1. **Undefined Identifiers**: If the identifier referenced in the expression has not been previously declared or defined in the scope, the function should raise an error indicating an undefined variable or constant.
+2. **Scope Resolution**: The function must handle different scopes (global, local, nested) correctly to ensure that the appropriate identifier is loaded from memory.
+3. **Type Mismatch**: If the type of the identifier being accessed does not match the expected type in the context of the expression, the function should generate an error message.
 
 ### Interactions with Other Components
 
-The `compileIdentifier` function interacts closely with several other components of the QL compiler:
+- **Symbol Table**: The `compileIdentifier` function interacts closely with the symbol table to retrieve information about the identifier's declaration, such as its type and memory address.
+- **Code Generator**: It outputs machine code instructions to the code generator based on the retrieved information, effectively translating the high-level quantum constructs into executable operations.
+- **Error Handler**: In case of errors related to undefined identifiers or type mismatches, the function communicates with the error handler to report these issues, allowing for debugging and correction in the source code.
 
-1. **Symbol Table Management**: The function uses the symbol table to look up the definition of the identifier. If the identifier is not found, it may need to communicate back to the symbol table manager to report an error.
-2. **Instruction Emission**: The function calls `emitLoad`, which is presumably another method within the same class or module. This method generates the appropriate machine code or intermediate representation (IR) instructions to load the value associated with the identifier.
-3. **Error Handling**: Depending on the implementation, the function might interact with an error handler component to report issues related to undefined identifiers or incorrect types.
+### Example Usage
 
-In summary, the `compileIdentifier` function is essential for resolving and compiling identifier expressions in the Quantum Language. By leveraging the symbol table and instruction emission mechanisms, it ensures that the high-level quantum constructs are accurately transformed into executable forms, thereby facilitating the overall compilation process.
+Here’s how you might use the `compileIdentifier` function in a typical scenario:
+
+```cpp
+// Assuming 'expr' is an Expression object representing an identifier and 'currentLine' is the current line number
+if (expr.type == IDENTIFIER) {
+    compileIdentifier(expr, currentLine);
+}
+```
+
+In this example, the `compileIdentifier` function is invoked when encountering an identifier expression (`IDENTIFIER`). The function takes the identifier expression and the current line number as arguments, ensuring that the identifier is correctly compiled into machine code.
+
+By understanding and implementing the `compileIdentifier` function, developers can enhance the functionality and reliability of the QL compiler, enabling more complex quantum programs to be executed efficiently.

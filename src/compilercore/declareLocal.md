@@ -2,37 +2,44 @@
 
 ## Function Overview
 
-The `declareLocal` function is a key component of the Quantum Language compiler's core functionality, designed to manage local variables within the current scope. This essential function ensures that local variables are correctly declared and tracked during compilation, facilitating efficient code generation and execution.
+The `declareLocal` function is a crucial part of the Quantum Language compiler's core functionality, responsible for managing local variables within the current scope. This function ensures that local variables are correctly declared and tracked during compilation, preventing variable name clashes and maintaining proper scoping rules.
 
-## Parameters
+## Parameters/Return Value
 
-- **name**: A string representing the name of the local variable to be declared.
-
-## Return Value
-
-This function does not return any value explicitly. Instead, it modifies the internal state of the compiler by adding a new entry to the list of local variables (`locals`) associated with the current scope.
+- **Parameters**:
+  - `name`: A string representing the name of the local variable being declared.
+  
+- **Return Value**:
+  - The function does not explicitly return any value. Instead, it modifies the internal state of the compiler by adding an entry to the list of local variables (`locals`) in the current scope context (`current_`). Each entry contains the variable name, its depth in the scope hierarchy, and a boolean indicating whether the variable has been initialized.
 
 ## How It Works
 
-1. **Scope Depth Check**: The function first checks if the current scope depth (`current_->scopeDepth`) is zero. If it is, the function returns immediately without making any changes. This check prevents unnecessary operations when dealing with global or top-level declarations.
+The `declareLocal` function operates under the assumption that there is always a valid scope context (`current_`) available when it is called. If the scope depth is zero, indicating that the function is being called outside of any defined scope, the function simply returns without making any changes.
 
-2. **Variable Declaration**: If the scope depth is greater than zero, the function proceeds to declare the local variable. It creates a new entry in the `locals` vector of the current scope context. Each entry consists of:
-   - The name of the variable.
-   - The depth of the current scope at which the variable is declared.
-   - A boolean flag indicating whether the variable has been initialized. Initially, this flag is set to `false`.
+Here’s how the function works step-by-step:
 
-3. **Tracking Variable Usage**: By keeping track of the scope depth where each local variable is declared, the compiler can later determine the lifetime and visibility of these variables. This information is crucial for generating correct machine code and optimizing variable accesses.
+1. **Check Scope Depth**: 
+   - The function first checks if the current scope depth (`current_->scopeDepth`) is zero. If it is, the function returns immediately because it cannot declare a local variable outside of a valid scope.
+
+2. **Add Local Variable Entry**:
+   - If the scope depth is greater than zero, the function proceeds to add a new entry to the `locals` vector of the current scope context.
+   - Each entry consists of three elements:
+     - `name`: The name of the local variable.
+     - `current_->scopeDepth`: The depth of the current scope at which the variable is being declared. This helps in tracking the variable's scope and prevents conflicts between variables in different scopes.
+     - `false`: A boolean flag indicating whether the variable has been initialized. Initially, all variables are marked as uninitialized.
+
+3. **Maintain Scope Context**:
+   - By updating the `locals` vector, the function ensures that the compiler maintains accurate information about all local variables currently in scope. This information is vital for error checking, code generation, and optimization phases of the compilation process.
 
 ## Edge Cases
 
-- **Global Declarations**: When declaring variables outside of any function or block (i.e., at the global level), the scope depth will be zero. In such cases, the function will simply return without doing anything, as there is no need to manage local variables.
-  
-- **Nested Scopes**: In nested scopes, each declaration will update the `locals` vector with the appropriate scope depth. This allows the compiler to maintain accurate information about variable visibility and lifetime across different levels of nesting.
+- **Empty Scope**: When calling `declareLocal` outside of any defined scope (i.e., `current_->scopeDepth` is zero), the function does nothing. This handles situations where local variable declarations might occur accidentally or due to logical errors in the source code.
+- **Duplicate Declarations**: Although not directly handled by `declareLocal`, the presence of duplicate entries in the `locals` vector can lead to issues such as redeclaring a variable within the same scope. Error handling mechanisms should be implemented elsewhere to catch and report such cases.
 
 ## Interactions with Other Components
 
-- **Scope Management**: The `declareLocal` function interacts closely with the scope management system. It relies on the current scope context (`current_`) to add local variable entries. Changes made to the `locals` vector affect how subsequent code is compiled and executed, particularly regarding variable access and initialization.
+- **Scope Management**: `declareLocal` interacts closely with the scope management system of the compiler. It relies on the `current_` pointer to access the current scope context, which includes the `locals` vector where variable declarations are stored.
+- **Error Checking**: While `declareLocal` itself does not check for variable name clashes, it provides the necessary data structure for later stages of the compiler to perform such checks. Accurate tracking of local variables helps in identifying and reporting errors related to undeclared or misused variables.
+- **Code Generation**: During code generation, the compiler uses the information stored in the `locals` vector to allocate memory for local variables, generate appropriate load/store instructions, and handle variable lifetimes efficiently.
 
-- **Code Generation**: Once local variables are declared and their lifetimes are tracked, the compiler uses this information to generate optimized machine code. Accessing uninitialized variables or using them beyond their declared scope can lead to errors, so the compiler must ensure that all variables are properly managed throughout the compilation process.
-
-In summary, the `declareLocal` function is vital for maintaining accurate variable declarations and tracking within the Quantum Language compiler. Its implementation ensures that local variables are correctly managed, preventing potential runtime errors and enabling efficient code generation.
+In summary, the `declareLocal` function is a fundamental tool for managing local variables in the Quantum Language compiler. Its design ensures that variables are correctly declared and scoped, facilitating robust error checking and efficient code generation.

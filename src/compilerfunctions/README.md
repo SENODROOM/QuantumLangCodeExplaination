@@ -1,48 +1,20 @@
 # CompilerFunctions
 
-The `compilerfunctions` component is an essential part of the Quantum Language (QL) compiler, responsible for converting high-level quantum programming constructs into executable machine code or intermediate representations suitable for quantum computing hardware and software systems.
+The `compilerfunctions` component is a crucial module in the Quantum Language (QL) compiler, designed to convert high-level quantum programming constructs into executable machine code or intermediate representations that are compatible with various quantum computing hardware and software systems.
 
 ## Overview
 
 ### Purpose
-The primary goal of the `compilerfunctions` component is to facilitate the compilation process by providing a set of well-documented functions that handle various aspects of quantum program translation. These functions ensure that the input quantum programs are accurately transformed into formats that can be executed on quantum devices.
+The main objective of the `compilerfunctions` component is to provide a robust set of tools and utilities for compiling quantum programs. This includes parsing input code, optimizing operations, generating target-specific instructions, and managing resources efficiently.
 
-### Files and Functions
-- **compileFunction**: This function serves as the core of the compilation process. It takes a high-level quantum program as input and outputs an executable representation or an intermediate format. The function handles parsing, optimization, and transformation of the quantum program.
+### Files
+- **compileFunction**: The central function that orchestrates the compilation process. It takes a quantum program as input and outputs the compiled result.
 
 ### Flow
-1. **Input Parsing**: The `compileFunction` begins by parsing the input quantum program to extract its structure and semantics.
-2. **Optimization**: Once parsed, the program undergoes optimization to enhance performance and reduce resource usage.
-3. **Transformation**: After optimization, the program is transformed into an intermediate representation or executable code.
-4. **Output Generation**: Finally, the transformed program is generated in the desired output format.
+1. **Input Parsing**: The `compileFunction` starts by parsing the high-level quantum program provided by the user. This involves understanding the syntax and semantics of the Quantum Language.
+2. **Optimization**: Once the program is parsed, it undergoes optimization to improve performance and reduce resource usage. This step may include simplifying expressions, removing redundant operations, and applying other techniques specific to quantum computing.
+3. **Code Generation**: After optimization, the `compileFunction` generates the target-specific code. Depending on the target platform (e.g., quantum simulator, actual quantum hardware), different intermediate representations or machine codes are produced.
+4. **Resource Management**: The component also handles resource management, ensuring that the quantum program runs efficiently by allocating and deallocating qubits and other resources as necessary.
+5. **Output**: Finally, the compiled result is returned to the user, which can be used directly on the target platform or further processed for analysis or debugging.
 
-## Usage
-
-To use the `compilerfunctions` component, follow these steps:
-
-1. **Include the Header File**:
-   ```cpp
-   #include "compilerfunctions.h"
-   ```
-
-2. **Call the compileFunction**:
-   ```cpp
-   QuantumProgram inputProgram;
-   ExecutableRepresentation outputCode = compileFunction(inputProgram);
-   ```
-
-## Documentation
-
-For detailed information on each function and its parameters, refer to the individual documentation files within this directory.
-
-## Contributing
-
-Contributions to the `compilerfunctions` component are welcome. Please follow our [contribution guidelines](CONTRIBUTING.md) to get started.
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
-
-This README provides a clear overview of the purpose, flow, and usage of the `compilerfunctions` component, ensuring that users understand how it fits into the broader context of the Quantum Language compiler and how to effectively utilize its functionalities.
+By following this structured approach, the `compilerfunctions` component ensures that quantum programs are compiled accurately and efficiently, making them ready for execution on modern quantum computing systems.

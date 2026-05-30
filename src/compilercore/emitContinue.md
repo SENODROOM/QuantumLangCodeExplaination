@@ -2,36 +2,34 @@
 
 ## Overview
 
-The `emitContinue` function is an integral part of the Quantum Language compiler's core, located in the `src/compiler/CompilerCore.cpp` file. Its primary role is to generate a jump instruction that allows the program to continue its execution at the start of the nearest enclosing loop.
+The `emitContinue` function is an essential component of the Quantum Language compiler's core, found within the `src/compiler/CompilerCore.cpp` file. This function is responsible for generating a jump instruction that enables the program to resume execution at the beginning of the nearest enclosing loop.
 
 ### Why It Works This Way
 
-In quantum computing, control flow statements like `continue` play a crucial role in managing the execution of quantum algorithms efficiently. The `emitContinue` function ensures that when a `continue` statement is encountered during compilation, the generated machine code will correctly jump back to the beginning of the loop, skipping any subsequent instructions until the next iteration condition is checked.
+In quantum programming, as in traditional programming, loops play a crucial role in controlling the flow of execution and repeating tasks. When a loop encounters a `continue` statement, it should skip the current iteration and proceed directly to the next one. The `emitContinue` function facilitates this behavior by emitting a jump instruction that directs control back to the loop's entry point.
 
-This design ensures that the loop structure is preserved and executed as intended, maintaining the integrity and correctness of the compiled quantum algorithm.
+This approach ensures that the loop remains intact and continues executing subsequent iterations without being broken or altered, thereby maintaining the intended flow and logic of the program.
 
 ## Parameters/Return Value
 
 - **Parameters**:
   - None
-  
+
 - **Return Value**:
-  - `void`: The function does not return any value; it directly modifies the internal state of the compiler by adding a jump instruction to the list of continue jumps associated with the most recent loop.
+  - Returns nothing (`void`)
 
 ## Edge Cases
 
-1. **No Enclosing Loop**: If there is no enclosing loop when a `continue` statement is encountered, the behavior is undefined. The compiler should handle such cases gracefully, possibly generating an error or warning message indicating that a `continue` statement is used outside of a loop context.
+1. **No Enclosing Loop**: If there is no enclosing loop when a `continue` statement is encountered, the `emitContinue` function will not generate any jump instructions. Instead, it will simply ignore the `continue` statement, as there is nowhere to jump to.
 
-2. **Nested Loops**: When dealing with nested loops, the `emitContinue` function must ensure that the correct loop's continue jump is added. It achieves this by using a stack (`loops_`) to keep track of the current loop nesting level, allowing it to reference the most recent loop when processing a `continue` statement.
+2. **Nested Loops**: In scenarios where multiple nested loops exist, the `emitContinue` function will only affect the nearest enclosing loop. It will not cause a jump out of all nested loops simultaneously.
 
-3. **Empty Loop Body**: If a loop body is empty, encountering a `continue` statement within that loop would also be undefined behavior. The compiler should handle such cases by either ignoring the `continue` statement or generating an appropriate error message.
+3. **Empty Loop Body**: If the body of a loop is empty (i.e., contains no statements), encountering a `continue` statement within that loop will result in a jump to the loop's end, effectively skipping the entire loop.
 
 ## Interactions With Other Components
 
-- **Loop Management**: The `emitContinue` function interacts closely with the loop management system within the compiler. It uses the `loops_` stack to access and modify the continue jump list of the most recent loop. This interaction ensures that the loop structure is accurately represented in the compiled output.
+The `emitContinue` function interacts closely with the `loops_` stack, which keeps track of the current state of all active loops during compilation. Each time a new loop is entered, a new loop context is pushed onto the stack. The `emitContinue` function then appends the generated jump instruction to the `continueJumps` vector of the topmost loop context on the stack.
 
-- **Instruction Emission**: The function relies on the `emitJump` method to generate the actual jump instruction. This method is responsible for creating the low-level representation of the jump operation, which includes specifying the target address (the start of the loop) and handling any necessary addressing modes.
+When the compiler encounters a `continue` statement, it calls the `emitContinue` function to generate the necessary jump instruction. This instruction is stored in the `continueJumps` vector and will be executed later when the loop's condition is checked again, allowing the loop to skip the current iteration and proceed to the next one.
 
-- **Error Handling**: During the execution of `emitContinue`, the compiler may encounter situations where a `continue` statement is used incorrectly (e.g., outside of a loop). In these cases, the function should trigger appropriate error handling mechanisms, ensuring that the user is informed about the misuse of the `continue` statement and can take corrective action.
-
-Overall, the `emitContinue` function plays a vital role in the Quantum Language compiler by enabling efficient control flow within loop structures. Its implementation leverages the loop management system and instruction emission capabilities, while also incorporating robust error handling to maintain the reliability and correctness of the compiled quantum algorithms.
+Upon exiting a loop, whether through normal completion, a `break` statement, or an exception, the compiler pops the corresponding loop context from the `loops_` stack. This ensures that the `continueJumps` vector associated with the exited loop is no longer accessible, preventing potential misuse or unintended jumps into already exited loops.
