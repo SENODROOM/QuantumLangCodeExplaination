@@ -2,29 +2,30 @@
 
 ## Overview
 
-The `resolveLocal` function is an essential utility method in the Quantum Language compiler's `CompilerCore.cpp` file. Its primary purpose is to locate and return the index of a local variable within the current lexical scope by its name. This function aids in resolving variable references during compilation, ensuring that variables are accessed correctly based on their declared positions.
+The `resolveLocal` function is an essential utility method in the Quantum Language compiler's `CompilerCore.cpp` file. Its primary purpose is to locate and return the index of a local variable within the current lexical scope by its name. This function aids in optimizing variable access and ensuring that variables are correctly referenced during compilation.
 
 ## Parameters
 
-- `state`: A pointer to the current compilation state, which includes information about the current lexical scope and the list of local variables.
-- `name`: The name of the local variable whose index needs to be resolved.
+- **`state`**: A pointer to the current compilation state, which contains information about the current scope and all declared variables.
+- **`name`**: The name of the local variable whose index needs to be resolved.
 
 ## Return Value
 
-- Returns the index of the local variable if found within the current lexical scope.
-- Returns `-1` if the local variable is not found within the current lexical scope.
+- **`int`**: Returns the index of the local variable if found; otherwise, returns `-1`.
+
+## How It Works
+
+The function iterates through the list of local variables stored in the `state->locals` vector. It starts from the end of the vector and moves backward, checking each variable's name against the provided `name`. If a match is found, the function immediately returns the index of that variable. This reverse iteration ensures that the most recently declared variable takes precedence over any previously declared variables with the same name, adhering to the Last In First Out (LIFO) principle of stack-based scoping.
+
+If the function completes the loop without finding a match, it returns `-1`, indicating that the variable is not present in the current scope.
 
 ## Edge Cases
 
-- If the `name` parameter is empty or null, the function will return `-1`, indicating that the variable name is invalid.
-- If there are multiple local variables with the same name but declared in different scopes, only the first occurrence in the current scope will be returned.
-- If the current scope does not contain any local variables, the function will return `-1`.
+- **Variable Not Found**: If the variable with the given name does not exist in the current scope, the function returns `-1`.
+- **Multiple Variables with Same Name**: Although the function uses reverse iteration, it assumes that there will only be one declaration of a variable with a given name within the current scope. If multiple declarations are allowed, additional logic would be required to handle such scenarios appropriately.
 
-## Interactions with Other Components
+## Interactions With Other Components
 
-The `resolveLocal` function interacts with the following components:
+The `resolveLocal` function interacts primarily with the `CompilationState` class, which manages the current scope and all declared variables. By providing the index of a local variable, it enables other parts of the compiler to quickly access the variable's metadata or directly manipulate its value.
 
-- **Compilation State (`state`)**: It accesses the `locals` vector within the `state` object to search for the local variable by name.
-- **Scope Management**: By iterating over the `locals` vector in reverse order, starting from the most recently declared variable, the function ensures that the nearest declaration is prioritized, adhering to the principle of lexical scoping.
-
-This interaction allows the `resolveLocal` function to effectively manage variable resolution within nested scopes, providing accurate indices for subsequent operations such as variable access and assignment.
+This function is crucial for the optimization phase of the compiler, where understanding the location of variables can help in generating more efficient machine code. Additionally, it supports error handling by allowing the compiler to report undefined variables when encountered during the compilation process.
