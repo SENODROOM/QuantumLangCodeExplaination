@@ -2,58 +2,107 @@
 
 ## Purpose
 
-The `compileWhile` function compiles a `while` statement in the Quantum Language compiler. It generates bytecode representing the logic of a `while` loop, including condition evaluation and loop body execution. The primary goal is to ensure that the loop runs as long as its condition remains true.
+The `compileWhile` function compiles a `while` statement in the Quantum Language compiler. It generates bytecode representing the logic of a `while` loop, including condition evaluation and loop body execution. The primary goal is to ensure that the loop runs as long as the specified condition remains true.
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - `s`: A reference to a `WhileStatement` object containing the condition and body of the loop.
+  - `s`: A reference to a `WhileStatement` object containing the condition and body of the `while` loop.
   
-- **Return Value**: None. This function modifies the internal state of the compiler by appending bytecode to the current chunk.
+- **Return Value**: None. The function directly modifies the bytecode chunk (`chunk()`) by appending instructions related to the `while` loop.
 
-## How It Works
+## How it Works
 
-1. **Initialization**:
-   - `int loopStart = static_cast<int>(chunk().code.size());`: Records the starting position of the loop's bytecode.
-   - `beginLoop(loopStart);`: Initializes loop-related data structures, setting up the loop start index.
+The function follows these steps to compile a `while` loop:
 
-2. **Condition Compilation**:
-   - `compileExpr(*s.condition);`: Compiles the condition expression of the `while` loop. This results in bytecode that evaluates the condition.
-   
-3. **Exit Jump Creation**:
-   - `size_t exitJump = emitJump(Op::JUMP_IF_FALSE, line);`: Emits a jump instruction (`Op::JUMP_IF_FALSE`) that will be used to exit the loop if the condition is false. The jump address is initially set to an invalid value (`exitJump`).
-   - `emit(Op::POP, 0, line);`: Pops the result of the condition evaluation from the stack, ensuring it doesn't interfere with subsequent operations.
+1. **Record Loop Start Position**:
+   ```cpp
+   int loopStart = static_cast<int>(chunk().code.size());
+   ```
+   This records the current position in the bytecode chunk where the loop starts. It will be used later to calculate the length of the loop.
 
-4. **Scope Management**:
-   - `beginScope();`: Begins a new scope for the loop body, isolating variables declared within the loop from those outside.
-   - `compileNode(*s.body);`: Recursively compiles the body of the `while` loop, which can contain any valid quantum language statements.
-   - `endScope(line);`: Ends the scope after the loop body has been compiled, cleaning up any local variables.
+2. **Begin Loop Compilation**:
+   ```cpp
+   beginLoop(loopStart);
+   ```
+   This method initializes the loop compilation process, setting up any necessary state or metadata associated with the loop.
 
-5. **Continue Jumps Patching**:
-   - `for (size_t ci : loops_.back().continueJumps)`: Iterates over all continue jumps associated with the current loop. These jumps are typically created when there are nested loops or control flow constructs within the loop body.
-   - `chunk().patch(ci, static_cast<int32_t>(chunk().code.size()) - static_cast<int32_t>(ci) - 1);`: Patches each continue jump to point back to the beginning of the loop. This ensures that the loop continues executing even if inner loops encounter break statements.
+3. **Compile Condition Expression**:
+   ```cpp
+   compileExpr(*s.condition);
+   ```
+   The condition expression of the `while` loop is compiled. This involves evaluating the expression and generating bytecode that represents its computation.
 
-6. **Loop Continuation**:
-   - `emit(Op::LOOP, static_cast<int>(chunk().code.size()) - loopStart + 1, line);`: Emits a loop instruction (`Op::LOOP`). This instruction specifies how many bytes to jump backward to re-evaluate the condition at the start of the next iteration. The jump distance is calculated based on the current code size and the recorded loop start position.
-   
-7. **Exit Jump Patching**:
-   - `patchJump(exitJump);`: Updates the initial invalid jump address (`exitJump`) to the correct target address. This ensures that the loop exits properly when the condition becomes false.
+4. **Emit Jump Instruction**:
+   ```cpp
+   size_t exitJump = emitJump(Op::JUMP_IF_FALSE, line);
+   ```
+   An unconditional jump instruction (`Op::JUMP_IF_FALSE`) is emitted. If the condition evaluates to false, the loop will exit immediately. The `emitJump` function returns the index of the jump instruction, which will be patched later.
 
-8. **Final Cleanup**:
-   - `emit(Op::POP, 0, line);`: Pops any remaining values from the stack after the loop has completed.
-   - `endLoop();`: Cleans up loop-related data structures, marking the end of the current loop.
+5. **Pop the Condition Result**:
+   ```cpp
+   emit(Op::POP, 0, line);
+   ```
+   After emitting the jump instruction, the result of the condition expression is popped from the stack since it is no longer needed after the jump decision has been made.
+
+6. **Begin Scope for Loop Body**:
+   ```cpp
+   beginScope();
+   ```
+   This marks the beginning of a new scope specifically for the loop body. Variables declared within the loop body will have their lifetimes limited to this scope.
+
+7. **Compile Loop Body**:
+   ```cpp
+   compileNode(*s.body);
+   ```
+   The body of the `while` loop is recursively compiled. Any statements or expressions inside the loop body are processed and converted into corresponding bytecode instructions.
+
+8. **End Scope for Loop Body**:
+   ```cpp
+   endScope(line);
+   ```
+   This marks the end of the loop body's scope. All variables declared within the loop body are now out of scope.
+
+9. **Patch Continue Jumps**:
+   ```cpp
+   for (size_t ci : loops_.back().continueJumps)
+       chunk().patch(ci, static_cast<int32_t>(chunk().code.size()) - static_cast<int32_t>(ci) - 1);
+   ```
+   Any continue jumps within the loop body are patched. These jumps typically occur when a `continue` statement is encountered inside the loop, causing control to return to the start of the loop without executing the remainder of the current iteration.
+
+10. **Emit LOOP Instruction**:
+    ```cpp
+    emit(Op::LOOP, static_cast<int>(chunk().code.size()) - loopStart + 1, line);
+    ```
+    An `OP_LOOP` instruction is emitted, indicating the start of the loop. The argument specifies the number of bytes to jump back to the start of the loop each time through an iteration.
+
+11. **Patch Exit Jump**:
+    ```cpp
+    patchJump(exitJump);
+    ```
+    The previously emitted jump instruction (`exitJump`) is patched. Since we know the exact position where the loop ends, we can update the jump target to point to this position.
+
+12. **Pop the Condition Result Again**:
+    ```cpp
+    emit(Op::POP, 0, line);
+    ```
+    Finally, the condition result is popped again, ensuring that there are no residual values on the stack after the loop completes.
+
+13. **End Loop Compilation**:
+    ```cpp
+    endLoop();
+    ```
+    This concludes the loop compilation process, cleaning up any resources or state that was set up at the beginning of the loop.
 
 ## Edge Cases
 
-- **Empty Condition**: If the condition expression is empty or evaluates to a constant false, the loop body will not execute at all.
-- **Nested Loops**: The function correctly handles nested loops by maintaining separate continue jump lists for each loop level.
-- **Break Statements**: When a break statement is encountered within the loop body, it creates a jump to the exit jump address, effectively exiting the loop.
+- **Empty Condition**: If the condition expression results in an empty value (e.g., due to an error), the loop may not behave as expected. However, the function handles such cases gracefully by popping the result before proceeding.
+- **Nested Loops**: The function supports nested loops by maintaining a stack of loop information (`loops_`). Each call to `beginLoop` pushes a new entry onto the stack, and `endLoop` pops it off, allowing the function to correctly handle the nesting and patching of jumps.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Chunk Class**: The function interacts with the `Chunk` class to append bytecode to the current chunk being compiled.
-- **Loops Data Structure**: It uses the `loops_` data structure to manage loop-related information, such as loop start positions and continue jump addresses.
-- **CompileExpr Function**: The `compileExpr` function is called to compile the condition expression, generating appropriate bytecode.
-- **Emit Functions**: Various `emit` functions are used to generate different types of bytecode instructions, such as conditional jumps, loop instructions, and stack manipulation instructions.
+- **Chunk Management**: The function interacts with the `Chunk` class, which manages the bytecode being generated. Functions like `emit`, `emitJump`, and `patch` are used to add instructions to the chunk and modify existing ones.
+- **Scope Management**: The `Scope` class is used to manage variable scopes. The function calls `beginScope` and `endScope` to establish and terminate the scope of the loop body.
+- **Error Handling**: The function relies on error handling mechanisms provided by the compiler to manage any issues that arise during the compilation of the condition or body. Errors are typically reported and handled appropriately, but the function itself ensures that the stack is cleaned up before exiting.
 
-This comprehensive approach ensures that the `while` loop is correctly compiled into bytecode, preserving the intended logic and handling various edge cases gracefully.
+By following these steps, the `compileWhile` function effectively translates a `while`
