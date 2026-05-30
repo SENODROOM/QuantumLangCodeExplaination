@@ -1,42 +1,54 @@
 # `visit` Function
 
 ## Purpose
-The `visit` function is a template method within the Quantum Language compiler's `CompilerCore` class. Its primary purpose is to process and translate various types of abstract syntax tree (AST) nodes into corresponding quantum machine code instructions. This function handles different AST node types such as blocks, variable declarations, function declarations, class declarations, conditional statements, loops, return statements, print statements, input statements, try-except blocks, raise statements, break statements, continue statements, import statements, and expression statements.
+The `visit` function is a template method within the Quantum Language compiler's `CompilerCore` class. Its primary purpose is to process and translate various types of abstract syntax tree (AST) nodes into corresponding quantum machine code instructions. This function acts as a dispatcher that calls specialized methods based on the type of AST node encountered during compilation.
 
 ## Parameters
-- `node`: The current AST node being processed.
-- `ln`: The line number in the source code where the node appears.
+- `n`: The AST node to be visited and processed. It can be any subclass of `Node`.
+- `ln`: The line number in the source code where the AST node appears, used for error reporting and debugging purposes.
 
 ## Return Value
-This function does not explicitly return any value but generates quantum machine code instructions based on the type of AST node encountered.
+- None. The function emits quantum machine code instructions directly through the `emit` method.
 
 ## Edge Cases
-1. **Import Statements**: The `visit` function has a special case for handling import statements. It delegates the import processing to native modules or libraries rather than compiling them directly.
-2. **Expression Statements**: When an expression statement is encountered, the function compiles the expression and then emits a `POP` instruction to discard the result. This ensures that expressions do not leave values on the stack unintentionally.
+1. **Unknown Node Types**: If an AST node type is not explicitly handled by any of the conditional checks (`if constexpr`), the function will not perform any action. This could lead to unhandled nodes causing runtime errors or incorrect translations.
+2. **Empty Nodes**: Certain node types like `NilLiteral` might represent empty values or null states. Handling these correctly ensures that the generated quantum code reflects the intended behavior accurately.
+3. **Complex Expressions**: Nodes such as `BinaryExpr`, `UnaryExpr`, and `AssignExpr` can contain nested expressions. The `visit` function must handle these recursively to ensure proper translation.
 
 ## Interactions with Other Components
-- **Compilation Functions**: The `visit` function interacts with several specialized compilation functions (`compileBlock`, `compileVarDecl`, etc.) depending on the type of AST node. These functions generate quantum machine code instructions tailored to each node type.
-- **Emit Function**: The `emit` function is used to output quantum machine code instructions. It takes parameters such as the operation type (`Op`), operands, and the line number.
-- **Stack Management**: The `emit(Op::POP, 0, ln)` calls ensure proper stack management after processing expressions. This prevents potential issues related to stack overflow or underflow.
+- **Emission Layer**: The `emit` method is called internally to generate quantum machine code instructions. This interaction is crucial as it translates the abstract syntax into executable quantum operations.
+- **Symbol Table**: For identifier nodes (`Identifier`), the `compileIdentifier` method uses the symbol table to resolve variable names and their associated quantum registers or qubits. This ensures that variables are correctly referenced in the compiled code.
+- **Error Reporting**: The `ln` parameter is passed to each specialized method to provide context when emitting error messages. This helps in pinpointing issues more accurately within the source code.
 
 ## Implementation Details
-The implementation uses C++'s `if constexpr` feature to perform compile-time dispatch based on the type of the AST node. Here’s how it works:
+The `visit` function employs C++'s `if constexpr` feature to perform compile-time dispatch based on the type of the AST node. Each branch corresponds to a different type of node, and the appropriate specialized method is called to handle its translation. Here’s a breakdown of how some key branches work:
 
-1. **Type Deduction**: The function deduces the type of the AST node using `std::decay_t<decltype(n)>`.
-2. **Conditional Compilation**: Depending on the type of the node, it calls the appropriate compilation function:
-   - `BlockStmt`: Calls `compileBlock(n)`.
-   - `VarDecl`: Calls `compileVarDecl(n, ln)`.
-   - `FunctionDecl`: Calls `compileFunctionDecl(n, ln)`.
-   - `ClassDecl`: Calls `compileClassDecl(n, ln)`.
-   - `IfStmt`: Calls `compileIf(n, ln)`.
-   - `WhileStmt`: Calls `compileWhile(n, ln)`.
-   - `ForStmt`: Calls `compileFor(n, ln)`.
-   - `ReturnStmt`: Calls `compileReturn(n, ln)`.
-   - `PrintStmt`: Calls `compilePrint(n, ln)`.
-   - `InputStmt`: Calls `compileInput(n, ln)`.
-   - `TryStmt`: Calls `compileTry(n, ln)`.
-   - `RaiseStmt`: Calls `compileRaise(n, ln)`.
-3. **Special Handling for Break and Continue**: For `BreakStmt` and `ContinueStmt`, it directly calls `emitBreak(ln)` and `emitContinue(ln)` respectively.
-4. **Default Case for Expression Statements**: For all other types of nodes, including `ExprStmt`, it compiles the expression and then emits a `POP` instruction to clean up the stack.
+- **NumberLiteral and StringLiteral**:
+  ```cpp
+  else if constexpr (std::is_same_v<T, NumberLiteral> || std::is_same_v<T, StringLiteral>)
+      emit(Op::LOAD_CONST, addConst(QuantumValue(n.value)), ln);
+  ```
+  These branches handle loading constants into quantum registers. The `addConst` function adds the constant to the symbol table and returns a reference, which is then used to load the constant into the quantum machine code.
 
-This approach allows the `visit` function to efficiently handle different types of AST nodes without the need for complex runtime checks, making the compilation process both fast and straightforward.
+- **BoolLiteral and NilLiteral**:
+  ```cpp
+  else if constexpr (std::is_same_v<T, BoolLiteral>)
+      emit(n.value ? Op::LOAD_TRUE : Op::LOAD_FALSE, 0, ln);
+  else if constexpr (std::is_same_v<T, NilLiteral>)
+      emit(Op::LOAD_NIL, 0, ln);
+  ```
+  These branches handle boolean and nil literals. They directly map to quantum operations (`Op::LOAD_TRUE` and `Op::LOAD_FALSE`) without needing to look up in the symbol table.
+
+- **Expression Compilation**:
+  ```cpp
+  else if constexpr (std::is_same_v<T, BinaryExpr>)
+      compileBinary(n, ln);
+  else if constexpr (std::is_same_v<T, UnaryExpr>)
+      compileUnary(n, ln);
+  else if constexpr (std::is_same_v<T, AssignExpr>)
+      compileAssign(n, ln);
+  ```
+  These branches delegate the translation of complex expressions to specialized methods (`compileBinary`, `compileUnary`, `compileAssign`). These methods further break down the expression into simpler parts and recursively call `visit` to handle them.
+
+## Conclusion
+The `visit` function plays a critical role in the Quantum Language compiler by translating AST nodes into quantum machine code. Through compile-time dispatch and recursive handling of nested expressions, it ensures accurate and efficient translation. Proper interactions with the emission layer, symbol table, and error reporting mechanisms make it a robust component of the compiler.
