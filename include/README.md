@@ -1,92 +1,51 @@
-# QuantumLanguage Compiler - Parser.h
+# QuantumLanguage Compiler - Serializer.h
 
 ## Overview
 
-The `include/Parser.h` header file is a crucial component of the QuantumLanguage compiler, responsible for converting the tokenized input into an Abstract Syntax Tree (AST). The parser follows a top-down approach with recursive descent to construct the AST based on the grammar rules defined for the language. This file includes various classes and functions designed to handle different aspects of parsing, such as handling statements, expressions, and declarations.
+The `include/Serializer.h` header file is a crucial component of the QuantumLanguage compiler, focusing on the serialization and deserialization of chunks of quantum code. This ensures that compiled programs can be efficiently stored and transmitted while maintaining their integrity during reconstruction.
 
 ## Role in Compiler Pipeline
 
-The parser operates during the compilation process, following the lexical analysis phase where tokens are generated from the source code. Its primary role is to take these tokens and construct a structured representation of the program's syntax, which is then used by other phases like semantic analysis and code generation.
+### Serialization
+Serialization is the process of converting quantum code into a byte stream that can be easily stored or transmitted. The `serialize` function takes a shared pointer to a `Chunk` object and returns a vector of bytes representing the serialized form of the chunk. Key steps include writing the chunk's metadata, such as its type and size, followed by serializing any associated values or strings.
 
-### Key Design Decisions and Why
-
-1. **Top-Down Recursive Descent**: This approach simplifies the implementation of the parser by breaking down the problem into smaller subproblems. Each function corresponds to a non-terminal in the grammar, making it easier to understand and maintain.
-
-2. **Precedence Climb Algorithm**: Used for parsing expressions with operators of varying precedence levels. This algorithm allows the parser to handle complex expressions without requiring extensive lookahead or backtracking.
-
-3. **Error Handling**: The parser throws exceptions (`ParseError`) when it encounters errors, providing detailed information about the error location and message. This helps in debugging and improving the robustness of the compiler.
+### Deserialization
+Deserialization reverses the process of serialization, reconstructing a `Chunk` object from a byte stream. The `deserialize` function accepts a vector of bytes and returns a shared pointer to a reconstructed `Chunk`. It reads the metadata to understand how to parse the subsequent data, including values and strings.
 
 ## Major Classes/Functions Overview
 
-### Parser Class
+- **Serializer Class**: This class encapsulates the functionality for both serialization and deserialization.
+  - **serialize(std::shared_ptr<Chunk> chunk)**: Converts a `Chunk` object into a byte stream.
+  - **deserialize(const std::vector<uint8_t>& data)**: Reconstructs a `Chunk` object from a byte stream.
+  
+- **writeChunk(std::vector<uint8_t>& out, std::shared_ptr<Chunk> chunk)**: Writes the metadata and content of a `Chunk` to a byte stream.
+- **readChunk(const std::vector<uint8_t>& data, size_t& offset)**: Reads a `Chunk` from a byte stream based on its metadata.
+  
+- **writeValue(std::vector<uint8_t>& out, const QuantumValue& val)**: Serializes a `QuantumValue` object into a byte stream.
+- **readValue(const std::vector<uint8_t>& data, size_t& offset)**: Deserializes a `QuantumValue` object from a byte stream.
+  
+- **writeString(std::vector<uint8_t>& out, const std::string& s)**: Writes a string into a byte stream.
+- **readString(const std::vector<uint8_t>& data, size_t& offset)**: Reads a string from a byte stream.
+  
+- **template <typename T> writeRaw(std::vector<uint8_t>& out, const T& t)**: Writes a raw value of type `T` into a byte stream.
+- **template <typename T> T readRaw(const std::vector<uint8_t>& data, size_t& offset)**: Reads a raw value of type `T` from a byte stream.
 
-- **Constructor (`explicit Parser(std::vector<Token> tokens)`)**: Initializes the parser with a vector of tokens.
-- **parse Method (`ASTNodePtr parse()`)**: Parses the entire input and returns the root node of the AST.
+## Key Design Decisions and WHY
 
-### Private Methods
+1. **Separation of Concerns**: By separating serialization and deserialization logic into different functions within the `Serializer` class, we ensure that each operation has a clear focus and is easier to maintain and test.
+   
+2. **Template Functions**: Utilizing template functions for writing and reading raw values allows for flexibility and efficiency. It eliminates the need for multiple overloads for different types, reducing redundancy and improving performance.
 
-#### Token Helpers
+3. **Efficient Memory Management**: Using `std::vector<uint8_t>` for storing serialized data provides efficient memory management and easy access to individual bytes. Additionally, `std::shared_ptr<Chunk>` ensures safe sharing and deletion of chunk objects throughout the compiler pipeline.
 
-- **current Method**: Returns the current token being processed.
-- **peek Method**: Returns the token at a specified offset ahead in the token stream.
-- **consume Method**: Consumes the current token and advances the position.
-- **expect Method**: Ensures the next token matches the expected type, throwing an exception otherwise.
-- **check Method**: Checks if the next token matches a specific type without advancing the position.
-- **match Method**: Matches the next token against a specific type and consumes it if matched.
-- **atEnd Method**: Determines if the end of the token stream has been reached.
-- **skipNewlines Method**: Skips any newline tokens encountered.
-
-#### Statement Parsing
-
-- **parseStatement Method**: Parses a single statement.
-- **parseBlock Method**: Parses a block of statements enclosed in curly braces.
-- **parseBodyOrStatement Method**: Parses either a block or a single statement, allowing for brace-optional blocks.
-- **parseVarDecl Method**: Parses variable declarations, optionally marking them as constant.
-- **parseFunctionDecl Method**: Parses function declarations.
-- **parseClassDecl Method**: Parses class declarations.
-- **parseIfStmt Method**: Parses conditional statements.
-- **parseWhileStmt Method**: Parses while loops.
-- **parseForStmt Method**: Parses for loops.
-- **parseReturnStmt Method**: Parses return statements.
-- **parsePrintStmt Method**: Parses print statements.
-- **parseInputStmt Method**: Parses input statements.
-- **parseCoutStmt Method**: Parses output redirection using `cout`.
-- **parseCinStmt Method**: Parses input redirection using `cin`.
-- **parseImportStmt Method**: Parses import statements, optionally specifying a module name.
-- **parseExprStmt Method**: Parses expression statements.
-
-#### Expression Parsing
-
-- **parseExpr Method**: Parses expressions using the Pratt-style precedence climbing algorithm.
-- **parseAssignment Method**: Parses assignment expressions.
-- **parseOr Method**: Parses logical OR expressions.
-- **parseAnd Method**: Parses logical AND expressions.
-- **parseBitwise Method**: Parses bitwise operations.
-- **parseEquality Method**: Parses equality and inequality comparisons.
-- **parseComparison Method**: Parses relational comparisons.
-- **parseShift Method**: Parses shift operations.
-- **parseAddSub Method**: Parses addition and subtraction.
-- **parseMulDiv Method**: Parses multiplication and division.
-- **parsePower Method**: Parses exponentiation.
-- **parseUnary Method**: Parses unary operators.
-- **parsePostfix Method**: Parses postfix expressions.
-- **parsePrimary Method**: Parses primary expressions (variables, literals, etc.).
-
-#### Literal Parsing
-
-- **parseArrayLiteral Method**: Parses array literal expressions.
-- **parseDictLiteral Method**: Parses dictionary literal expressions.
-- **parseLambda Method**: Parses lambda function expressions.
-- **parseArrowFunction Method**: Parses arrow function expressions.
-- **parseArgList Method**: Parses argument lists for functions and lambdas.
-- **parseParamList Method**: Parses parameter lists for functions, including handling reference parameters and default arguments.
+4. **Error Handling**: While not explicitly shown in the provided code snippet, robust error handling mechanisms should be implemented to manage potential issues during serialization and deserialization processes, such as invalid data formats or insufficient buffer sizes.
 
 ## Tradeoffs
 
-- **Complexity vs. Simplicity**: While the top-down recursive descent approach makes the parser relatively simple to implement, it can become cumbersome as the grammar becomes more complex.
+- **Performance vs. Flexibility**: Template functions offer high performance but may limit flexibility in terms of adding new types without modifying existing code. However, this tradeoff is mitigated by careful design and testing of the serializer/deserializer components.
   
-- **Performance**: The Pratt-style precedence climbing algorithm offers good performance for parsing expressions but may require additional memory due to its stack-based nature.
+- **Memory Usage**: Storing serialized data in `std::vector<uint8_t>` requires additional memory compared to in-place serialization techniques. This tradeoff is acceptable given the benefits of efficient storage and transmission.
 
-- **Readability**: The separation of concerns between different types of parsing (statements, expressions, etc.) enhances readability but adds complexity to the overall structure of the parser.
+- **Complexity vs. Simplicity**: Separating serialization and deserialization into distinct functions increases complexity but simplifies the overall architecture of the compiler. It makes it easier to reason about and debug each component independently.
 
-Overall, the `Parser.h` file plays a vital role in the QuantumLanguage compiler by transforming the raw tokenized input into a structured AST, enabling subsequent phases to perform semantic analysis and code generation efficiently.
+By understanding these aspects, developers can effectively utilize the `Serializer.h` file to enhance the reliability and efficiency of the QuantumLanguage compiler.
