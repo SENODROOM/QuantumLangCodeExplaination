@@ -3,52 +3,54 @@
 ## Purpose
 
 The `compileSuper` function in the Quantum Language compiler is responsible for handling the compilation of references to the superclass. This function primarily addresses two scenarios:
-1. **Standalone `super()` Reference**: When the code includes a standalone reference to `super`.
-2. **Standalone `super.method` Access**: When the code includes a standalone reference to a method of the superclass (`super.method`).
 
-For `super.method()` calls, the `compileCall` function handles them directly.
+1. **Standalone `super()` Reference**: When the code includes a standalone reference to the superclass, such as `super`, the function loads the current object (`self`) and then emits an operation to retrieve the superclass instance.
+2. **Accessing Superclass Methods**: When the code refers to a method on the superclass, such as `super.method`, the function also loads the current object (`self`) but then emits an operation specifically to get the superclass's method.
+
+For supermethod calls like `super.method()`, the `compileCall` function handles them directly.
 
 ## Parameters
 
-- `e`: An expression object that contains information about the `super` reference being compiled. This object typically includes details such as whether the reference is to a method or not.
-- `line`: The current line number in the source code where the `super` reference appears. This is used for error reporting and debugging purposes.
+- `e`: An expression object containing information about the `super` reference, including whether it is accessing a method (`e.method`).
+- `line`: The line number where the `super` reference appears in the source code.
 
 ## Return Value
 
-This function does not explicitly return a value; instead, it emits bytecode instructions using the `emit` function.
-
-## How It Works
-
-### 1. Emitting "self" Load Instruction
-
-The function starts by emitting an instruction to load the `self` variable onto the stack. This represents the current instance of the class, which is necessary to access its superclass.
-
-```cpp
-emitLoad("self", line);
-```
-
-### 2. Handling Method References
-
-If the expression object `e` indicates that the `super` reference is to a method (`!e.method.empty()`), the function proceeds to emit an instruction to get the superclass's method.
-
-```cpp
-if (!e.method.empty())
-    emit(Op::GET_SUPER, addStr(e.method), line);
-```
-
-- `Op::GET_SUPER`: This is an opcode representing the operation to retrieve a method from the superclass.
-- `addStr(e.method)`: This function adds the method name to the string table and returns its index. This index is then used as an argument to the `GET_SUPER` opcode.
-- `line`: This parameter provides the line number in the source code, aiding in error reporting and debugging.
+This function does not explicitly return a value. Instead, it modifies the intermediate representation (IR) of the program during the compilation process.
 
 ## Edge Cases
 
-- **Empty Method Name**: If the method name in the expression object `e` is empty, the function assumes it is a standalone `super()` reference and only loads the `self` variable without attempting to access any method.
-- **Invalid Superclass**: If the superclass does not exist or cannot be accessed during compilation, the function should ideally raise an error. However, the existing implementation does not include explicit error handling for these cases.
+1. **No Method Specified**: If `e.method` is empty, the function only compiles a standalone reference to the superclass. It assumes that the next operation will be a method call.
+2. **Method Not Found**: If the specified method (`e.method`) does not exist in the superclass, the compiler should generate an error message indicating that the method is undefined.
 
 ## Interactions with Other Components
 
-- **Emit Function**: The `emitSuper` function interacts with the `emit` function to generate bytecode instructions. The `emit` function is likely defined in another part of the compiler, possibly in a header file like `src/compiler/CompilerUtils.h`.
-  
-- **String Table Management**: The function uses `addStr(e.method)` to manage the string table. This interaction is crucial for ensuring that all method names are correctly stored and referenced throughout the compilation process.
+- **Intermediate Representation (IR)**: The `emitLoad` and `emit` functions modify the IR by adding load operations for the current object (`self`) and retrieving the superclass or its method.
+- **Error Handling**: The function may interact with error handling mechanisms within the compiler to report issues related to undefined methods or incorrect usage of `super`.
 
-In summary, the `compileSuper` function plays a vital role in compiling references to the superclass within the Quantum Language compiler. By loading the `self` variable and optionally retrieving a method from the superclass, it facilitates the correct execution of superclass-related operations in the compiled code.
+## Detailed Explanation
+
+### Step-by-Step Compilation Process
+
+1. **Loading the Current Object**:
+   ```cpp
+   emitLoad("self", line);
+   ```
+   - This step involves loading the current object (`self`) into the IR. The `self` variable typically represents the instance of the class being compiled.
+
+2. **Handling Standalone `super()` Reference**:
+   ```cpp
+   if (!e.method.empty()) {
+       emit(Op::GET_SUPER, addStr(e.method), line);
+   }
+   ```
+   - If `e.method` is not empty, it means the `super` reference is followed by a method name. In this case, the function emits an operation (`Op::GET_SUPER`) to retrieve the specified method from the superclass.
+   - The `addStr(e.method)` function adds the method name to the string pool, ensuring that the method name is unique and can be efficiently referenced in the IR.
+
+3. **Edge Case Management**:
+   - The function should include checks to ensure that the method exists in the superclass. If the method is not found, appropriate error messages should be generated and reported.
+
+4. **Interactions with Error Handling**:
+   - During the compilation process, the function may need to interact with error handling mechanisms to manage any issues related to undefined methods or incorrect usage of `super`. This could involve calling error reporting functions or modifying the error state of the compiler.
+
+By following these steps, the `compileSuper` function ensures that references to the superclass and its methods are correctly handled during the compilation process, facilitating the generation of efficient and correct quantum programs.
