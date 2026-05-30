@@ -2,54 +2,29 @@
 
 ## Purpose
 
-The `parseCoutStmt` function in the Quantum Language compiler is designed to parse statements that involve outputting data to the console using the `cout` keyword. It constructs an abstract syntax tree (AST) node representing a print statement based on the parsed input.
+The `parseCoutStmt` function in the Quantum Language compiler is responsible for parsing statements that involve outputting data to the console using the `cout` keyword. It constructs an abstract syntax tree (AST) node representing a print statement based on the parsed input.
 
-## Parameters and Return Value
+### What It Does
+
+The function parses a `cout` statement and extracts expressions to be printed. It handles both regular expressions and special tokens like `endl`, which indicates a newline should be printed after the expression. The resulting AST node contains a list of these expressions and a boolean flag indicating whether a newline should be added after printing.
+
+### Why It Works This Way
+
+The function avoids calling `parseExpr()` directly due to potential issues with the `<<` operator being interpreted as a bitwise shift rather than a stream insertion operator. By calling `parseAddSub()` instead, the function ensures that each `<<` remains available as the stream insertion separator, allowing for proper parsing of complex expressions involving multiple insertions.
+
+### Parameters/Return Value
 
 - **Parameters**: None
-- **Return Value**: A unique pointer to an ASTNode object containing a PrintStmt node. The PrintStmt node includes a vector of arguments (`args`) and a boolean flag indicating whether a newline should be printed after the statement (`newline`).
+- **Return Value**: Returns a unique pointer to an `ASTNode` containing a `PrintStmt`. The `PrintStmt` includes a vector of `ASTNodePtr` representing the expressions to be printed and a boolean indicating whether a newline should be added.
 
-## How It Works
+### Edge Cases
 
-The function parses a `cout` statement, which typically follows the format:
-```cpp
-cout << expr1 << expr2 << ... << endl;
-```
-Here's a step-by-step breakdown of how `parseCoutStmt` functions:
+- **Empty Expression List**: If there are no expressions to print, the function returns an empty `args` vector and sets `newline` to `false`.
+- **String Literal with Newline**: If a string literal ends with `\n`, it is treated as a special case where `newline` is set to `true` without adding it to the `args` vector.
+- **Bare Newline String**: A bare string literal `"endl"` is treated as a special token that triggers a newline, setting `newline` to `true`.
 
-1. **Initialization**:
-   - Retrieve the current line number (`ln`) where the parsing begins.
-   - Initialize an empty vector (`args`) to store the expressions to be printed.
-   - Set a boolean flag (`newline`) to `false`, which will be used to determine if a newline character should be included in the output.
+### Interactions With Other Components
 
-2. **Parsing Expressions**:
-   - Enter a loop that continues until a non-left shift (`<<`) token is encountered.
-   - Skip any newlines in the input stream using `skipNewlines()`.
-   - Check if the next token is a left shift (`<<`). If not, break out of the loop.
-   - Consume the left shift token (`consume()`).
-   - Check if the next token is an identifier and its value is `"endl"`. If it is, consume the token and set the `newline` flag to `true`. Continue to the next iteration of the loop.
-   - If the next token is not `"endl"`, parse the expression at the add-subtraction precedence level using `parseAddSub()`. This ensures that the left shift operators are correctly interpreted as stream insertion separators rather than bitwise shift operators.
-   - If the parsed expression is a string literal and its value is exactly `"\n"`, set the `newline` flag to `true`. Otherwise, push the expression into the `args` vector.
-
-3. **Handling Newlines and Semicolons**:
-   - After the main loop, continue consuming tokens until either a newline or a semicolon is encountered. These tokens indicate the end of the statement.
-
-4. **Creating the AST Node**:
-   - Construct a unique pointer to an ASTNode object representing a print statement.
-   - The ASTNode contains a PrintStmt node, which has two members:
-     - `args`: A vector of ASTNodePtr objects representing the expressions to be printed.
-     - `newline`: A boolean flag indicating whether a newline should be printed after the statement.
-   - Return the constructed ASTNode.
-
-## Edge Cases
-
-- **Empty Stream Insertion**: If there are no expressions between `cout` and `<<`, the function will still create a valid ASTNode with an empty `args` vector.
-- **String Literal with `\n`**: If a string literal containing `"\n"` is passed to the stream, it will be treated as a newline trigger, setting the `newline` flag to `true`.
-
-## Interactions with Other Components
-
-- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing.
-- **Precedence Parsing**: By calling `parseAddSub()`, the function leverages the existing precedence parsing mechanism to handle complex expressions involving addition, subtraction, etc., without interference from the left shift operator.
-- **Error Handling**: Although not explicitly shown in the code snippet, error handling mechanisms within the parser ensure that invalid syntax results in appropriate error messages being generated.
-
-This function is crucial for accurately interpreting and constructing print statements in the Quantum Language, ensuring that the output matches the intended behavior specified by the programmer.
+- **Tokenizer**: The function relies on the tokenizer to provide the next token during parsing.
+- **Error Handling**: While not explicitly shown in the code snippet, error handling mechanisms within the parser ensure that any invalid syntax or unexpected tokens result in appropriate error messages or exceptions.
+- **Abstract Syntax Tree (AST)**: The function constructs and returns an `ASTNode` representing the parsed `cout` statement, which can then be used by subsequent stages of the compiler for further processing or code generation.
