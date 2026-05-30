@@ -1,60 +1,38 @@
 # `parseImportStmt`
 
 ## Purpose
-The `parseImportStmt` function is responsible for parsing import statements within the Quantum Language source code. It constructs an `ImportStmt` object that encapsulates the details of the parsed import statement and returns a unique pointer to an `ASTNode`. The function handles both direct imports (`import A as B`) and imports from modules (`from module.sub import A, B`).
+The `parseImportStmt` function is responsible for parsing import statements within the Quantum Language source code. It constructs an `ImportStmt` object that encapsulates the details of the parsed import statement and returns a unique pointer to an `ASTNode`.
 
 ## Parameters
 - None
 
 ## Return Value
-- Returns a `std::unique_ptr<ASTNode>` containing the parsed `ImportStmt`.
-
-## Edge Cases
-1. **Direct Imports**: When importing directly, there is no base module specified. For example:
-   ```quantum
-   import A as B
-   ```
-2. **Imports from Modules**: When importing from a module, the base module is specified before the import keyword. For example:
-   ```quantum
-   from module.sub import A, B
-   ```
-3. **Multiple Items**: Multiple items can be imported separated by commas. For example:
-   ```quantum
-   import A as B, C
-   ```
-4. **Aliases**: Aliases can be provided for imported items using the `as` keyword. For example:
-   ```quantum
-   from module.sub import A as B, C as D
-   ```
+- Returns a unique pointer to an `ASTNode`, which contains the parsed import statement.
 
 ## How It Works
-The function begins by determining whether the current token indicates a direct import or an import from a module. If the current token is `TokenType::FROM`, it assumes an import from a module; otherwise, it assumes a direct import.
+The function parses two types of import statements:
+1. **From Statement**: 
+   - Starts with the keyword `from`.
+   - Followed by a module name (which can be a dot-separated sequence of identifiers).
+   - Ends with the keyword `import`.
+   - Then, it expects one or more items to import, each being an identifier optionally followed by an alias using the `as` keyword.
 
-### Direct Imports
-For direct imports:
-1. The function reads an identifier which represents the item to be imported.
-2. If the next token is `TokenType::AS`, it expects another identifier to serve as the alias for the imported item.
-3. The `ImportStmt::Item` structure is populated with the item name and its alias (if any).
-4. These items are added to the `imports` vector of the `ImportStmt`.
-5. The function continues reading comma-separated items until a non-comma token is encountered.
+2. **Direct Statement**:
+   - Starts with the keyword `import`.
+   - Does not specify a base module.
+   - Expects one or more items to import, each being an identifier optionally followed by an alias using the `as` keyword.
 
-### Imports from Modules
-For imports from modules:
-1. The function reads an identifier representing the module name.
-2. It then expects the `TokenType::IMPORT` token.
-3. Similar to direct imports, it reads comma-separated items, each represented by an identifier.
-4. If the next token is `TokenType::AS`, it expects another identifier to serve as the alias for the imported item.
-5. The `ImportStmt::Item` structure is populated with the item name and its alias (if any).
-6. These items are added to the `imports` vector of the `ImportStmt`.
-7. The function continues reading comma-separated items until a non-comma token is encountered.
+For both types of statements, the function reads the module or item names and aliases, constructs an `ImportStmt::Item` for each, and adds them to the `imports` vector of the `ImportStmt` object. After parsing all items, it consumes any trailing newline characters or semicolons until it reaches the end of the statement.
 
-### Handling Whitespace
-After parsing the import statement, the function consumes any trailing newline or semicolon tokens to ensure proper parsing of subsequent statements.
+## Edge Cases
+- If the statement starts with `from` but does not follow with a valid module name or `import`, the function will throw an error.
+- If an item to import is specified without an alias, the alias will default to the item's name.
+- If there are multiple items to import, they must be separated by commas.
+- Trailing newlines or semicolons are ignored and do not affect the parsing of the import statement.
 
-## Interactions With Other Components
-The `parseImportStmt` function interacts with several other components of the Quantum Language compiler:
-- **Tokenizer**: To retrieve the current token and advance through the input stream.
-- **Error Handling**: To report syntax errors when expected tokens are not found.
-- **Abstract Syntax Tree (AST)**: To construct an `ImportStmt` object and wrap it in an `ASTNode` for further processing by the compiler.
+## Interactions with Other Components
+- This function interacts with the lexer to retrieve tokens and determine their type.
+- It uses helper functions like `expect`, `match`, and `consume` to handle token expectations, matches, and consumption respectively.
+- The parsed `ImportStmt` object is then used by the AST builder to construct the corresponding abstract syntax tree node.
 
-This function is crucial for correctly interpreting and organizing import statements in the Quantum Language source code, ensuring that the necessary symbols are available for use in the rest of the program.
+Overall, the `parseImportStmt` function ensures that import statements are correctly parsed and represented in the quantum language's abstract syntax tree, facilitating further processing and compilation steps.
