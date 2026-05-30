@@ -2,53 +2,46 @@
 
 ## Overview
 
-`ParserExpressions.cpp` is a crucial module within the Quantum Language Compiler, tasked with parsing various expression types such as assignments, ternary operators, and tuple unpacking. The primary goal of this component is to generate accurate Abstract Syntax Trees (ASTs) that capture both the syntactic structure and semantic meaning of the source code.
+`ParserExpressions.cpp` is a critical module within the Quantum Language Compiler responsible for parsing different expression types including assignments, ternary operators, and tuple unpacking. Its main objective is to construct precise Abstract Syntax Trees (ASTs) that encapsulate both the syntactic structure and semantic significance of the source code.
 
 ### Role in Compiler Pipeline
 
-The `ParserExpressions.cpp` module operates during the lexical analysis phase of the compiler pipeline. After tokenization, it takes these tokens and constructs AST nodes representing expressions. These AST nodes are then passed on to subsequent phases of the compilation process, such as semantic analysis and code generation.
+This module operates during the syntax analysis phase of the compiler pipeline. It takes the tokenized input and constructs an AST that represents the program's structure. The AST serves as a foundation for subsequent phases such as semantic analysis, optimization, and code generation.
 
 ### Key Design Decisions and Why
 
-#### Handling Ternary Expressions
+1. **Support for Multiple Expression Types**: The parser needs to handle various expression types such as assignments, ternary operators, and tuple unpacking. Each type requires a distinct parsing strategy to accurately represent its semantics.
 
-The parser distinguishes between Python-style and JavaScript/C-style ternary expressions. For Python, it checks if the next token is `TokenType::IF`. To avoid conflicts with list comprehensions, it performs a lookahead to ensure the presence of an `else` statement before any closing brackets or parentheses. For JavaScript/C, it expects a question mark (`?`) followed by a colon (`:`).
+2. **Lookahead Mechanism**: To differentiate between ternary expressions and list comprehensions, the parser uses a lookahead mechanism. This ensures that the correct parsing strategy is applied based on the context of the expression.
 
-**Why:** This approach ensures that the parser correctly identifies and handles different syntax styles, preventing misinterpretation of complex expressions.
+3. **Context-Sensitive Parsing**: The parser distinguishes between assignment contexts and call argument lists to avoid false positives. For example, a comma-separated list of identifiers should only trigger tuple unpacking if it appears outside of a function call.
 
-#### Tuple Unpacking Assignments
-
-Tuple unpacking assignments are parsed only when they are confirmed through a non-consuming lookahead. This prevents false positives within argument lists, ensuring that only valid tuple unpacking patterns are recognized.
-
-**Why:** By using a lookahead mechanism, the parser can distinguish between intended tuple unpacking and accidental occurrences within function arguments, maintaining the integrity of the AST.
+4. **Error Handling**: Robust error handling is implemented to manage unexpected tokens or missing elements in expressions. This helps maintain the integrity of the AST and provides clear feedback to the user.
 
 ### Major Classes/Functions Overview
 
-#### Parser Class
+#### Class: `Parser`
 
-The `Parser` class contains methods for parsing different expression types. It includes:
+The `Parser` class contains the core logic for parsing expressions. It includes methods for parsing specific types of expressions such as assignments, ternary operators, and tuple unpacking.
 
-- `parseAssignment()`: Parses assignment statements, handling Python-style and JavaScript/C-style ternary expressions and tuple unpacking.
-- `parseOr()`: Parses logical OR expressions.
-- `parseExpr()`: Parses general expressions.
-- `parseListComp()`: Parses list comprehensions.
+##### Functions:
 
-#### ASTNode Class
+- `parseAssignment()`: Parses an assignment expression. It handles Python-style inline ternary expressions and JavaScript/C-style ternary expressions.
+- `parseTupleUnpacking()`: Parses a tuple unpacking assignment. It checks for a valid pattern of identifiers separated by commas followed by an equals sign.
+- `parseOr()`: Parses logical OR expressions. This function is used as part of the ternary expression parsing to handle conditions.
+- `parseExpr()`: Parses general expressions. It is called to handle the then and else parts of ternary expressions.
+- `parseListComp()`: Parses list comprehensions. This function is used to handle cases where a comma-separated list might be mistakenly interpreted as a list comprehension filter.
 
-The `ASTNode` class represents a node in the Abstract Syntax Tree. It includes constructors for different types of AST nodes, such as `TernaryExpr`, which encapsulates ternary conditional expressions.
+#### Class: `ASTNode`
+
+The `ASTNode` class represents nodes in the Abstract Syntax Tree. It includes constructors and methods to create and manipulate nodes, ensuring they accurately reflect the parsed expressions.
 
 ### Tradeoffs
 
-#### Complexity vs. Accuracy
+1. **Complexity vs. Accuracy**: Implementing support for multiple expression types adds complexity to the parser. However, it ensures that the generated ASTs are highly accurate and faithfully represent the source code.
 
-The implementation of lookahead mechanisms adds complexity to the parser but enhances its accuracy in distinguishing between different expression types. Without these mechanisms, the parser might incorrectly interpret complex expressions, leading to errors in the AST construction.
+2. **Performance vs. Robustness**: Using a lookahead mechanism to distinguish between ternary expressions and list comprehensions improves robustness but may slightly impact performance. Balancing these factors is essential for maintaining a performant yet reliable compiler.
 
-#### Performance vs. Flexibility
+3. **Readability vs. Maintainability**: The use of context-sensitive parsing and error handling enhances the readability of the code but may increase its complexity and maintenance overhead. Careful consideration is required to strike a balance between these aspects.
 
-While lookahead mechanisms improve the parser's ability to handle specific cases, they may impact performance due to additional scanning operations. Balancing flexibility in expression parsing against performance considerations is a key tradeoff in the design of this module.
-
-#### Code Readability vs. Functionality
-
-The separation of concerns within the `Parser` class improves code readability by organizing related functionalities into distinct methods. However, this organization might increase the cognitive load required to understand the entire parsing logic.
-
-In conclusion, `ParserExpressions.cpp` plays a vital role in constructing precise ASTs for various expression types within the Quantum Language Compiler. Through strategic design decisions and careful implementation, it ensures both accuracy and efficiency in the parsing process.
+By addressing these tradeoffs, `ParserExpressions.cpp` contributes significantly to the overall functionality and reliability of the Quantum Language Compiler.
