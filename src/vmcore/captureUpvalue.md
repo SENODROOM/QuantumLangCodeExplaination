@@ -2,40 +2,36 @@
 
 ## Overview
 
-The `captureUpvalue` function is a critical method within the Quantum Language compiler's Virtual Machine (VM) core (`VmCore.cpp`). Its primary role is to manage and capture upvalues during the execution of quantum programs. An upvalue refers to a variable that is accessible in an inner scope but was declared in an outer scope. This function ensures that upvalues are properly captured and managed, allowing variables from outer scopes to be accessed within nested functions or closures.
+The `captureUpvalue` function is a crucial method within the Quantum Language compiler's Virtual Machine (VM) core (`VmCore.cpp`). Its primary role is to manage and capture upvalues during the execution of quantum programs. An upvalue refers to a variable that is in scope but not local to the current function or closure being executed. Capturing upvalues ensures that these variables remain accessible even after the function or closure has finished executing.
 
-## Parameters
+## Parameters/Return Value
 
-- `stackIdx`: The index in the VM's stack where the upvalue is located.
+- **Parameters**:
+  - `stackIdx`: The index of the stack slot containing the upvalue to be captured.
 
-## Return Value
-
-- Returns a pointer to the `Upvalue` object representing the captured upvalue.
+- **Return Value**:
+  - A `std::shared_ptr<Upvalue>` representing the captured upvalue. If an upvalue for the given stack slot already exists, the existing one is returned; otherwise, a new upvalue is created and returned.
 
 ## How It Works
 
-1. **Check Existing Open Upvalues**: 
-   - The function first checks if there is already an open upvalue associated with the specified stack index (`stackIdx`). This is done using a loop that iterates through the `openUpvalues_` list.
-   - If an existing upvalue is found, the function returns a pointer to that upvalue without creating a new one.
+1. **Check Existing Upvalues**: The function first checks if there is already an open upvalue associated with the specified stack slot (`stackIdx`). This is done by iterating through the `openUpvalues_` list and comparing the address of the stack cell (`&stack_[stackIdx]`) with the addresses stored in each upvalue.
 
-2. **Create New Upvalue**:
-   - If no existing upvalue is found, the function proceeds to create a new upvalue.
-   - A `std::shared_ptr<QuantumValue>` named `cell` is created. This pointer points directly to the quantum value at the specified stack index (`stackIdx`). However, to prevent unnecessary copies when the upvalue is moved around, a custom deleter is used. The deleter is set to point to the same location as the stack index, ensuring that the quantum value remains valid even after the upvalue is moved.
+2. **Create New Upvalue**: If no upvalue is found for the given stack slot, a new upvalue is created. The upvalue points directly into the stack at the specified index using a `std::shared_ptr`. To avoid unnecessary copies, a custom deleter is used, which simply points to the stack cell without deleting it.
 
-3. **Store and Return Upvalue**:
-   - A new `Upvalue` object is created using `std::make_shared`, passing the `cell` pointer to its constructor.
-   - The newly created upvalue is added to the `openUpvalues_` list.
-   - Finally, the function returns a pointer to the newly created upvalue.
+3. **Store and Return Upvalue**: The newly created upvalue is added to the `openUpvalues_` list and then returned as a `std::shared_ptr`.
 
 ## Edge Cases
 
-- **Stack Index Out of Range**: If the provided `stackIdx` is out of range, the behavior of the function is undefined because it attempts to access memory outside the allocated stack space.
-- **No Upvalues Available**: If the stack contains no upvalues at the specified index, the function will create a new upvalue. However, if the stack is empty or the index is not valid, the function may throw an exception or return a null pointer, depending on how the error handling is implemented.
+- **Multiple Captures**: If multiple closures capture the same upvalue, the same upvalue object will be reused across all closures. This ensures efficient memory usage and avoids redundant copies of the upvalue.
+
+- **Stack Slot Reuse**: If a stack slot is reused before its previous upvalue is closed, the function will correctly identify the reuse and create a new upvalue for the new data in that slot.
 
 ## Interactions with Other Components
 
-- **Stack Management**: The `captureUpvalue` function interacts closely with the VM's stack management system. It uses the stack index to locate the quantum value that needs to be captured as an upvalue.
-- **Upvalue List**: The function maintains a list of open upvalues (`openUpvalues_`) within the VM core. This list is used to track all upvalues that need to be managed during the execution of quantum programs.
-- **Garbage Collection**: By using a custom deleter for the upvalue's `cell` pointer, the function helps ensure proper garbage collection of quantum values. When an upvalue is moved or destroyed, the custom deleter prevents premature deallocation of the quantum value stored on the stack.
+- **OpenUpvalues List**: The `openUpvalues_` list is maintained within the VM core. It stores all currently open upvalues, allowing them to be accessed and managed throughout the program's execution.
 
-In summary, the `captureUpvalue` function is essential for managing upvalues in the Quantum Language compiler's VM core. It efficiently captures and tracks upvalues, ensuring that variables from outer scopes can be accessed within nested functions or closures while preventing potential issues related to stack overflow or invalid memory access.
+- **Closure Management**: When a closure is created, it may need to capture upvalues from the surrounding environment. The `captureUpvalue` function is called to ensure that these upvalues are properly managed and captured.
+
+- **Garbage Collection**: Since upvalues point directly into the stack, they must be carefully managed to prevent memory leaks. The custom deleter used in the `std::shared_ptr` ensures that the upvalue does not interfere with garbage collection processes.
+
+In summary, the `captureUpvalue` function plays a vital role in managing upvalues within the Quantum Language compiler's VM core. By efficiently capturing and reusing upvalues, it ensures that variables remain accessible even after their original scopes have been exited, thereby supporting the execution of complex quantum programs.
