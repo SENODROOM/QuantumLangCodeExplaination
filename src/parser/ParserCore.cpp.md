@@ -2,64 +2,48 @@
 
 ## Overview
 
-`ParserCore.cpp` is a central part of the Quantum Language compiler, tasked with transforming the input source code into an Abstract Syntax Tree (AST). It contains the implementation of the `Parser` class, which manages the lexical analysis and syntactic parsing stages of the compilation process.
+`ParserCore.cpp` is a crucial component of the Quantum Language compiler, responsible for converting the input source code into an Abstract Syntax Tree (AST). This file houses the implementation of the `Parser` class, which oversees both the lexical analysis and syntactic parsing phases of the compilation process.
 
 ## Role in Compiler Pipeline
 
-The parser plays a pivotal role in the Quantum Language compiler's pipeline. After the lexer has produced a sequence of tokens, the parser takes these tokens and constructs a structured AST that represents the program's syntax. This AST is then used by subsequent phases of the compiler to perform semantic analysis, optimization, and code generation.
+The parser acts as the intermediary between the lexer and the rest of the compiler. After the lexer has broken down the source code into individual tokens, the parser takes these tokens and constructs a structured representation of the program's syntax, known as the AST. The AST serves as the foundation for subsequent stages of the compilation process, including semantic analysis, optimization, and code generation.
 
-## Key Design Decisions and Why
+### Key Design Decisions and Why
 
-1. **Token Stream Management**: The parser operates on a stream of tokens provided by the lexer. Managing this token stream efficiently is crucial for accurate parsing. The use of a vector to store tokens allows for easy access and manipulation, such as peeking ahead or consuming tokens as they are processed.
+1. **Token Stream Management**: The `Parser` class maintains a stream of tokens (`std::vector<Token>`), allowing it to sequentially access each token during parsing. This design choice simplifies the parsing logic by enabling the parser to look ahead at upcoming tokens without modifying the original token stream.
 
-2. **Lexical Analysis Integration**: By integrating lexical analysis directly within the parser, we ensure that the parser receives well-formed tokens. This simplifies error handling and ensures that the parser can focus solely on constructing the AST.
+2. **Efficient Token Consumption**: The parser provides methods like `current()`, `peek(int offset)`, and `consume()` to manage the movement through the token stream efficiently. These methods ensure that the parser can easily check the type of the next token or consume the current token, facilitating a clean separation of concerns within the parsing process.
 
-3. **Syntactic Parsing Rules**: The parser uses a set of predefined rules to determine how tokens should be grouped into statements and expressions. These rules are designed based on the grammar of the Quantum Language, ensuring that the resulting AST accurately reflects the intended structure of the code.
+3. **Error Handling**: The `Parser` includes robust error handling mechanisms, such as the `expect` method, which throws a `ParseError` when the expected token type does not match the current token. This ensures that the parser can gracefully handle syntax errors and provide meaningful error messages to the user.
 
-4. **Error Handling**: Robust error handling is essential for providing meaningful feedback to the user. The parser throws exceptions when it encounters unexpected tokens or syntax errors, along with detailed error messages indicating the expected token type and what was actually found.
-
-5. **Flexibility and Scalability**: The parser is designed to be flexible and scalable, allowing for easy extension to support new language features. By breaking down the parsing logic into smaller functions, each responsible for parsing a specific construct, the parser remains modular and maintainable.
+4. **Syntactic Parsing Rules**: The parser defines specific rules for syntactic parsing, such as how statements are constructed and how blocks are nested. These rules are implemented using a series of recursive descent functions (`parseStatement()`, `parseBlock()`, etc.), which make the parsing logic modular and easier to understand.
 
 ## Major Classes/Functions Overview
 
-### Parser Class
+- **Parser Class**:
+  - Manages the token stream and provides methods for accessing and consuming tokens.
+  - Contains the main parsing function `parse()`, which constructs the AST by recursively parsing statements and blocks.
 
-- **Constructor (`Parser::Parser`)**: Initializes the parser with a vector of tokens and sets the initial position to 0.
-- **Current Token Access (`Parser::current`)**: Returns the current token being processed.
-- **Peek Ahead (`Parser::peek`)**: Allows looking at a token at a specified offset without advancing the parser.
-- **Consume Token (`Parser::consume`)**: Advances the parser to the next token and returns the consumed token.
-- **Expect Token (`Parser::expect`)**: Ensures the current token matches the expected type, throwing an exception otherwise.
-- **Check Token Type (`Parser::check`)**: Checks if the current token is of a specific type.
-- **Match Token Type (`Parser::match`)**: Attempts to match the current token against a specific type, advancing the parser if successful.
-- **At End Check (`Parser::atEnd`)**: Determines if the parser has reached the end of the token stream.
-- **Skip Newlines (`Parser::skipNewlines`)**: Skips over any consecutive newline tokens, which are often ignored in the AST construction.
-- **Parse Function (`Parser::parse`)**: Orchestrates the entire parsing process, starting with a block statement and repeatedly parsing individual statements until the end of the token stream is reached.
+- **Token Methods**:
+  - `current()`: Returns the current token being processed.
+  - `peek(int offset)`: Returns the token at a specified offset ahead in the token stream.
+  - `consume()`: Consumes the current token and advances to the next one.
+  - `expect(TokenType t, const std::string &msg)`: Checks if the current token matches the expected type; otherwise, throws a `ParseError`.
+  - `check(TokenType t) const`: Checks if the current token matches the specified type.
+  - `match(TokenType t)`: If the current token matches the specified type, consumes it and returns `true`; otherwise, returns `false`.
+  - `atEnd() const`: Determines if the end of the token stream has been reached.
 
-### ASTNode Class
-
-The `ASTNode` class serves as the base class for all nodes in the AST. Each node encapsulates a specific type of statement or expression and provides methods for accessing its properties and children.
-
-### Statement and Expression Parsers
-
-The parser includes specialized functions for parsing different types of statements and expressions, such as:
-- **Block Statements (`Parser::parseBlock`)**: Parses a sequence of statements enclosed in curly braces.
-- **Expression Statements (`Parser::parseExpressionStatement`)**: Parses a single expression followed by a semicolon.
-- **Variable Declarations (`Parser::parseVarDeclaration`)**: Parses variable declarations with optional initialization.
-- **Function Calls (`Parser::parseFunctionCall`)**: Parses function calls with arguments.
-- **Control Flow Statements (`Parser::parseIf`, `Parser::parseWhile`, etc.)**: Parses conditional and looping constructs.
+- **Utility Functions**:
+  - `skipNewlines()`: Skips over any consecutive newline tokens, ensuring that the parser does not treat them as separate statements.
 
 ## Tradeoffs
 
-1. **Complexity vs. Simplicity**:
-   - **Complexity**: Implementing a comprehensive parser requires understanding and implementing the full grammar of the Quantum Language. This results in more complex code but ensures complete coverage of valid syntax.
-   - **Simplicity**: A simpler parser might only handle a subset of the language's features, leading to incomplete or incorrect ASTs. However, this could result in easier-to-maintain code.
+While the parser design offers several advantages, such as simplicity and clarity, there are also some potential tradeoffs:
 
-2. **Performance vs. Accuracy**:
-   - **Performance**: Efficiently managing the token stream and parsing large files quickly is crucial for performance. Optimizing the parser's algorithm can significantly improve processing speed.
-   - **Accuracy**: Accurate parsing ensures that the resulting AST correctly represents the program's structure. While some optimizations might sacrifice accuracy, thorough testing and validation help mitigate this risk.
+- **Performance**: The use of recursive descent parsing can lead to performance issues, especially for complex grammars. However, for the relatively straightforward grammar of Quantum Language, this approach remains efficient and easy to implement.
 
-3. **Modularity vs. Monolithic Codebase**:
-   - **Modularity**: Breaking down the parsing logic into smaller, reusable functions promotes modularity and makes the code easier to understand and maintain.
-   - **Monolithic Codebase**: A monolithic approach consolidates all parsing logic into a single function, potentially reducing complexity but increasing the difficulty of maintenance and scalability.
+- **Flexibility**: The parser is designed around a fixed set of syntactic rules, which may limit its ability to handle future extensions or variations of the language. To address this, the parser could be refactored to support more flexible grammar definitions, although this would increase complexity.
 
-By carefully balancing these tradeoffs, the Quantum Language compiler's parser aims to provide both robustness and efficiency in converting source code into an AST.
+- **Readability**: The modular design of the parser enhances readability and maintainability, making it easier to add new features or fix bugs. However, the extensive use of recursion might reduce the overall readability for those unfamiliar with the technique.
+
+In summary, `ParserCore.cpp` is a vital part of the Quantum Language compiler, responsible for transforming the input source code into a structured AST. Its design choices and utility functions facilitate efficient and effective parsing, while potential tradeoffs must be considered to balance performance, flexibility, and readability.
