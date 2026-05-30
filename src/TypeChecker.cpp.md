@@ -2,46 +2,47 @@
 
 ## Overview
 
-`TypeChecker.cpp` is a critical module within the Quantum Language compiler responsible for static type checking of the Abstract Syntax Tree (AST). It ensures that all expressions and statements adhere to their declared types, thereby preventing runtime errors due to type mismatches.
+`TypeChecker.cpp` is a critical component of the Quantum Language compiler, tasked with performing static type checking on the Abstract Syntax Tree (AST). This ensures that all expressions and statements conform to their declared types, thus mitigating potential runtime errors caused by type mismatches.
 
 ## Role in the Compiler Pipeline
 
-The `TypeChecker` operates during the semantic analysis phase of the compilation process. After parsing and building the AST, the type checker traverses the tree to validate the types of variables, function parameters, and return values. If any type inconsistencies are detected, it reports them as warnings or errors, ensuring the code's correctness before further processing.
+The `TypeChecker` operates during the semantic analysis phase of the compilation process. After parsing and building the AST, the `TypeChecker` traverses the tree to verify that each expression and statement adheres to its specified type. If any discrepancies are found, it generates appropriate error messages, facilitating early detection and resolution of issues.
 
 ## Key Design Decisions and Why
 
-1. **Global Environment**: The type checker maintains a global environment (`globalEnv`) to store type information for built-in functions and identifiers. This allows for easy resolution of types throughout the program.
+### Environment Management
+- **Global and Local Environments**: The `TypeChecker` maintains both global and local type environments. The global environment holds predefined types like built-in functions, while local environments are used for function-specific variables and parameters. This separation allows for accurate type resolution across different scopes.
+  
+### Type Inference
+- **Implicit Types**: For variables without explicit type hints, the `TypeChecker` infers their types based on the initializer expression. This approach reduces boilerplate code and makes the language more user-friendly.
 
-2. **Sub-environments**: For each function declaration, a new sub-environment (`subEnv`) is created. This isolates local variable types from the global scope, preventing conflicts and ensuring accurate type inference within functions.
-
-3. **Type Hints**: Function declarations can include type hints for parameters and return values. These hints guide the type checker in validating the types against expected values, providing flexibility while maintaining strong typing.
-
-4. **Basic Type Checks**: Simple type checks are performed for literals like numbers, strings, and booleans. For more complex constructs such as binary expressions and function calls, additional logic is applied to ensure type compatibility.
+### Dynamic Typing Support
+- **Any Type**: The `TypeChecker` supports an "any" type, which can hold values of any other type. This feature is crucial for flexibility in quantum programming where operations might not always have statically determinable types.
 
 ## Major Classes/Functions Overview
 
 ### Class: TypeChecker
+- **Constructor**: Initializes the global type environment with predefined types such as `print`, `input`, etc.
+- **Method: check**
+  - Accepts a vector of AST nodes and iterates through them, calling `checkNode` for each one.
+- **Method: checkNode**
+  - Recursively checks individual AST nodes based on their type.
+  - Handles various node types including literals, identifiers, variable declarations, function declarations, and binary expressions.
 
-- **Constructor**: Initializes the `TypeChecker` with a global environment containing built-in function types.
-- **Method: check(const std::vector<ASTNodePtr>& nodes)**: Iterates over a list of AST nodes and checks each one using the `checkNode` method.
-- **Method: check(const ASTNodePtr& node)**: Handles individual AST nodes, recursively checking nested blocks and function bodies.
+### Class: TypeEnv
+- **Purpose**: Manages the current scope's type information.
+- **Methods**:
+  - `define`: Adds a new symbol to the environment with its associated type.
+  - `resolve`: Retrieves the type of a symbol given its name.
 
-### Function: checkNode(const ASTNodePtr& node, std::shared_ptr<TypeEnv> env)
+## Tradeoffs
 
-- **Purpose**: Validates the type of the given AST node based on its structure and the current environment.
-- **Logic**:
-  - **Literals**: Returns specific types for number, string, and boolean literals.
-  - **Identifiers**: Resolves the type of an identifier from the current environment.
-  - **Variable Declarations**: Ensures that the type of a variable matches the initializer's type unless a type hint is provided.
-  - **Function Declarations**: Sets up a sub-environment for the function body and validates parameter and return types.
-  - **Blocks**: Recursively checks each statement within a block.
+### Flexibility vs. Strictness
+- **Flexibility**: Supporting dynamic typing (`any`) enhances the language's expressiveness and usability, particularly in complex quantum algorithms.
+- **Strictness**: Enforcing strict type checking helps catch errors early in the development process, improving code quality and maintainability.
 
-## Trade-offs
+### Performance vs. Usability
+- **Performance**: Predefined types and efficient environment management contribute to better performance during type checking.
+- **Usability**: Dynamic typing and flexible syntax improve developer productivity and ease of use.
 
-1. **Flexibility vs. Strictness**: Allowing type hints provides some level of flexibility, but it also increases the complexity of the type checking logic.
-   
-2. **Performance**: Creating sub-environments for each function adds overhead, which could impact performance, especially in large programs with many functions.
-
-3. **Readability**: While type hints enhance flexibility, they might reduce code readability if not used consistently or appropriately.
-
-Overall, `TypeChecker.cpp` plays a crucial role in ensuring the robustness and reliability of the compiled quantum language code by enforcing strict type constraints during the semantic analysis phase.
+In conclusion, `TypeChecker.cpp` plays a pivotal role in ensuring the correctness and robustness of the Quantum Language compiler. Its design balances flexibility, strictness, performance, and usability, making it an essential part of the compiler's architecture.
