@@ -2,11 +2,11 @@
 
 ## Overview
 
-The `toString` function is a member method of the `Token` class within the Quantum Language compiler's source code located at `src/Token.cpp`. This function serves as a utility to provide a readable string representation of a `Token` object, which includes details such as the token's line number and column position, along with its value.
+The `toString` function is a member method of the `Token` class in the Quantum Language compiler's source code (`src/Token.cpp`). This function provides a human-readable string representation of a `Token` object, including its line number, column number, and token value.
 
 ### Why It Works This Way
 
-This implementation uses an `std::ostringstream` to format the output string. The `<<` operator is used to concatenate the line number, column number, and value of the token into a single formatted string. By placing these values within square brackets, the function emphasizes their significance as part of the token's identity.
+This implementation uses an `std::ostringstream` to construct a formatted string that encapsulates the essential information about the token. The format `[line:col value]` ensures that each token can be easily identified and traced back to its position in the source code.
 
 ### Parameters/Return Value
 
@@ -15,14 +15,14 @@ This implementation uses an `std::ostringstream` to format the output string. Th
 
 ### Edge Cases
 
-1. **Empty Token Value**: If the token's value is empty, the function will still return a string indicating the line and column numbers, but without the token's actual value.
-2. **Negative Line or Column Numbers**: While not common in typical use cases, the function can handle negative line and column numbers gracefully, converting them to strings and including them in the output.
+1. **Empty Token Value**: If the token value is empty, the returned string will still include the line and column numbers, making it clear where the token originated.
+2. **Special Characters in Token Value**: Special characters or spaces in the token value are handled correctly, ensuring that the output remains valid and informative.
 
-### Interactions With Other Components
+### Interactions with Other Components
 
-The `toString` function interacts primarily with the `Token` class itself. It accesses the private members `line`, `col`, and `value` of the `Token` object to construct the string representation. No external dependencies are required for this operation.
+The `toString` function interacts primarily with the `Token` class itself, accessing its private members such as `line`, `col`, and `value`. This function is typically used for debugging purposes or when displaying tokens in a user-friendly manner during compilation.
 
-Here is the complete implementation of the `toString` function:
+Here is the complete implementation:
 
 ```cpp
 #include <sstream>
@@ -30,10 +30,14 @@ Here is the complete implementation of the `toString` function:
 
 class Token {
 public:
-    int line;  // Line number where the token appears
-    int col;   // Column number where the token appears
-    std::string value;  // Value of the token
+    int line;
+    int col;
+    std::string value;
 
+    // Constructor
+    Token(int l, int c, const std::string& v) : line(l), col(c), value(v) {}
+
+    // Member function to convert token to string
     std::string toString() const {
         std::ostringstream oss;
         oss << "[" << line << ":" << col << " " << value << "]";
@@ -42,4 +46,4 @@ public:
 };
 ```
 
-In summary, the `toString` function provides a clear and concise string representation of a `Token` object, making debugging and logging easier during the compilation process.
+In summary, the `toString` function is a crucial utility for the Quantum Language compiler, providing a clear and concise string representation of tokens for better debugging and traceability.
