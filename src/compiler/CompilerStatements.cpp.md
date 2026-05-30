@@ -2,36 +2,51 @@
 
 ## Overview
 
-The `src/compiler/CompilerStatements.cpp` file is an integral part of the Quantum Language compiler's pipeline, responsible for the compilation of various statement types such as variable declarations, function declarations, and class declarations. This file ensures that high-level quantum language code is efficiently transformed into executable bytecode.
+The `src/compiler/CompilerStatements.cpp` file plays a crucial role in the Quantum Language compiler's pipeline, focusing on the compilation of statements like variable declarations, function declarations, and class declarations. It ensures that high-level quantum language code is efficiently transformed into bytecode that can be executed by the virtual machine.
 
 ### Key Design Decisions and Why
 
-1. **Scope Management**: The compiler maintains a scope depth to track where variables are declared. Variables declared at the global level are defined using `Op::DEFINE_GLOBAL`, while those within functions or local scopes use `Op::DEFINE_LOCAL`. This decision ensures that variables are correctly accessible during runtime.
+1. **Scope Management**: The compiler maintains separate scopes for global and local variables. This decision allows for clear separation between different parts of the program, preventing name clashes and enabling proper scoping rules.
+   
+2. **Bytecode Emission**: Instead of generating intermediate representations directly, the compiler emits bytecode operations (`Op`). This approach simplifies the compilation process and makes it easier to optimize and execute the generated code.
 
-2. **Initialization Handling**: When compiling variable declarations, the compiler checks if an initializer is provided. If so, it compiles the initializer expression; otherwise, it emits a `LOAD_NIL` operation to initialize the variable with `nil`. This approach simplifies handling uninitialized variables without introducing unnecessary complexity.
+3. **Upvalues Handling**: For closures, the compiler handles upvalues separately. Upvalues refer to variables from enclosing functions that are captured by nested functions. This decision ensures that closures are correctly implemented and that memory management is efficient.
 
-3. **Closure Creation**: For function declarations, the compiler creates closures when necessary. A closure is emitted using `Op::MAKE_CLOSURE` if there are upvalues, otherwise `Op::MAKE_FUNCTION`. This allows functions to capture outer variables, which is essential for functional programming patterns.
-
-4. **Inheritance Support**: In class declarations, the compiler supports inheritance by emitting an `INHERIT` operation after creating the base class chunk. This enables derived classes to inherit properties and methods from their parent classes.
-
-5. **Method Binding**: The compiler binds methods to the class during compilation. It handles different cases such as nested class declarations, field initializations, and assignment expressions. This ensures that all methods are properly associated with their respective classes.
+4. **Inheritance Support**: Classes can inherit from other classes. The compiler supports inheritance by emitting specific bytecode operations (`Op::MAKE_CLASS`, `Op::INHERIT`) that handle the creation and setup of class instances.
 
 ## Major Classes/Functions Overview
 
-- **Compiler Class**: Manages the overall compilation process, including managing the symbol table and scope stack. It contains methods to compile individual statement types (`compileVarDecl`, `compileFunctionDecl`, `compileClassDecl`).
+### Compiler Class
 
-- **compileVarDecl Function**: Compiles variable declarations. It handles both initialized and uninitialized variables, ensuring they are correctly defined at their respective scopes.
+- **Role**: Manages the overall compilation process, including parsing, semantic analysis, and bytecode generation.
+- **Key Functions**:
+  - `compileVarDecl`: Compiles variable declarations, handling both initialized and uninitialized cases.
+  - `compileFunctionDecl`: Compiles function declarations, creating closures when necessary.
+  - `compileClassDecl`: Compiles class declarations, supporting inheritance and method binding.
 
-- **compileFunctionDecl Function**: Compiles function declarations. It generates bytecode for the function body, creates closures if necessary, and defines the function globally or locally based on its scope.
+### Error Class
 
-- **compileClassDecl Function**: Compiles class declarations. It manages class creation, inheritance, and method binding. Nested class declarations and field initializations are also handled within this function.
+- **Role**: Handles errors during the compilation process, providing informative error messages and locations.
+- **Key Functions**: Various methods to report errors at different stages of compilation.
+
+### Vm Class
+
+- **Role**: Represents the virtual machine where the compiled bytecode will run. Provides functionality for executing bytecode and managing runtime state.
+- **Key Methods**: `execute`, `loadConst`, `defineGlobal`, etc., which correspond to bytecode operations.
+
+### Helper Functions
+
+- **`emit`**: Emits a single bytecode operation.
+- **`emitLoad`**: Loads a value from a variable or expression.
+- **`declareLocal`**: Declares a new local variable.
+- **`resolveLocal`**: Resolves the slot index of a local variable within the current scope.
 
 ## Tradeoffs
 
-1. **Memory Usage**: Maintaining a symbol table and scope stack can increase memory usage, especially for large programs. However, this overhead is necessary for accurate scope management and variable resolution.
+1. **Complexity vs. Performance**: By using bytecode emission, the compiler achieves simplicity in the compilation process but may sacrifice some performance compared to direct IR generation.
 
-2. **Complexity**: Supporting closures and inheritance adds complexity to the compiler. While these features are powerful, they require careful handling to ensure correct bytecode generation and execution.
+2. **Memory Management**: Handling upvalues requires additional complexity in the compiler to manage memory allocation and deallocation for closures.
 
-3. **Performance**: Efficiently managing scopes and generating bytecode requires optimized algorithms. Balancing performance with correctness and simplicity is a constant challenge in compiler design.
+3. **Scalability**: The separation of scopes and bytecode emission provides scalability, allowing the compiler to handle larger programs with multiple scopes and complex control structures.
 
-Overall, the `src/compiler/CompilerStatements.cpp` file provides a robust foundation for compiling quantum language statements, balancing functionality, accuracy, and performance.
+Overall, the `src/compiler/CompilerStatements.cpp` file is essential for transforming high-level quantum language code into executable bytecode, ensuring proper scoping, function handling, and class inheritance support.
