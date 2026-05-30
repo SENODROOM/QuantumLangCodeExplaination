@@ -2,36 +2,28 @@
 
 ## Overview
 
-The `emitStore` function is a critical component of the Quantum Language compiler's core functionality. Its main purpose is to generate bytecode instructions for storing values into variables or fields. This function intelligently handles different types of storage locations—local variables, upvalues, and global variables—and ensures that the correct bytecode operation is emitted based on the type of variable being stored.
+The `emitStore` function is a crucial component of the Quantum Language compiler's core functionality. Its primary purpose is to generate bytecode instructions for storing values into variables or fields. The function operates by determining whether the target variable or field is a local, upvalue, or global and then emitting the appropriate bytecode instruction based on that determination.
 
-### Why It Works This Way
+### Parameters
 
-The design of `emitStore` is driven by the need to efficiently manage memory and data flow within the compiled code. By determining whether a variable is local, upvalue, or global, the function can select the most appropriate bytecode instruction. Local variables are typically accessed frequently, so their storage is optimized for quick access. Upvalues are used in nested functions to reference outer variables, and global variables provide persistent storage across different scopes.
+- `const std::string &name`: The name of the variable or field where the value will be stored.
+- `int line`: The source code line number at which the store operation occurs. This information is used for error reporting and debugging purposes.
 
-### Parameters/Return Value
+### Return Value
 
-- **Parameters**:
-  - `const std::string &name`: The name of the variable or field where the value will be stored.
-  - `int line`: The source code line number at which the store operation occurs, used for debugging purposes.
-
-- **Return Value**: None. The function directly emits bytecode instructions.
+This function does not explicitly return a value. Instead, it generates bytecode instructions directly using the `emit` function.
 
 ### Edge Cases
 
-- **Name Resolution**: If the variable name is `"this"`, it is treated as an alias for `"self"` (which refers to slot 0 in all methods). This allows for consistent handling of references to the current object instance.
-  
-- **Local Variables**: If the variable is found to be a local variable within the current scope (`resolveLocal` returns a non-negative index), the function emits an `Op::STORE_LOCAL` instruction followed by the local variable index and the source line number.
-
-- **Upvalues**: If the variable is not a local but is referenced through an upvalue (`resolveUpvalue` returns a non-negative index), the function emits an `Op::STORE_UPVALUE` instruction, indicating the upvalue index and the source line number.
-
-- **Global Variables**: If the variable is neither local nor an upvalue, it must be a global variable. In this case, the function adds the string representation of the variable name to the symbol table using `addStr` and then emits an `Op::STORE_GLOBAL` instruction, along with the global variable index and the source line number.
+1. **Storing 'this'**: If the `name` parameter is `"this"`, the function aliases it as `"self"` since `"this"` is a common keyword in many programming languages to refer to the current object instance. It then resolves the local slot for `"self"` and emits a `STORE_LOCAL` bytecode instruction.
+2. **Handling Local Variables**: If the `name` corresponds to a local variable within the current scope, the function resolves the local slot using the `resolveLocal` method and emits a `STORE_LOCAL` bytecode instruction.
+3. **Handling Upvalues**: If the `name` corresponds to a variable in an enclosing scope (upvalue), the function resolves the upvalue index using the `resolveUpvalue` method and emits a `STORE_UPVALUE` bytecode instruction.
+4. **Global Variables**: If none of the above conditions are met, the function assumes the `name` refers to a global variable. It adds the string representation of the `name` to the string table using the `addStr` method and emits a `STORE_GLOBAL` bytecode instruction.
 
 ### Interactions with Other Components
 
-- **Symbol Table**: The `emitStore` function interacts with the symbol table to resolve variable names to indices. This allows it to determine the type of storage location (local, upvalue, or global) and to retrieve the necessary indices for emitting the correct bytecode instructions.
+- **String Table (`addStr`)**: The `addStr` method is called when storing a global variable to ensure that the string representation of the variable name is unique and can be efficiently referenced throughout the compiled bytecode.
+- **Scope Resolution (`resolveLocal` and `resolveUpvalue`)**: These methods are responsible for resolving the local and upvalue slots for the given variable name. They interact with the symbol table and scope stack to determine the correct storage location.
+- **Bytecode Emission (`emit`)**: The `emit` function is used to generate and append bytecode instructions to the output buffer. Depending on the type of storage (local, upvalue, or global), it appends the corresponding bytecode instruction along with the necessary operands.
 
-- **Bytecode Emission**: The function uses the `emit` method to output the appropriate bytecode operations. These operations include `Op::STORE_LOCAL`, `Op::STORE_UPVALUE`, and `Op::STORE_GLOBAL`, each tailored to handle the respective storage type.
-
-- **Scope Management**: During the compilation process, scope management is handled by maintaining a stack of scopes. The `emitStore` function relies on the current scope (`current_`) to resolve local and upvalue variables correctly.
-
-In summary, the `emitStore` function plays a vital role in generating efficient bytecode for storing values in various types of variables within the Quantum Language compiler. By leveraging the symbol table and scope management, it ensures that the correct bytecode operations are emitted, optimizing memory access and facilitating the execution of nested functions and global state.
+By handling different types of storage locations, the `emitStore` function ensures efficient and accurate compilation of variable assignment statements in the Quantum Language.
