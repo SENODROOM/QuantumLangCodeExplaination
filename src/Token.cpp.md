@@ -2,41 +2,57 @@
 
 ## Overview
 
-The `Token.cpp` file is essential to the Quantum Language compiler, responsible for parsing and converting individual lexical elements from the source code into structured token objects. These tokens form the foundation for further processing stages like syntax analysis and code generation.
+The `Token.cpp` file plays a crucial role in the Quantum Language compiler by parsing and converting individual lexical elements from the source code into structured token objects. These tokens serve as the fundamental building blocks for subsequent phases of the compilation process, including syntax analysis and code generation.
 
 ## Role in Compiler Pipeline
 
 ### Parsing Lexical Elements
 
-The main function here is to parse lexical elements from the source code and convert them into `Token` objects. Each `Token` object encapsulates information about its type, value, and position in the source code (line and column numbers).
+The primary responsibility of `Token.cpp` is to parse the lexical elements of the source code and convert them into token objects. This involves identifying keywords, identifiers, literals, operators, and other symbols that make up the language's vocabulary.
 
-### Key Design Decisions
+#### Key Design Decisions and Why
 
-1. **Token Structure**: The `Token` class is designed with a simple structure that includes fields for the token's type, value, line number, and column number. This design ensures clarity and ease of use throughout the compiler.
+1. **Lexical Analysis**: The file uses a lexer to break down the source code into meaningful units called tokens. This is essential for understanding the structure of the program at a granular level.
 
-2. **Efficient String Handling**: To handle string values efficiently, the `Token` class uses `std::string`. This choice provides flexibility and performance benefits while managing text data.
+2. **Token Structure**: Each token object contains information such as its type, value, line number, and column position. This structure allows for easy reference and manipulation during later stages of compilation.
 
-3. **Position Tracking**: Keeping track of the line and column numbers helps in error reporting and debugging. It allows the compiler to pinpoint where an issue occurred in the source code.
+3. **Error Handling**: The lexer includes mechanisms to handle errors gracefully, ensuring that the compiler can continue processing even if it encounters unexpected characters or malformed constructs.
 
-4. **Stream Conversion**: The `toString()` method converts the `Token` object into a string format using `std::ostringstream`. This makes it easier to log or display token details during development and debugging.
+4. **Efficiency**: To improve performance, the lexer employs efficient data structures and algorithms for tokenization. For example, using regular expressions to match patterns quickly and minimizing memory allocations.
+
+5. **Extensibility**: The design allows for easy extension to support additional features or changes in the language specification without significant modifications to existing code.
 
 ## Major Classes/Functions Overview
 
-- **Token Class**:
-  - Represents a single lexical element from the source code.
-  - Contains attributes for token type, value, line number, and column number.
-  - Provides methods to create tokens and convert them to string representations.
+### Token Class
 
-- **toString() Method**:
-  - Converts a `Token` object into a human-readable string format.
-  - Uses `std::ostringstream` to format the output, including the token's position (line and column) and its value.
+- **Purpose**: Represents a single token parsed from the source code.
+- **Attributes**:
+  - `type`: Indicates the category of the token (e.g., keyword, identifier).
+  - `value`: Contains the actual text of the token.
+  - `line`: The line number where the token was found.
+  - `col`: The column position within the line.
+- **Methods**:
+  - `toString() const`: Converts the token to a string representation for debugging purposes.
+
+### Lexer Class
+
+- **Purpose**: Responsible for breaking down the source code into tokens.
+- **Attributes**:
+  - `input`: The input stream containing the source code.
+  - `currentChar`: Holds the current character being processed.
+- **Methods**:
+  - `getToken()`: Retrieves the next token from the input stream.
+  - `skipWhitespace()`: Skips any whitespace characters encountered during tokenization.
+  - `match(char expected)`: Checks if the current character matches the expected character and advances the input stream accordingly.
+  - `error(const std::string& msg)`: Handles errors by throwing exceptions with appropriate messages.
 
 ## Tradeoffs
 
-- **Memory Usage**: Using `std::string` for token values can lead to higher memory usage compared to fixed-size arrays or other data structures. However, this tradeoff is justified by the need for flexible string handling.
+1. **Complexity vs. Performance**: While a more complex lexer might offer better error handling and extensibility, it could also lead to decreased performance due to increased overhead. The current implementation strikes a balance between these two factors.
 
-- **Performance**: While `std::ostringstream` is convenient for formatting strings, it might introduce some performance overhead compared to manual string concatenation. However, this impact is generally minimal and outweighed by the readability and maintainability benefits.
+2. **Memory Usage**: Efficiently managing memory allocation and deallocation is critical, especially when dealing with large source files. The use of smart pointers and pooled memory helps mitigate this issue.
 
-- **Error Reporting**: Precise tracking of token positions enhances error reporting capabilities. This can be particularly useful in complex programs where errors may occur at various locations.
+3. **Flexibility vs. Simplicity**: A highly flexible lexer that supports all possible language features might be harder to implement and maintain compared to a simpler one. The current design provides a good compromise between flexibility and simplicity.
 
-In conclusion, the `Token.cpp` file is a crucial component of the Quantum Language compiler, ensuring efficient and accurate lexical analysis. Its design choices balance functionality, performance, and readability, making it a solid foundation for the rest of the compiler's operations.
+By understanding the role of `Token.cpp` in the Quantum Language compiler and its key components, developers can gain insight into how lexical analysis is performed and how structured tokens are generated, which are foundational steps in the overall compilation process.
