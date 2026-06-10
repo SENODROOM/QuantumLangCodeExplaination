@@ -1,121 +1,102 @@
 # Value Component of the Quantum Language Compiler
 
-The Value component is a crucial module in the Quantum Language (QL) compiler, designed to handle and manage various types of values within the quantum computing environment. This component ensures efficient conversion, access, and manipulation of these values, enabling their smooth integration throughout the compiler's architecture.
+The Value component is an essential module in the Quantum Language (QL) compiler, responsible for handling and managing different types of values within the quantum computing environment. This component ensures efficient conversion, access, and manipulation of these values, facilitating their seamless integration across the compiler's architecture.
 
 ## Overview
 
-The Value component provides a robust framework for representing and operating on quantum values. It includes essential functionalities such as checking truthiness, converting values to strings, retrieving type names, defining variables, accessing and modifying cell and field data, and identifying native values.
+The Value component provides a comprehensive set of functionalities to work with various data types encountered during the compilation process. It includes methods for checking truthiness, converting values to strings, retrieving type names, defining variables, accessing and modifying cell and field values, determining if a value is native, and converting native values back to QL values.
 
-## Key Functions
+### Key Features
 
-- **isTruthy**: Determines whether a given value is considered "truthy" in the quantum context.
-- **toString**: Converts a value to its string representation.
-- **typeName**: Retrieves the name of the type associated with a value.
-- **define**: Defines a new variable or constant with a specified name and value.
-- **defineRef**: Defines a reference to an existing value.
-- **get**: Retrieves the value associated with a specified key.
-- **set**: Sets the value associated with a specified key.
-- **has**: Checks if a specified key exists in the value store.
-- **getCell**: Retrieves a cell from a composite value.
-- **getField**: Retrieves a field from a composite value.
-- **setField**: Sets a field in a composite value.
-- **isNative**: Determines whether a value is a native quantum value.
-- **asNative**: Converts a value to its native quantum representation.
+- **Value Conversion**: Efficiently converts between different data types used in quantum programming.
+- **Variable Management**: Defines and manages variables, including both local and reference types.
+- **Cell and Field Access**: Provides methods to get and set values at specific cells or fields.
+- **Truthiness Check**: Determines whether a given value is considered "truthy" in the context of quantum programming.
+- **Type Information**: Retrieves the type name of a value, aiding in type-checking and error handling.
+- **Native Support**: Facilitates interaction with native quantum hardware and software libraries.
 
-## Directory Structure
+### Directory Structure
 
 ```
 value/
 ├── include/
-│   ├── ql/value/Value.h
-│   ├── ql/value/Cell.h
-│   ├── ql/value/Field.h
-│   └── ql/value/NativeValue.h
+│   ├── ql/value.hpp
+│   └── ...
 ├── src/
-│   ├── Value.cpp
-│   ├── Cell.cpp
-│   ├── Field.cpp
-│   └── NativeValue.cpp
-└── tests/
-    ├── test_Value.cpp
-    ├── test_Cell.cpp
-    ├── test_Field.cpp
-    └── test_NativeValue.cpp
+│   ├── ql/value.cpp
+│   └── ...
+├── tests/
+│   ├── ql/value_test.cpp
+│   └── ...
+└── README.md
 ```
 
-### Include Files
+#### `include/ql/value.hpp`
 
-- `ql/value/Value.h`: Main header file containing declarations for the Value class and related utilities.
-- `ql/value/Cell.h`: Header file for the Cell class, which represents individual cells within composite values.
-- `ql/value/Field.h`: Header file for the Field class, which manages fields within composite values.
-- `ql/value/NativeValue.h`: Header file for the NativeValue class, providing interfaces for interacting with native quantum values.
+This header file contains declarations for all public classes, structs, and functions related to the Value component. It serves as the primary interface for developers working with quantum values.
 
-### Source Files
+#### `src/ql/value.cpp`
 
-- `Value.cpp`: Implementation of the main Value class and associated methods.
-- `Cell.cpp`: Implementation of the Cell class and operations on individual cells.
-- `Field.cpp`: Implementation of the Field class and management of fields within composite values.
-- `NativeValue.cpp`: Implementation of the NativeValue class and conversions to native quantum representations.
+The source file implements the functionality declared in `value.hpp`. It includes detailed logic for value conversions, variable management, and other operations.
 
-### Test Files
+#### `tests/ql/value_test.cpp`
 
-- `test_Value.cpp`: Unit tests for the Value class.
-- `test_Cell.cpp`: Unit tests for the Cell class.
-- `test_Field.cpp`: Unit tests for the Field class.
-- `test_NativeValue.cpp`: Unit tests for the NativeValue class.
+Unit tests for the Value component, ensuring that all functions behave as expected under various conditions.
 
-## Flowchart
+## Usage
 
-```plaintext
-+---------------------+
-|      Value          |
-+---------+-----------+
-          |
-          v
-+---------+-----------+
-|     Cell          |
-+---------+-----------+
-          |
-          v
-+---------+-----------+
-|     Field         |
-+---------+-----------+
-          |
-          v
-+---------+-----------+
-|  NativeValue        |
-+---------------------+
-```
+To use the Value component in your quantum language projects, follow these steps:
 
-## Usage Example
+1. **Include the Header File**:
+    ```cpp
+    #include <ql/value.hpp>
+    ```
 
-Here is a simple example demonstrating how to use the Value component:
+2. **Define Variables**:
+    ```cpp
+    ql::Value var = ql::Value::define("myVar", ql::ValueType::INTEGER);
+    ```
 
-```cpp
-#include <ql/value/Value.h>
-#include <iostream>
+3. **Set and Get Values**:
+    ```cpp
+    var.set(42);
+    int value = var.get<int>();
+    ```
 
-int main() {
-    // Define a new integer value
-    ql::Value myInt = ql::Value(42);
+4. **Check Truthiness**:
+    ```cpp
+    bool isTrue = var.isTruthy();
+    ```
 
-    // Convert the value to a string
-    std::string str = myInt.toString();
-    std::cout << "Value as String: " << str << std::endl;
+5. **Convert to String**:
+    ```cpp
+    std::string strValue = var.toString();
+    ```
 
-    // Check if the value is truthy
-    bool isTrue = myInt.isTruthy();
-    std::cout << "Is Truthy: " << (isTrue ? "Yes" : "No") << std::endl;
+6. **Access Type Name**:
+    ```cpp
+    std::string typeName = var.typeName();
+    ```
 
-    // Define a new reference to the integer value
-    ql::Value refToMyInt = ql::Value::defineRef("myInt", &myInt);
+7. **Work with Cells and Fields**:
+    ```cpp
+    ql::Value cellValue = var.getCell("cell1");
+    var.setField("field1", ql::Value::define("fieldValue", ql::ValueType::BOOLEAN));
+    ```
 
-    // Retrieve the referenced value
-    ql::Value retrievedValue = ql::Value::get("myInt");
-    std::cout << "Retrieved Value: " << retrievedValue.toInt() << std::endl;
+8. **Interact with Native Values**:
+    ```cpp
+    ql::Value nativeVar = ql::Value::asNative(nativeQuantumObject);
+    ```
 
-    return 0;
-}
-```
+## Contributing
 
-This example illustrates the basic usage of the Value component, including defining values, converting them to strings, checking truthiness, and creating references to these values.
+Contributions to the Value component are welcome! If you find any issues or have suggestions for improvements, please open an issue on the [GitHub repository](https://github.com/your-repo/ql-value).
+
+For more information on contributing, see our [CONTRIBUTING.md](https://github.com/your-repo/ql-value/blob/master/CONTRIBUTING.md) file.
+
+## License
+
+The Value component is licensed under the Apache License 2.0. See the [LICENSE](https://github.com/your-repo/ql-value/blob/master/LICENSE) file for details.
+
+By using the Value component, you agree to be bound by the terms of this license.
