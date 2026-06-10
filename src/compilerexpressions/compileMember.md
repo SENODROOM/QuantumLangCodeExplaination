@@ -2,46 +2,46 @@
 
 ## Function Overview
 
-The `compileMember` function plays a vital role in the Quantum Language Compiler's expression compilation process, particularly when handling member access expressions. These expressions enable you to fetch properties or invoke methods on objects.
+The `compileMember` function is an essential component of the Quantum Language Compiler's expression compilation process. It handles member access expressions, allowing developers to retrieve properties or invoke methods on objects within their quantum programs.
 
-### Parameters and Return Value
+### Parameters
 
-- **Parameters**:
-  - `e`: A reference to an `Expression` object representing the member access expression to be compiled.
-  
-- **Return Value**: None. The function performs in-place compilation and does not return any value.
+- `e`: A reference to a `MemberAccessExpr` object representing the member access expression to be compiled. This object contains information about the object being accessed and the member property or method name.
 
-## How It Works
+### Return Value
 
-The `compileMember` function operates as follows:
-
-1. **Compile Object Expression**: 
-   ```cpp
-   compileExpr(*e.object);
-   ```
-   This line compiles the sub-expression that represents the object whose member is being accessed. The result of this compilation is stored in the object's slot within the compiler's state.
-
-2. **Emit GET_MEMBER Operation**:
-   ```cpp
-   emit(Op::GET_MEMBER, addStr(e.member), line);
-   ```
-   After compiling the object expression, the function emits an operation (`Op::GET_MEMBER`) to retrieve the specified member from the object. The member name is passed as a string argument using `addStr(e.member)`, which ensures that the member name is correctly interned and managed within the compiler's symbol table. The `line` parameter indicates the source code line number where the member access occurs, aiding in error reporting and debugging.
-
-### Why It Works This Way
-
-This approach ensures that the member access expression is handled efficiently and accurately during the compilation phase. By first compiling the object expression, the function ensures that the object is properly evaluated before attempting to access its members. Emitting the `GET_MEMBER` operation then allows the compiler to generate the appropriate machine code to perform the member access at runtime.
+This function does not explicitly return a value. Instead, it modifies the internal state of the compiler by emitting bytecode instructions that represent the member access operation.
 
 ### Edge Cases
 
-- **Null Object Reference**: If the object reference in the member access expression is null, the compiler should handle this case gracefully, possibly emitting an error or exception indicating invalid member access.
-- **Non-existent Member**: If the specified member does not exist on the object, the compiler should also handle this situation appropriately, either by generating a warning or by raising an error.
+1. **Null Object**: If the `object` field of the `MemberAccessExpr` is `nullptr`, indicating that there is no valid object to access, the function should handle this case gracefully without causing a runtime error. This might involve generating an appropriate error message or skipping the compilation of the expression.
+   
+2. **Invalid Member Name**: If the `member` field of the `MemberAccessExpr` contains an invalid or non-existent member name, the function should generate an error during compilation. This ensures that the resulting program will not attempt to access members that do not exist, which could lead to undefined behavior at runtime.
+
+3. **Dynamic Typing**: In languages that support dynamic typing, the type of the object being accessed may not be known at compile time. The `compileMember` function should handle such cases by dynamically resolving the member based on the actual type of the object at runtime.
+
+4. **Method Overloading**: If the member being accessed is a method that can have multiple overloads, the function should resolve the correct overload based on the arguments provided in the method call.
+
+5. **Namespace Access**: If the member being accessed is part of a namespace, the function should correctly resolve the namespace and access the member within that namespace.
 
 ### Interactions with Other Components
 
-The `compileMember` function interacts closely with several other components of the Quantum Language Compiler:
+- **Expression Compilation**: The `compileMember` function interacts with the `compileExpr` function, which compiles the object being accessed. This ensures that the object itself is properly compiled before attempting to access its members.
 
-- **Symbol Table**: The function uses `addStr(e.member)` to ensure that the member names are correctly interned and managed within the symbol table.
-- **Expression Evaluator**: The function calls `compileExpr(*e.object)` to compile the sub-expression representing the object, which involves interaction with the expression evaluator component.
-- **Code Generator**: The emitted `GET_MEMBER` operation is processed by the code generator, which translates it into the corresponding machine code instructions for accessing the member.
+- **Bytecode Emission**: After compiling the object, the `compileMember` function emits a bytecode instruction (`Op::GET_MEMBER`) to represent the member access operation. This instruction includes the member name as a string and the line number where the expression appears, providing context for debugging and error reporting.
 
-Overall, the `compileMember` function is a key part of the Quantum Language Compiler's expression compilation process, ensuring that member access expressions are handled efficiently and accurately.
+- **Symbol Table**: The function uses a symbol table to look up the member name and determine its type. This helps in ensuring type safety and correctness during compilation.
+
+- **Error Handling**: The `compileMember` function integrates with the compiler's error handling mechanism. If any issues arise during the compilation of the member access expression (such as null objects or invalid member names), the function generates appropriate error messages to help the developer identify and fix the problem.
+
+### Why It Works This Way
+
+The current implementation of `compileMember` works effectively because it separates the concerns of object compilation and member access into distinct steps:
+
+1. **Object Compilation**: By calling `compileExpr(*e.object)`, the function ensures that the object being accessed is fully compiled before proceeding with the member access. This allows the compiler to handle complex object types and ensure that all necessary code is generated.
+
+2. **Emitting Bytecode**: Once the object is compiled, the function emits a `GET_MEMBER` bytecode instruction. This instruction is designed to efficiently access members at runtime, leveraging the capabilities of the quantum virtual machine.
+
+3. **Type Safety**: Using the symbol table to look up the member name and determine its type ensures that the member access operation adheres to type safety rules. This prevents runtime errors caused by accessing members of incorrect types.
+
+By following this approach, the `compileMember` function provides a robust and efficient way to handle member access expressions in the Quantum Language Compiler, ensuring that the resulting program is both correct and performant.
