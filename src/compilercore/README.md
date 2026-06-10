@@ -1,47 +1,68 @@
 # CompilerCore
 
-The `CompilerCore` component is an integral part of the Quantum Language compiler, responsible for handling fundamental tasks during the compilation process. It manages scopes, resolves variable references, and emits bytecode that can be executed by the quantum runtime environment. This module serves as the central nervous system for processing quantum nodes and expressions, ensuring their accurate parsing and transformation into executable code.
+The `CompilerCore` component is a crucial part of the Quantum Language compiler, designed to handle essential tasks throughout the compilation process. It manages scopes, resolves variable references, and generates bytecode suitable for execution in the quantum runtime environment. This module acts as the central nervous system for processing quantum nodes and expressions, ensuring accurate and efficient compilation.
 
 ## Overview
 
-- **Scopes Management**: The `CompilerCore` maintains a stack of scopes to keep track of variable declarations and their visibility.
-- **Variable Resolution**: Functions like `resolveLocal`, `addUpvalue`, and `resolveUpvalue` help in identifying where a variable is declared and whether it needs to be accessed through upvalues.
-- **Bytecode Emission**: Methods such as `emitLoad` and `emitStore` generate bytecode instructions for loading and storing values.
-- **Control Flow**: Functions like `beginLoop`, `emitBreak`, `emitContinue`, and `endLoop` manage control structures within the quantum program.
+- **Scopes**: The `CompilerCore` maintains a stack of scopes to manage variable bindings and lifetimes. Scopes are nested, allowing for block-level scoping.
+- **Variable Resolution**: It resolves local and upvalue variables, ensuring that references are correctly mapped to their definitions.
+- **Bytecode Emission**: The core emits bytecode instructions based on the parsed quantum language constructs. These instructions are then executable by the quantum runtime.
 
-## Files and Their Roles
+## Files and Functions
 
 ### compile.cpp
-- **Functionality**: Contains the main entry point for compiling quantum programs.
-- **Relationships**: Interacts with all other core components to orchestrate the compilation process.
+- **Functionality**: Handles the main compilation loop, invoking other functions to process individual nodes.
+- **Functions**:
+  - `compile()`: Main entry point for compiling the quantum program.
+  - `compileNode(Node* node)`: Compiles a single quantum node.
+  - `visit(Node* node)`: Visits a node and processes it according to its type.
 
 ### scope.cpp
-- **Functionality**: Manages the creation, destruction, and resolution of variable scopes.
-- **Relationships**: Used by `compile.cpp` and other components to maintain scope information.
+- **Functionality**: Manages the creation, destruction, and resolution of scopes.
+- **Functions**:
+  - `beginScope()`: Begins a new scope.
+  - `endScope()`: Ends the current scope.
+  - `declareLocal(const std::string& name)`: Declares a local variable within the current scope.
+  - `resolveLocal(const std::string& name)`: Resolves a local variable reference.
 
-### resolve.cpp
-- **Functionality**: Handles the resolution of local and upvalue variables.
-- **Relationships**: Utilized by various components to ensure correct variable access.
+### upvalue.cpp
+- **Functionality**: Manages upvalues, which are variables from outer scopes that need to be captured by closures.
+- **Functions**:
+  - `addUpvalue(const std::string& name)`: Adds an upvalue to the current function's list.
+  - `resolveUpvalue(const std::string& name)`: Resolves an upvalue reference.
 
 ### emit.cpp
-- **Functionality**: Generates bytecode instructions for operations like load and store.
-- **Relationships**: Called by expression and statement compilers to produce executable code.
+- **Functionality**: Emits bytecode instructions into the output buffer.
+- **Functions**:
+  - `emitLoad(const std::string& name)`: Emits an instruction to load a variable onto the stack.
+  - `emitStore(const std::string& name)`: Emits an instruction to store a value from the stack into a variable.
 
 ### loop.cpp
-- **Functionality**: Manages the generation of bytecode for loop constructs.
-- **Relationships**: Invoked by the block and expression compilers to handle loops.
+- **Functionality**: Manages loop structures, including begin and end loop logic.
+- **Functions**:
+  - `beginLoop()`: Marks the beginning of a loop.
+  - `emitBreak()`: Emits an instruction to break out of a loop.
+  - `emitContinue()`: Emits an instruction to continue to the next iteration of a loop.
+  - `endLoop()`: Marks the end of a loop.
 
-### node.cpp
-- **Functionality**: Defines and processes quantum nodes and expressions.
-- **Relationships**: Central to the compilation process, interacting with all other components.
+### block.cpp
+- **Functionality**: Processes quantum blocks, which are groups of statements.
+- **Functions**:
+  - `compileBlock(Block* block)`: Compiles a quantum block.
+
+### expr.cpp
+- **Functionality**: Processes quantum expressions.
+- **Functions**:
+  - `compileExpr(Expr* expr)`: Compiles a quantum expression.
 
 ## Overall Flow
 
-1. **Initialization**: The compiler initializes the `CompilerCore` and sets up the necessary data structures.
-2. **Scope Management**: As the compiler encounters variable declarations, it uses `beginScope` and `declareLocal` to manage scopes.
-3. **Variable Resolution**: During the compilation of expressions, the `CompilerCore` resolves variable references using `resolveLocal` and `resolveUpvalue`.
-4. **Bytecode Generation**: Expressions and statements are compiled, generating bytecode via `emitLoad`, `emitStore`, etc.
-5. **Control Flow**: Loops and conditionals are processed, with bytecode generated for break, continue, and end conditions using `beginLoop`, `emitBreak`, `emitContinue`, and `endLoop`.
-6. **Finalization**: After all nodes have been processed, the `CompilerCore` finalizes the compilation, emitting any remaining bytecode and cleaning up resources.
+1. **Compilation Entry Point**: The `compile()` function starts the compilation process by iterating over the top-level quantum nodes.
+2. **Scope Management**: As nodes are processed, `beginScope()` and `endScope()` manage the nesting of scopes.
+3. **Variable Declaration and Resolution**: Variables are declared using `declareLocal()` and resolved using `resolveLocal()` or `resolveUpvalue()`.
+4. **Bytecode Generation**: Instructions are emitted using `emitLoad()`, `emitStore()`, etc., based on the nodes being processed.
+5. **Loop Handling**: Loop structures are managed using `beginLoop()`, `emitBreak()`, `emitContinue()`, and `endLoop()`.
+6. **Block Processing**: Blocks of statements are compiled using `compileBlock()`.
+7. **Expression Compilation**: Expressions are processed using `compileExpr()`.
 
-By following this structured approach, the `CompilerCore` ensures that quantum programs are compiled efficiently and correctly, providing a solid foundation for further optimization and execution.
+By following this structured approach, the `CompilerCore` ensures that the quantum program is compiled accurately and efficiently, preparing it for execution in the quantum runtime environment.
