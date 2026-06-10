@@ -1,39 +1,110 @@
-# QuantumLanguage Compiler - Token.h
+# QuantumLanguage Compiler - TypeChecker.h
 
 ## Overview
 
-The `include/Token.h` header file is an integral part of the QuantumLanguage compiler, focusing on the representation and management of tokens. Tokens serve as the basic building blocks of source code, providing a structured way to parse and analyze the input text. This file defines the token types and the `Token` struct, which encapsulates these types along with their associated values and positions within the source code.
+The `include/TypeChecker.h` header file is an essential component of the QuantumLanguage compiler, focusing on the Type Checking phase. This phase validates the types of variables, expressions, and statements within the source code to ensure they conform to the language's type system rules. The Type Checker helps catch errors early in the compilation process, improving code quality and reducing debugging time.
 
 ## Role in Compiler Pipeline
 
-In the QuantumLanguage compiler's pipeline, `Token.h` plays a pivotal role during the lexical analysis phase. Lexical analysis involves breaking down the source code into individual tokens, which are then passed to the parser for further syntactic analysis. The `Token` struct facilitates this process by storing information about each token, including its type, value, and location in the source code. This allows the compiler to maintain context and accurately track errors or inconsistencies in the code.
+The Type Checker operates during the semantic analysis stage of the compiler pipeline, following the Lexical Analysis and Syntax Parsing phases. Its primary responsibilities include:
+
+1. **Static Type Checking**: Ensures all variables, functions, and data structures have correct types before any code generation occurs.
+2. **Error Detection**: Identifies type mismatches, undeclared variables, and other issues that could lead to runtime errors.
+3. **Type Inference**: Where possible, infers the types of expressions based on their usage and context.
+
+By performing these tasks, the Type Checker contributes significantly to the robustness and reliability of the generated quantum code.
 
 ## Key Design Decisions and Why
 
-1. **TokenType Enum**: The `TokenType` enum categorizes different types of tokens such as literals, identifiers, keywords, operators, delimiters, and special cases. Each token type has a unique identifier, making it easier to handle and differentiate them throughout the compiler's various stages. For example, distinguishing between `NUMBER`, `STRING`, and `BOOL_TRUE` helps in applying appropriate parsing rules and semantic actions.
+### 1. Use of Exception Handling
 
-2. **Token Struct**: The `Token` struct is designed to hold essential information about each token:
-   - `type`: Specifies the kind of token, using the `TokenType` enum.
-   - `value`: Stores the actual string value of the token.
-   - `line` and `col`: Provide the line number and column position where the token was encountered in the source code. This information is crucial for error reporting and debugging.
+The Type Checker uses custom exception classes (`StaticTypeError`) derived from `std::runtime_error`. This approach allows for clear error messages that include the line number where the error occurred, making it easier for developers to locate and fix issues.
 
-3. **String Representation**: The `toString()` method in the `Token` struct returns a human-readable string representation of the token. This is particularly useful for debugging purposes, allowing developers to easily inspect and understand the state of the token stream during compilation.
+```cpp
+class StaticTypeError : public std::runtime_error
+{
+public:
+    int line;
+    StaticTypeError(const std::string &msg, int l)
+        : std::runtime_error(msg), line(l) {}
+};
+```
+
+**Why**: Custom exceptions provide more specific information about errors, which aids in debugging and improves the overall user experience.
+
+### 2. Hierarchical Type Environment
+
+A hierarchical type environment (`TypeEnv`) is implemented using a shared pointer to a parent environment. This structure supports nested scopes, allowing variables defined in inner scopes to shadow those in outer scopes.
+
+```cpp
+struct TypeEnv {
+    std::map<std::string, std::string> vars;
+    std::shared_ptr<TypeEnv> parent;
+
+    TypeEnv(std::shared_ptr<TypeEnv> p = nullptr) : parent(p) {}
+
+    void define(const std::string& name, const std::string& type) {
+        vars[name] = type;
+    }
+
+    std::string resolve(const std::string& name) {
+        if (vars.count(name)) return vars[name];
+        if (parent) return parent->resolve(name);
+        return "any";
+    }
+};
+```
+
+**Why**: Hierarchical scoping is necessary for languages with block structures, ensuring that variable resolution follows the standard scope rules.
+
+### 3. Modular Design
+
+The Type Checker is designed as a modular class (`TypeChecker`). It includes methods to check entire ASTs (`check(const std::vector<ASTNodePtr>& nodes)`) and individual AST nodes (`check(const ASTNodePtr& node)`).
+
+```cpp
+class TypeChecker
+{
+public:
+    TypeChecker();
+    void check(const std::vector<ASTNodePtr>& nodes);
+    void check(const ASTNodePtr& node);
+    std::string checkNode(const ASTNodePtr& node, std::shared_ptr<TypeEnv> env);
+
+private:
+    std::shared_ptr<TypeEnv> globalEnv;
+};
+```
+
+**Why**: A modular design makes the Type Checker easier to maintain and extend, allowing for different parts of the compiler to interact with it independently.
 
 ## Major Classes/Functions Overview
 
-- **TokenType Enum**: Defines all possible token types used in the QuantumLanguage compiler.
-- **Token Struct**: Represents a single token, containing its type, value, and position in the source code.
-  - **Constructor**: Initializes a `Token` object with the given type, value, line number, and column position.
-  - **toString() Method**: Returns a string representation of the token, suitable for debugging.
+### `TypeChecker`
+
+- **Constructor**: Initializes the global type environment.
+- **Methods**:
+  - `void check(const std::vector<ASTNodePtr>& nodes)`: Checks the entire list of AST nodes.
+  - `void check(const ASTNodePtr& node)`: Checks a single AST node.
+  - `std::string checkNode(const ASTNodePtr& node, std::shared_ptr<TypeEnv> env)`: Recursively checks a node within a given type environment.
+
+### `TypeEnv`
+
+- **Attributes**:
+  - `std::map<std::string, std::string> vars`: Stores variable names and their types.
+  - `std::shared_ptr<TypeEnv> parent`: Points to the parent environment, enabling nested scopes.
+  
+- **Methods**:
+  - `void define(const std::string& name, const std::string& type)`: Defines a new variable in the current environment.
+  - `std::string resolve(const std::string& name)`: Resolves the type of a variable, considering nested environments.
 
 ## Tradeoffs
 
-1. **Enum vs. String Comparison**: Using an enum for token types provides faster comparisons and reduces memory usage compared to strings. However, enums do not support dynamic token types, which might be necessary in some advanced scenarios.
+### Memory Usage
 
-2. **Memory Usage**: Storing both the type and value in the `Token` struct can lead to higher memory consumption, especially if many tokens have large string values. Optimizing memory usage might require additional strategies, such as interning or using more efficient data structures.
+Using a hierarchical type environment can increase memory usage due to the overhead of storing multiple environment instances. However, this tradeoff is justified by the need to support nested scopes and avoid potential conflicts between variable names.
 
-3. **Error Reporting**: Providing precise line and column numbers in the `Token` struct enhances error reporting capabilities. However, tracking these positions accurately during lexical analysis requires careful implementation and can impact performance.
+### Complexity
 
-4. **Flexibility vs. Simplicity**: Extending the `TokenType` enum to include more specific token types offers greater flexibility but increases complexity. Balancing simplicity and extensibility is crucial for maintaining a manageable codebase.
+Implementing a custom exception class adds complexity to the codebase but enhances its readability and maintainability. Similarly, the modular design increases complexity but provides better separation of concerns and scalability.
 
-By carefully designing the `Token.h` file, the QuantumLanguage compiler ensures that tokens are represented efficiently and accurately, facilitating robust lexical analysis and subsequent phases of compilation.
+Overall, the benefits of clear error messages, proper scope management, and modularity outweigh the minor drawbacks of increased memory usage and complexity.
