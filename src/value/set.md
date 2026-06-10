@@ -6,18 +6,42 @@ The `set` function is a member method of the `Value` class in the Quantum Langua
 
 ### Parameters
 - `name`: A string representing the name of the variable or constant to be assigned a new value.
-- `val`: The new value to be assigned, which can be any type supported by the `Value` class.
+- `val`: The new value to be assigned, which can be of various types supported by the Quantum Language compiler.
 
 ### Return Value
-- None (`void`)
+- None (`void`). The function updates the internal state of the `Value` object without returning any value.
 
 ### Edge Cases
-1. **Reassignment of Constants**: If the variable being assigned is a constant, attempting to reassign it will result in a `RuntimeError`. This ensures that constants retain their initial values throughout the execution of the program.
-2. **Variable Not Found in Current Scope**: If the variable is not found in the current scope but exists in a parent scope, the function will delegate the assignment to the parent scope. If the variable does not exist anywhere in the scope hierarchy, a `NameError` will be thrown indicating that the variable is undefined.
+1. **Variable Not Found**: If the specified variable or constant is not found in the current scope, the function throws a `NameError`. This ensures that only variables that have been declared can be modified.
+2. **Constant Reassignment**: Attempting to reassign a constant results in a `RuntimeError`. This prevents accidental modification of constants, maintaining their immutability.
+3. **Nested Scopes**: If the variable or constant is not found in the current scope but exists in a parent scope, the function calls the `set` method on the parent scope. This allows for nested scopes where variables can be overridden or extended.
 
 ### Interactions with Other Components
-- **Local Variables Map (`vars`)**: The function first checks if the variable exists in the local variables map (`vars`). If it does, it updates the value associated with the variable. If the variable is also marked as a constant in the `constants` set, a `RuntimeError` is thrown to prevent reassignment.
-- **Shared Cells Map (`cells`)**: If the variable is found in the `cells` map, it indicates that the variable is either a pointer or a reference to another location in memory. In such cases, the function updates the value at the location pointed to by the shared cell.
-- **Parent Scope Handling**: If the variable is not found in the current scope, the function checks if there is a parent scope. If a parent scope exists, it delegates the assignment to the parent scope using recursion. If no parent scope is found, a `NameError` is thrown.
+- **Local Variables Map (`vars`)**: The function first checks if the variable exists in the local variables map. If found, it updates the value unless the variable is marked as a constant.
+- **Shared Cells Map (`cells`)**: If the variable is found in the shared cells map, the function updates the value at the location pointed to by the shared cell. This handles both pointer and reference cases, ensuring that changes propagate across all references to the same data.
+- **Parent Scope**: If the variable is not found in the current scope, the function delegates the assignment to the parent scope. This allows for hierarchical variable management, where child scopes can override or extend variables from parent scopes.
 
-This design allows the `set` function to handle assignments in a hierarchical manner, ensuring that constants remain immutable and that variables correctly reflect changes across different scopes.
+### Implementation Details
+```cpp
+{
+    auto it = vars.find(name); // Search for the variable in the local map
+    if (it != vars.end()) // Variable found in local scope
+    {
+        if (constants.count(name)) // Check if the variable is a constant
+            throw RuntimeError("Cannot reassign constant '" + name + "'");
+        it->second = val; // Update the local variable's value
+        // Sync to any live shared cell (covers both pointer and ref cases)
+        auto cit = cells.find(name); // Search for the variable in the shared cells map
+        if (cit != cells.end())
+            *cit->second = val; // Update the value at the shared cell location
+        return;
+    }
+    if (parent) // Variable not found in local scope, check parent scope
+    {
+        parent->set(name, std::move(val)); // Delegate to parent scope
+        return;
+    }
+    throw NameError("Undefined variable: '" + name + "'"); // Variable not found in any scope
+}
+```
+This implementation ensures that assignments are handled correctly within the scope hierarchy, preventing modifications to constants and propagating changes to shared data locations.
