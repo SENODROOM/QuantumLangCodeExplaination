@@ -2,128 +2,84 @@
 
 ## Overview
 
-The Token component is a crucial module in the Quantum Language Compiler responsible for parsing and managing the lexical tokens extracted from the source code. Tokens represent the basic building blocks of the language, including keywords, identifiers, literals, and operators. This component ensures that the source code is accurately converted into a structured format that can be further processed by the parser.
+The Token component is a fundamental module in the Quantum Language Compiler, tasked with parsing and managing the lexical tokens derived from the source code. Tokens serve as the basic building blocks of the language, encompassing elements such as keywords, identifiers, literals, and operators. This component ensures precise conversion of the source code into a structured format, facilitating further stages of compilation.
 
-### Key Features
+### Key Responsibilities
+- **Lexical Analysis**: Converts raw source code into individual tokens.
+- **Token Management**: Maintains and categorizes tokens for efficient processing during subsequent phases of compilation.
+- **Error Handling**: Identifies and reports syntax errors encountered during tokenization.
 
-- **Tokenization**: Converts raw source code into individual lexical tokens.
-- **Error Handling**: Detects and reports syntax errors encountered during tokenization.
-- **Token Storage**: Efficiently stores and manages the parsed tokens for subsequent phases of compilation.
-- **Token Types**: Supports various types of tokens such as keywords, identifiers, integers, floating-point numbers, strings, and operators.
+## Directory Structure
 
-### Directory Structure
+This directory includes several key files and classes related to the Token component:
 
-```
-token/
-├── include/
-│   └── token.hpp
-├── src/
-│   ├── tokenizer.cpp
-│   └── tokenizer.hpp
-└── tests/
-    ├── test_tokenizer.cpp
-    └── CMakeLists.txt
-```
+1. **Token.h**
+   - Header file defining the `Token` class, which represents a single lexical token.
+   - Contains enumerations for different token types (e.g., KEYWORD, IDENTIFIER, LITERAL, OPERATOR).
 
-### Files
+2. **Tokenizer.cpp**
+   - Source file implementing the logic for converting source code into tokens.
+   - Utilizes regular expressions and string manipulation techniques to identify and classify tokens.
 
-#### `include/token.hpp`
+3. **TokenManager.cpp**
+   - Source file managing the collection and organization of tokens.
+   - Provides methods for adding tokens, retrieving them, and performing operations on the token stream.
 
-This header file declares the `Token` class and related enumerations for different token types. It provides the interface for creating and manipulating tokens.
+4. **ErrorHandler.cpp**
+   - Source file handling syntax errors and reporting them to the user.
+   - Implements error messages and mechanisms to pinpoint the location of issues within the source code.
 
-```cpp
-#ifndef TOKEN_HPP
-#define TOKEN_HPP
+5. **tests/TokenTest.cpp**
+   - Unit test file verifying the functionality of the Token component.
+   - Includes tests for tokenization, error handling, and token management.
 
-enum TokenType {
-    KEYWORD,
-    IDENTIFIER,
-    INTEGER,
-    FLOATING_POINT,
-    STRING,
-    OPERATOR,
-    EOF_TOKEN
-};
+## Overall Flow
 
-class Token {
-public:
-    Token(TokenType type, const std::string& value);
-    ~Token();
+The Token component operates through a series of steps to process the source code effectively:
 
-    TokenType getType() const;
-    std::string getValue() const;
+1. **Source Code Reading**: The compiler reads the input source code file line by line.
+2. **Tokenization**: Each line is processed by the `Tokenizer` class, which uses regular expressions to break down the text into individual tokens.
+3. **Token Classification**: Tokens are classified based on their type (e.g., keyword, identifier) using predefined enumerations in the `Token` class.
+4. **Token Storage**: Validated tokens are stored in the `TokenManager`, maintaining an organized sequence for easy access.
+5. **Error Detection**: During the tokenization process, any syntax errors are detected and reported by the `ErrorHandler`.
+6. **Compilation Continuation**: Once all tokens are successfully managed and errors are resolved, the compiler proceeds to the next phase of compilation.
 
-private:
-    TokenType type_;
-    std::string value_;
-};
+## Usage Example
 
-#endif // TOKEN_HPP
-```
-
-#### `src/tokenizer.cpp`
-
-This source file implements the `Tokenizer` class, which is responsible for reading the source code and generating tokens. It includes error handling mechanisms to detect and report syntax errors.
+Here's a simple example demonstrating how the Token component might be used in the context of a quantum language compiler:
 
 ```cpp
-#include "tokenizer.hpp"
-#include "token.hpp"
+#include "Token.h"
+#include "Tokenizer.h"
+#include "TokenManager.h"
 
-Tokenizer::Tokenizer(const std::string& source) : source_(source), position_(0) {}
+int main() {
+    // Create a tokenizer instance
+    Tokenizer tokenizer;
 
-Token Tokenizer::nextToken() {
-    while (position_ < source_.length()) {
-        char ch = source_[position_];
+    // Read source code from a file
+    std::string sourceCode = readSourceCodeFromFile("example.qc");
 
-        switch (ch) {
-            case ' ': case '\t': case '\n':
-                position_++;
-                break;
-            case '=': return Token(OPERATOR, "=");
-            default:
-                // Handle other characters or report error
-                throw std::runtime_error("Unexpected character");
-        }
+    // Tokenize the source code
+    std::vector<Token> tokens = tokenizer.tokenize(sourceCode);
+
+    // Create a token manager instance
+    TokenManager tokenManager;
+
+    // Add tokens to the manager
+    tokenManager.addTokens(tokens);
+
+    // Retrieve and print tokens
+    for (const auto& token : tokenManager.getTokens()) {
+        std::cout << token.toString() << std::endl;
     }
 
-    return Token(EOF_TOKEN, "");
+    return 0;
 }
 ```
 
-#### `tests/test_tokenizer.cpp`
+In this example, the `Tokenizer` class processes the source code, generating a list of `Token` objects. These tokens are then managed by the `TokenManager`, allowing for easy retrieval and printing.
 
-This file contains unit tests for the `Tokenizer` class using Google Test framework. It verifies the correctness of tokenization and error handling.
+## Conclusion
 
-```cpp
-#include <gtest/gtest.h>
-#include "../src/tokenizer.hpp"
-
-TEST(TokenizerTest, SimpleTokenization) {
-    Tokenizer tokenizer("int x = 5;");
-    EXPECT_EQ(tokenizer.nextToken().getType(), KEYWORD);
-    EXPECT_EQ(tokenizer.nextToken().getType(), IDENTIFIER);
-    EXPECT_EQ(tokenizer.nextToken().getType(), OPERATOR);
-    EXPECT_EQ(tokenizer.nextToken().getValue(), "5");
-}
-
-TEST(TokenizerTest, ErrorHandling) {
-    Tokenizer tokenizer("int x = 5; invalid");
-    try {
-        tokenizer.nextToken();
-        tokenizer.nextToken();
-        tokenizer.nextToken(); // Should throw an exception
-    } catch (const std::runtime_error& e) {
-        EXPECT_EQ(std::string(e.what()), "Unexpected character");
-    }
-}
-```
-
-### Overall Flow
-
-1. **Initialization**: The `Tokenizer` object is initialized with the source code string.
-2. **Tokenization**: The `nextToken()` method reads through the source code character by character, identifying and categorizing them into tokens based on their type (keyword, identifier, literal, operator).
-3. **Error Detection**: If an unexpected character is encountered, the tokenizer throws a runtime error indicating a syntax error.
-4. **Token Storage**: Each token is stored internally within the `Tokenizer` object for easy access and manipulation during the compilation process.
-5. **Testing**: Unit tests are provided to validate the functionality of the tokenizer, ensuring it correctly handles various cases including valid tokens and syntax errors.
-
-By following this structure and implementing the necessary classes and methods, the Token component plays a vital role in the Quantum Language Compiler, providing a robust foundation for further stages of compilation.
+The Token component plays a vital role in the Quantum Language Compiler by providing a robust framework for lexical analysis, token management, and error detection. Through its well-defined interfaces and comprehensive testing suite, this component ensures accurate and reliable tokenization, setting the foundation for successful compilation of quantum programs.
