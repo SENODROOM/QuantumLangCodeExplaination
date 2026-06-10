@@ -1,23 +1,31 @@
 # `compileInput` Function
 
 ## Purpose
-The `compileInput` function processes input statements in the Quantum Language compiler, ensuring that user-provided input is appropriately handled based on the statement's parameters. It loads the global variable `__input__`, optionally compiles a prompt expression, calls the `__input__` function, and stores or discards the result as specified.
+The `compileInput` function processes input statements in the Quantum Language compiler, ensuring that user-provided input is appropriately handled based on the statement's parameters. It loads the global variable `__input__`, optionally compiles a prompt expression, and then calls the `__input__` function to retrieve input from the user. If a target variable is specified, the input is stored in that variable; otherwise, the input is simply popped off the stack.
 
 ## Parameters
-- `s`: A reference to an `InputStatement` object containing details about the input statement being compiled. This includes:
-  - `prompt`: An optional expression that generates a prompt message for the user.
-  - `target`: The name of the variable where the input should be stored. If empty, the input will be discarded.
+- `s`: A reference to an `InputStatement` object containing information about the input statement being compiled, such as the optional prompt expression and the target variable where the input should be stored.
 
 ## Return Value
-This function does not explicitly return a value but performs side effects such as emitting bytecode instructions to handle the input operation.
+None
 
-## Detailed Explanation
-### Step-by-Step Breakdown
+## Edge Cases
+- **No Prompt**: If the input statement does not provide a prompt expression (`s.prompt` is `nullptr`), the function will load an empty string (`""`) as the prompt before calling `__input__`.
+- **Empty Target Variable**: If the target variable specified in the input statement is empty (`s.target.empty()`), the function will still pop the input off the stack after storing it.
+
+## Interactions with Other Components
+- **Global Variable Access**: The function interacts with the global variable `__input__` by loading it using the `Op::LOAD_GLOBAL` operation. This assumes that `__input__` is defined elsewhere in the codebase and is callable.
+- **Prompt Compilation**: If a prompt expression is provided (`s.prompt` is not `nullptr`), the function compiles this expression using the `compileExpr` method. This allows dynamic prompts to be generated at runtime based on the program state.
+- **Stack Operations**: The function uses various stack operations (`Op::CALL`, `Op::POP`) to manage the flow of data between the global `__input__` function and the rest of the program. These operations ensure that the input is correctly retrieved and stored or discarded.
+
+## Implementation Details
+Here’s a breakdown of how the function works:
+
 1. **Load Global Variable**:
    ```cpp
    emit(Op::LOAD_GLOBAL, addStr("__input__"), line);
    ```
-   This instruction loads the global variable named `__input__`. The `addStr` function likely converts a string into a unique identifier used internally by the compiler.
+   This line emits an operation to load the global variable `__input__`. The `addStr` function ensures that the string `"__input__"` is added to the string table and referenced correctly.
 
 2. **Compile Prompt Expression**:
    ```cpp
@@ -26,15 +34,15 @@ This function does not explicitly return a value but performs side effects such 
    else
        emit(Op::LOAD_CONST, addStr(""), line);
    ```
-   If a prompt expression is provided (`s.prompt` is not null), the function compiles this expression using another method (`compileExpr`). If no prompt is provided, it emits a constant string ("") to use as the default prompt.
+   If a prompt expression is provided, it is compiled using the `compileExpr` method. Otherwise, an empty string is loaded onto the stack as the default prompt.
 
 3. **Call Input Function**:
    ```cpp
    emit(Op::CALL, 1, line);
    ```
-   This instruction calls the `__input__` function with one argument (the prompt). The `Op::CALL` opcode indicates that a function call is being made, and `1` specifies the number of arguments passed.
+   This line emits an operation to call the `__input__` function with one argument (the prompt). The result of this call, which is the user input, is placed back onto the stack.
 
-4. **Store or Discard Result**:
+4. **Store Input in Target Variable**:
    ```cpp
    if (!s.target.empty())
    {
@@ -44,16 +52,6 @@ This function does not explicitly return a value but performs side effects such 
    else
        emit(Op::POP, 0, line);
    ```
-   - If the `target` parameter is not empty, indicating that the input should be stored in a variable, the function emits an instruction to store the result of the `__input__` call into the specified variable (`emitStore(s.target, line)`). After storing, it pops the top item from the stack (`emit(Op::POP, 0, line)`).
-   - If the `target` parameter is empty, meaning the input should be discarded, the function simply pops the top item from the stack without storing it.
+   If a target variable is specified, the input is stored in that variable using the `emitStore` method. After storing the input, the function pops it off the stack to clean up. If no target variable is specified, the input is also popped off the stack.
 
-## Edge Cases
-- **Empty Target**: When the `target` parameter is empty, the input is discarded immediately after being retrieved. This prevents any unnecessary storage of temporary data.
-- **Null Prompt**: If `s.prompt` is null, a default empty string is used as the prompt. This ensures that the `__input__` function is always called with at least one argument.
-
-## Interactions with Other Components
-- **Bytecode Emission**: The `emit` function is used throughout the method to generate bytecode instructions. This interaction with the bytecode emitter is crucial for translating high-level language constructs into executable machine code.
-- **Expression Compilation**: The `compileExpr` function is invoked when a prompt expression is present. This highlights the interplay between different parts of the compiler, each handling specific aspects of the input statement.
-- **Global Variables**: The use of `Op::LOAD_GLOBAL` demonstrates how the compiler interacts with global variables, allowing for dynamic retrieval and manipulation of external state.
-
-Overall, the `compileInput` function efficiently handles user input within the Quantum Language compiler, leveraging existing methods for bytecode emission and expression compilation to achieve its purpose.
+This function is crucial for handling user inputs dynamically within the quantum language programs, allowing for interactive and responsive applications.
