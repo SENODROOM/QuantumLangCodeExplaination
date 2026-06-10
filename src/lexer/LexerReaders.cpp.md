@@ -2,39 +2,51 @@
 
 ## Role in Compiler Pipeline
 
-The `LexerReaders.cpp` file plays a crucial role in the lexical analysis phase of the Quantum Language compiler. Specifically, it handles the parsing of template literals, which allow for dynamic content within string literals using `${}` syntax. This feature enhances the flexibility of string manipulation and enables direct embedding of expressions, making the code more readable and expressive.
+The `LexerReaders.cpp` file is an essential component of the Quantum Language compiler's lexical analysis phase. It specifically deals with the parsing of template literals, allowing for dynamic content within string literals using `${}` syntax. This feature significantly enhances the flexibility of string manipulation and enables the direct embedding of expressions within strings.
 
-## Key Design Decisions and Why
+## Key Design Decisions and WHY
 
-1. **Handling Escapes**: The lexer needs to correctly handle escape sequences within the template literal. For example, `\n`, `\t`, and `` \` `` should be interpreted as newline, tab, and backtick respectively. To achieve this, the lexer checks for backslashes (`\`) and processes them accordingly, ensuring that the correct characters are emitted as tokens.
+1. **Handling Backticks**: The function starts by advancing past the opening backtick (`) character, as it is not part of the literal content.
+   
+2. **Collecting Parts**: The lexer collects parts of the template literal alternately as text segments and expression source strings. Each part is stored in a `struct` called `Part`, which contains a boolean indicating whether the part is an expression and the actual content of the part.
 
-2. **Expression Parsing**: Template literals can contain embedded expressions enclosed in `${}`. The lexer must identify these expressions and treat them differently from regular text. It does this by looking for the dollar sign (`$`) followed immediately by an open brace (`{`). When such a pattern is detected, it starts collecting characters until a matching close brace (`}`) is found, effectively isolating the expression source string.
+3. **Escaping Characters**: When encountering escape characters (`\`), the lexer processes them appropriately. For example, `\n` becomes a newline character, and `\t` becomes a tab character. If an unrecognized escape sequence is encountered, it is treated as a literal backslash followed by the character.
 
-3. **Tokenization**: Once the lexer has collected all parts of the template literal—both text segments and expression source strings—it needs to tokenize them appropriately. Regular text segments become `STRING` tokens, while expression source strings are re-lexed and placed within parentheses to maintain their structure during further processing phases of the compiler.
+4. **Expression Parsing**: When encountering the `${` sequence, the lexer recognizes it as the beginning of an embedded expression. It then collects all characters up to the corresponding `}` character, ensuring that nested curly braces are correctly handled.
 
-4. **Efficiency**: The lexer aims to efficiently process template literals without introducing unnecessary complexity. By maintaining a simple state machine-like approach, it ensures that each character is processed exactly once, leading to linear time complexity relative to the size of the input string.
+5. **Token Emission**: After processing all parts of the template literal, the lexer emits tokens based on these parts. Text segments are emitted as `STRING` tokens, while expression segments are re-lexed and emitted within parentheses.
+
+6. **Trade-offs**:
+   - **Complexity**: Handling template literals adds complexity to the lexer due to the need to parse both text and expression segments.
+   - **Performance**: While the lexer needs to handle more cases, the performance impact is generally minimal compared to other phases of the compiler.
+   - **Flexibility**: The ability to embed expressions directly within strings provides significant flexibility but requires careful handling to ensure correct parsing and evaluation.
 
 ## Major Classes/Functions Overview
 
 ### Class: Lexer
+- **Function: readTemplateLiteral**
+  - **Parameters**: 
+    - `std::vector<Token> &out`: A reference to the output vector where parsed tokens will be stored.
+    - `int startLine`: The starting line number of the literal.
+    - `int startCol`: The starting column number of the literal.
+  - **Purpose**: Parses a template literal and populates the output vector with the appropriate tokens.
+  - **Logic**:
+    - Skips the opening backtick.
+    - Collects alternating text segments and expression sources.
+    - Handles escaping special characters.
+    - Recognizes and parses embedded expressions.
+    - Emits `STRING` tokens for text segments and re-lexed tokens within parentheses for expression segments.
 
-The `Lexer` class contains the core logic for reading and lexing the source code. It includes methods like `readTemplateLiteral` which specifically targets the parsing of template literals.
-
-#### Function: readTemplateLiteral
-
-This function is responsible for parsing template literals. It takes two parameters: `std::vector<Token> &out` where the resulting tokens will be stored, and `int startLine` and `int startCol` indicating the starting line and column of the template literal in the source code.
-
-- **State Machine**: The function uses a state machine to iterate over the source code. It skips the opening backtick and collects parts of the template literal alternately as text segments or expression source strings.
-- **Escape Handling**: Inside the loop, it checks for backslashes and processes escape sequences accordingly.
-- **Expression Identification**: When a `$` followed by `{` is encountered, it identifies the start of an expression and collects characters until a matching `}` is found.
-- **Token Emission**: After collecting all parts, it emits tokens based on whether each part is a text segment or an expression. Regular text segments become `STRING` tokens, while expressions are re-lexed and placed within parentheses.
+### Struct: Part
+- **Members**:
+  - `bool isExpr`: Indicates whether the part is an expression.
+  - `std::string content`: Holds the content of the part.
+- **Purpose**: Stores information about each segment collected during the parsing of the template literal.
 
 ## Tradeoffs
 
-1. **Complexity vs. Flexibility**: While the lexer introduces additional complexity to handle template literals, it provides significant benefits in terms of code readability and expressiveness. The tradeoff is that developers need to be aware of the `${}` syntax when writing template literals.
+- **Increased Complexity**: The lexer must now handle multiple types of segments (text and expressions), which increases its complexity.
+- **Potential Performance Overhead**: Although minimal, there might be a slight performance overhead due to the additional logic required for parsing and handling template literals.
+- **Enhanced Flexibility**: The ability to embed expressions directly within strings offers significant flexibility but requires careful implementation to avoid errors.
 
-2. **Performance**: The lexer's efficiency is maintained through a straightforward iteration and processing mechanism. However, the re-lexing of expression source strings might introduce some overhead compared to handling simpler string literals.
-
-3. **Maintainability**: The separation of text segments and expression source strings into distinct parts simplifies the maintenance of the lexer. Each type of part can be handled separately, reducing the risk of bugs and improving overall code clarity.
-
-In conclusion, the `LexerReaders.cpp` file is a vital component of the Quantum Language compiler, enhancing its functionality with template literals while managing complexity and performance considerations effectively.
+Overall, the `LexerReaders.cpp` file is a critical piece of the Quantum Language compiler, enabling powerful string manipulation capabilities through template literals. Its design balances increased complexity with enhanced functionality, providing a robust solution for parsing these literals.
