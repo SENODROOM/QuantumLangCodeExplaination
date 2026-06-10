@@ -4,61 +4,103 @@ The `compileFor` function in the Quantum Language compiler is responsible for tr
 
 ## What It Does
 
-The `compileFor` function processes a `for` loop construct, which typically iterates over an iterable object (like a list or array). Here’s how it breaks down:
+The `compileFor` function takes a `ForStatement` object (`s`) as input and generates bytecode instructions to handle the loop. The primary tasks include:
 
-1. **Compile Iterable Expression**: The first step is to compile the expression representing the iterable object (`*s.iterable`). This expression is evaluated once and its result is stored on the stack.
-   
-2. **Create Iterator**: The compiled iterable expression is then passed to the `Op::MAKE_ITER` instruction, which creates an iterator for the iterable object. This iterator is pushed onto the stack.
-
-3. **Outer Scope Setup**: An outer scope is introduced to hold the iterator as a hidden local variable (`__iter__`). This scope ensures that the iterator remains accessible throughout the loop iterations.
-
-4. **Define Iterator Local Variable**: The iterator is defined as a local variable using the `Op::DEFINE_LOCAL` instruction. The slot index for this local variable is determined based on the current state of the local variables stack.
-
-5. **Begin Loop**: The start of the loop is marked using the `beginLoop` function, which records the starting position of the loop for later use.
-
-6. **Conditional Iteration**: A conditional jump (`emitJump(Op::FOR_ITER, line)`) is emitted to check if the iterator has more elements. If the iterator is exhausted, the loop exits; otherwise, the next element is pushed onto the stack.
-
-7. **Inner Scope Setup**: An inner scope is introduced to hold the loop variable(s). This scope will be exited after each iteration, ensuring that the loop variable(s) are properly popped off the stack.
-
-8. **Declare Loop Variable(s)**: The loop variable(s) are declared using the `declareLocal` function. The slot index for these local variables is also determined based on the current state of the local variables stack.
-
-9. **Initialize Secondary Loop Variable**: If a secondary loop variable is specified (`!s.var2.empty()`), it is initialized by popping the current loop variable, adding a constant value (1.0 or 0.0 depending on whether it's the second variable), and storing the result back into the primary loop variable. The secondary variable is then declared and initialized.
-
-10. **Compile Loop Body**: The body of the loop (`*s.body`) is compiled recursively. During each iteration, the loop body is executed.
-
-11. **Patch Continue Jumps**: After compiling the loop body, any continue jumps within the loop are patched. These jumps allow control to return to the beginning of the loop without fully exiting the loop.
-
-12. **End Inner Scope**: The inner scope is ended, popping the loop variable(s) but leaving the iterator on the stack.
-
-13. **Loop Back**: The `Op::LOOP` instruction is emitted to jump back to the beginning of the loop, effectively creating a loop structure.
-
-14. **Exit Jump Patching**: Finally, the exit jump is patched to ensure that the loop exits correctly when there are no more elements in the iterable.
-
-15. **End Outer Scope**: The outer scope is ended, popping the iterator from the stack.
+1. **Iterating Over an Iterable**: Compiles the iterable expression to generate bytecode that creates an iterator.
+2. **Defining Loop Variables**: Declares and defines the loop variables (`var` and optionally `var2`) within their respective scopes.
+3. **Executing Loop Body**: Compiles the body of the loop, which will be executed repeatedly until the iterator is exhausted.
+4. **Handling Continue Jumps**: Patches continue jumps within the loop body to ensure they correctly resume execution after the body has been executed.
+5. **Managing Scope**: Begins and ends scopes for both the iterator and the loop variable(s), ensuring proper cleanup and visibility of these variables.
 
 ## Why It Works This Way
 
-This approach ensures that the `for` loop is correctly translated into bytecode while maintaining the necessary state for each iteration. By introducing separate scopes for the iterator and loop variables, the function can manage the local variables efficiently and avoid conflicts between them. The use of conditional jumps and loop instructions allows the function to create a robust loop structure that can handle various edge cases, such as empty iterables or nested loops.
+### Iteration Handling
+
+- **Iterator Creation**: By compiling the iterable expression first, we create an iterator that can be used to traverse elements in the collection.
+- **FOR_ITER Opcode**: The `FOR_ITER` opcode is crucial because it checks whether the iterator has more elements. If it does, it pushes the next element onto the stack; otherwise, it jumps over the loop body, effectively ending the loop.
+
+### Variable Management
+
+- **Outer Scope Iterator**: The iterator is declared in the outer scope so that it persists across multiple iterations of the loop. This allows us to use the same iterator throughout the loop without recreating it.
+- **Inner Scope Loop Variable**: The loop variable (`var`) is declared in the inner scope, ensuring that it is redefined and popped at the end of each iteration, preventing any side effects or conflicts with other parts of the code.
+
+### Edge Cases
+
+- **Empty Iterable**: If the iterable expression evaluates to an empty collection, the `FOR_ITER` opcode will immediately jump past the loop body, resulting in no execution of the loop.
+- **Single Element**: If the iterable contains a single element, the loop will execute once, then the iterator will be exhausted, and the loop will terminate.
+
+### Interactions With Other Components
+
+- **Chunk**: The `chunk()` object is used to manage the generated bytecode. Instructions are added to the `chunk().code` vector, and jumps are patched using `chunk().patch()`.
+- **Opcodes**: Various opcodes such as `Op::MAKE_ITER`, `Op::FOR_ITER`, `Op::LOAD_LOCAL`, `Op::STORE_LOCAL`, and `Op::POP` are emitted to perform specific operations like creating iterators, checking for exhaustion, loading and storing values, and managing the stack.
+- **Loops_**: The `loops_` vector keeps track of loop structures, including the start and end positions, and the continue jumps. This information is used to patch continue jumps and manage the loop flow.
 
 ## Parameters/Return Value
 
-- **Parameters**:
-  - `s`: A reference to a `ForStatement` object representing the `for` loop to be compiled.
-  
-- **Return Value**:
-  - None. The function modifies the bytecode chunk directly through calls to `emit`, `emitJump`, etc.
+### Parameters
 
-## Edge Cases
+- `s`: A reference to the `ForStatement` object representing the `for` loop to be compiled.
 
-- **Empty Iterable**: If the iterable is empty, the `FOR_ITER` instruction will exhaust immediately, causing the loop to exit without executing any iterations.
-- **Nested Loops**: The function handles nested loops by managing multiple scopes and continue jumps appropriately.
-- **Multiple Variables**: The function supports iterating over multiple variables by initializing a secondary variable if needed.
+### Return Value
 
-## Interactions With Other Components
+- None. The function directly modifies the `chunk().code` vector and updates the `loops_` vector to represent the compiled loop structure.
 
-- **Expression Compiler**: The `compileExpr` function is used to evaluate the iterable expression before creating the iterator.
-- **Bytecode Chunk Management**: Functions like `beginScope`, `endScope`, `declareLocal`, and `emit` are used to manage the bytecode chunk, including defining and declaring local variables and emitting instructions.
-- **Loop Control Instructions**: The `Op::FOR_ITER` and `Op::LOOP` instructions are crucial for controlling the flow of the loop, ensuring that the loop continues until exhaustion.
-- **Error Handling**: While not explicitly shown in the code snippet, error handling mechanisms would likely be integrated to manage cases where the iterable expression cannot be evaluated or the loop body contains invalid statements.
+## Detailed Steps
 
-By carefully managing the scope, local variables, and loop control instructions, the `compileFor` function provides a comprehensive solution for compiling `for` loops in the Quantum Language compiler.
+1. **Compile Iterable Expression**:
+   ```cpp
+   compileExpr(*s.iterable);
+   ```
+   This step compiles the iterable expression to generate bytecode that sets up the iterator.
+
+2. **Create Iterator**:
+   ```cpp
+   emit(Op::MAKE_ITER, 0, line);
+   ```
+   After compiling the iterable expression, the `Op::MAKE_ITER` opcode is emitted to create the actual iterator.
+
+3. **Begin Outer Scope**:
+   ```cpp
+   beginScope(); // outer scope — iterator lives here
+   declareLocal("__iter__", line);
+   int iterSlot = static_cast<int>(current_->locals.size()) - 1;
+   emit(Op::DEFINE_LOCAL, iterSlot, line);
+   ```
+   The outer scope is started to hold the iterator as a hidden local variable. This ensures that the iterator persists across loop iterations.
+
+4. **Mark Loop Start**:
+   ```cpp
+   int loopStart = static_cast<int>(chunk().code.size());
+   beginLoop(loopStart);
+   ```
+   The current position in the bytecode is marked as the start of the loop. This is necessary for calculating the loop length when emitting the `Op::LOOP` opcode later.
+
+5. **Emit Exit Jump**:
+   ```cpp
+   size_t exitJump = emitJump(Op::FOR_ITER, line);
+   ```
+   An exit jump is emitted using the `emitJump` function. This jump will be patched later to point to the end of the loop body if the iterator is exhausted.
+
+6. **Begin Inner Scope**:
+   ```cpp
+   beginScope();
+   declareLocal(s.var, line);
+   int varSlot = static_cast<int>(current_->locals.size()) - 1;
+   emit(Op::DEFINE_LOCAL, varSlot, line);
+   ```
+   The inner scope is started to hold the loop variable. This ensures that the loop variable is redefined and popped at the end of each iteration.
+
+7. **Handle Second Loop Variable (if present)**:
+   ```cpp
+   if (!s.var2.empty())
+   {
+       // ... (instructions to handle s.var2)
+   }
+   ```
+   If a second loop variable (`var2`) is specified, additional instructions are emitted to handle its initialization and update based on the index of the current element.
+
+8. **Compile Loop Body**:
+   ```cpp
+   compileNode(*s.body);
+   ```
+   The
