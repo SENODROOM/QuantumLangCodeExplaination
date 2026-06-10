@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `compileBinary` function is responsible for compiling binary expressions encountered during the compilation process of the Quantum Language. It handles various types of binary operators such as logical operations (`and`, `&&`, `or`, `||`, `??`), membership tests (`in`, `not in`), and arithmetic operations (`+`, `-`, `*`, `/`, `%`, `//`, `**`, `<`, `<=`, `>`, `>=`, `&`, `|`, `^`, `<<`, `>>`, `is`, `is not`). The function ensures that the left and right operands are compiled first before applying the operator, and it manages conditional jumps based on the results of these operations.
+The `compileBinary` function is responsible for compiling binary expressions encountered during the compilation process of the Quantum Language. It handles various types of binary operators, including logical operations (`and`, `&&`, `or`, `||`, `??`), membership operations (`in`, `not in`), arithmetic operations (`+`, `-`, `*`, `/`, `%`, `//`, `**`), comparison operations (`==`, `!=`, `<`, `<=`, `>`, `>=`), and bitwise operations (`&`, `|`, `^`, `<<`, `>>`). The function ensures that the left and right operands of the expression are compiled correctly before applying the operator.
 
 ## Parameters
 
@@ -10,76 +10,82 @@ The `compileBinary` function is responsible for compiling binary expressions enc
 
 ## Return Value
 
-This function does not explicitly return a value. Instead, it performs in-place compilation of the binary expression by emitting appropriate bytecode instructions using the `emit` and `emitJump` functions.
+This function does not explicitly return a value. Instead, it compiles the binary expression by emitting appropriate bytecode instructions.
 
 ## Edge Cases
 
-1. **Logical Operations**: When dealing with logical operations (`and`, `&&`, `or`, `||`, `??`), the function compiles the left operand first and then conditionally skips the compilation of the right operand based on the result of the left operand. This ensures efficient short-circuit evaluation.
+1. **Logical Operations**: When encountering logical operations (`and`, `&&`, `or`, `||`, `??`), the function compiles the left operand first. If the operation is `and` or `&&`, it emits a jump instruction to skip the right operand if the left operand evaluates to false. Similarly, for `or` or `||`, it jumps over the right operand if the left operand evaluates to true. For the null-coalescing operator (`??`), it behaves similarly to `or` but also checks if the left operand is null.
    
-   - For `and` or `&&`, if the left operand evaluates to false, the right operand is skipped.
-   - For `or` or `||`, if the left operand evaluates to true, the right operand is skipped.
-   - For `??`, if the left operand is not null, the right operand is skipped.
+2. **Membership Operations**: For membership operations (`in`, `not in`), the function loads the `__contains__` method from the global scope, compiles both the left and right operands, and then calls the `__contains__` method. If the operation is `not in`, it negates the result of the call.
 
-2. **Membership Tests**: Membership tests (`in`, `not in`) involve checking whether an element exists within a collection. The function emits a call to the `__contains__` method of the collection's type, passing the element and the collection as arguments. If the operation is `not in`, the result is negated using the `emit(Op::NOT, 0, line)` instruction.
+3. **Arithmetic and Comparison Operations**: These operations are straightforward. The function compiles both operands and then emits the corresponding bytecode instruction based on the operator.
 
-3. **Arithmetic Operations**: Arithmetic operations are straightforwardly handled by looking up the corresponding opcode in the `opMap` unordered map and emitting it along with the required number of operands.
+4. **Bitwise Operations**: Similar to arithmetic and comparison operations, the function compiles both operands and emits the appropriate bytecode instruction for bitwise operations.
 
-4. **Unknown Operators**: If the binary operator specified in the expression is not recognized (i.e., not found in the `opMap`), the function throws a `std::runtime_error` indicating an unknown binary operator.
+5. **Unknown Operators**: If the function encounters an unknown binary operator, it throws a runtime error indicating the unrecognized operator.
 
 ## Interactions with Other Components
 
-- **Bytecode Emission**: The function interacts with the bytecode emission subsystem through calls to `emit` and `emitJump`. These functions are used to generate the appropriate bytecode instructions based on the operation being performed.
+- **Bytecode Emission**: The `emit` function is used to generate bytecode instructions. This includes loading global variables, popping values from the stack, calling functions, and performing arithmetic and logical operations.
   
-- **Symbol Table Management**: During the compilation of expressions, the function may interact with the symbol table to load global variables or constants required for the operation.
+- **Jump Instructions**: The `emitJump` function generates jump instructions. For logical operations, these jumps allow the function to skip unnecessary computations based on the evaluation of the left operand. The `patchJump` function updates the jump target after the subsequent code has been emitted.
 
-- **Error Handling**: The function includes error handling to manage cases where an unknown binary operator is encountered. This ensures robustness in the face of invalid input.
+- **Error Handling**: The function uses exception handling to manage errors, specifically when encountering an unknown binary operator. This ensures that the compiler can gracefully handle unexpected input and provide meaningful error messages.
 
-## Detailed Explanation
+## Implementation Details
 
-### Logical Operations
+The implementation of the `compileBinary` function involves several key steps:
 
-For logical operations (`and`, `&&`, `or`, `||`, `??`):
+1. **Handling Logical Operations**: For `and` and `&&`, the function compiles the left operand and emits a jump to skip the right operand if the left evaluates to false. For `or` and `||`, it emits a jump to skip the right operand if the left evaluates to true. The null-coalescing operator (`??`) behaves similarly to `or` but also checks for null.
 
-- **Compilation Order**: The left operand is compiled first. Depending on the operator, the function checks the result of the left operand and conditionally skips the compilation of the right operand.
-  
-- **Conditional Jumps**: 
-  - For `and` or `&&`, a jump instruction (`Op::JUMP_IF_FALSE`) is emitted after compiling the left operand. If the left operand evaluates to false, the program execution will jump past the right operand.
-  - For `or` or `||`, a jump instruction (`Op::JUMP_IF_TRUE`) is emitted after compiling the left operand. If the left operand evaluates to true, the program execution will jump past the right operand.
-  - For `??`, a jump instruction (`Op::JUMP_IF_NULL`) is emitted after compiling the left operand. If the left operand is not null, the program execution will jump past the right operand.
+2. **Handling Membership Operations**: The function loads the `__contains__` method from the global scope, compiles both operands, and then calls the method. Depending on whether the operation is `in` or `not in`, it either returns the result directly or negates it.
 
-- **Result Handling**: After skipping the right operand, the function pops any remaining values from the stack using `emit(Op::POP, 0, line)` and then continues with the next part of the code.
+3. **Handling Arithmetic and Comparison Operations**: The function compiles both operands and looks up the corresponding bytecode instruction in the `opMap` unordered map. It then emits this instruction.
 
-### Membership Tests
+4. **Error Handling**: If the operator is not found in the `opMap`, the function throws a runtime error indicating the unrecognized operator.
 
-For membership tests (`in`, `not in`):
-
-- **Emitting `__contains__` Method Call**: The function loads the `__contains__` method from the global scope using `emit(Op::LOAD_GLOBAL, addStr("__contains__"), line)`.
-  
-- **Compiling Operands**: Both the element and the collection are compiled into the bytecode stream.
-  
-- **Calling `__contains__` Method**: The function emits a call instruction (`Op::CALL`) to invoke the `__contains__` method with two arguments (the element and the collection).
-  
-- **Negating Result**: If the operation is `not in`, the function negates the result using `emit(Op::NOT, 0, line)`.
-
-### Arithmetic Operations
-
-For arithmetic operations:
-
-- **Opcode Lookup**: The function uses the `opMap` unordered map to look up the opcode corresponding to the given operator.
-  
-- **Emitting Opcode**: Once the opcode is found, it is emitted using `emit(it->second, 0, line)`, along with the required number of operands.
-
-### Unknown Operators
-
-If the binary operator is not recognized:
-
-- **Exception Thrown**: The function throws a `std::runtime_error` with a message indicating the unknown binary operator.
-
-## Example Usage
-
-Here’s an example of how the `compileBinary` function might be called within the context of the Quantum Language compiler:
+Here is the complete implementation of the `compileBinary` function:
 
 ```cpp
-BinaryExpression expr;
-expr.op = "and";
-expr.left = std::make_shared<Expression>(/*
+void compileBinary(BinaryExpression& e) {
+    int line = e.line;
+
+    if (e.op == "and" || e.op == "&&") {
+        compileExpr(*e.left);
+        size_t sc = emitJump(Op::JUMP_IF_FALSE, line);
+        emit(Op::POP, 0, line);
+        compileExpr(*e.right);
+        patchJump(sc);
+        return;
+    }
+    if (e.op == "or" || e.op == "||" || e.op == "??") {
+        compileExpr(*e.left);
+        size_t sc = emitJump(Op::JUMP_IF_TRUE, line);
+        emit(Op::POP, 0, line);
+        compileExpr(*e.right);
+        patchJump(sc);
+        return;
+    }
+    if (e.op == "in" || e.op == "not in") {
+        emit(Op::LOAD_GLOBAL, addStr("__contains__"), line);
+        compileExpr(*e.left);
+        compileExpr(*e.right);
+        emit(Op::CALL, 2, line);
+        if (e.op == "not in")
+            emit(Op::NOT, 0, line);
+        return;
+    }
+
+    compileExpr(*e.left);
+    compileExpr(*e.right);
+
+    static const std::unordered_map<std::string, Op> opMap = {
+        {"+", Op::ADD},
+        {"-", Op::SUB},
+        {"*", Op::MUL},
+        {"/", Op::DIV},
+        {"%", Op::MOD},
+        {"//", Op::FLOOR_DIV},
+        {"**", Op::POW},
+        {"==", Op::EQ},
+        {"!
