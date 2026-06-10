@@ -1,41 +1,58 @@
-# QuantumLanguage Compiler - Parser.h
+# QuantumLanguage Compiler - Serializer.h
 
 ## Overview
 
-The `include/Parser.h` header file is an integral part of the QuantumLanguage compiler, focusing on the parsing phase of the compilation process. This phase converts the source code into an Abstract Syntax Tree (AST) which represents the structure of the program. The `Parser` class handles the lexical analysis and syntactic analysis to construct the AST.
+The `include/Serializer.h` header file is an integral part of the QuantumLanguage compiler, focusing on the serialization and deserialization processes. This file defines the `Serializer` class, which facilitates converting `Chunk` objects into byte streams and reconstructing them back from those streams. Serialization is essential for saving the state of the compiler's output or intermediate results, enabling efficient storage and retrieval.
 
 ## Role in Compiler Pipeline
 
-The parser operates as a critical component within the QuantumLanguage compiler's pipeline. It follows the lexer, which breaks down the source code into individual tokens. The parser then takes these tokens and constructs a structured representation of the program in the form of an AST. This AST serves as the foundation for subsequent phases such as semantic analysis, optimization, and code generation.
+### Serialization Phase
+- **Purpose**: Convert the compiled `Chunk` objects into a format that can be easily stored or transmitted.
+- **Process**:
+  - The `serialize` function takes a shared pointer to a `Chunk` object and returns a vector of bytes representing the serialized form.
+  - Internally, it uses helper functions like `writeChunk`, `writeValue`, `writeString`, and `writeRaw<T>` to encode specific components of the `Chunk` into the byte stream.
+
+### Deserialization Phase
+- **Purpose**: Reconstruct `Chunk` objects from their serialized byte representations.
+- **Process**:
+  - The `deserialize` function accepts a vector of bytes and returns a shared pointer to a reconstructed `Chunk`.
+  - Using helper functions such as `readChunk`, `readValue`, `readString`, and `readRaw<T>`, it decodes the byte stream back into its constituent parts.
 
 ## Key Design Decisions and Why
 
-### Pratt Parsing Algorithm
+1. **Template Functions (`writeRaw<T>` and `readRaw<T>`)**
+   - **Why**: These functions provide generic support for writing and reading any type directly into and from the byte stream. They simplify the process of handling different data types without duplicating code for each type.
+   
+2. **Separation of Concerns**
+   - **Why**: By breaking down serialization and deserialization tasks into smaller, more focused functions (`writeChunk`, `writeValue`, etc.), the code becomes easier to understand, maintain, and extend.
 
-The parser uses the Pratt parsing algorithm for expression parsing. This algorithm allows for easy implementation of operator precedence and associativity rules. By using this approach, the compiler can handle complex expressions without requiring extensive lookahead or recursion, making it efficient and easier to implement.
+3. **Efficiency Considerations**
+   - **Why**: Directly encoding and decoding values using raw bytes minimizes overhead and improves performance compared to higher-level abstractions.
 
-### Error Handling
-
-A custom exception class `ParseError` is defined to handle parsing errors. This class inherits from `std::runtime_error` and includes additional information about the error location (`line` and `col`). This helps in providing more precise error messages during the compilation process, aiding developers in debugging their code effectively.
+4. **Error Handling**
+   - **Why**: Proper error handling mechanisms ensure that the serializer and deserializer can gracefully handle unexpected situations, such as incomplete data or invalid formats.
 
 ## Major Classes/Functions Overview
 
-### Parser Class
-
-The `Parser` class is central to the parsing phase. It is initialized with a vector of tokens produced by the lexer. The main function `parse()` drives the entire parsing process, converting the sequence of tokens into an AST.
-
-#### Private Member Functions
-
-- **Token Helpers**: These functions assist in navigating through the token stream, including getting the current token, peeking ahead, consuming tokens, expecting specific token types, checking token presence, matching tokens, skipping newlines, etc.
+### `Serializer` Class
+- **Public Methods**:
+  - `static std::vector<uint8_t> serialize(std::shared_ptr<Chunk> chunk)`: Serializes a `Chunk` object into a byte stream.
+  - `static std::shared_ptr<Chunk> deserialize(const std::vector<uint8_t>& data)`: Deserializes a byte stream back into a `Chunk` object.
   
-- **Parsing Methods**: These methods correspond to different types of statements and declarations found in the source code. They include parsing variable declarations, function declarations, class declarations, control flow statements like `if`, `while`, and `for`, return statements, print statements, input statements, and import statements.
+- **Private Helper Methods**:
+  - `static void writeChunk(std::vector<uint8_t>& out, std::shared_ptr<Chunk> chunk)`: Writes a `Chunk` object to the byte stream.
+  - `static std::shared_ptr<Chunk> readChunk(const std::vector<uint8_t>& data, size_t& offset)`: Reads a `Chunk` object from the byte stream starting at the specified offset.
+  - `static void writeValue(std::vector<uint8_t>& out, const QuantumValue& val)`: Writes a `QuantumValue` to the byte stream.
+  - `static QuantumValue readValue(const std::vector<uint8_t>& data, size_t& offset)`: Reads a `QuantumValue` from the byte stream starting at the specified offset.
+  - `static void writeString(std::vector<uint8_t>& out, const std::string& s)`: Writes a string to the byte stream.
+  - `static std::string readString(const std::vector<uint8_t>& data, size_t& offset)`: Reads a string from the byte stream starting at the specified offset.
+  - `template <typename T> static void writeRaw(std::vector<uint8_t>& out, const T& t)`: Writes any type `T` directly to the byte stream.
+  - `template <typename T> static T readRaw(const std::vector<uint8_t>& data, size_t& offset)`: Reads any type `T` directly from the byte stream.
 
-- **Expression Parsing**: The parser also handles the parsing of expressions using the Pratt parsing algorithm. It includes methods for parsing various operators and literals, ensuring correct precedence and associativity.
+## Tradeoffs
 
-### Trade-offs
+- **Performance vs. Flexibility**: While direct serialization of raw types (`writeRaw<T>`, `readRaw<T>`) offers high performance, it sacrifices some flexibility in terms of adding new data types without modifying existing code.
+- **Memory Usage**: Storing serialized data requires additional memory compared to storing the original `Chunk` objects. However, this tradeoff is often justified by the benefits of efficient storage and transmission.
+- **Complexity**: The separation of concerns leads to a more complex codebase but enhances maintainability and scalability.
 
-- **Efficiency vs. Complexity**: Using the Pratt parsing algorithm simplifies the implementation but may increase complexity slightly compared to other approaches like recursive descent parsers. However, the benefits in terms of readability and ease of extension outweigh the potential drawbacks.
-
-- **Error Reporting**: The custom `ParseError` class provides detailed error reporting, which enhances the developer experience but adds overhead to the parser implementation.
-
-In conclusion, the `Parser.h` file is a vital component of the QuantumLanguage compiler, responsible for transforming the source code into a structured AST. Its design choices, particularly the use of the Pratt parsing algorithm, ensure both efficiency and robust error handling, making it a cornerstone of the compiler's functionality.
+In summary, the `Serializer.h` file plays a vital role in the QuantumLanguage compiler by providing robust mechanisms for serializing and deserializing `Chunk` objects. Its design decisions balance efficiency, flexibility, and complexity, making it an essential component of the compiler's architecture.
