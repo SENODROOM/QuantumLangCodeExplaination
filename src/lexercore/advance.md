@@ -2,39 +2,30 @@
 
 ## Overview
 
-The `advance` function is an essential method within the LexerCore class of the Quantum Language compiler. This function is responsible for consuming and processing the next character from the input source code string (`src`). Upon each invocation, it increments the position pointer (`pos`) to move to the next character in the string. The function also updates the current line number (`line`) and column number (`col`) based on the type of character encountered.
+The `advance` function is a crucial method within the LexerCore class of the Quantum Language compiler. Its primary role is to consume and process the next character from the input source code string (`src`). Each time the function is called, it advances the position pointer (`pos`) by one character and updates the current line number (`line`) and column number (`col`) accordingly.
 
 ## Parameters/Return Value
 
-- **Parameters**: None
-- **Return Value**: A `char` representing the next character in the input source code string.
+- **Parameters**:
+  - None
 
-## How It Works
-
-The `advance` function operates as follows:
-
-1. **Consume Character**: It retrieves the character at the current position (`pos`) in the input string (`src`) and assigns it to the variable `c`.
-2. **Increment Position**: It then increments the position pointer (`pos`) to move to the next character in the string.
-3. **Update Line Number**: If the character retrieved is a newline (`'\n'`), it increments the line number counter (`line`) by one and resets the column number counter (`col`) to one.
-4. **Update Column Number**: For any other character, it simply increments the column number counter (`col`) by one.
-5. **Return Character**: Finally, it returns the character `c`.
-
-This mechanism ensures that the lexer can accurately track its position within the source code, which is crucial for generating meaningful tokens and error messages during compilation.
+- **Return Value**:
+  - The character that was consumed from the input source code string (`src`).
 
 ## Edge Cases
 
-- **End of String**: When the end of the input string is reached, the `advance` function will continue to increment the position pointer, but since there are no more characters to consume, it will not update the line or column numbers. This behavior allows the lexer to handle the end of the string gracefully without throwing errors.
-- **Newline Characters**: Each time a newline character is encountered, the line number is incremented, and the column number is reset to one. This correctly reflects the new line of code being processed.
-- **Tab Characters**: Tab characters (`'\t'`) are typically used to indicate indentation in source code. However, in this implementation, tab characters do not affect the column number. Instead, they are treated as single space characters.
+1. **End of String**: If the end of the input string (`src`) is reached, calling `advance` will not increment the position pointer or update the line and column numbers. Instead, it will simply return the null character (`'\0'`), indicating the end of the input.
+
+2. **New Line Character (`'\n'`)**: When encountering a new line character, the function increments both the line number (`line`) and resets the column number (`col`) to 1. This accurately reflects the change in line when moving to the next line in the source code.
+
+3. **Other Characters**: For all other characters encountered, the function only increments the column number (`col`) to reflect the movement to the next character on the same line.
 
 ## Interactions with Other Components
 
-The `advance` function interacts closely with the LexerCore class's state variables:
+- **LexerCore Class**: The `advance` function is a fundamental part of the LexerCore class, which is responsible for lexical analysis (tokenization) of the source code. It interacts directly with the `pos`, `line`, and `col` member variables of the LexerCore instance.
 
-- **Position Pointer (`pos`)**: This variable keeps track of the current index in the input string. By advancing it, the lexer moves forward through the source code.
-- **Line Number (`line`)**: This variable represents the current line number in the source code. It is updated whenever a newline character is encountered.
-- **Column Number (`col`)**: This variable indicates the current column number within the current line. It is updated for all characters except newline characters.
+- **Tokenization Process**: During the tokenization process, the LexerCore uses the `advance` function to read through the source code character by character. After advancing, it checks the character against various rules to determine whether it forms part of a valid token, such as identifiers, keywords, operators, or literals.
 
-Additionally, the `advance` function may interact with other methods within the LexerCore class, such as `peek`, which checks the next character without advancing the position pointer, and `match`, which advances the position pointer only if the next character matches a specified token.
+- **Error Handling**: The `advance` function helps in error handling by providing accurate line and column information when syntax errors occur. This allows for precise error messages that can aid developers in debugging their code.
 
-Overall, the `advance` function plays a fundamental role in the lexer's ability to parse and analyze the input source code, ensuring accurate tracking of character positions and facilitating the generation of tokens and error messages.
+In summary, the `advance` function plays a vital role in the lexer's operation by consuming characters from the input source code and updating the line and column positions. Its implementation ensures that the lexer can correctly handle different types of characters, including new lines, and provides essential information for error reporting and tokenization.
