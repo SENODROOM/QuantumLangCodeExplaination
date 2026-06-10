@@ -7,42 +7,34 @@ The `compileReturn` function in the Quantum Language compiler is responsible for
 ## Parameters and Return Value
 
 - **Parameters**:
-  - `s`: A reference to a `Statement` object that represents the return statement being compiled. The `Statement` object contains information about the return value, such as whether an expression follows the `return` keyword.
+  - `s`: A structure containing information about the current statement being compiled. It includes a pointer to an optional expression (`s.value`) that follows the `return` keyword.
+  - `line`: An integer representing the line number where the return statement occurs.
 
-- **Return Value**: 
-  - The function does not explicitly return any value. Instead, it performs actions to generate the appropriate bytecode instructions for the return statement.
+- **Return Value**: None. The function directly interacts with the code generation process through calls to `emit`, which adds instructions to the intermediate representation (IR).
 
 ## How It Works
 
 1. **Check for Expression**:
-   - The function first checks if the `Statement` object `s` has a non-null `value` member, which indicates that there is an expression following the `return` keyword.
+   - If `s.value` is not `nullptr`, indicating that there is an expression following the `return` keyword, the function proceeds to compile this expression using `compileExpr(*s.value)`.
 
-2. **Compile Expression**:
-   - If an expression exists (`s.value != nullptr`), the function calls `compileExpr(*s.value)` to compile the expression. This expression will produce the necessary bytecode to evaluate its result at runtime.
+2. **Emit Return Instruction**:
+   - After compiling the expression, the function emits an instruction to return the computed value. This is done using `emit(Op::RETURN, 0, line)`. Here, `Op::RETURN` is the operation code for returning a value, and `0` is a placeholder argument that might be used for additional data in future versions of the IR.
 
-3. **Emit RETURN Instruction**:
-   - After compiling the expression, the function emits a `RETURN` bytecode instruction using `emit(Op::RETURN, 0, line)`. The `Op::RETURN` operation instructs the quantum virtual machine to return the evaluated result of the expression back to the caller.
+3. **Handle No Expression**:
+   - If `s.value` is `nullptr`, meaning there is no expression after the `return` keyword, the function emits an instruction to return `nil`. This is done using `emit(Op::RETURN_NIL, 0, line)`. The `Op::RETURN_NIL` operation code indicates that the function should return without any value.
 
-4. **Handle nil Return**:
-   - If no expression follows the `return` keyword (`s.value == nullptr`), the function directly emits a `RETURN_NIL` bytecode instruction using `emit(Op::RETURN_NIL, 0, line)`. The `Op::RETURN_NIL` operation instructs the quantum virtual machine to return `nil` (an empty or null value) to the caller.
-
-5. **Line Information**:
-   - Both `RETURN` and `RETURN_NIL` operations include the line number (`line`) where the return statement appears in the source code. This helps in debugging and error reporting by providing context about where the return occurs.
+4. **Line Number Information**:
+   - Both `Op::RETURN` and `Op::RETURN_NIL` operations include the line number as an argument (`line`). This helps in debugging by providing context about where the return statement occurred in the source code.
 
 ## Edge Cases
 
-- **Empty Return Statement**: When a return statement without an expression is encountered (`s.value == nullptr`), the function correctly handles it by emitting `RETURN_NIL`.
-  
-- **Complex Expressions**: The function can handle complex expressions, including those involving multiple operations and variables, by calling `compileExpr()` recursively.
-
-- **Error Handling**: If an error occurs during the compilation of the expression (e.g., undefined variable, syntax error), the function relies on the existing error handling mechanisms in the compiler to report and terminate the compilation process appropriately.
+- **Empty Return Statement**: When there is no expression following the `return` keyword, the function correctly handles this case by emitting `Op::RETURN_NIL`.
+- **Complex Expressions**: The function can handle complex expressions, as it uses `compileExpr` to evaluate them. However, it assumes that `compileExpr` can generate valid IR for any given expression.
 
 ## Interactions with Other Components
 
-- **Expression Compiler**: The `compileReturn` function interacts with the `compileExpr` method, which is responsible for compiling individual expressions. This interaction allows the `compileReturn` function to leverage the expression compilation capabilities of the compiler.
+- **Code Generation**: The primary interaction is with the code generation component, where `emit` is called to add return instructions to the IR.
+- **Expression Compilation**: The function relies on the `compileExpr` method to compile any expressions that follow the `return` keyword. This method must be implemented elsewhere in the compiler to handle various types of expressions.
+- **Error Handling**: While not explicitly shown in the snippet, error handling mechanisms would typically interact with `compileReturn` to manage cases where invalid expressions are encountered after a `return`.
 
-- **Bytecode Emitter**: The function uses the `emit` method to generate bytecode instructions. This method is part of the broader bytecode generation framework within the compiler, ensuring that the generated bytecode accurately reflects the semantics of the return statement.
-
-- **Scope Management**: While not explicitly shown in the provided snippet, the `compileReturn` function may interact with scope management components to ensure that any local variables used in the return expression are properly resolved and accessible.
-
-In summary, the `compileReturn` function plays a crucial role in the Quantum Language compiler by evaluating and compiling return statements, ensuring that the correct bytecode instructions are emitted for both explicit and implicit returns. Its interactions with the expression compiler and bytecode emitter facilitate accurate and efficient compilation of quantum programs.
+In summary, `compileReturn` is crucial for ensuring proper return behavior in the generated quantum programs. It effectively handles both scenarios where a value needs to be returned and when `nil` should be returned, making use of existing methods like `compileExpr` and `emit` to integrate seamlessly into the overall compilation process.
