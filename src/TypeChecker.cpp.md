@@ -2,47 +2,39 @@
 
 ## Overview
 
-`TypeChecker.cpp` is a critical component of the Quantum Language compiler, tasked with performing static type checking on the Abstract Syntax Tree (AST). This ensures that all expressions and statements conform to their declared types, thus mitigating potential runtime errors caused by type mismatches.
+`TypeChecker.cpp` serves as a crucial part of the Quantum Language compiler, responsible for static type checking of the Abstract Syntax Tree (AST). This process ensures that all expressions and statements adhere to their declared types, thereby preventing potential runtime errors due to type mismatches.
 
 ## Role in the Compiler Pipeline
 
-The `TypeChecker` operates during the semantic analysis phase of the compilation process. After parsing and building the AST, the `TypeChecker` traverses the tree to verify that each expression and statement adheres to its specified type. If any discrepancies are found, it generates appropriate error messages, facilitating early detection and resolution of issues.
+The `TypeChecker` operates during the semantic analysis phase of the compilation process. It traverses the AST, starting from the root and moving down through each node, applying type rules to ensure consistency. The results of the type checking are used to generate more accurate code representations and to provide early feedback on any issues related to data types.
 
 ## Key Design Decisions and Why
 
-### Environment Management
-- **Global and Local Environments**: The `TypeChecker` maintains both global and local type environments. The global environment holds predefined types like built-in functions, while local environments are used for function-specific variables and parameters. This separation allows for accurate type resolution across different scopes.
-  
-### Type Inference
-- **Implicit Types**: For variables without explicit type hints, the `TypeChecker` infers their types based on the initializer expression. This approach reduces boilerplate code and makes the language more user-friendly.
+1. **Global Environment**: A `globalEnv` shared pointer of `TypeEnv` is initialized to store built-in functions and variables. This environment is used as the base for type resolution throughout the program.
 
-### Dynamic Typing Support
-- **Any Type**: The `TypeChecker` supports an "any" type, which can hold values of any other type. This feature is crucial for flexibility in quantum programming where operations might not always have statically determinable types.
+2. **Recursive Traversal**: The `check` function is designed to handle both individual nodes and blocks of statements recursively. This allows for comprehensive type checking across all parts of the AST.
+
+3. **Dynamic Initialization**: For variable declarations (`VarDecl`), the initial value's type is determined dynamically. If a type hint is provided, it overrides the inferred type, ensuring explicitness where necessary.
+
+4. **Built-in Function Handling**: Built-in functions like `print`, `input`, `len`, `sha256`, and `aes128` are predefined in the global environment. Their types are set to `"any"` or specific types based on their functionality.
 
 ## Major Classes/Functions Overview
 
-### Class: TypeChecker
-- **Constructor**: Initializes the global type environment with predefined types such as `print`, `input`, etc.
-- **Method: check**
-  - Accepts a vector of AST nodes and iterates through them, calling `checkNode` for each one.
-- **Method: checkNode**
-  - Recursively checks individual AST nodes based on their type.
-  - Handles various node types including literals, identifiers, variable declarations, function declarations, and binary expressions.
-
-### Class: TypeEnv
-- **Purpose**: Manages the current scope's type information.
-- **Methods**:
-  - `define`: Adds a new symbol to the environment with its associated type.
-  - `resolve`: Retrieves the type of a symbol given its name.
+- **TypeChecker Class**:
+  - **Constructor**: Initializes the `globalEnv` with built-in functions and variables.
+  - **check Method**: Takes a vector of AST nodes and checks each one using the `checkNode` method.
+  
+- **checkNode Function**:
+  - Recursively checks an AST node and its children.
+  - Handles different types of nodes such as literals, identifiers, variable declarations, function declarations, and binary expressions.
+  - Provides warnings for type mismatches between declared and actual types.
 
 ## Tradeoffs
 
-### Flexibility vs. Strictness
-- **Flexibility**: Supporting dynamic typing (`any`) enhances the language's expressiveness and usability, particularly in complex quantum algorithms.
-- **Strictness**: Enforcing strict type checking helps catch errors early in the development process, improving code quality and maintainability.
+- **Complexity vs. Usability**: While providing detailed type information can help catch errors early, it also increases the complexity of the type checker. Balancing thoroughness with practical usability is a challenge.
+  
+- **Performance**: Recursive traversal of the AST can lead to performance overhead, especially for large programs. Optimizing the traversal algorithm while maintaining correctness is essential.
 
-### Performance vs. Usability
-- **Performance**: Predefined types and efficient environment management contribute to better performance during type checking.
-- **Usability**: Dynamic typing and flexible syntax improve developer productivity and ease of use.
+- **Flexibility vs. Strictness**: Allowing dynamic initialization and type hints provides flexibility, but it can also lead to less strict type enforcement. Finding the right balance between these aspects is crucial for effective type checking.
 
-In conclusion, `TypeChecker.cpp` plays a pivotal role in ensuring the correctness and robustness of the Quantum Language compiler. Its design balances flexibility, strictness, performance, and usability, making it an essential part of the compiler's architecture.
+By addressing these tradeoffs, `TypeChecker.cpp` aims to provide robust static type checking that enhances the reliability and maintainability of the compiled quantum programs.
