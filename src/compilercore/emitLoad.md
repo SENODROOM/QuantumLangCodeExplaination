@@ -2,41 +2,33 @@
 
 ## Overview
 
-The `emitLoad` function is a crucial component of the Quantum Language Compiler, located in the `CompilerCore.cpp` file. Its primary role is to load variables or constants into the current stack frame during the compilation process. This function ensures that the correct variable or constant is loaded based on its scope and type.
+The `emitLoad` function is a critical component of the Quantum Language Compiler, located in the `CompilerCore.cpp` file. Its primary role is to load variables or constants into the current stack frame during the compilation process. This function ensures that the correct variable or constant is loaded based on its scope and location within the program.
 
-## Parameters
+### Why It Works This Way
 
-- `const std::string &name`: The name of the variable or constant to be loaded.
-- `int line`: The line number where the operation occurs, used for error reporting and debugging purposes.
+The `emitLoad` function operates by first resolving whether the variable or constant being referenced is a local variable, an upvalue, or a global variable. This resolution is done through two helper functions: `resolveLocal` and `resolveUpvalue`. If the variable is found as either a local or an upvalue, the corresponding opcode (`Op::LOAD_LOCAL` or `Op::LOAD_UPVALUE`) is emitted along with the index of the variable. If the variable is not found among locals or upvalues, it must be a global variable, and thus, the `Op::LOAD_GLOBAL` opcode is emitted followed by the string representation of the variable's name added to the string table using the `addStr` function.
 
-## Return Value
+This approach allows the Quantum Language Compiler to efficiently manage variable access and ensure that the correct variable is loaded at runtime, regardless of its scope.
 
-This function does not explicitly return a value. Instead, it emits appropriate bytecode instructions to load the specified variable or constant into the stack frame.
+## Parameters/Return Value
 
-## How It Works
+- **Parameters**:
+  - `const std::string &name`: The name of the variable or constant to be loaded.
+  - `int line`: The line number where the `emitLoad` call occurs. This parameter is used for error reporting and debugging purposes.
 
-The `emitLoad` function operates by determining whether the variable or constant to be loaded is local, upvalue, or global within the current scope. Here's how it works:
-
-1. **Check for Local Variable**:
-   - If the name is `"this"`, it is treated as an alias for `"self"` (which is slot 0 in all methods).
-   - The function then calls `resolveLocal` to check if the variable is a local variable in the current chunk (`current_`). If found, it emits an `Op::LOAD_LOCAL` instruction followed by the local index and the line number.
-
-2. **Check for Upvalue**:
-   - If the variable is not found locally, the function calls `resolveUpvalue` to check if the variable is an upvalue (a variable from an enclosing function). If found, it emits an `Op::LOAD_UPVALUE` instruction followed by the upvalue index and the line number.
-
-3. **Load Global Variable**:
-   - If the variable is neither a local nor an upvalue, it is considered a global variable. The function adds the string representation of the global name using `addStr` and emits an `Op::LOAD_GLOBAL` instruction followed by the global index and the line number.
+- **Return Value**: None. The function directly emits opcodes and does not return any values.
 
 ## Edge Cases
 
-- **Local Variable**: If the variable is a local but not found in the current chunk, it might indicate a bug in the scope resolution logic.
-- **Upvalue**: If the variable is an upvalue but not found in the enclosing functions, it might indicate a bug in the upvalue resolution logic.
-- **Global Variable**: If the variable is not found among locals and upvalues, it must be a global. However, if the global variable does not exist, it will cause an error when trying to load it.
+1. **Loading 'this'**: When the variable name is "this", which is an alias for "self" (slot 0 in all methods), the function resolves it to "self" and loads it from slot 0 using the `Op::LOAD_LOCAL` opcode.
+2. **Unresolvable Variable**: If the variable or constant cannot be resolved as a local, upvalue, or global, the function will throw an error indicating that the variable is undefined at the specified line.
 
-## Interactions with Other Components
+## Interactions With Other Components
 
-- **Scope Resolution**: The `emitLoad` function interacts closely with the scope resolution mechanisms (`resolveLocal`, `resolveUpvalue`) to determine the correct location of the variable or constant.
-- **Bytecode Emission**: It uses the `emit` function to generate bytecode instructions (`Op::LOAD_LOCAL`, `Op::LOAD_UPVALUE`, `Op::LOAD_GLOBAL`) which are essential for the execution of the compiled code.
-- **Error Handling**: By checking for the existence of variables at different scopes, `emitLoad` helps in identifying potential errors such as undefined variables.
+The `emitLoad` function interacts closely with several other components of the Quantum Language Compiler:
 
-In summary, the `emitLoad` function is vital for loading variables and constants correctly into the stack frame during the compilation process. It leverages scope resolution and bytecode emission to ensure efficient and accurate loading operations.
+1. **String Table**: The `addStr` function is used to add the variable or constant name to the string table, ensuring that each unique identifier has a consistent integer representation.
+2. **Scope Resolution**: The `resolveLocal` and `resolveUpvalue` functions utilize the current scope information to determine if the variable is a local or an upvalue. These functions rely on the `current_` pointer, which points to the current chunk of bytecode being compiled.
+3. **Bytecode Emission**: The `emit` function is called to actually write the opcodes into the current chunk of bytecode. This function takes the opcode and additional arguments (like the variable index) and appends them to the bytecode stream.
+
+By leveraging these interactions, the `emitLoad` function can effectively manage variable loading across different scopes and contribute to the overall correctness and efficiency of the generated bytecode.
