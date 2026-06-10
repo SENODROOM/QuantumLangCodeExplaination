@@ -2,39 +2,43 @@
 
 ## Overview
 
-`src/main.cpp` is the central entry point for the Quantum Language compiler, responsible for orchestrating the entire compilation process. It interfaces with various components including the lexer, parser, compiler, virtual machine (VM), disassembler, type checker, and error handler to transform source code into either executable programs or standalone bundled executables.
+`src/main.cpp` serves as the primary entry point for the Quantum Language compiler, overseeing the complete compilation process. This includes interfacing with components such as the lexer, parser, compiler, virtual machine (VM), disassembler, type checker, and error handler to convert source code into an executable program or bytecode.
+
+## Role in Compiler Pipeline
+
+- **Lexer**: Converts raw text into tokens.
+- **Parser**: Constructs an abstract syntax tree (AST) from tokens.
+- **Compiler**: Translates AST into intermediate representation (IR).
+- **Virtual Machine (VM)**: Executes IR.
+- **Disassembler**: Converts bytecode back into human-readable format.
+- **Type Checker**: Ensures types are consistent throughout the code.
+- **Error Handler**: Manages and reports errors during compilation.
 
 ## Key Design Decisions and Why
 
-The main design decision in `src/main.cpp` is its modularity and separation of concerns. Each component handles specific aspects of the compilation process, ensuring that the system remains organized and scalable. The choice to support different modes (`QUANTUM_MODE_COMPILER`, `QRUN_MODE`) allows flexibility in how the compiled output can be used, whether for direct execution or interpretation.
-
-### Tradeoffs
-
-- **Modularity vs. Complexity**: By breaking down the compilation process into multiple modules, the code becomes more complex but easier to maintain and extend.
-- **Performance vs. Memory Usage**: Some optimizations might sacrifice memory usage for performance, which is particularly relevant when dealing with large source files or complex programs.
-- **Flexibility vs. Simplicity**: Supporting both compilation and direct execution requires additional complexity, but provides greater flexibility in how the language can be used.
+- **Modular Architecture**: Each component (lexer, parser, compiler, etc.) operates independently, facilitating easier maintenance and scalability.
+- **Platform Independence**: Designed to work across multiple platforms, ensuring broad compatibility.
+- **Test Mode Support**: Allows for running the compiler in test mode, which can be useful for debugging and development purposes.
 
 ## Major Classes/Functions Overview
 
 ### `getExecutablePath()`
-- **Role**: Retrieves the full path of the currently executing program.
-- **Why**: Necessary for locating embedded bytecode within the executable itself.
-- **Tradeoffs**: No significant tradeoffs; straightforward utility function.
+- **Purpose**: Retrieves the path of the currently executing executable.
+- **Why**: Necessary for loading embedded bytecode from the same executable.
 
 ### `loadEmbeddedBytecode(const std::string &exePath)`
-- **Role**: Loads and deserializes embedded bytecode from an executable file.
-- **Why**: Allows the compiler to include precompiled code directly within the binary, reducing startup time and disk space requirements.
-- **Tradeoffs**: Requires careful handling of file formats and potential security implications.
+- **Purpose**: Loads embedded bytecode from the specified executable path.
+- **How**: Reads the file, checks for a specific magic number, extracts the payload size, and then deserializes the payload.
+- **Why**: Enables the creation of standalone executables that contain both the runtime and the compiled bytecode.
 
 ### `printBanner()`
-- **Role**: Prints a banner or logo to the console.
-- **Why**: Enhances user experience by providing visual identification of the tool.
-- **Tradeoffs**: Minimal impact on functionality; purely aesthetic.
+- **Purpose**: Prints a banner to the console when the compiler starts.
+- **Why**: Provides visual feedback and enhances user experience.
 
-## Role in Compiler Pipeline
+## Tradeoffs
 
-`src/main.cpp` acts as the glue between all other components. It initializes the necessary objects, reads input files, invokes the appropriate methods for parsing, compiling, and running, and finally cleans up resources. This ensures that each step of the compilation process is executed in the correct order and with the required dependencies.
+- **Complexity vs. Simplicity**: The modular architecture adds complexity but improves maintainability and extensibility.
+- **Performance vs. Resource Usage**: Optimizing performance often requires more resources, and vice versa.
+- **Flexibility vs. Consistency**: Allowing for different modes (compiler, interpreter, stub) provides flexibility but may introduce inconsistencies.
 
-## Conclusion
-
-`src/main.cpp` is a critical file in the Quantum Language compiler, driving the overall compilation workflow. Its modular design and focus on specific tasks make it a robust and flexible solution for transforming source code into executable programs. While it introduces some complexity, the benefits in terms of maintainability and functionality outweigh these tradeoffs.
+This README.md provides a comprehensive overview of the `src/main.cpp` file, detailing its role in the compiler pipeline, key design decisions, major functions/classes, and potential tradeoffs.
