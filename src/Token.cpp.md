@@ -2,57 +2,46 @@
 
 ## Overview
 
-The `Token.cpp` file plays a crucial role in the Quantum Language compiler by parsing and converting individual lexical elements from the source code into structured token objects. These tokens serve as the fundamental building blocks for subsequent phases of the compilation process, including syntax analysis and code generation.
+The `Token.cpp` file is an essential component of the Quantum Language compiler, responsible for parsing and converting individual lexical elements from the source code into structured token objects. These tokens act as the basic building blocks for further stages of the compilation process, such as syntax analysis and code generation.
 
 ## Role in Compiler Pipeline
 
-### Parsing Lexical Elements
+### Parsing
 
-The primary responsibility of `Token.cpp` is to parse the lexical elements of the source code and convert them into token objects. This involves identifying keywords, identifiers, literals, operators, and other symbols that make up the language's vocabulary.
+The primary function of `Token.cpp` is to parse the input source code and generate tokens that represent meaningful units of the language. This involves identifying keywords, identifiers, literals, operators, and other symbols within the source code.
 
 #### Key Design Decisions and Why
 
-1. **Lexical Analysis**: The file uses a lexer to break down the source code into meaningful units called tokens. This is essential for understanding the structure of the program at a granular level.
+1. **Lexical Analysis**: The file uses lexical analysis techniques to break down the source code into tokens. This ensures that each token accurately represents a part of the language's grammar.
 
-2. **Token Structure**: Each token object contains information such as its type, value, line number, and column position. This structure allows for easy reference and manipulation during later stages of compilation.
+2. **Error Handling**: Robust error handling mechanisms are implemented to manage unexpected characters or structures in the source code. This helps maintain the integrity of the token stream during parsing.
 
-3. **Error Handling**: The lexer includes mechanisms to handle errors gracefully, ensuring that the compiler can continue processing even if it encounters unexpected characters or malformed constructs.
+3. **Tokenization Rules**: Specific rules are defined for tokenizing different types of lexical elements. For example, keywords like `qubit`, `measure`, and `reset` are recognized and categorized appropriately.
 
-4. **Efficiency**: To improve performance, the lexer employs efficient data structures and algorithms for tokenization. For example, using regular expressions to match patterns quickly and minimizing memory allocations.
+4. **Line and Column Tracking**: Each token includes information about its position in the source code (line number and column number). This is crucial for generating accurate error messages and for debugging purposes.
 
-5. **Extensibility**: The design allows for easy extension to support additional features or changes in the language specification without significant modifications to existing code.
+5. **String Representation**: A method (`toString`) is provided to convert a token object into a string representation, which can be useful for logging and debugging.
 
-## Major Classes/Functions Overview
+### Major Classes/Functions Overview
 
-### Token Class
+- **Token Class**:
+  - **Purpose**: Represents a single token in the source code.
+  - **Attributes**: 
+    - `value`: The actual text of the token.
+    - `type`: The type of the token (e.g., keyword, identifier).
+    - `line`: The line number where the token appears in the source code.
+    - `col`: The column number where the token appears in the source code.
+  - **Methods**:
+    - `toString()`: Returns a string representation of the token, formatted as `[line:col value]`.
 
-- **Purpose**: Represents a single token parsed from the source code.
-- **Attributes**:
-  - `type`: Indicates the category of the token (e.g., keyword, identifier).
-  - `value`: Contains the actual text of the token.
-  - `line`: The line number where the token was found.
-  - `col`: The column position within the line.
-- **Methods**:
-  - `toString() const`: Converts the token to a string representation for debugging purposes.
+### Tradeoffs
 
-### Lexer Class
+1. **Performance vs. Accuracy**: Balancing the speed of tokenization with the accuracy of recognizing all valid lexical elements. More complex rules can lead to slower performance but ensure more precise tokenization.
 
-- **Purpose**: Responsible for breaking down the source code into tokens.
-- **Attributes**:
-  - `input`: The input stream containing the source code.
-  - `currentChar`: Holds the current character being processed.
-- **Methods**:
-  - `getToken()`: Retrieves the next token from the input stream.
-  - `skipWhitespace()`: Skips any whitespace characters encountered during tokenization.
-  - `match(char expected)`: Checks if the current character matches the expected character and advances the input stream accordingly.
-  - `error(const std::string& msg)`: Handles errors by throwing exceptions with appropriate messages.
+2. **Flexibility vs. Simplicity**: Allowing for flexibility in defining new token types versus keeping the system simple and straightforward. Flexibility can be beneficial for supporting extensions or variations of the language, but simplicity reduces complexity and potential bugs.
 
-## Tradeoffs
+3. **Memory Usage**: Efficiently managing memory usage while storing token information. Using pointers or references instead of copying large strings can help reduce memory overhead.
 
-1. **Complexity vs. Performance**: While a more complex lexer might offer better error handling and extensibility, it could also lead to decreased performance due to increased overhead. The current implementation strikes a balance between these two factors.
+4. **Extensibility**: Making the tokenization system extensible so it can accommodate future changes or additions to the language's grammar. This might involve using polymorphism or abstract base classes.
 
-2. **Memory Usage**: Efficiently managing memory allocation and deallocation is critical, especially when dealing with large source files. The use of smart pointers and pooled memory helps mitigate this issue.
-
-3. **Flexibility vs. Simplicity**: A highly flexible lexer that supports all possible language features might be harder to implement and maintain compared to a simpler one. The current design provides a good compromise between flexibility and simplicity.
-
-By understanding the role of `Token.cpp` in the Quantum Language compiler and its key components, developers can gain insight into how lexical analysis is performed and how structured tokens are generated, which are foundational steps in the overall compilation process.
+By carefully designing these aspects, `Token.cpp` ensures that the quantum language compiler can effectively parse source code into a structured format, facilitating efficient and accurate compilation.
