@@ -1,114 +1,46 @@
 # `checkNode` Function
 
 ## Purpose
-The `checkNode` function is an integral component of the Quantum Language compiler's Type Checker module. Its primary role is to validate and verify the data types of expressions and declarations during the compilation process. By ensuring type safety, this function helps prevent runtime errors related to incorrect data type usage.
+The `checkNode` function is an essential part of the Quantum Language compiler's Type Checker module. Its main objective is to ensure that all expressions and declarations within the code adhere to the correct data types, thereby maintaining type safety throughout the compilation process.
 
 ## Parameters
-- **`node`:** A pointer to the current AST (Abstract Syntax Tree) node being processed. This can represent various elements in the code such as literals, identifiers, variable declarations, function declarations, blocks, or binary expressions.
-- **`env`:** A shared pointer to the current `TypeEnv` environment, which holds information about the types of variables and functions in scope.
+- **`node`**: A pointer to the current AST node being processed. This can be any type of node such as a number literal, string literal, boolean literal, identifier, variable declaration, function declaration, block statement, or binary expression.
+- **`env`**: A shared pointer to the current type environment (`TypeEnv`). The type environment keeps track of the types of variables and functions in the current scope.
 
 ## Return Value
-- The function returns a string representing the data type of the given AST node. For example:
-  - `"float"` for number literals,
-  - `"string"` for string literals,
-  - `"bool"` for boolean literals,
-  - The resolved type for identifiers,
-  - `"void"` for variable and function declarations, and
-  - The result of checking binary expressions.
+- Returns a string representing the inferred or explicitly specified type of the given AST node. For example, it might return `"float"` for a number literal, `"string"` for a string literal, `"bool"` for a boolean literal, or `"fn"` for a function declaration.
+
+## How It Works
+1. **Base Case**: If the input `node` is `nullptr`, the function returns `"void"`.
+2. **Number Literals**: If the node is a `NumberLiteral`, the function returns `"float"`. This is because quantum computations often involve floating-point numbers.
+3. **String Literals**: If the node is a `StringLiteral`, the function returns `"string"`. String literals are straightforward in terms of their type.
+4. **Boolean Literals**: If the node is a `BoolLiteral`, the function returns `"bool"`. Boolean values are fundamental in programming.
+5. **Identifiers**: If the node is an `Identifier`, the function resolves its type using the provided type environment (`env`) and returns the resolved type.
+6. **Variable Declarations**: If the node is a `VarDecl`, the function:
+   - Checks the initializer of the variable. If there is an initializer, it recursively calls `checkNode` on the initializer to determine its type.
+   - Uses the `typeHint` field of the variable declaration to get the explicitly specified type. If `typeHint` is empty, it defaults to the type determined by the initializer.
+   - Performs a basic type check to ensure that the explicitly specified type matches the type determined by the initializer. If they do not match, it emits a static type warning indicating the mismatch.
+   - Defines the variable in the current type environment with its resolved or explicitly specified type.
+7. **Function Declarations**: If the node is a `FunctionDecl`, the function:
+   - Creates a new type environment (`subEnv`) that inherits from the current one (`env`).
+   - Iterates over the parameters of the function. For each parameter, it checks the corresponding entry in `paramTypes` to determine the explicitly specified type. If `paramTypes` is empty for a parameter, it defaults to `"any"`.
+   - Defines each parameter in the `subEnv` with its explicitly specified or default type.
+   - Recursively calls `checkNode` on the body of the function to perform type checking within the function's scope.
+   - Uses the `returnType` field of the function declaration to get the explicitly specified return type. If `returnType` is empty, it defaults to `"any"`.
+   - Defines the function in the current type environment with the type `"fn"`, indicating that it is a function.
+8. **Block Statements**: If the node is a `BlockStmt`, the function:
+   - Creates a new type environment (`subEnv`) that inherits from the current one (`env`).
+   - Iterates over each statement within the block and recursively calls `checkNode` on each statement.
+   - Finally, returns `"void"` after processing all statements in the block.
 
 ## Edge Cases
-- **Empty Node:** If the input `node` is `nullptr`, the function returns `"void"`.
-- **Unresolved Identifier:** If an identifier cannot be resolved in the current environment, the function may throw an error or return an unspecified type.
-- **Inconsistent Types:** When a variable declaration includes both a type hint and an initializer, the function checks if these types match. If they do not, it emits a static type warning indicating the mismatch.
+- **Empty Initializers**: When a variable is declared without an initializer, `initType` defaults to `"any"`.
+- **Missing Type Hints**: When a variable or function is declared without an explicit type hint, the type is determined by the initializer or body respectively.
+- **Type Mismatches**: The function emits a static type warning when the explicitly specified type does not match the type determined by the initializer or body.
+- **Nested Scopes**: The function uses nested type environments (`subEnv`) to handle different scopes within the code, ensuring that variable and function types are correctly resolved and checked.
 
-## Interactions with Other Components
-- **AST Traversal:** `checkNode` is typically invoked recursively to traverse the entire AST. Each node type has its own logic within the function to determine its type.
-- **Environment Management:** The function uses the provided `TypeEnv` object (`env`) to manage and resolve types. New environments are created for function bodies and blocks to handle local scoping.
-- **Error Reporting:** Static type warnings are reported through standard error output using `std::cerr`. These warnings help developers identify potential issues before runtime execution.
-
-## Implementation Details
-Here’s a breakdown of how `checkNode` handles different types of nodes:
-
-1. **Number Literal:**
-   ```cpp
-   if (node->is<NumberLiteral>()) return "float";
-   ```
-   Number literals are always treated as floating-point numbers.
-
-2. **String Literal:**
-   ```cpp
-   if (node->is<StringLiteral>()) return "string";
-   ```
-   String literals are treated as strings.
-
-3. **Boolean Literal:**
-   ```cpp
-   if (node->is<BoolLiteral>()) return "bool";
-   ```
-   Boolean literals are treated as booleans.
-
-4. **Identifier:**
-   ```cpp
-   if (node->is<Identifier>()) {
-       return env->resolve(node->as<Identifier>().name);
-   }
-   ```
-   Identifiers are resolved to their corresponding types in the current environment.
-
-5. **Variable Declaration:**
-   ```cpp
-   if (node->is<VarDecl>()) {
-       auto& vd = node->as<VarDecl>();
-       std::string initType = "any";
-       if (vd.initializer) initType = checkNode(vd.initializer, env);
-       
-       std::string declaredType = vd.typeHint.empty() ? initType : vd.typeHint;
-       
-       if (!vd.typeHint.empty() && vd.typeHint != "any" && initType != "any" && vd.typeHint != initType) {
-           std::cerr << Colors::YELLOW << "[StaticTypeWarning] " << Colors::RESET 
-                     << "Type mismatch for '" << vd.name << "'. Found " << initType 
-                     << " but expected " << vd.typeHint << " (line " << node->line << ")\n";
-       }
-       
-       env->define(vd.name, declaredType);
-       return "void";
-   }
-   ```
-   Variable declarations are checked against their initializers. If a type hint is provided, it must match the inferred type of the initializer. The resolved type is then defined in the environment.
-
-6. **Function Declaration:**
-   ```cpp
-   if (node->is<FunctionDecl>()) {
-       auto& fd = node->as<FunctionDecl>();
-       auto subEnv = std::make_shared<TypeEnv>(env);
-       for (size_t i = 0; i < fd.params.size(); ++i) {
-           std::string pType = "any";
-           if (i < fd.paramTypes.size() && !fd.paramTypes[i].empty()) pType = fd.paramTypes[i];
-           subEnv->define(fd.params[i], pType);
-       }
-       checkNode(fd.body, subEnv);
-       
-       std::string retType = fd.returnType.empty() ? "any" : fd.returnType;
-       env->define(fd.name, "fn");
-       return "void";
-   }
-   ```
-   Function declarations define new scopes with their own environment (`subEnv`). Parameters are added to this sub-environment, and the body of the function is checked within this context. The function itself is marked as having a type of `"fn"` in the outer environment.
-
-7. **Block Statement:**
-   ```cpp
-   if (node->is<BlockStmt>()) {
-       auto& block = node->as<BlockStmt>();
-       auto subEnv = std::make_shared<TypeEnv>(env);
-       for (auto& stmt : block.statements) {
-           checkNode(stmt, subEnv);
-       }
-       return "void";
-   }
-   ```
-   Block statements create new scopes, and each statement within the block is checked independently in the new environment.
-
-8. **Binary Expression:**
-   ```cpp
-   if (node->is<BinaryExpr>()) {
-       auto
+## Interactions With Other Components
+- **AST Parser**: The `checkNode` function receives nodes from the AST parser, which constructs the abstract syntax tree based on the source code.
+- **Type Environment**: The function interacts with the type environment to resolve and define types, managing the scope and lifetime of variables and functions.
+- **Error Reporting**: The function reports errors and warnings through standard error streams, providing feedback to the user about potential issues in the code.
+- **Scope Management**: The function handles different scopes within the code by creating and using nested type environments, ensuring that types are correctly resolved and validated at each level.
