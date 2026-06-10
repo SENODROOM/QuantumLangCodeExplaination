@@ -1,40 +1,44 @@
 # `isTruthy` Function Explanation
 
-The `isTruthy` function in the Quantum Language compiler evaluates whether a given quantum value is considered "truthy" or "falsy." This determination is crucial for controlling the execution flow of the language through conditional statements and logical operations.
+The `isTruthy` function in the Quantum Language compiler evaluates whether a given quantum value is considered "truthy" or "falsy." This determination is crucial for controlling the execution flow of the language through conditional statements and logical operations. The function returns a boolean indicating whether the provided quantum value should be treated as truthy.
 
-## What it Does
+## Parameters
 
-The `isTruthy` function checks the truthiness of different types of quantum values. In many programming languages, certain values are considered "truthy," meaning they evaluate to `true` in boolean contexts, while others are considered "falsy," meaning they evaluate to `false`. The `isTruthy` function implements these rules for various types of quantum values.
+- `data`: A variant type (`std::variant`) that can hold different types of quantum values such as `QuantumNil`, `bool`, `double`, `std::string`, `std::shared_ptr<Array>`, and `std::shared_ptr<QuantumPointer>`.
 
-## Why it Works This Way
+## Return Value
 
-The function uses `std::visit` to apply a lambda function that matches the type of the quantum value stored in the `data` member variable. Each case within the lambda function defines how to determine the truthiness of a specific type:
+- Returns `true` if the quantum value is considered truthy.
+- Returns `false` if the quantum value is considered falsy.
 
-- **QuantumNil**: Always returns `false`, as `nil` represents an empty or null value.
-- **bool**: Returns the value directly, since booleans are already truthy/falsy.
-- **double**: Returns `true` if the value is not zero (`!= 0.0`). Zero is considered falsy.
-- **std::string**: Returns `true` if the string is non-empty and not just a single null character (`'\0'`). An empty string or a string containing only a null character is considered falsy.
-- **std::shared_ptr<Array>**: Returns `true` if the array pointer is not empty (`!v->empty()`). An empty array is considered falsy.
-- **std::shared_ptr<QuantumPointer>**: Returns `true` if the quantum pointer is not null (`v`) and its target value is not null (`!v->isNull()`). A null quantum pointer or one pointing to a null value is considered falsy.
+## How It Works
 
-For all other types, the function defaults to returning `true`, assuming they are generally considered truthy.
+The function uses `std::visit` to inspect the type of the quantum value contained within the `data` variant. Depending on the type, it applies specific rules to determine if the value is truthy:
 
-## Parameters/Return Value
+1. **QuantumNil**: Always returns `false`. `QuantumNil` represents the null or undefined state in the Quantum Language.
+2. **bool**: Directly returns the boolean value. In C++, `true` is considered truthy, and `false` is considered falsy.
+3. **double**: Returns `true` if the double value is not equal to `0.0`. Any non-zero number is considered truthy.
+4. **std::string**: Returns `true` if the string is not empty and does not consist solely of a single null character (`'\0'`). Non-empty strings are considered truthy.
+5. **std::shared_ptr<Array>**: Returns `true` if the shared pointer points to an array that is not empty. Non-empty arrays are considered truthy.
+6. **std::shared_ptr<QuantumPointer>**: Returns `true` if the shared pointer is not null and the pointed-to value is not null. Non-null pointers pointing to non-null values are considered truthy.
 
-- **Parameters**:
-  - None. The function operates on the `data` member variable of the class it belongs to.
-
-- **Return Value**:
-  - `bool`: A boolean indicating whether the quantum value is considered truthy.
+For all other types, the function defaults to returning `true`, treating them as truthy.
 
 ## Edge Cases
 
-- **Empty String**: An empty string or a string containing only a null character (`'\0'`) is considered falsy.
-- **Zero Double**: A double value of zero is considered falsy.
-- **Null Array Pointer**: An array pointer that points to an empty array is considered falsy.
-- **Null Quantum Pointer**: A quantum pointer that is either null or points to a null value is considered falsy.
-- **Other Types**: All other types are considered truthy by default.
+- An empty string (`""`) will return `false`.
+- A string containing only a null character (`"\0"`) will also return `false`.
+- An empty array (`std::vector<>`) will return `false`.
+- A null shared pointer (`nullptr`) will return `false`.
+- A shared pointer pointing to a null value (`std::shared_ptr<QuantumPointer>(nullptr)`) will return `false`.
 
-## Interactions with Other Components
+## Interactions With Other Components
 
-The `isTruthy` function interacts with the `data` member variable, which holds the quantum value being evaluated. It also indirectly interacts with other classes like `Array` and `QuantumPointer` when evaluating their respective types. This function is used extensively throughout the compiler's logic handling conditional expressions and control flow structures.
+The `isTruthy` function is used extensively throughout the Quantum Language compiler to evaluate conditions in control structures like `if`, `while`, and logical operators like `&&` and `||`. It ensures that the correct evaluation logic is applied based on the type of the quantum value being evaluated.
+
+This function interacts with various components of the compiler, including but not limited to:
+- **Parser**: To determine the type of quantum values during parsing.
+- **Interpreter**: To use the result of `isTruthy` for executing conditional code blocks.
+- **Type Checker**: To ensure that logical operations are performed on compatible types.
+
+By providing a consistent and accurate method for evaluating truthiness, `isTruthy` facilitates robust control flow and error handling in the Quantum Language compiler.
