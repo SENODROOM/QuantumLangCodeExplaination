@@ -1,88 +1,48 @@
-# QuantumLanguage Compiler - Error.h
+# QuantumLanguage Compiler - Lexer.h
 
 ## Overview
 
-The `include/Error.h` header file is essential to the QuantumLanguage compiler, providing a structured approach to error handling within the system. This file defines various custom exception classes derived from `std::runtime_error`, each tailored to handle specific types of errors encountered during compilation or program execution.
+The `include/Lexer.h` header file is an essential component of the QuantumLanguage compiler, focusing on the lexical analysis phase. This phase involves breaking down the source code into meaningful tokens, which are then processed by subsequent phases of the compiler. The `Lexer` class is designed to handle the conversion of raw text into a sequence of tokens, taking care of various aspects such as whitespace, comments, numbers, strings, identifiers, and operators.
 
 ## Role in Compiler Pipeline
 
-The `Error.h` file serves as a critical component of the compiler's error management system. During the compilation process, these custom exceptions help identify and report errors more effectively than standard exceptions. When an error occurs, the compiler can throw one of these exceptions, which are then caught and handled appropriately, ensuring that the user receives clear and actionable feedback about what went wrong and where.
+In the context of the QuantumLanguage compiler's pipeline, the `Lexer` class operates at the beginning, converting the input source code into a stream of tokens. These tokens serve as the foundation for further stages like parsing and semantic analysis. By accurately identifying and categorizing different elements of the source code, the lexer facilitates efficient and error-free compilation.
 
 ## Key Design Decisions and Why
 
-1. **Custom Exception Classes**: By creating custom exception classes (`QuantumError`, `RuntimeError`, `TypeError`, `NameError`, `IndexError`), the compiler can provide more precise error messages tailored to different types of issues. This enhances debugging and user experience by making it easier to understand the nature of the problem.
-   
-2. **Line Number Information**: Each error class includes a `line` member variable, allowing the compiler to report errors along with their corresponding line numbers in the source code. This is invaluable for pinpointing the exact location of the error, facilitating quick resolution.
+1. **Tokenization with State Management**: The `Lexer` class uses state management to track its position within the source code. This allows it to handle complex cases like template literals and string interpolation effectively without getting confused by nested structures or boundary conditions.
 
-3. **Color Coding**: The `Colors` namespace provides ANSI escape codes for color coding error messages. This makes error output visually distinct, improving readability and distinguishing between different types of errors at a glance.
+2. **Support for Preprocessor Macros**: The inclusion of a mechanism to handle C-style preprocessor macros (`#define`) adds flexibility to the language. This feature enables developers to define constants, functions, or other constructs that can be expanded during the preprocessing stage, enhancing code reusability and maintainability.
+
+3. **Handling Whitespace and Comments**: Efficiently skipping over whitespace and comments is critical for performance and readability. The lexer provides separate methods (`skipWhitespace`, `skipComment`, `skipBlockComment`) to handle these scenarios, ensuring that they do not interfere with the tokenization process.
+
+4. **Error Handling**: While not explicitly shown in the provided code snippet, the lexer should have robust error handling mechanisms to manage unexpected characters or malformed tokens gracefully. This helps in providing clear feedback to the developer about issues in their source code.
 
 ## Major Classes/Functions Overview
 
-- **QuantumError**: A base class for all custom QuantumLanguage exceptions. It inherits from `std::runtime_error` and adds a `line` number and an error `kind`.
-  
-  ```cpp
-  class QuantumError : public std::runtime_error {
-  public:
-      int line;
-      std::string kind;
+- **Lexer Class**:
+  - **Constructor**: Initializes the lexer with the source code.
+  - **tokenize() Method**: Main method that processes the entire source code and returns a vector of tokens.
 
-      QuantumError(const std::string &kind, const std::string &msg, int line = -1);
-  };
-  ```
-
-- **RuntimeError**: Derived from `QuantumError`, this class is used for runtime errors that occur during the execution of a compiled program.
-  
-  ```cpp
-  class RuntimeError : public QuantumError {
-  public:
-      RuntimeError(const std::string &msg, int line = -1);
-  };
-  ```
-
-- **TypeError**: Used for type-related errors, such as mismatched data types when performing operations.
-  
-  ```cpp
-  class TypeError : public QuantumError {
-  public:
-      TypeError(const std::string &msg, int line = -1);
-  };
-  ```
-
-- **NameError**: Thrown when a variable, function, or other entity is referenced but not defined.
-  
-  ```cpp
-  class NameError : public QuantumError {
-  public:
-      NameError(const std::string &msg, int line = -1);
-  };
-  ```
-
-- **IndexError**: Used for errors related to accessing elements outside the valid range of a sequence.
-  
-  ```cpp
-  class IndexError : public QuantumError {
-  public:
-      IndexError(const std::string &msg, int line = -1);
-  };
-  ```
-
-- **Colors Namespace**: Contains constants for ANSI escape codes, enabling color-coded error messages in the console.
-  
-  ```cpp
-  namespace Colors {
-      inline const char *RED = "\033[31m";
-      inline const char *YELLOW = "\033[33m";
-      // Other colors...
-      inline const char *RESET = "\033[0m";
-  }
-  ```
+- **Private Methods**:
+  - **current()**: Returns the character at the current position.
+  - **peek(int offset)**: Returns the character at the specified offset ahead of the current position.
+  - **advance()**: Advances the lexer's position by one character and returns the character that was skipped.
+  - **skipWhitespace()**: Skips all whitespace characters until a non-whitespace character is encountered.
+  - **skipComment()**: Skips a single-line comment starting with `//`.
+  - **skipBlockComment()**: Skips a multi-line comment enclosed between `/*` and `*/`.
+  - **readNumber()**: Reads and returns a numeric token from the source code.
+  - **readString(char quote)**: Reads and returns a string token from the source code, handling both single and double quotes.
+  - **readTemplateLiteral(std::vector<Token> &out, int startLine, int startCol)**: Handles the reading of template literals, expanding them into a sequence of tokens.
+  - **readIdentifierOrKeyword()**: Reads and returns either an identifier or a keyword from the source code.
+  - **readOperator()**: Reads and returns an operator token from the source code.
 
 ## Tradeoffs
 
-- **Performance Overhead**: Using custom exception classes instead of standard ones might introduce a slight performance overhead due to additional memory allocations and copying.
+- **Complexity vs. Performance**: Managing the state and handling edge cases like template literals increases the complexity of the lexer but improves its ability to correctly parse the source code. This tradeoff is necessary for accurate and efficient compilation.
   
-- **Complexity**: Adding custom exception classes increases the complexity of the codebase, requiring developers to be aware of the different error types and how they should be handled.
+- **Flexibility vs. Simplicity**: Supporting preprocessor macros adds flexibility but also complicates the lexer's implementation. Balancing these features requires careful consideration of how often macros are used and the potential impact on performance.
 
-- **Readability vs. Precision**: While adding line number information and color coding improves the readability and precision of error messages, it might also clutter the console output, especially in large projects.
+- **Readability vs. Functionality**: Splitting the functionality into multiple private methods enhances readability and modularity. However, this might introduce some overhead due to function calls, especially if the lexer is invoked frequently.
 
-Overall, the `Error.h` file plays a vital role in enhancing the robustness and usability of the QuantumLanguage compiler by providing a comprehensive and flexible error handling mechanism.
+Overall, the `Lexer.h` file is a vital part of the QuantumLanguage compiler, ensuring that the source code is accurately converted into tokens. Its design decisions reflect a balance between functionality, performance, and simplicity, making it a robust tool for the lexical analysis phase.
