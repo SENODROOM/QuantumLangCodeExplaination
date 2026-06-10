@@ -2,50 +2,29 @@
 
 ## Overview
 
-The `beginScope` function is a crucial method in the Quantum Language compiler, found in the `CompilerCore.cpp` file. Its primary role is to increase the scope depth of the currently active compilation unit. This function plays a vital part in managing variable declarations and ensuring that variables are properly encapsulated within their respective scopes.
+The `beginScope` function is an essential method within the Quantum Language compiler's core functionality, located in the `CompilerCore.cpp` file. This function is responsible for incrementing the scope depth of the currently active compilation unit. By doing so, it facilitates the management of variables and their lifetimes across different scopes during the compilation process.
 
-## Parameters/Return Value
+### Why It Works This Way
+
+Increasing the scope depth ensures that each new scope starts at a higher level than its predecessor. This hierarchical approach helps in correctly identifying and resolving variable names based on their scope. When a new scope begins, any variables declared within that scope will shadow variables of the same name in outer scopes until they go out of scope or are explicitly accessed using their full path.
+
+### Parameters/Return Value
 
 - **Parameters**: None
 - **Return Value**: None
 
-## Edge Cases
+The `beginScope` function does not take any parameters and does not return any value. It simply modifies the state of the compilation unit by increasing its scope depth.
 
-1. **Initial Scope Depth**: If the initial scope depth is zero, calling `beginScope` will set the scope depth to one.
-2. **Nested Scopes**: Each call to `beginScope` increments the scope depth by one. Therefore, nested scopes can be managed effectively by making multiple consecutive calls to this function.
-3. **Empty Compilation Unit**: If there is no active compilation unit when `beginScope` is called, the behavior is undefined. In practice, the compiler should handle such cases gracefully, possibly by throwing an exception or logging an error message.
+### Edge Cases
 
-## Interactions with Other Components
+1. **Initial Scope Depth**: If the initial scope depth is zero, calling `beginScope` once will set the depth to one.
+2. **Nested Scopes**: Each call to `beginScope` increases the depth by one, allowing for nested scopes up to the maximum supported by the compiler.
+3. **Scope Depth Overflow**: While the compiler typically has a limit on the number of nested scopes to prevent stack overflow, this function itself does not handle such cases. The actual limitation would be enforced elsewhere in the compiler's architecture.
 
-The `beginScope` function interacts closely with the symbol table component of the compiler. When a new scope begins, the symbol table is updated to reflect this change. This allows for proper resolution of variable names during subsequent parsing and semantic analysis phases.
+### Interactions with Other Components
 
-Additionally, `beginScope` may interact with the code generation component, as it influences how variables are allocated and accessed in the generated machine code. By increasing the scope depth, the compiler ensures that variables declared in the inner scope do not conflict with those in outer scopes.
+- **Symbol Table Management**: As the scope depth increases, the symbol table associated with the compilation unit also grows, reflecting the introduction of new variables and namespaces.
+- **Variable Resolution**: The increased scope depth impacts how variable resolution is performed. Variables declared in the innermost scope are given priority over those in outer scopes, ensuring correct access during runtime.
+- **Error Handling**: During the compilation phase, the scope depth can help in diagnosing errors related to variable usage. For example, attempting to use a variable before it is declared due to incorrect scoping will result in an error.
 
-Here's a brief example of how `beginScope` might be used in the context of a simple quantum program:
-
-```cpp
-// Begin the outermost scope
-compiler.beginScope();
-
-// Declare a variable 'q' in the outermost scope
-compiler.declareVariable("q", VariableType::Quantum);
-
-// Begin a nested scope
-compiler.beginScope();
-
-// Declare a variable 'r' in the nested scope
-compiler.declareVariable("r", VariableType::Quantum);
-
-// End the nested scope
-compiler.endScope();
-
-// Attempt to access 'r' outside its scope (should fail)
-if (!compiler.resolveVariable("r")) {
-    std::cerr << "Error: Variable 'r' is out of scope." << std::endl;
-}
-
-// End the outermost scope
-compiler.endScope();
-```
-
-In this example, `beginScope` is called twice to manage two nested scopes. The variable `r` is only accessible within the nested scope, demonstrating how `beginScope` helps in maintaining variable encapsulation.
+In summary, the `beginScope` function is a fundamental component of the Quantum Language compiler, enabling the proper management of variable scopes and facilitating correct variable resolution throughout the compilation process.
