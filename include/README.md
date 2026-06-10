@@ -1,99 +1,74 @@
-# QuantumLanguage Compiler - AST.h
+# QuantumLanguage Compiler - Compiler.h
 
 ## Overview
 
-The `include/AST.h` header file in the QuantumLanguage compiler defines the Abstract Syntax Tree (AST) structure. The AST represents the syntactic structure of source code written in the QuantumLanguage, broken down into nodes that correspond to language constructs like expressions, statements, and declarations. This file serves as the foundation for parsing, analyzing, and transforming the source code into executable form.
+The `include/Compiler.h` header file is integral to the QuantumLanguage compiler, focusing on the core functionality of compiling source code into executable chunks. This file defines essential components such as the Virtual Machine (VM), scope management, and various helper functions necessary for the compilation process.
 
-## Role in Compiler Pipeline
+## Role in Compilation Pipeline
 
-The AST plays a pivotal role in the compiler's pipeline:
+The `Compiler.h` file serves as a central component within the QuantumLanguage compiler's pipeline. It handles the translation of abstract syntax trees (ASTs) into intermediate representation (IR) chunks that can be executed by the VM. This includes parsing, semantic analysis, and code generation phases.
 
-1. **Parsing**: The source code is parsed into an AST, which is a hierarchical representation of the code's syntax.
-2. **Analysis**: The AST is analyzed to ensure correctness, identify potential errors, and optimize the code.
-3. **Transformation**: The AST is transformed into a lower-level representation suitable for further processing, such as generating machine code or bytecode.
-4. **Code Generation**: Finally, the AST is used to generate the target code, whether it be native machine code or bytecode for an intermediate virtual machine.
+### Key Design Decisions and Why
 
-By using an AST, the compiler can handle complex language features and perform various optimizations more effectively than with a linear token stream.
+1. **Virtual Machine (VM)**: The VM is designed to execute compiled code efficiently. It manages execution contexts, handles exceptions, and maintains the runtime environment, ensuring accurate and smooth program execution.
 
-## Key Design Decisions and Why
+2. **Scope Management**: Scopes are managed using nested structures (`CompilerState`) to track local variables and their lifetimes. This allows for correct variable resolution and promotion to upvalues when necessary.
 
-### Use of Variants
-
-The AST uses `std::variant` to represent different types of expression and statement nodes. This choice allows for a flexible and extensible design where new node types can be easily added without modifying existing code.
-
-```cpp
-using ASTNodePtr = std::unique_ptr<ASTNode>;
-```
-
-### Hierarchical Structure
-
-Each node type in the AST has a clear hierarchy, making it easier to traverse and manipulate the tree. For example, `BinaryExpr` contains pointers to its left and right operands, forming a binary tree structure.
-
-```cpp
-struct BinaryExpr {
-    std::string op;
-    ASTNodePtr left, right;
-};
-```
-
-### Type Safety
-
-Using smart pointers (`std::unique_ptr`) ensures that memory management is safe and efficient. Each node is owned by a unique pointer, preventing multiple ownership and ensuring that nodes are properly deallocated when they are no longer needed.
-
-```cpp
-struct ASTNode {
-    virtual ~ASTNode() {}
-};
-```
+3. **Intermediate Representation (IR)**: Chunks are used to represent IR, which is then emitted by the compiler. This separation of concerns helps in organizing the code and makes it easier to manage and optimize.
 
 ## Major Classes/Functions Overview
 
-### Expression Nodes
+### Compiler Class
 
-The AST includes various types of expression nodes:
+- **Purpose**: Manages the overall compilation process, including state tracking and chunk emission.
+- **Key Functions**:
+  - `compile(ASTNode &root)`: Compiles an entire program starting from the root AST node and returns the top-level Chunk.
+  - `emit(Op op, int32_t operand = 0, int line = 0)`: Emits an opcode with an optional operand and line number.
+  - `addConst(QuantumValue v)`, `addStr(const std::string &s)`: Adds constants and strings to the chunk.
 
-- **NumberLiteral**: Represents numeric literals.
-- **StringLiteral**: Represents string literals.
-- **BoolLiteral**: Represents boolean literals.
-- **NilLiteral**: Represents the nil literal.
-- **Identifier**: Represents variable identifiers.
-- **BinaryExpr**: Represents binary operations.
-- **UnaryExpr**: Represents unary operations.
-- **AssignExpr**: Represents assignment operations.
-- **CallExpr**: Represents function calls.
-- **IndexExpr**: Represents indexing operations.
-- **SliceExpr**: Represents slicing operations similar to Python.
-- **MemberExpr**: Represents member access.
-- **ArrayLiteral**: Represents array literals.
-- **DictLiteral**: Represents dictionary literals.
-- **LambdaExpr**: Represents lambda functions.
-- **TernaryExpr**: Represents ternary conditional expressions.
-- **SuperExpr**: Represents super constructor or method calls.
+### CompilerState Struct
 
-### Statement Nodes
+- **Purpose**: Represents the current state of the compiler, including the chunk being generated, local variables, upvalues, and scope depth.
+- **Key Members**:
+  - `chunk`: A shared pointer to the current Chunk.
+  - `locals`: A vector of Local structs representing local variables.
+  - `upvalues`: A vector of UpvalueDesc structs representing upvalues.
+  - `scopeDepth`: Tracks the current scope depth.
+  - `enclosing`: Points to the enclosing CompilerState for nested scopes.
 
-Similarly, there are various types of statement nodes:
+### Local Struct
 
-- **VarDecl**: Represents variable declarations.
-- **FunctionDecl**: Represents function declarations.
-- **ReturnStmt**: Represents return statements.
-- **IfStmt**: Represents if statements.
-- **ForStmt**: Represents for loops.
-- **WhileStmt**: Represents while loops.
-- **BlockStmt**: Represents blocks of statements.
+- **Purpose**: Describes a local variable, including its name, depth, and whether it is captured as an upvalue.
+- **Key Members**:
+  - `name`: The name of the local variable.
+  - `depth`: The scope depth at which the variable is declared.
+  - `isCaptured`: Indicates whether the variable has been promoted to an upvalue.
+
+### UpvalueDesc Struct
+
+- **Purpose**: Describes an upvalue, indicating whether it is captured from a local or outer scope and its slot index.
+- **Key Members**:
+  - `isLocal`: Boolean flag indicating if the upvalue is captured from a local scope.
+  - `index`: Slot index of the upvalue, either in the local scope or the outer scope.
+
+### Helper Functions
+
+- **Scope Management**:
+  - `beginScope()`, `endScope(int line = 0)`: Manage the beginning and end of scopes, updating the scope depth and local variables.
+  - `resolveLocal(CompilerState *state, const std::string &name)`, `resolveUpvalue(CompilerState *state, const std::string &name)`: Resolve local and upvalue references based on the current scope.
+  - `addUpvalue(CompilerState *state, int index, bool isLocal)`: Add an upvalue to the current state.
+  - `declareLocal(const std::string &name, int line = 0)`: Declare a new local variable.
+
+- **Node Compilation**:
+  - `compileNode(ASTNode &node)`, `compileBlock(BlockStmt &b)`, `compileExpr(ASTNode &node)`: Recursively compile different types of AST nodes.
+  - `compileVarDecl(VarDecl &s, int line)`, `compileFunctionDecl(FunctionDecl &s, int line)`, `compileClassDecl(ClassDecl &s, int line)`, `compileIf(IfStmt &s, int line)`: Specialized functions for compiling specific types of statements like variable declarations, function definitions, class declarations, and conditional statements.
 
 ## Tradeoffs
 
-### Memory Management
+1. **Complexity vs. Performance**: Managing nested scopes and upvalues adds complexity to the compiler but improves performance by allowing efficient variable resolution and promotion.
 
-One tradeoff is the increased complexity of memory management due to the use of smart pointers. While this prevents common memory errors, it adds overhead compared to manual memory management.
+2. **Memory Usage vs. Execution Time**: Storing intermediate representations in memory can increase memory usage, but it reduces the need for repeated computations and increases execution time efficiency.
 
-### Flexibility vs. Complexity
+3. **Flexibility vs. Simplicity**: Allowing for dynamic scope resolution and upvalue promotion provides flexibility but can complicate the implementation and debugging process.
 
-The use of `std::variant` provides flexibility in representing different node types but increases the complexity of the AST traversal logic. Balancing these factors is essential for maintainability and performance.
-
-### Performance vs. Debugging
-
-The hierarchical structure of the AST makes it easier to debug and understand the code's structure. However, traversing the AST can be slower than working directly with a flat token stream, which could impact performance.
-
-Overall, the AST.h file is a critical component of the QuantumLanguage compiler, providing a robust and flexible representation of the source code that supports various stages of compilation.
+By understanding these components and their roles, developers can better appreciate how the QuantumLanguage compiler processes source code and optimizes the resulting executable chunks.
