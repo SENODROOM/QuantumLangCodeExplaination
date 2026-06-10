@@ -1,49 +1,48 @@
 # `compileExpr` Function
 
 ## Purpose
-The `compileExpr` function is a crucial method in the Quantum Language compiler, designed to convert expressions into an intermediate representation (IR). This function plays a pivotal role in the compilation process by handling various types of expressions such as literals, identifiers, binary operations, unary operations, assignments, function calls, and more.
+The `compileExpr` function is a critical method within the Quantum Language compiler, responsible for converting expressions into an intermediate representation (IR). This function is essential because it handles the translation of different expression types into operations that can be executed by the quantum runtime environment.
 
-## Parameters
-- `node`: An expression node representing the expression to be compiled.
-- `ln`: The line number where the expression appears in the source code, used for error reporting and debugging purposes.
+## Parameters and Return Value
+- **Parameters**:
+  - `node`: A reference to the expression node (`ExprNode`) that needs to be compiled.
+  - `ln`: An integer representing the line number in the source code where the expression appears. This parameter is used for error reporting and debugging purposes.
 
-## Return Value
-This function does not explicitly return a value; instead, it generates IR instructions that are stored internally within the compiler. These instructions represent the computation that needs to be performed during execution.
+- **Return Value**:
+  - The function does not explicitly return a value. Instead, it performs side effects by emitting IR instructions through the `emit` function.
 
 ## How It Works
-The `compileExpr` function uses a visitor pattern to handle different types of expression nodes. It employs template metaprogramming through `std::visit` and `if constexpr` statements to determine the type of the expression node at compile time. Based on the type, it invokes the appropriate helper function to generate the corresponding IR instructions.
+The `compileExpr` function uses `std::visit` to dispatch the compilation logic based on the type of the expression node. Each case corresponds to a specific type of expression:
 
-Here's a breakdown of how each type of expression is handled:
+1. **NumberLiteral**: Emits an `Op::LOAD_CONST` instruction to load a constant number onto the stack.
+2. **StringLiteral**: Emits an `Op::LOAD_CONST` instruction to load a constant string onto the stack.
+3. **BoolLiteral**: Emits either `Op::LOAD_TRUE` or `Op::LOAD_FALSE` depending on the boolean value.
+4. **NilLiteral**: Emits an `Op::LOAD_NIL` instruction to push a nil value onto the stack.
+5. **Identifier**: Calls the `compileIdentifier` function to handle identifier expressions.
+6. **BinaryExpr**: Calls the `compileBinary` function to handle binary operation expressions.
+7. **UnaryExpr**: Calls the `compileUnary` function to handle unary operation expressions.
+8. **AssignExpr**: Calls the `compileAssign` function to handle assignment expressions.
+9. **CallExpr**: Calls the `compileCall` function to handle function call expressions.
+10. **IndexExpr**: Calls the `compileIndex` function to handle indexing expressions.
+11. **SliceExpr**: Calls the `compileSlice` function to handle slicing expressions.
+12. **MemberExpr**: Calls the `compileMember` function to handle member access expressions.
+13. **ArrayLiteral**: Calls the `compileArray` function to handle array literal expressions.
+14. **DictLiteral**: Calls the `compileDict` function to handle dictionary literal expressions.
+15. **TupleLiteral**: Calls the `compileTuple` function to handle tuple literal expressions.
+16. **LambdaExpr**: Calls the `compileLambda` function to handle lambda function expressions.
+17. **TernaryExpr**: Calls the `compileTernary` function to handle ternary conditional expressions.
+18. **ListComp**: Calls the `compileListComp` function to handle list comprehension expressions.
+19. **SuperExpr**: Calls the `compileSuper` function to handle super expression calls.
+20. **NewExpr**: Calls the `compileNew` function to handle object instantiation expressions.
+21. **AddressOfExpr**: Calls the `compileAddressOf` function to handle address-of expressions.
 
-1. **NumberLiteral**: Converts the numeric literal into a constant value and emits an `Op::LOAD_CONST` instruction.
-2. **StringLiteral**: Converts the string literal into a constant value and emits an `Op::LOAD_CONST` instruction.
-3. **BoolLiteral**: Emits either `Op::LOAD_TRUE` or `Op::LOAD_FALSE` based on the boolean value.
-4. **NilLiteral**: Emits an `Op::LOAD_NIL` instruction to load a null value.
-5. **Identifier**: Delegates to the `compileIdentifier` function to handle variable references.
-6. **BinaryExpr**: Delegates to the `compileBinary` function to handle binary operations like addition, multiplication, etc.
-7. **UnaryExpr**: Delegates to the `compileUnary` function to handle unary operations like negation, increment, etc.
-8. **AssignExpr**: Delegates to the `compileAssign` function to handle assignment operations.
-9. **CallExpr**: Delegates to the `compileCall` function to handle function calls.
-10. **IndexExpr**: Delegates to the `compileIndex` function to handle indexing operations.
-11. **SliceExpr**: Delegates to the `compileSlice` function to handle slicing operations.
-12. **MemberExpr**: Delegates to the `compileMember` function to handle member access operations.
-13. **ArrayLiteral**: Delegates to the `compileArray` function to handle array literals.
-14. **DictLiteral**: Delegates to the `compileDict` function to handle dictionary literals.
-15. **TupleLiteral**: Delegates to the `compileTuple` function to handle tuple literals.
-16. **LambdaExpr**: Delegates to the `compileLambda` function to handle lambda expressions.
-17. **TernaryExpr**: Delegates to the `compileTernary` function to handle conditional ternary operations.
-18. **ListComp**: Delegates to the `compileListComp` function to handle list comprehensions.
-19. **SuperExpr**: Delegates to the `compileSuper` function to handle super class references.
-20. **NewExpr**: Delegates to the `compileNew` function to handle object instantiation.
-21. **AddressOfExpr**: Delegates to the `compileAddressOf` function to handle taking the address of an expression.
+### Edge Cases
+- **Invalid Expression Types**: If the expression type is not recognized or supported, the function should handle this gracefully, possibly by throwing an exception or logging an error.
+- **Empty Expressions**: Handling empty or null expressions should be considered, although they might not occur in valid Quantum Language code.
 
-## Edge Cases
-- **Unknown Expression Types**: If the expression type is not recognized, the function should throw an exception indicating an unsupported operation.
-- **Error Handling**: Proper error handling is essential, especially when dealing with invalid expressions or syntax errors. The function should report these issues accurately along with their line numbers.
+### Interactions with Other Components
+- **Emit Function**: The `compileExpr` function interacts with the `emit` function to generate IR instructions. These instructions are then used by the subsequent stages of the compilation process, including optimization and code generation.
+- **Symbol Table**: When compiling identifiers, the `compileIdentifier` function may interact with the symbol table to resolve variable names and their associated values.
+- **Expression Visitors**: The use of `std::visit` allows for polymorphic behavior, enabling the `compileExpr` function to handle different expression types without needing to know their exact types at compile time.
 
-## Interactions with Other Components
-- **Symbol Table**: The `compileExpr` function interacts with the symbol table to resolve variables and functions. It retrieves necessary information about symbols to generate correct IR instructions.
-- **IR Emitter**: The function uses an IR emitter to generate and store IR instructions. This emitter is responsible for translating high-level expressions into low-level machine instructions.
-- **Type Checker**: Before generating IR, the `compileExpr` function may interact with the type checker to ensure that the expression is semantically valid and conforms to the expected data types.
-
-Overall, the `compileExpr` function is a vital part of the Quantum Language compiler, ensuring that all expressions are correctly translated into an executable IR format. Its use of template metaprogramming and the visitor pattern makes it highly flexible and capable of handling a wide range of expression types efficiently.
+Overall, the `compileExpr` function serves as a dispatcher for various expression types, ensuring that each type is handled appropriately and efficiently. By leveraging C++'s type traits and visitor pattern, the function maintains a clear separation between concerns and facilitates extensibility in the compiler's design.
