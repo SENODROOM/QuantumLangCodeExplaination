@@ -2,26 +2,27 @@
 
 ## Overview
 
-The `getCell` function is a member method of a class designed to retrieve a quantum cell associated with a specified name. This function is essential for managing and accessing variables within the scope hierarchy of the quantum language compiler. It searches for an existing cell in the current scope, creates one if the variable exists but not the cell, and recursively walks up the parent scopes if neither is found.
+The `getCell` function is a member method of a class designed to retrieve a quantum cell associated with a specified name. This function is essential for managing and accessing variables within the scope hierarchy of the quantum language compiler. It searches for a quantum cell in the current scope, and if not found, it attempts to find the corresponding variable. If a variable is found, it creates a new quantum cell that is synchronized with the current value of the variable and returns it. If the variable is also not found in the current scope, it walks up the parent scopes until it finds the cell or reaches the root scope.
 
 ## Parameters
 
-- **name**: A string representing the name of the quantum cell or variable to be retrieved.
+- `name`: A string representing the name of the quantum cell or variable to be retrieved.
 
 ## Return Value
 
-- **std::shared_ptr<QuantumValue>**: Returns a shared pointer to the quantum cell associated with the specified name. If no such cell or variable is found, it returns `nullptr`.
+- Returns a `std::shared_ptr<QuantumValue>` pointing to the quantum cell associated with the specified name. If no such cell exists, it returns `nullptr`.
 
 ## Edge Cases
 
-1. **Variable Exists but No Cell**: If a variable with the given name exists in the current scope but no corresponding quantum cell has been created yet, the function will create a new quantum cell synced to the current value of the variable and store it in the scope before returning it.
-2. **No Variable or Cell Found**: If neither a variable nor a cell with the given name exists in the current scope or any of its parent scopes, the function will return `nullptr`.
-3. **Recursive Scope Search**: The function will continue searching through parent scopes until it either finds a matching cell or reaches the top-level scope without finding anything.
+1. **Variable Not Found**: If the specified name corresponds to a variable but not a quantum cell, the function will create a new quantum cell synchronized with the variable's current value and return it.
+2. **Scope Hierarchy**: The function recursively searches through the parent scopes until it either finds the cell or reaches the root scope. If the cell is not found in any of the parent scopes, it returns `nullptr`.
+3. **Empty Name**: Passing an empty string as the name parameter will result in undefined behavior since the function expects a valid variable or cell name.
 
 ## Interactions with Other Components
 
-- **Scope Management**: The `getCell` function interacts with the scope management system to navigate through different levels of the scope hierarchy. Each scope maintains its own set of cells and variables.
-- **Variable Access**: When a variable is accessed, the `getCell` function ensures that the variable's value is reflected accurately in the returned quantum cell.
-- **Memory Management**: By using `std::shared_ptr`, the `getCell` function facilitates efficient memory management, ensuring that quantum cells are only created when necessary and are automatically cleaned up when they go out of scope.
+- **Scope Management**: The function interacts with the scope management system to navigate through the parent scopes when the cell is not found in the current scope.
+- **Variable Storage**: It uses a map (`vars`) to store variables and their values. When a variable is found, it creates a new quantum cell based on the variable's value.
+- **Quantum Cell Storage**: The function maintains a map (`cells`) to store quantum cells and their names. When a quantum cell is found, it directly returns it.
+- **Synchronization**: If a variable is found and used to create a new quantum cell, the cell is synchronized with the variable's current value, ensuring that changes to the variable reflect in the cell and vice versa.
 
-This implementation ensures that the quantum language compiler can effectively manage and access variables across different scopes, providing a robust foundation for further development and optimization.
+This implementation ensures efficient access to quantum cells while maintaining synchronization between variables and cells, which is crucial for the proper functioning of the quantum language compiler.
