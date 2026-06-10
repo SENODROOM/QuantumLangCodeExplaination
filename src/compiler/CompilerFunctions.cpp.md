@@ -2,65 +2,71 @@
 
 ## Role in Compiler Pipeline
 
-`CompilerFunctions.cpp` is a crucial component of the Quantum Language compiler, responsible for compiling function definitions into executable chunks. The primary steps involved include:
+`CompilerFunctions.cpp` plays a pivotal role in the Quantum Language compiler's pipeline by handling the compilation of function definitions into executable chunks. This process involves creating new scopes for each function, managing local variables, and processing the function body to generate bytecode that can be executed by the virtual machine (`Vm`). Key responsibilities include:
 
-1. **Creating New Scopes**: A new scope is initiated for each function definition to manage local variables and their lifetimes.
-2. **Parameter Handling**: Parameters are declared within the new scope, and special handling is applied to parameters that represent arrays or slices.
-3. **Body Compilation**: The body of the function is compiled using either block statement (`BlockStmt`) or expression (`Expr`). If the body is an expression, it is followed by a return operation.
-4. **Return Operation**: A final return operation is emitted to ensure that the function always returns a value, even if the body does not explicitly do so.
-5. **Upvalue Management**: Upvalues (references to outer scope variables) are managed and packed as constants at the end of the chunk to support closure creation.
+- **Scope Management**: Each function has its own scope to encapsulate local variables and ensure they do not conflict with global or other function variables.
+- **Parameter Handling**: Function parameters are declared within their respective scopes, and special handling is provided for parameters that represent arrays.
+- **Body Compilation**: The function body is compiled, which may consist of multiple statements or a single expression. If the body contains multiple statements, it is treated as a block statement.
+- **Return Statements**: Appropriate return instructions are emitted based on whether the function body returns a value or not.
 
 ## Key Design Decisions and Why
 
-- **Scoped Variable Management**: By creating a new scope for each function, we ensure that local variables are properly isolated and cleaned up when the function exits. This prevents variable leaks and makes the code easier to understand and debug.
-  
-- **Array Parameter Handling**: Special handling is implemented for parameters that represent arrays or slices. Each element of the array is loaded and indexed separately, allowing for dynamic access within the function. This approach ensures flexibility while maintaining performance.
+1. **Scoping**:
+   - **Why**: To isolate function-specific variables and prevent unintended side effects on global state or other functions.
+   - **Implementation**: A new `CompilerState` object is created for each function, encapsulating the necessary information about the function's scope, including parameter details.
 
-- **Expression vs Block Body Compilation**: The choice between compiling the function body as a block or an expression depends on the structure of the body. Compiling blocks directly allows for more complex control flow, while expressions provide a concise way to handle simple cases. This dual approach ensures versatility and efficiency.
+2. **Parameter Declaration**:
+   - **Why**: To define how function parameters should be accessed and manipulated during execution.
+   - **Implementation**: Parameters are declared using the `declareLocal` method, which also handles special cases where parameters represent arrays.
 
-- **Final Return Operation**: Ensuring every function has a return operation guarantees that the execution always produces a result, preventing runtime errors due to missing return statements.
+3. **Array Parameter Handling**:
+   - **Why**: To support array operations within function parameters, allowing for more flexible data manipulation.
+   - **Implementation**: Special logic checks for parameters formatted as `[array]`, splitting them into individual elements and declaring them as separate local variables.
 
-- **Upvalue Packing**: Upvalues are packed as constants at the end of the chunk to facilitate closure creation. This method reduces overhead and simplifies the runtime environment.
+4. **Body Compilation**:
+   - **Why**: To convert high-level quantum language constructs into low-level bytecode that can be efficiently executed.
+   - **Implementation**: Depending on whether the body is a block statement or a single expression, different compilation methods (`compileBlock` or `compileExpr`) are used.
+
+5. **Return Instructions**:
+   - **Why**: To ensure that the function exits correctly, either returning a value or indicating that no value is returned.
+   - **Implementation**: The `emit` method is used to insert appropriate return instructions (`Op::RETURN` or `Op::RETURN_NIL`) at the end of the function.
 
 ## Major Classes/Functions Overview
 
-### `class Compiler`
-- **Purpose**: Manages the overall state of the compiler during the compilation process.
-- **Key Methods**:
-  - `compileFunction`: Main method for compiling function definitions.
-  - `beginScope`, `endScope`: Manage the scope stack for nested scopes.
-  - `declareLocal`: Declare a new local variable in the current scope.
-  - `emit`: Emit bytecode instructions.
+### `Compiler`
+- **Role**: Manages the overall compilation process, maintaining the current state of the compiler and emitting bytecode.
+- **Key Functions**:
+  - `compileFunction`: Compiles a function definition into an executable chunk.
+  - `beginScope`: Starts a new scope for function-local variables.
+  - `endScope`: Ends the current scope and cleans up any unused variables.
+  - `declareLocal`: Declares a local variable within the current scope.
 
-### `struct CompilerState`
-- **Purpose**: Holds the state specific to the current function being compiled.
-- **Fields**:
-  - `chunk`: The bytecode chunk being generated for the function.
-  - `isFunction`: Indicates whether the current state is for a function.
-  - `upvalues`: List of upvalues used by the function.
+### `CompilerState`
+- **Role**: Represents the state of the compiler at a particular point in time, including information about the current scope and the generated bytecode chunk.
+- **Attributes**:
+  - `chunk`: Holds the bytecode chunk being generated.
+  - `locals`: Tracks local variables within the current scope.
+  - `upvalues`: Stores information about upvalues (variables captured from enclosing scopes).
 
-### `void Compiler::compileFunction(...)`
-- **Purpose**: Compiles a function definition into a bytecode chunk.
-- **Parameters**:
-  - `name`: Name of the function.
-  - `params`: List of parameter names.
-  - `paramIsRef`: List indicating whether each parameter is passed by reference.
-  - `body`: The AST node representing the function body.
-  - `line`: Line number where the function is defined.
-- **Process**:
-  - Initializes a new `CompilerState` for the function.
-  - Begins a new scope and declares local variables.
-  - Handles special array parameter indexing.
-  - Compiles the function body and emits necessary return operations.
-  - Packs upvalue descriptors as constants for closure creation.
-  - Restores the previous scope state.
+### `Chunk`
+- **Role**: Represents a sequence of bytecode instructions that form a complete executable chunk.
+- **Attributes**:
+  - `params`: List of function parameters.
+  - `paramIsRef`: Indicates whether each parameter is passed by reference.
+  - `constants`: Array of constants used within the chunk.
+  - `upvalueCount`: Number of upvalues captured by the function.
+
+### `Upvalue`
+- **Role**: Describes a variable captured from an enclosing scope, used when creating closures.
+- **Attributes**:
+  - `isLocal`: Indicates whether the upvalue is a local variable from the enclosing scope.
+  - `index`: Index of the upvalue within the enclosing scope's locals array.
 
 ## Tradeoffs
 
-- **Flexibility vs Performance**: While the dual approach of compiling blocks and expressions provides flexibility, it may introduce some performance overhead compared to a single unified method.
-  
-- **Complexity vs Simplicity**: Managing scopes, parameters, and upvalues adds complexity to the compiler implementation but enhances its ability to handle various programming constructs efficiently.
+- **Memory Usage**: Creating new scopes for each function increases memory usage but ensures better isolation and prevents variable conflicts.
+- **Performance**: Emitting specific instructions for array parameters can slightly increase performance overhead during compilation but provides more efficient execution at runtime.
+- **Complexity**: Managing scopes and upvalues adds complexity to the compiler, requiring careful handling to avoid bugs and ensure correct behavior.
+- **Flexibility**: Allowing array parameters enhances the flexibility of the quantum language, enabling more complex data manipulations directly within function signatures.
 
-- **Memory Usage**: Storing upvalue descriptors as constants can increase memory usage, especially for functions with many upvalues, but this is generally manageable and improves runtime performance.
-
-Overall, `CompilerFunctions.cpp` plays a vital role in transforming high-level Quantum Language function definitions into low-level executable bytecode, ensuring efficient and robust compilation processes.
+This implementation ensures that function definitions are compiled accurately and efficiently, providing a robust foundation for executing quantum programs.
