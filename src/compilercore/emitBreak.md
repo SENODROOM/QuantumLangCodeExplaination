@@ -2,29 +2,33 @@
 
 ## Purpose
 
-The `emitBreak` function is essential for generating break statements in the compiled code. It is part of the CompilerCore class and is integral to managing loop structures during the compilation process.
+The `emitBreak` function is crucial for generating break statements in the compiled code. It is an integral method within the CompilerCore class, specifically designed to manage loop structures during the compilation process.
 
 ## Functionality
 
-When invoked, `emitBreak` appends a jump instruction to the list of break jumps associated with the most recently opened loop. This ensures that when the break statement is encountered during execution, the program will jump to the specified location, effectively exiting the loop.
+When `emitBreak` is called, it appends a jump instruction to the list of break jumps associated with the most recently opened loop. This ensures that when a break statement is encountered in the source code, the correct jump target is emitted in the compiled output.
 
-### Parameters
+Here's how it works:
+- The function accesses the last element of the `loops_` vector, which represents the currently open loop.
+- It then pushes back a new jump instruction onto the `breakJumps` vector of that loop. The jump instruction is generated using the `emitJump` method, which takes two parameters: the operation type (`Op::JUMP`) and the current line number (`line`).
+- The purpose of storing these break jumps is to allow proper handling of nested loops, where multiple break statements may need to jump to different targets.
 
-- **None**: The `emitBreak` function does not require any parameters as it operates on the current state of the CompilerCore object.
+### Parameters/Return Value
 
-### Return Value
+- **Parameters**:
+  - `line`: An integer representing the current line number in the source code. This parameter is used to generate the jump instruction accurately.
 
-- **None**: The function returns void, meaning it does not produce any output or return values directly.
+- **Return Value**:
+  - The function does not return any value explicitly. However, it modifies the internal state of the CompilerCore object by appending a jump instruction to the `breakJumps` vector of the most recently opened loop.
 
 ### Edge Cases
 
-1. **No Open Loops**: If there are no open loops at the time `emitBreak` is called, the behavior is undefined. In practice, the compiler should handle this case gracefully, perhaps by issuing an error message or skipping the break statement.
-2. **Nested Loops**: When dealing with nested loops, `emitBreak` only affects the innermost loop. Each loop maintains its own list of break jumps, allowing for multiple exit points within different levels of nesting.
+- If there are no loops currently open (`loops_.empty()`), calling `emitBreak` will result in undefined behavior. This case should be handled by the caller to ensure that the function is only invoked when appropriate.
+- When dealing with deeply nested loops, each loop maintains its own list of break jumps. The `emitBreak` function correctly identifies the most recent loop and appends the jump instruction to its respective list.
 
 ### Interactions with Other Components
 
-- **Loop Management**: `emitBreak` interacts closely with the loop management component of the CompilerCore. It relies on the `loops_` member variable, which stores information about all currently open loops, including their break jump locations.
-- **Code Generation**: During the code generation phase, `emitBreak` uses the `emitJump` method to create a jump instruction. This method is responsible for appending actual machine code to the output stream based on the operation type (`Op::JUMP` in this case) and the line number where the jump occurs.
-- **Error Handling**: While not explicitly shown in the provided code snippet, `emitBreak` may interact with the error handling system of the CompilerCore to manage situations where break statements are used outside of valid loop contexts.
+- **Loop Management**: The `emitBreak` function interacts closely with the loop management system within the CompilerCore class. It relies on the `loops_` vector to keep track of open loops and their corresponding break jump lists.
+- **Jump Instruction Generation**: The function uses the `emitJump` method to create jump instructions. This method is likely defined elsewhere in the CompilerCore class or another related component, responsible for emitting low-level jump operations based on the specified operation type and line number.
 
-In summary, `emitBreak` is a critical function for managing break statements in loop structures during the compilation process. By appending jump instructions to the appropriate lists within the `loops_` member variable, it ensures that the correct exit point is taken when a break statement is encountered. The function's simplicity belies its importance in maintaining control flow within complex programs.
+In summary, the `emitBreak` function plays a vital role in managing break statements within loop structures during the compilation process. By appending jump instructions to the `breakJumps` vector of the most recently opened loop, it ensures that the correct targets are emitted in the compiled code, facilitating efficient control flow.
