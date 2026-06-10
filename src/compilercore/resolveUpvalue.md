@@ -2,38 +2,37 @@
 
 ## Purpose
 
-The `resolveUpvalue` function is crucial for managing upvalues within nested functions in the Quantum Language compiler. An upvalue is a variable that is accessible in an inner function but defined in an outer function. This function ensures that upvalues are correctly captured and resolved during the compilation process.
+The `resolveUpvalue` function plays a vital role in managing upvalues within nested functions in the Quantum Language compiler. An upvalue is a variable that is accessible in an inner function but defined in an outer function. This function ensures that upvalues are correctly resolved and added to the current function's list of upvalues.
 
-## Functionality
+## Parameters
 
-When called, `resolveUpvalue` performs the following steps:
+- `State* state`: A pointer to the current compilation state, which includes information about the enclosing function and the list of locals.
+- `const std::string& name`: The name of the variable whose upvalue needs to be resolved.
 
-1. **Check Enclosing Scope**: The function first checks if there is an enclosing scope (`state->enclosing`). If not, it returns `-1`, indicating that the variable is not found in any accessible scope.
+## Return Value
 
-2. **Resolve Local Variable**: It attempts to resolve the variable as a local variable in the enclosing scope using the `resolveLocal` function. If successful, it marks the local variable as captured (`state->enclosing->locals[local].isCaptured = true`) and then adds the upvalue to the current function's upvalue list using the `addUpvalue` function with `true` as the second argument, indicating that it is a local upvalue.
+- `int`: Returns the index of the upvalue if successfully resolved; otherwise, returns `-1`.
 
-3. **Resolve Upvalue**: If the variable is not found as a local variable in the enclosing scope, it recursively calls `resolveUpvalue` on the parent scope (`state->enclosing->enclosing`). If the variable is found as an upvalue in the parent scope, it adds the upvalue to the current function's upvalue list using the `addUpvalue` function with `false` as the second argument, indicating that it is a non-local upvalue.
+## How It Works
 
-4. **Return Value**: If the variable is successfully resolved, whether as a local or non-local upvalue, the function returns the index of the upvalue in the current function's upvalue list. If the variable is not found in any accessible scope, it returns `-1`.
+The `resolveUpvalue` function operates as follows:
 
-## Parameters/Return Value
+1. **Check Enclosing Function**: If there is no enclosing function (`!state->enclosing`), it immediately returns `-1`. This indicates that the variable is not an upvalue since there is no outer scope to capture variables from.
 
-- **Parameters**:
-  - `state`: A pointer to the current compilation state, which includes information about the current function and its enclosing scopes.
-  - `name`: A string representing the name of the variable being resolved.
+2. **Resolve Local Variable**: It attempts to resolve the variable locally in the enclosing function using the `resolveLocal` function. If the variable is found (`local != -1`), it sets the `isCaptured` flag of the local variable to `true`, indicating that it is being captured by the inner function. Then, it adds the local variable as an upvalue to the current function's list using the `addUpvalue` function with `isLocal` set to `true`.
 
-- **Return Value**:
-  - An integer representing the index of the resolved upvalue in the current function's upvalue list. Returns `-1` if the variable is not found in any accessible scope.
+3. **Resolve Upvalue**: If the variable is not found locally, it recursively calls itself on the enclosing function to check if the variable is an upvalue of the enclosing function (`upvalue != -1`). If it is found, it adds the upvalue to the current function's list using the `addUpvalue` function with `isLocal` set to `false`.
+
+4. **Return Result**: Regardless of whether the variable is found locally or as an upvalue, the function returns the index of the upvalue. If the variable is not found at all, it returns `-1`.
 
 ## Edge Cases
 
-- **No Enclosing Scope**: If there is no enclosing scope (`state->enclosing` is `nullptr`), the function will return `-1`.
-- **Variable Not Found**: If the variable is not found as either a local variable or an upvalue in any accessible scope, the function will return `-1`.
+- **No Enclosing Function**: If the function is called without an enclosing function, it will always return `-1`.
+- **Variable Not Found**: If the variable is neither found locally nor as an upvalue in any enclosing function, the function will also return `-1`.
 
 ## Interactions with Other Components
 
-- **Enclosing Scopes**: `resolveUpvalue` interacts with the enclosing scopes to find the variable. Each scope has a list of locals and upvalues, and the function searches through these lists.
-- **State Management**: The function uses the compilation state (`state`) to keep track of the current function and its enclosing scopes. This allows it to navigate through the scope hierarchy and resolve variables accordingly.
-- **Upvalue List**: `resolveUpvalue` updates the upvalue list of the current function when it resolves a new upvalue. This list is used during code generation to manage how upvalues are accessed and passed between functions.
+- **resolveLocal**: This function is used to find the local variable in the enclosing function. If the variable is found, its index is returned.
+- **addUpvalue**: This function is used to add the resolved upvalue to the current function's list of upvalues. It takes the index of the upvalue and a boolean indicating whether the upvalue is local to the enclosing function.
 
-In summary, `resolveUpvalue` is a vital component for handling upvalues in nested functions within the Quantum Language compiler. By ensuring that upvalues are correctly captured and resolved, it supports the dynamic scoping mechanism required by the language, enabling variables defined in outer functions to be accessed by inner functions.
+By interacting with these components, `resolveUpvalue` ensures that upvalues are correctly managed throughout the nested function structure, allowing inner functions to access variables defined in their outer functions.
