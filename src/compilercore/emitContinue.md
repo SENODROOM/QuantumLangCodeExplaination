@@ -2,34 +2,30 @@
 
 ## Overview
 
-The `emitContinue` function is an essential component of the Quantum Language compiler's core, found within the `src/compiler/CompilerCore.cpp` file. This function is responsible for generating a jump instruction that enables the program to resume execution at the beginning of the nearest enclosing loop.
+The `emitContinue` function is a crucial part of the Quantum Language compiler's core, located in the `src/compiler/CompilerCore.cpp` file. It is designed to generate a jump instruction that allows the program to continue its execution at the beginning of the nearest enclosing loop after encountering a `continue` statement.
 
-### Why It Works This Way
+### Why it works this way
 
-In quantum programming, as in traditional programming, loops play a crucial role in controlling the flow of execution and repeating tasks. When a loop encounters a `continue` statement, it should skip the current iteration and proceed directly to the next one. The `emitContinue` function facilitates this behavior by emitting a jump instruction that directs control back to the loop's entry point.
+This design ensures that when a `continue` statement is encountered during the compilation process, the generated code can correctly skip to the next iteration of the loop without executing any subsequent instructions until the loop's start point is reached again. By pushing the jump operation onto the `continueJumps` stack associated with the most recent loop, the compiler maintains a record of where these jumps need to occur, enabling them to be emitted at the appropriate time as the loop structure is processed.
 
-This approach ensures that the loop remains intact and continues executing subsequent iterations without being broken or altered, thereby maintaining the intended flow and logic of the program.
-
-## Parameters/Return Value
+## Parameters and Return Value
 
 - **Parameters**:
-  - None
+  - None explicitly listed in the provided snippet; however, based on typical usage patterns in compilers, `emitContinue` likely relies on internal state maintained by the compiler, such as the current loop context (`loops_`) and the line number (`line`) where the `continue` statement was encountered.
 
 - **Return Value**:
-  - Returns nothing (`void`)
+  - The function returns nothing (`void`). Instead, it modifies the internal state of the compiler by adding a jump instruction to the `continueJumps` stack of the most recently entered loop.
 
 ## Edge Cases
 
-1. **No Enclosing Loop**: If there is no enclosing loop when a `continue` statement is encountered, the `emitContinue` function will not generate any jump instructions. Instead, it will simply ignore the `continue` statement, as there is nowhere to jump to.
+- **No Enclosing Loop**: If the `emitContinue` function is called outside of any loop context, it should ideally raise an error or exception indicating that there is no valid target for the `continue` statement. However, the existing implementation does not handle this case explicitly, which could lead to undefined behavior or incorrect code generation.
 
-2. **Nested Loops**: In scenarios where multiple nested loops exist, the `emitContinue` function will only affect the nearest enclosing loop. It will not cause a jump out of all nested loops simultaneously.
+- **Nested Loops**: In nested loops, calling `emitContinue` will affect only the nearest enclosing loop. This behavior is correct and aligns with the semantics of the `continue` statement in many programming languages.
 
-3. **Empty Loop Body**: If the body of a loop is empty (i.e., contains no statements), encountering a `continue` statement within that loop will result in a jump to the loop's end, effectively skipping the entire loop.
+## Interactions with Other Components
 
-## Interactions With Other Components
+- **Loop Context Management**: The `emitContinue` function interacts with the `loops_` stack, which holds information about all currently open loops. Each element in the stack represents a loop and contains a list of `continueJumps`, allowing the function to add jump instructions to the appropriate location.
 
-The `emitContinue` function interacts closely with the `loops_` stack, which keeps track of the current state of all active loops during compilation. Each time a new loop is entered, a new loop context is pushed onto the stack. The `emitContinue` function then appends the generated jump instruction to the `continueJumps` vector of the topmost loop context on the stack.
+- **Code Emission**: While not directly visible in the provided snippet, the `emitContinue` function indirectly interacts with the code emission mechanism of the compiler. When the loop structure is fully processed, the compiler will emit the recorded `continueJumps`, effectively placing the jump instructions at the correct points in the generated machine code.
 
-When the compiler encounters a `continue` statement, it calls the `emitContinue` function to generate the necessary jump instruction. This instruction is stored in the `continueJumps` vector and will be executed later when the loop's condition is checked again, allowing the loop to skip the current iteration and proceed to the next one.
-
-Upon exiting a loop, whether through normal completion, a `break` statement, or an exception, the compiler pops the corresponding loop context from the `loops_` stack. This ensures that the `continueJumps` vector associated with the exited loop is no longer accessible, preventing potential misuse or unintended jumps into already exited loops.
+In summary, the `emitContinue` function plays a vital role in handling the `continue` statement within the Quantum Language compiler. By maintaining a stack of loop contexts and adding jump instructions to the `continueJumps` list, it ensures that the program can correctly resume execution at the beginning of the nearest enclosing loop after encountering a `continue` statement.
