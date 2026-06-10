@@ -2,37 +2,28 @@
 
 ## Overview
 
-The `readIdentifierOrKeyword` function is a crucial part of the lexer phase in the Quantum Language compiler. Its primary responsibility is to identify and process both identifiers and keywords within the source code. This function ensures that tokens are correctly categorized based on their lexical structure, which is essential for subsequent phases of parsing and compilation.
+The `readIdentifierOrKeyword` function is an essential component of the lexer phase in the Quantum Language compiler. It is responsible for identifying and processing both identifiers and keywords within the source code. This function ensures that tokens are correctly recognized and classified, which is fundamental for subsequent parsing stages.
 
-## Parameters
+### Why It Works This Way
 
-- None
+This implementation works by iterating through the source code starting from the current position (`pos`). It checks each character to determine if it is alphanumeric or an underscore, which are valid characters for identifiers. If the first character is either 'r' or 'R', followed by a double or single quote, it recognizes a raw string literal. Similarly, if the first character is either 'f' or 'F', followed by a double or single quote, it recognizes an f-string, treating it as a backtick template literal.
 
-## Return Value
+### Parameters/Return Value
 
-- Returns a `Token` object representing either an identifier or a keyword.
+- **Parameters**:
+  - None explicitly mentioned in the provided code snippet.
 
-## How It Works
+- **Return Value**:
+  - Returns a `Token` object. The type of token depends on whether the input is an identifier, keyword, raw string, or f-string. The returned token includes the token type, value, start line, and start column of the token in the source code.
 
-The function starts by reading characters from the input source until it encounters a character that is not alphanumeric or an underscore. These characters form the initial identifier or keyword.
+### Edge Cases
 
-If the identifier happens to be `"r"` or `"R"` followed by a double or single quote (`"`, `'`), it identifies this as a **raw string**. The function reads all characters up to the matching closing quote, ignoring any escape sequences. Once the closing quote is found, the function returns a `Token` of type `STRING`.
+- **Empty Identifier**: If the input starts with a non-alphanumeric character (excluding underscores), the function will not recognize any identifier and will continue to the next token.
+- **Raw String Literal**: If the input starts with 'r' or 'R' but is not followed by a double or single quote, the function will not recognize it as a raw string literal and will continue to the next token.
+- **F-String**: If the input starts with 'f' or 'F' but is not followed by a double or single quote, the function will not recognize it as an f-string and will continue to the next token.
 
-Similarly, if the identifier is `"f"` or `"F"` followed by a double or single quote, it identifies this as an **f-string**, also known as a formatted string literal. F-strings allow embedded expressions within string literals, similar to Python's f-strings. The function reads characters up to the closing quote, converting `{}` syntax to `${}` before returning a `Token` of type `TEMPLATE_STRING`.
+### Interactions With Other Components
 
-For regular identifiers and keywords, the function simply constructs a string from the read characters and checks against a predefined list of keywords. If the constructed string matches a keyword, it returns a `Token` of type `KEYWORD`. Otherwise, it returns a `Token` of type `IDENTIFIER`.
-
-## Edge Cases
-
-- **Empty String**: If the input stream is empty, the function will return an empty token.
-- **Invalid Identifier**: If the first character is not alphanumeric or an underscore, the function will return an empty token.
-- **Unclosed Quotes**: If a raw or f-string is started but never closed, the function will continue reading until the end of the file and return an incomplete token.
-- **Nested Expressions**: In f-strings, nested curly braces can cause issues. The function handles these by tracking the depth of curly braces and ensuring that they are properly matched.
-
-## Interactions With Other Components
-
-- **Lexer Class**: This function is part of the Lexer class, which is responsible for breaking down the source code into individual tokens.
-- **Token Class**: Tokens are created using the `Token` constructor, which takes parameters such as token type, value, and position information.
-- **Predefined Keywords List**: The function uses a predefined list of keywords to check if the constructed identifier matches any of them.
-
-By accurately identifying and categorizing identifiers and keywords, the `readIdentifierOrKeyword` function plays a vital role in the lexer phase of the Quantum Language compiler, providing a solid foundation for further parsing and semantic analysis.
+- **Lexer Class**: The `readIdentifierOrKeyword` function is part of the Lexer class, which handles the lexical analysis of the source code. It interacts with other methods such as `advance`, `current`, and `line` to move through the source code and track the current position and line number.
+- **Token Class**: The function returns a `Token` object, which is used throughout the compiler to represent different types of tokens found during lexical analysis. The `Token` class likely contains information about the token's type, value, and location in the source code.
+- **Parser Class**: While not directly interacting with `readIdentifierOrKeyword`, the tokens produced by this function are critical for the Parser class, which performs syntactic analysis to construct the abstract syntax tree (AST).
