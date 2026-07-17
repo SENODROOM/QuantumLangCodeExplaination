@@ -1,31 +1,27 @@
 # `valuesEqual` Function
 
 ## Purpose
-The `valuesEqual` function in the Quantum Language compiler is designed to compare two quantum language values (`a` and `b`) for equality. It returns `true` if the values are equal and `false` otherwise. This function ensures that values of different types are handled appropriately, providing accurate comparison results across various data types.
+The `valuesEqual` function in the Quantum Language compiler is designed to compare two quantum language values (`a` and `b`) for equality. It returns `true` if the values are equal and `false` otherwise. This function ensures that values of different types are handled correctly during comparison.
 
 ## Parameters
-- `a`: A reference to the first quantum language value to be compared.
-- `b`: A reference to the second quantum language value to be compared.
+- `a`: The first quantum language value to be compared.
+- `b`: The second quantum language value to be compared.
 
 ## Return Value
 - Returns `true` if the values `a` and `b` are equal.
 - Returns `false` if the values `a` and `b` are not equal.
 
 ## Edge Cases
-1. **Nil Values**: If both `a` and `b` are nil (null or undefined), the function returns `true`. Nil values are considered equal in the Quantum Language.
-2. **Boolean Comparison**: If both `a` and `b` are boolean values, the function compares their truthiness directly using `==`.
-3. **Numeric Comparison**: For numeric values, the function checks if they are exactly the same using `==`.
-4. **String Comparison**: Strings are compared character-by-character using the `==` operator.
-5. **Array Comparison**: Arrays are compared based on pointer equality. This means that two arrays are considered equal only if they point to the exact same memory location. If you need deep equality checking, additional logic would be required.
+1. **Nil Values**: If both `a` and `b` are nil (i.e., they represent the absence of a value), the function returns `true`.
+2. **Boolean Values**: If both `a` and `b` are boolean values, the function compares their truthiness using the `==` operator and returns the result.
+3. **Numeric Values**: If both `a` and `b` are numeric values, the function compares them directly using the `==` operator and returns the result.
+4. **String Values**: If both `a` and `b` are string values, the function compares their content using the `==` operator and returns the result.
+5. **Array Values**: If both `a` and `b` are array values, the function checks for pointer equality using the `==` operator on the pointers to the arrays. This means that only if the same array object is being referred to will the function return `true`. For deep comparison of array contents, additional logic would need to be implemented.
 
 ## Interactions with Other Components
-The `valuesEqual` function interacts primarily with the `Value` class hierarchy, which includes:
-- `NilValue`
-- `BoolValue`
-- `NumberValue`
-- `StringValue`
-- `ArrayValue`
+The `valuesEqual` function interacts with various components within the Quantum Language compiler:
+- **Value Types**: It uses methods like `isNil()`, `isBool()`, `isNumber()`, `isString()`, and `isArray()` to determine the type of each value.
+- **Type-Specific Comparisons**: Depending on the type of the values, it calls corresponding methods such as `asBool()`, `asNumber()`, `asString()`, and `asArray()` to extract the actual data for comparison.
+- **Memory Management**: When comparing array values, it relies on pointer equality, which implies that memory management and allocation strategies must ensure that identical array objects are represented by the same pointer.
 
-Each type of value has its own implementation of methods like `isNil`, `isBool`, etc., which allow the `valuesEqual` function to determine the type of the value and perform the appropriate comparison. The function also uses methods like `asBool`, `asNumber`, etc., to extract the actual value from the `Value` objects for comparison.
-
-In summary, the `valuesEqual` function provides a robust mechanism for comparing quantum language values of various types, ensuring that comparisons are performed accurately and efficiently. Its interaction with the `Value` class hierarchy allows it to handle different data types seamlessly.
+This function is crucial for ensuring that operations involving comparisons between values in the Quantum Language compiler behave as expected across different value types and scenarios.
