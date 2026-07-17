@@ -1,82 +1,66 @@
-# QuantumLanguage Compiler - Vm.h
+# QuantumLanguage Compiler - AST.h
 
 ## Overview
 
-The `include/Vm.h` header file plays a crucial role in the QuantumLanguage compiler by defining the Virtual Machine (VM). The VM is responsible for executing compiled code efficiently while managing execution contexts, handling exceptions, and maintaining the runtime environment. It ensures that programs run accurately and smoothly.
+The `include/AST.h` header file is essential to the QuantumLanguage compiler by defining the Abstract Syntax Tree (AST). The AST represents the syntactic structure of a program in a tree-like format, making it easier for the compiler to analyze, transform, and optimize the code. This file includes various structures representing different types of expressions and statements used in the language.
 
 ## Role in Compiler Pipeline
 
-The VM operates at the execution phase of the compiler pipeline. After the code has been compiled into bytecode chunks, it is passed to the VM for interpretation and execution. The VM's primary function is to execute these bytecode instructions, manage memory, handle control flow, and provide a runtime environment for the program.
+The AST serves as the intermediate representation between the source code and the machine code. During compilation, the source code is parsed into an AST, which is then analyzed, transformed, and optimized before being translated into executable code. The AST facilitates error detection, semantic analysis, and code generation phases.
 
-### Key Design Decisions and Why
+## Key Design Decisions and Why
 
-1. **Separation of Concerns**: By isolating the execution logic within the VM, the compiler remains focused on compiling source code into bytecode. This separation makes the system easier to maintain and extend.
+1. **Expression Variants**: The use of `std::variant` allows for a flexible and efficient representation of various expression types within the AST. This approach avoids multiple inheritance and reduces memory overhead compared to traditional union-based designs.
 
-2. **Efficient Memory Management**: Using smart pointers (`std::shared_ptr`) for managing values and upvalues helps in automatic memory deallocation, reducing the risk of memory leaks and improving overall efficiency.
+2. **Memory Management**: By using smart pointers (`std::unique_ptr`), the AST ensures proper memory management. Each node in the AST has exclusive ownership of its children, preventing dangling references and ensuring that resources are deallocated correctly when nodes are destroyed.
 
-3. **Exception Handling**: The VM includes robust exception handling mechanisms, allowing for proper unwinding of the call stack and restoration of the runtime environment in case of errors. This ensures that the program can gracefully handle unexpected situations without crashing.
+3. **Type Safety**: The introduction of explicit type hints for variables and function parameters enhances type safety. This feature helps catch type-related errors early in the compilation process, reducing runtime issues.
 
-4. **Dynamic Function Calls**: The VM supports dynamic function calls through closures, native functions, and built-in methods, making it versatile for various programming paradigms.
+4. **Extensibility**: The AST design is modular and extensible. New expression and statement types can be easily added without modifying existing code, allowing the language to evolve over time.
 
 ## Major Classes/Functions Overview
 
-### Upvalue
+### Expression Types
 
-- **Purpose**: Represents a heap cell for captured variables in closures.
-- **Key Features**:
-  - Points to the live value (`cell`).
-  - Stores the value after the variable leaves the stack (`closed`).
+- **NumberLiteral**: Represents numeric literals.
+- **StringLiteral**: Represents string literals.
+- **BoolLiteral**: Represents boolean literals.
+- **NilLiteral**: Represents the nil literal.
+- **Identifier**: Represents variable identifiers.
+- **BinaryExpr**: Represents binary operations like addition, subtraction, etc.
+- **UnaryExpr**: Represents unary operations like negation, increment, etc.
+- **AssignExpr**: Represents assignment operations with support for compound assignments.
+- **CallExpr**: Represents function calls.
+- **IndexExpr**: Represents array indexing.
+- **SliceExpr**: Represents slicing operations similar to Python's syntax.
+- **MemberExpr**: Represents member access on objects.
+- **ArrayLiteral**: Represents array literals.
+- **DictLiteral**: Represents dictionary literals.
+- **LambdaExpr**: Represents anonymous functions with optional parameter types and return types.
+- **TernaryExpr**: Represents conditional expressions (if-then-else).
+- **SuperExpr**: Represents calls to superclass constructors or methods.
 
-### Closure
+### C++ Pointer Expression Types
 
-- **Purpose**: Encapsulates a chunk of bytecode along with its upvalues and a name.
-- **Key Features**:
-  - Holds a shared pointer to a `Chunk`.
-  - Manages a vector of upvalues.
-  - Contains the name of the closure.
+- **AddressOfExpr**: Represents the address-of operator (`&`).
+- **DerefExpr**: Represents the dereference operator (`*`).
+- **ArrowExpr**: Represents member access through pointers (`->`).
 
-### CallFrame
+### Statement Types
 
-- **Purpose**: Represents a single level of function call within the VM.
-- **Key Features**:
-  - Holds a shared pointer to a `Closure`.
-  - Tracks the instruction pointer (`ip`).
-  - Indicates the starting position of local variables on the value stack (`stackBase`).
-
-### ExceptionHandler
-
-- **Purpose**: Defines how the VM should handle exceptions.
-- **Key Features**:
-  - Specifies the instruction pointer to jump to upon catching an exception (`catchIp`).
-  - Determines the call-frame depth to unwind to (`frameDepth`).
-  - Restores the value stack depth (`stackDepth`).
-
-### VM Class
-
-- **Purpose**: Manages the execution of bytecode chunks.
-- **Key Features**:
-  - Maintains a value stack (`stack_`).
-  - Keeps track of call frames (`frames_`).
-  - Handles exception handlers (`handlers_`).
-  - Supports opening upvalues (`openUpvalues_`).
-  - Counts execution steps (`stepCount_`) and limits them (`MAX_STEPS`).
-  - Manages pending instances (`pendingInstances_`).
-
-- **Major Functions**:
-  - `run(std::shared_ptr<Chunk> chunk)`: Executes a top-level script chunk.
-  - `registerNatives()`: Registers native functions with the VM.
-  - `runFrame(size_t stopDepth = 0)`: Runs a single call frame until a specified depth.
-  - `push(QuantumValue v)`, `pop()`, `peek(int offset = 0)`: Manage the value stack.
-  - `callValue(QuantumValue callee, int argCount, int line)`, `callClosure(std::shared_ptr<Closure> closure, int argCount, int line)`, `callNativeFn(std::shared_ptr<QuantumNative> fn, int argCount, int line)`, `callClass(std::shared_ptr<QuantumClass> klass, int argCount, int line)`, `callBuiltinMethod(QuantumValue receiver, std::string methodName, int argCount, int line)`: Handle different types of function calls.
+- **VarDecl**: Represents variable declarations, including constness, type hints, and pointer status.
+- **FunctionDecl**: Represents function declarations, including parameter types, default arguments, and return types.
+- **ReturnStmt**: Represents return statements, optionally containing a return value.
+- **IfStmt**: Represents if statements, with conditions and branches.
 
 ## Tradeoffs
 
-1. **Memory Usage vs. Performance**: Using smart pointers for memory management increases overhead but reduces manual memory management errors, which can be costly in terms of performance.
+- **Flexibility vs. Complexity**: While `std::variant` provides flexibility, it also adds complexity to the AST implementation. Careful consideration must be given to ensure that the variant usage does not lead to performance bottlenecks or increased memory consumption.
+  
+- **Memory Overhead**: Using smart pointers incurs some memory overhead due to reference counting and additional control blocks. However, this is generally outweighed by the benefits of automatic memory management and reduced risk of memory leaks.
 
-2. **Flexibility vs. Complexity**: Supporting dynamic function calls and multiple paradigms adds complexity to the VM, but enhances its flexibility and usability.
+- **Type Safety vs. Usability**: Explicit type hints enhance type safety but may make the AST more verbose and harder to read for simple cases. Balancing these factors requires careful consideration of how often type hints are necessary versus their impact on readability.
 
-3. **Safety vs. Speed**: Exception handling mechanisms ensure safety but may introduce some overhead compared to simpler error handling strategies.
+- **Extensibility vs. Maintenance**: Adding new expression and statement types increases the maintainability of the AST by providing a clear and organized structure. However, it also means that changes to the AST may require updates throughout the compiler, potentially increasing maintenance costs.
 
-4. **Resource Allocation vs. Deallocation**: Automatic memory deallocation via smart pointers simplifies resource management but requires careful consideration of object lifetimes and potential memory leaks.
-
-Overall, the `Vm.h` header file provides a comprehensive and flexible framework for executing QuantumLanguage bytecode, balancing various factors such as performance, safety, and ease of maintenance.
+Overall, the `include/AST.h` header file plays a critical role in the QuantumLanguage compiler by providing a robust and flexible representation of the language's syntax. Its design choices balance various considerations to ensure efficient and reliable code generation.
