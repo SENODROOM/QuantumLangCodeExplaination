@@ -2,29 +2,30 @@
 
 ## Overview
 
-The `current` function is an essential method in the LexerCore class of the Quantum Language compiler. It retrieves the character at the current position (`pos`) in the source code string (`src`). This function is vital for parsing and tokenizing the input source code.
+The `current` function is a crucial method within the LexerCore class of the Quantum Language compiler. Its primary role is to fetch the character located at the current position (`pos`) within the source code string (`src`). This function plays a pivotal part in the parsing and tokenization processes by providing access to individual characters as the lexer progresses through the input text.
 
-### Why It Works This Way
+### Parameters
 
-The function checks if the current position (`pos`) is less than the size of the source code string (`src`). If true, it returns the character at that position; otherwise, it returns the null character (`'\0'`). This approach ensures that the function handles out-of-bounds access gracefully without causing runtime errors.
+- **None**: The `current` function does not take any parameters.
 
-## Parameters/Return Value
+### Return Value
 
-- **Parameters**: None
-- **Return Value**: The character at the current position in the source code string, or `'\0'` if the position is beyond the end of the string.
+- **Character (`char`)**: If the current position (`pos`) is less than the size of the source code string (`src`), the function returns the character at that position. Otherwise, it returns the null character (`'\0'`).
 
-## Edge Cases
+### Edge Cases
 
-1. **Empty Source Code String**: If the source code string is empty (`src.size()` is 0), calling `current` will return `'\0'`.
-2. **Position Beyond End**: If the position pointer (`pos`) exceeds the length of the source code string, `current` will also return `'\0'`.
+1. **Position Out of Bounds**:
+   - When the current position (`pos`) exceeds or equals the size of the source code string (`src`), the function returns the null character (`'\0'`). This prevents accessing memory outside the bounds of the string, which could lead to undefined behavior or crashes.
 
-## Interactions With Other Components
+2. **Empty Source Code String**:
+   - If the source code string (`src`) is empty, the function will immediately return the null character (`'\0'`). This ensures that there is always a valid character returned, even when the input is empty.
 
-The `current` function interacts closely with the lexer's state management. It relies on the `pos` member variable to determine which character to return. The lexer uses this function to read characters sequentially during the tokenization process.
+### Interactions with Other Components
 
-Here’s how it fits into the broader context:
+- **LexerCore Class**: The `current` function is a fundamental component of the LexerCore class. It is used extensively throughout the parsing process to read individual characters one by one. The LexerCore class uses this function to advance its position, check for specific characters, and build tokens based on the sequence of characters encountered.
 
-- **LexerCore Class**: Contains core functionalities related to lexical analysis, including managing the source code string and position pointer.
-- **Tokenization Process**: Invokes `current` to read characters one by one, determining token boundaries and types based on these characters.
+- **Parsing Process**: During the parsing phase, the LexerCore class relies on the `current` function to determine the next character in the source code. Based on this character, the lexer decides whether to continue reading, skip whitespace, or create a new token. For example, if the `current` character is an alphabetic letter, the lexer might start building a keyword or identifier token.
 
-By ensuring robust handling of edge cases, the `current` function supports the accurate and efficient processing of quantum language source code by the LexerCore class.
+- **Tokenization**: The `current` function is also utilized during the tokenization stage. Tokens are formed by grouping sequences of characters that have specific meanings in the language. The `current` function helps in identifying these sequences by allowing the lexer to inspect each character individually.
+
+In summary, the `current` function is a vital utility within the LexerCore class of the Quantum Language compiler. By providing access to individual characters at the current position, it facilitates both the parsing and tokenization processes, ensuring that the lexer can accurately interpret the input source code.
