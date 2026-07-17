@@ -1,46 +1,70 @@
-# QuantumLanguage Compiler - Disassembler.h
+# QuantumLanguage Compiler - Error.h
 
 ## Overview
 
-The `include/Disassembler.h` header file in the QuantumLanguage compiler is essential for converting bytecode into human-readable assembly language instructions. This process aids in debugging and understanding the internal operations of the compiled program. The Disassembler module is integral to the compiler's pipeline, facilitating the transition from low-level machine code to high-level readable format.
+The `include/Error.h` header file is an integral part of the QuantumLanguage compiler, focusing on error management within the system. This file defines various custom exception classes that extend the standard library's `std::runtime_error`, providing additional context such as the type of error (`kind`) and the line number where the error occurred (`line`). These exceptions help in identifying and debugging issues during the compilation and execution phases.
 
 ## Role in Compiler Pipeline
 
-The Disassembler operates during the compilation phase, specifically after the bytecode has been generated but before it is executed. Its primary function is to convert each opcode in the bytecode into its corresponding assembly language representation, making it easier for developers to analyze and troubleshoot their programs.
+In the QuantumLanguage compiler pipeline, `Error.h` serves several critical roles:
 
-### Key Design Decisions and Why
+1. **Exception Handling**: Custom exception classes like `QuantumError`, `RuntimeError`, `TypeError`, `NameError`, and `IndexError` are used to handle errors gracefully throughout the compilation process. They provide a structured way to report errors with relevant details, which aids in diagnosing problems more effectively.
 
-1. **Single Instruction Pretty-Printing**: The `disassembleInstruction` function is designed to pretty-print a single instruction. This decision simplifies the interface and allows for easy integration with other parts of the compiler, such as debuggers or interpreters.
+2. **Contextual Information**: By including the line number and error type in each exception, the compiler can provide more precise information about where and why an error occurred. This is particularly useful during debugging and development stages.
 
-2. **Whole Chunk Dumping**: The `disassembleChunk` function dumps the entire bytecode chunk, providing a comprehensive view of the program's execution flow. This is particularly useful for large programs or when debugging complex issues.
+3. **Color Coding**: The `Colors` namespace contains ANSI escape codes for different colors. These codes are utilized in the compiler's output to visually distinguish between different types of errors or warnings. For example, `RED` might be used to highlight syntax errors, `YELLOW` for runtime issues, and so on.
 
-3. **Stream-Based Output**: Both functions utilize `std::ostream` for output, ensuring flexibility and compatibility with various logging and display mechanisms. This approach also aligns well with modern C++ practices of using streams for I/O operations.
+## Key Design Decisions and Why
+
+- **Custom Exception Classes**: Extending `std::runtime_error` allows for more specific error handling without losing the benefits of standard exception mechanisms. Each class represents a particular type of error, making it easier to catch and respond to them appropriately.
+
+- **Line Number Information**: Including the line number in exceptions provides developers with immediate insight into the source of the problem, facilitating quicker resolution. This is especially valuable in large codebases where pinpointing the exact location of an error can save significant time.
+
+- **Color Coding**: Using color coding in the output helps in quickly distinguishing between different types of messages. This visual aid enhances readability and makes it easier for developers to focus on the most critical issues.
 
 ## Major Classes/Functions Overview
 
-### `disassembleInstruction`
+### QuantumError Class
 
-- **Purpose**: Pretty-prints a single instruction from the given bytecode chunk.
-- **Parameters**:
-  - `const Chunk &chunk`: The bytecode chunk containing the instruction.
-  - `size_t idx`: The index of the instruction within the chunk.
-  - `std::ostream &out`: The output stream where the instruction will be printed.
-- **Return Value**: Returns the number of bytes consumed by the instruction (always 1 in this case).
+- **Purpose**: Base class for all custom QuantumLanguage errors.
+- **Attributes**:
+  - `int line`: Line number where the error occurred.
+  - `std::string kind`: Type of error.
+- **Constructor**: Takes a message, line number, and error kind as parameters.
 
-### `disassembleChunk`
+### RuntimeError Class
 
-- **Purpose**: Dumps the entire bytecode chunk, printing each instruction in a readable format.
-- **Parameters**:
-  - `const Chunk &chunk`: The bytecode chunk to be dumped.
-  - `std::ostream &out`: The output stream where the chunk will be printed.
-- **Return Value**: None.
+- **Purpose**: Represents runtime errors that occur during program execution.
+- **Constructor**: Calls the base class constructor with "RuntimeError" as the kind.
+
+### TypeError Class
+
+- **Purpose**: Indicates errors related to incorrect data types.
+- **Constructor**: Calls the base class constructor with "TypeError" as the kind.
+
+### NameError Class
+
+- **Purpose**: Used for errors involving undefined names or variables.
+- **Constructor**: Calls the base class constructor with "NameError" as the kind.
+
+### IndexError Class
+
+- **Purpose**: Signifies errors related to accessing invalid indices in arrays or lists.
+- **Constructor**: Calls the base class constructor with "IndexError" as the kind.
+
+### Colors Namespace
+
+- **Purpose**: Provides ANSI escape codes for various colors and formatting options.
+- **Contents**:
+  - `const char *RED`, `const char *YELLOW`, etc., representing different colors.
+  - `const char *BOLD` and `const char *RESET` for text formatting.
 
 ## Tradeoffs
 
-1. **Performance vs. Readability**: While disassembling bytecode can provide valuable insights for debugging, it does introduce overhead compared to direct execution. However, the benefits of readability often outweigh the performance cost, especially during development and testing phases.
+- **Performance vs. Readability**: While adding contextual information to exceptions improves error reporting, it may slightly impact performance due to increased memory usage and processing overhead. However, the enhanced readability and diagnostic capabilities often outweigh these minor drawbacks.
 
-2. **Flexibility vs. Complexity**: Using `std::ostream` for output offers great flexibility, allowing the disassembler to integrate seamlessly with different logging systems. On the other hand, this flexibility comes at the cost of increased complexity in the implementation.
+- **Complexity vs. Simplicity**: Implementing custom exception classes adds complexity to the codebase but provides a robust framework for error handling. This complexity is generally manageable and leads to cleaner, more maintainable code.
 
-3. **Memory Usage**: Storing and processing the entire bytecode chunk requires additional memory. For very large programs, this could potentially impact performance, although modern compilers and machines typically handle this efficiently.
+- **Standardization vs. Customization**: Using standard exception mechanisms like `std::runtime_error` promotes consistency across different parts of the compiler. However, the need for specific error types and attributes necessitates some customization, which balances against the benefits of standardized practices.
 
-Overall, the `Disassembler.h` header file is a vital component of the QuantumLanguage compiler, enhancing the debugging experience and providing a deeper understanding of the program's structure and behavior.
+Overall, `Error.h` is a well-designed component of the QuantumLanguage compiler, enhancing both the reliability and usability of the system through improved error handling and visualization.
