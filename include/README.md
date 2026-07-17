@@ -1,82 +1,48 @@
-# QuantumLanguage Compiler - Vm.h
+# QuantumLanguage Compiler - Token.h
 
 ## Overview
 
-The `include/Vm.h` header file plays a crucial role in the QuantumLanguage compiler by defining the Virtual Machine (VM). The VM is responsible for executing compiled code efficiently while managing execution contexts, handling exceptions, and maintaining the runtime environment. It ensures that programs run accurately and smoothly.
+The `include/Token.h` header file is an essential part of the QuantumLanguage compiler, focusing on the representation of tokens within the source code. Tokens serve as the basic building blocks of the language's syntax, providing a structured way to parse and understand the input text.
 
 ## Role in Compiler Pipeline
 
-The VM operates at the execution phase of the compiler pipeline. After the code has been compiled into bytecode chunks, it is passed to the VM for interpretation and execution. The VM's primary function is to execute these bytecode instructions, manage memory, handle control flow, and provide a runtime environment for the program.
+In the QuantumLanguage compiler pipeline, `Token.h` plays a critical role during the lexical analysis phase. This phase involves breaking down the source code into individual tokens, which are then used by subsequent phases like parsing and semantic analysis. Each token represents a meaningful unit such as keywords, identifiers, literals, operators, and delimiters.
 
-### Key Design Decisions and Why
+## Key Design Decisions and Why
 
-1. **Separation of Concerns**: By isolating the execution logic within the VM, the compiler remains focused on compiling source code into bytecode. This separation makes the system easier to maintain and extend.
+1. **TokenType Enum**: The `TokenType` enum class defines a comprehensive set of token types, covering everything from literals (`NUMBER`, `STRING`) to control structures (`IF`, `ELSE`). This enumeration ensures that all possible token types are accounted for, making it easier to handle different cases in the lexer implementation.
 
-2. **Efficient Memory Management**: Using smart pointers (`std::shared_ptr`) for managing values and upvalues helps in automatic memory deallocation, reducing the risk of memory leaks and improving overall efficiency.
+2. **Token Structure**: The `Token` struct encapsulates the properties of each token:
+   - `type`: Specifies the kind of token (e.g., `IDENTIFIER`, `NUMBER`).
+   - `value`: Holds the actual string value of the token.
+   - `line`: Indicates the line number where the token was found in the source code.
+   - `col`: Specifies the column position within the line.
 
-3. **Exception Handling**: The VM includes robust exception handling mechanisms, allowing for proper unwinding of the call stack and restoration of the runtime environment in case of errors. This ensures that the program can gracefully handle unexpected situations without crashing.
+   These properties provide a clear and unambiguous representation of each token, facilitating easy error reporting and debugging.
 
-4. **Dynamic Function Calls**: The VM supports dynamic function calls through closures, native functions, and built-in methods, making it versatile for various programming paradigms.
+3. **String Value Management**: By using `std::string` for the token value, the `Token` struct can handle any textual data encountered in the source code. This choice ensures flexibility and avoids potential issues with string lifetime management.
+
+4. **Line and Column Information**: Recording the line and column information helps in pinpointing errors more precisely. For instance, if there's a syntax error, knowing the exact location allows for targeted feedback and easier correction.
 
 ## Major Classes/Functions Overview
 
-### Upvalue
+### `TokenType` Enum Class
 
-- **Purpose**: Represents a heap cell for captured variables in closures.
-- **Key Features**:
-  - Points to the live value (`cell`).
-  - Stores the value after the variable leaves the stack (`closed`).
+- **Purpose**: Defines various token types used in the QuantumLanguage syntax.
+- **Why**: Provides a standardized way to represent and categorize tokens, ensuring consistency across the compiler.
 
-### Closure
+### `Token` Struct
 
-- **Purpose**: Encapsulates a chunk of bytecode along with its upvalues and a name.
-- **Key Features**:
-  - Holds a shared pointer to a `Chunk`.
-  - Manages a vector of upvalues.
-  - Contains the name of the closure.
+- **Constructor**: Initializes a `Token` object with its type, value, line number, and column position.
+- **Functionality**:
+  - `toString() const`: Converts the token to a human-readable string format, useful for debugging and logging purposes.
 
-### CallFrame
+### Trade-offs
 
-- **Purpose**: Represents a single level of function call within the VM.
-- **Key Features**:
-  - Holds a shared pointer to a `Closure`.
-  - Tracks the instruction pointer (`ip`).
-  - Indicates the starting position of local variables on the value stack (`stackBase`).
+1. **Memory Usage**: Using `std::string` for token values can lead to higher memory usage compared to fixed-size arrays or other data structures. However, this trade-off is justified by the need for flexible string handling.
 
-### ExceptionHandler
+2. **Performance**: The overhead associated with dynamic memory allocation and deallocation can impact performance, especially in high-throughput scenarios. Optimizations like pooling or preallocation might be considered to mitigate these effects.
 
-- **Purpose**: Defines how the VM should handle exceptions.
-- **Key Features**:
-  - Specifies the instruction pointer to jump to upon catching an exception (`catchIp`).
-  - Determines the call-frame depth to unwind to (`frameDepth`).
-  - Restores the value stack depth (`stackDepth`).
+3. **Error Handling**: While recording line and column information enhances error reporting, it also adds complexity to the lexer. Careful consideration must be given to how these details are managed and utilized throughout the compiler.
 
-### VM Class
-
-- **Purpose**: Manages the execution of bytecode chunks.
-- **Key Features**:
-  - Maintains a value stack (`stack_`).
-  - Keeps track of call frames (`frames_`).
-  - Handles exception handlers (`handlers_`).
-  - Supports opening upvalues (`openUpvalues_`).
-  - Counts execution steps (`stepCount_`) and limits them (`MAX_STEPS`).
-  - Manages pending instances (`pendingInstances_`).
-
-- **Major Functions**:
-  - `run(std::shared_ptr<Chunk> chunk)`: Executes a top-level script chunk.
-  - `registerNatives()`: Registers native functions with the VM.
-  - `runFrame(size_t stopDepth = 0)`: Runs a single call frame until a specified depth.
-  - `push(QuantumValue v)`, `pop()`, `peek(int offset = 0)`: Manage the value stack.
-  - `callValue(QuantumValue callee, int argCount, int line)`, `callClosure(std::shared_ptr<Closure> closure, int argCount, int line)`, `callNativeFn(std::shared_ptr<QuantumNative> fn, int argCount, int line)`, `callClass(std::shared_ptr<QuantumClass> klass, int argCount, int line)`, `callBuiltinMethod(QuantumValue receiver, std::string methodName, int argCount, int line)`: Handle different types of function calls.
-
-## Tradeoffs
-
-1. **Memory Usage vs. Performance**: Using smart pointers for memory management increases overhead but reduces manual memory management errors, which can be costly in terms of performance.
-
-2. **Flexibility vs. Complexity**: Supporting dynamic function calls and multiple paradigms adds complexity to the VM, but enhances its flexibility and usability.
-
-3. **Safety vs. Speed**: Exception handling mechanisms ensure safety but may introduce some overhead compared to simpler error handling strategies.
-
-4. **Resource Allocation vs. Deallocation**: Automatic memory deallocation via smart pointers simplifies resource management but requires careful consideration of object lifetimes and potential memory leaks.
-
-Overall, the `Vm.h` header file provides a comprehensive and flexible framework for executing QuantumLanguage bytecode, balancing various factors such as performance, safety, and ease of maintenance.
+Overall, `Token.h` is a fundamental component of the QuantumLanguage compiler, enabling efficient and accurate lexical analysis. Its design choices reflect a balance between functionality, flexibility, and performance, ensuring robustness and scalability in the compiler's implementation.
