@@ -1,34 +1,27 @@
 # parseReturnStmt
 
 ## Purpose
-The `parseReturnStmt` function is responsible for parsing a return statement in the Quantum Language compiler's parser. It constructs an abstract syntax tree (AST) node representing the return statement and any associated expressions.
+The `parseReturnStmt` function is crucial for parsing return statements within the Quantum Language compiler's parser. Its primary role is to construct an abstract syntax tree (AST) node that accurately represents a return statement, including any associated expressions. This function ensures that the return statement adheres to the grammar rules specified in the language, allowing for both simple and complex return scenarios.
 
 ## Parameters/Return Value
-- **Parameters**: None
-- **Return Value**: An `ASTNodePtr` pointing to the parsed return statement node.
+- **Parameters**: None explicitly listed in the provided code snippet.
+- **Return Value**: The function returns a unique pointer to an `ASTNode` object, which encapsulates a `ReturnStmt`. If there is a return value, it is wrapped inside a `TupleLiteral` if multiple values are returned, otherwise, it remains as a single expression. The `ReturnStmt` contains the parsed return value and the line number where the return statement was encountered.
 
 ## How It Works
-1. **Initialization**: The function starts by recording the current line number (`ln`) where the return statement begins.
-2. **Expression Parsing**:
-   - If the next token is not a newline, semicolon, or end of file, the function attempts to parse an expression using `parseExpr()`. This expression will be the value returned by the function.
-3. **Tuple Return Handling**:
-   - If the next token after the expression is a comma (`TokenType::COMMA`), indicating a tuple return, the function enters a loop to handle multiple expressions separated by commas.
-   - A `TupleLiteral` object is created to store the elements of the tuple.
-   - The first element is added to the tuple using `tup.elements.push_back(std::move(val))`.
-   - The loop continues to parse additional expressions until a comma followed by a newline, semicolon, or end of file is encountered.
-   - Each parsed expression is added to the tuple.
-4. **Semicolon or Newline Consumption**:
-   - After parsing the expression(s), the function consumes any trailing semicolons or newlines using a while loop. This ensures that the parser can correctly handle statements terminated by either type of punctuation.
-5. **Return Statement Construction**:
-   - Finally, the function returns a unique pointer to an `ASTNode` containing a `ReturnStmt` object. The `ReturnStmt` object holds the parsed expression(s) as its value.
+1. **Initialization**: The function begins by retrieving the current line number (`ln`) using the `current().line` method call.
+2. **Parsing Return Value**: It then checks if the next token is not a newline, semicolon, or closing brace (`RBRACE`). If these conditions are met, it proceeds to parse the return value using the `parseExpr()` function. This allows for handling both simple and complex expressions that can be returned.
+3. **Handling Tuple Returns**: If the next token after parsing the initial return value is a comma (`TokenType::COMMA`), indicating a tuple return, the function enters a loop to parse subsequent expressions until a non-comma token is encountered. Each parsed expression is added to a `TupleLiteral`, which is then moved into the final `ReturnStmt`.
+4. **Consuming Whitespace**: After parsing the return value(s), the function consumes any remaining newlines or semicolons using a while loop. This ensures that the parser moves past any trailing whitespace or punctuation without prematurely ending the statement.
+5. **Creating AST Node**: Finally, the function creates a unique pointer to an `ASTNode` containing a `ReturnStmt`. If a return value was parsed, it is included; otherwise, the `ReturnStmt` is empty. The line number is passed along to ensure accurate error reporting and debugging.
 
 ## Edge Cases
-- **No Expression**: If the return statement does not include an expression (e.g., `return;`), the function will still create a `ReturnStmt` node with a null value.
-- **Single Expression**: If the return statement includes only one expression, the function will parse that single expression and wrap it in a `ReturnStmt` node.
-- **Multiple Expressions**: If the return statement includes multiple expressions separated by commas, the function will parse each expression and add them to a `TupleLiteral`, which is then wrapped in a `ReturnStmt` node.
-- **Trailing Punctuation**: The function handles both semicolons and newlines following the return statement, ensuring proper parsing even when these tokens are present.
+- **Empty Return Statement**: If the return statement does not include any value (e.g., `return;`), the function correctly handles this by returning an empty `ReturnStmt`.
+- **Single Expression Return**: For a return statement with a single expression (e.g., `return x;`), the function parses the expression and wraps it directly in the `ReturnStmt`.
+- **Multiple Expressions Return**: When dealing with a return statement that includes multiple expressions (e.g., `return a, b;`), the function properly parses each expression and groups them into a `TupleLiteral`.
 
 ## Interactions With Other Components
-- **Tokenizer**: The function relies on the tokenizer to provide the next token for parsing.
-- **Error Handling**: While not explicitly shown in the code snippet, error handling mechanisms would typically interact with this function to manage unexpected tokens or syntax errors during parsing.
-- **Abstract Syntax Tree (AST)**: The parsed return statement and associated expressions are constructed as nodes in the AST, facilitating further compilation steps such as semantic analysis and code generation.
+- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing. It uses methods like `current()`, `check()`, and `match()` to interact with the tokenizer and determine the type of token being processed.
+- **Error Handling**: While not explicitly shown in the provided code snippet, the function likely interacts with error handling mechanisms within the compiler to report errors related to invalid return statements or unexpected tokens.
+- **Scope Management**: Although not covered here, the function may indirectly interact with scope management components when parsing expressions that reference variables or functions defined in different scopes.
+
+In summary, the `parseReturnStmt` function is essential for correctly parsing return statements in the Quantum Language compiler. By carefully handling both simple and complex return scenarios, it ensures that the resulting AST accurately reflects the structure and intent of the source code.
