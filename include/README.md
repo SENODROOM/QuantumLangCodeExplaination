@@ -1,55 +1,68 @@
-# QuantumLanguage Compiler - Token.h
+# QuantumLanguage Compiler - Value.h
 
 ## Overview
 
-The `include/Token.h` header file is an essential component of the QuantumLanguage compiler, focusing on the representation and management of tokens within the source code. Tokens are the smallest units of meaningful elements in the language, such as keywords, identifiers, literals, and operators. This file defines the `TokenType` enum and the `Token` struct, which together form the foundation for parsing and interpreting the language.
+The `include/Value.h` header file is an essential component of the QuantumLanguage compiler, focusing on the representation and management of values within the virtual machine (VM). This file defines various value types and structures that facilitate efficient execution and accurate program behavior.
 
 ## Role in Compiler Pipeline
 
-In the QuantumLanguage compiler's pipeline, the `Token.h` file plays a pivotal role during the lexical analysis phase. Lexical analysis involves breaking down the input source code into individual tokens based on predefined rules. These tokens are then passed to the parser, which constructs the abstract syntax tree (AST) from them. The AST represents the structure of the program and is used for further compilation stages like semantic analysis and code generation.
+The `Value.h` file operates at multiple stages of the compiler pipeline:
+
+1. **Parsing**: It helps in parsing expressions and statements by providing a structured way to represent different types of values.
+2. **Type Checking**: During type checking, it ensures that operations are performed between compatible types.
+3. **Interpretation**: In the interpretation phase, it manages the evaluation of expressions and the execution of functions.
+4. **Compilation**: For compilation, it aids in generating intermediate representations that can be executed by the VM.
 
 ## Key Design Decisions and Why
 
-1. **TokenType Enum**: 
-   - The `TokenType` enum categorizes different types of tokens, including literals, identifiers, keywords, operators, delimiters, and special tokens. This classification helps in distinguishing between various token categories, making it easier to implement specific parsing logic for each type.
-   
-2. **Token Struct**:
-   - The `Token` struct encapsulates the properties of a token, such as its type, value, line number, and column number. This design allows for easy tracking and manipulation of tokens throughout the compiler's process.
-   
-3. **String Value Storage**:
-   - Storing the token value as a `std::string` provides flexibility and ease of use when manipulating or displaying token information. It also supports storing complex values like template strings and identifiers with varying lengths.
+### Use of Variants
 
-4. **Line and Column Information**:
-   - Tracking the line and column numbers of each token aids in error reporting and debugging. When a syntax error occurs, knowing the exact location of the token helps developers pinpoint the issue quickly.
+The primary design decision in `Value.h` is the use of `std::variant` to store different types of values within a single `QuantumValue` structure. This choice provides flexibility and safety in handling various data types without manual type casting or unions, reducing the risk of errors and improving performance.
+
+### Shared Pointers
+
+Shared pointers (`std::shared_ptr`) are used extensively to manage memory for complex objects like arrays, dictionaries, closures, and instances. This ensures automatic garbage collection and prevents memory leaks, which is crucial for long-running applications.
+
+### Custom Pointer Structure
+
+A custom `QuantumPointer` structure is defined to handle references to variables. This structure includes a shared pointer to the actual variable storage, a variable name for debugging purposes, and an offset for pointer arithmetic. This allows for dynamic memory management and easy access to variable values during execution.
 
 ## Major Classes/Functions Overview
 
-### TokenType Enum
-- **Purpose**: Defines all possible token types in the QuantumLanguage.
-- **Why**: Essential for parsing and identifying valid language constructs.
+### QuantumValue
 
-### Token Struct
-- **Members**:
-  - `type`: Indicates the category of the token.
-  - `value`: Stores the actual text of the token.
-  - `line`: Records the line number where the token appears.
-  - `col`: Records the column number where the token begins.
-  
-- **Constructor**: Initializes a `Token` object with the given type, value, line, and column.
-- **toString() Function**: Converts the token to a string representation, useful for debugging and logging purposes.
+The `QuantumValue` class encapsulates a variant of different value types, including nil, boolean, number, string, array, dictionary, closure, native function, instance, class, bound method, and pointer. This class provides constructors for each type and methods to check the type of the stored value.
 
-### Functions
-- **`std::string toString() const`**: Provides a human-readable string representation of the token, which can be logged or printed for debugging.
+### QuantumPointer
+
+The `QuantumPointer` struct represents a reference to a variable. It contains a shared pointer to the variable's storage, a name for debugging, and an offset for pointer arithmetic. This structure facilitates dynamic memory management and easy access to variable values.
+
+### Array and Dict
+
+- **Array**: A typedef for `std::vector<QuantumValue>` representing a list of quantum values.
+- **Dict**: A typedef for `std::unordered_map<std::string, QuantumValue>` representing a dictionary with string keys and quantum values as values.
+
+These types provide convenient ways to work with collections of quantum values.
+
+### QuantumNativeFunc and QuantumNative
+
+- **QuantumNativeFunc**: A typedef for `std::function<QuantumValue(std::vector<QuantumValue>)>` representing a native function that takes a vector of quantum values as arguments and returns a quantum value.
+- **QuantumNative**: A structure containing the name of a native function and its corresponding function object. This allows for seamless integration of native C++ functions into the quantum language.
+
+These components enable the execution of native C++ functions within the quantum language environment.
 
 ## Tradeoffs
 
-1. **Memory Usage**:
-   - Using `std::string` for token values can lead to higher memory usage compared to fixed-size data types. However, this tradeoff is justified by the need for flexible and dynamic token values.
+### Memory Management
 
-2. **Performance**:
-   - String operations, especially in the `toString()` method, can impact performance. Optimizing these operations might require additional complexity or specialized data structures.
+Using shared pointers introduces overhead due to reference counting but significantly simplifies memory management by automatically handling deallocation when references are no longer needed. This tradeoff balances convenience with performance.
 
-3. **Complexity**:
-   - While the `TokenType` enum and `Token` struct provide a clear and structured way to represent tokens, they also add some complexity to the compiler's codebase. Balancing simplicity and functionality is crucial.
+### Type Safety vs. Flexibility
 
-Overall, the `include/Token.h` file is a fundamental part of the QuantumLanguage compiler, ensuring efficient and accurate tokenization and management. Its design choices reflect a balance between flexibility, performance, and maintainability, making it well-suited for the needs of the compiler.
+The use of `std::variant` ensures type safety but may limit flexibility compared to traditional union-based approaches. However, it provides a safer and more intuitive way to handle multiple types within a single structure.
+
+### Debugging Information
+
+Incorporating variable names and offsets in `QuantumPointer` adds overhead but enhances debugging capabilities by providing meaningful information about variable references. This tradeoff improves developer productivity and ease of debugging.
+
+Overall, the `include/Value.h` header file is designed to balance functionality, safety, and performance, making it a critical part of the QuantumLanguage compiler's architecture.
