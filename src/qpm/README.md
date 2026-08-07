@@ -1,53 +1,51 @@
-# QpmResolver.h
-
-## Overview
-
-`QpmResolver.h` is a header file that defines the interface and implementation of the QPM (Quantum Package Manager) resolver component within the Quantum Language compiler. This component is responsible for handling dependency resolution and installation, ensuring that all required packages are correctly fetched, installed, and linked within the project environment.
+# QpmScripts.h
 
 ## Role in Compiler Pipeline
 
-The primary role of `QpmResolver.h` in the compiler pipeline is to manage the entire process of resolving dependencies specified in the `package.json` file of a quantum project. It orchestrates the interaction with the npm registry to fetch the necessary packages, handles their extraction into the `node_modules` directory, creates executable shims for binaries, and generates a lock file (`qpm-lock.json`) to ensure reproducibility of the dependency tree.
+`QpmScripts.h` is a header file within the Quantum Programming Module (QPM) of the Quantum Language compiler. It plays a crucial role in managing and executing scripts defined in a project's `package.json` file. This module ensures that the necessary dependencies are available in the execution environment by prepending the `node_modules/.bin` directory to the system's `PATH`.
 
-## Key Design Decisions and Why
+## Key Design Decisions and WHY
 
-1. **Separation of Concerns**:
-   - The resolver is designed as a standalone module within the compiler, which helps in isolating its functionality and making it easier to test and maintain independently.
-   
-2. **Modular Configuration**:
-   - The `InstallOptions` structure allows for flexible configuration of the installation process, including options to specify the project directory, whether to include development dependencies, and additional packages to be installed. This modularity ensures that the resolver can adapt to various use cases without significant changes.
+### Prepending `node_modules/.bin` to PATH
 
-3. **Efficient Registry Interaction**:
-   - By walking through the npm registry to resolve the dependency tree, the resolver minimizes redundant requests and ensures that only the necessary packages are downloaded, optimizing performance and reducing bandwidth usage.
+**WHY**: The primary reason for this design decision is to ensure that any locally installed Node.js packages can be executed directly from the command line without requiring explicit paths. This simplifies the user experience and makes it easier to manage project-specific tools and utilities.
 
-4. **Reproducible Build Environment**:
-   - The generation of a lock file (`qpm-lock.json`) captures the exact versions of all resolved dependencies, ensuring that builds are reproducible across different environments. This is crucial for maintaining consistency and reliability in quantum projects.
+### Using Shell Commands
+
+**WHY**: By spawning the command string from `package.json`'s "scripts" section as a shell command, `QpmScripts.h` leverages the existing ecosystem of shell commands and scripts. This approach allows developers to use familiar syntax and tools, ensuring compatibility and ease of use.
+
+### Error Handling
+
+**WHY**: Proper error handling is essential in any software component. In `QpmScripts.h`, the function returns the child process's exit code, providing a clear indication of whether the script executed successfully. If the script cannot be found, it prints an error message to `stderr` and returns an exit code of 1. This ensures that users receive immediate feedback on what went wrong.
 
 ## Major Classes/Functions Overview
 
-### Class: `InstallOptions`
+### `runScript` Function
 
-- **Purpose**: Represents the configuration options for the dependency installation process.
-- **Attributes**:
-  - `projectDir`: A string representing the directory containing the `package.json` file.
-  - `includeDev`: A boolean indicating whether to include development dependencies in the installation process.
-  - `addPackages`: A vector of strings specifying additional packages to be installed, either by name or by name with version range.
-
-### Function: `runInstall`
-
-- **Purpose**: Executes the dependency resolution and installation process based on the provided `InstallOptions`.
+- **Purpose**: Executes a specified script from a project's `package.json` file.
 - **Parameters**:
-  - `const InstallOptions &opts`: A constant reference to an instance of `InstallOptions`, containing the configuration details for the installation.
-- **Return Value**: An integer representing the process exit code. A value of `0` indicates successful completion, while any other value signifies failure.
+  - `const std::string &projectDir`: The directory containing the project's `package.json`.
+  - `const std::string &scriptName`: The name of the script to execute.
+- **Return Value**: The exit code of the child process. Returns 1 with an error message to `stderr` if the script cannot be found.
+- **Functionality**:
+  - Reads the `package.json` file located at `<projectDir>`.
+  - Retrieves the command associated with the specified `scriptName`.
+  - Prepends the `node_modules/.bin` directory to the system's `PATH`.
+  - Spawns the command as a shell process.
+  - Handles errors gracefully, printing an error message to `stderr` if the script is not found.
 
 ## Tradeoffs
 
-1. **Complexity vs. Usability**:
-   - While providing a high level of configurability and flexibility through the `InstallOptions` structure, the resolver's complexity increases. This tradeoff ensures that users have control over their project's dependencies but may require more advanced knowledge to effectively utilize these features.
+### Simplicity vs. Flexibility
 
-2. **Performance vs. Bandwidth Usage**:
-   - Optimizing the registry interaction to minimize redundant requests improves performance but might increase bandwidth usage slightly. Conversely, downloading fewer packages reduces bandwidth usage but could impact build times.
+**Simplicity**: By using shell commands, `QpmScripts.h` provides a simple and straightforward interface for executing scripts. Users do not need to worry about the underlying details of how the script is executed.
 
-3. **Dependency Management vs. Simplicity**:
-   - Capturing the exact versions of dependencies in the lock file ensures reproducibility but adds another layer of complexity to the dependency management system. On the other hand, simplifying the dependency resolution process might lead to less predictable builds.
+**Flexibility**: However, this simplicity comes at the cost of flexibility. While shell commands offer broad support for various scripting languages and tools, they may not provide the same level of control and customization as a dedicated programming language or framework.
 
-By carefully balancing these tradeoffs, `QpmResolver.h` aims to provide a robust and efficient solution for managing dependencies in quantum projects, enhancing both usability and reliability.
+### Performance vs. Ease of Use
+
+**Performance**: Executing scripts through the shell might introduce some performance overhead compared to native C++ execution. However, this tradeoff is generally acceptable given the benefits of simplicity and ease of use.
+
+**Ease of Use**: By abstracting the execution logic away from the core compiler, `QpmScripts.h` improves the overall usability of the compiler. Developers can focus on writing quantum programs rather than worrying about script management.
+
+In conclusion, `QpmScripts.h` is a vital component of the Quantum Language compiler, responsible for executing scripts defined in a project's `package.json` file. Its design decisions prioritize simplicity and ease of use over flexibility and performance, making it an effective solution for managing project-specific tools and utilities.
