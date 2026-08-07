@@ -1,56 +1,69 @@
-# QpmGzip.h - Gzip/Deflate Decompression Module
+# QpmHttp.h - A Minimal HTTPS Client for Quantum Package Manager
 
 ## Role in Compiler Pipeline
 
-The `QpmGzip.h` module is an essential component of the Quantum Programming Module (QPM) within the Quantum Language compiler. Its primary role is to handle the decompression of files that are compressed using the gzip or zlib formats. This module plays a crucial part in the pipeline by converting `.tgz` (tar-gzip) files into their uncompressed raw tar byte streams, facilitating further processing within the compiler.
+The `QpmHttp.h` header file plays a crucial role in the Quantum Package Manager (QPM) by providing a lightweight and efficient way to make HTTP requests. Specifically, it facilitates the retrieval of JSON metadata and downloading tarball bytes from the npm registry. This functionality is essential for fetching package information and assets during the installation process, ensuring that QPM can interact seamlessly with remote repositories.
 
-## Key Design Decisions and Why
+## Key Design Decisions and WHY
 
-1. **Static Linking with Zlib**: The decision to statically link with the zlib library was made to ensure that the compiler has full control over the decompression process without external dependencies. This choice enhances reliability and portability across different environments.
+1. **WinHTTP Integration**:
+   - **Why**: The decision to use WinHTTP was made due to its integration with the Windows operating system. Unlike libraries like libcurl, which require additional DLL dependencies, WinHTTP is part of the standard library and does not introduce any external overhead. This makes the QPM more portable and easier to deploy across different environments without worrying about missing or incompatible libraries.
 
-2. **Use of Standard Strings**: By utilizing `std::string` for both input and output, the module leverages C++'s standard string handling capabilities, which provide efficient memory management and easy manipulation of data. This simplifies the interface and reduces potential errors related to manual memory handling.
+2. **Minimal Functionality**:
+   - **Why**: By focusing on only the necessary functionalities (GET requests for JSON metadata and tarballs), the QPM avoids unnecessary complexity and potential security risks associated with handling a full-fledged HTTP client. This approach ensures that the core features required for package management are robust and secure.
 
-3. **Error Handling**: Implementing error handling through the `error` parameter allows the caller to understand what went wrong during the decompression process. This is particularly useful for debugging and ensuring robustness in the compiler's operation.
+3. **Automatic Redirection Handling**:
+   - **Why**: Implementing automatic redirection handling simplifies the development process and reduces the likelihood of errors related to incorrect URLs. It also aligns with best practices in web development, where following redirects is often expected behavior.
+
+4. **Error Handling**:
+   - **Why**: Comprehensive error handling is critical for robust software systems. The `HttpResponse` structure includes fields for status code, response body, and error message, allowing developers to easily identify and handle issues at both the transport level (e.g., DNS failures, TLS errors) and the application level (e.g., invalid responses).
 
 ## Major Classes/Functions Overview
 
-### Function: `gzipInflate`
+### HttpResponse Structure
 
-- **Purpose**: This function takes a string containing gzip- or zlib-compressed data (`input`) and decompresses it into a raw tar byte stream (`output`). It also provides an error message if the decompression fails.
-  
+```cpp
+struct HttpResponse
+{
+    int status = 0;          // HTTP status code
+    std::string body;        // Response body content
+    std::string error;       // Error message if any
+    bool ok() const;         // Returns true if the request was successful
+};
+```
+
+- **Purpose**: Represents the result of an HTTP request, including the status code, response body, and any encountered errors.
+- **Usage**: Used to store and check the outcome of HTTP operations within the QPM.
+
+### httpGet Function
+
+```cpp
+HttpResponse httpGet(const std::string &url, const std::string &acceptHeader = "");
+```
+
+- **Purpose**: Sends an HTTP GET request to the specified URL and returns the response.
 - **Parameters**:
-  - `const std::string &input`: The compressed input data.
-  - `std::string &output`: The decompressed output data.
-  - `std::string &error`: A reference to a string where any error messages will be stored.
+  - `url`: The target URL to send the GET request to.
+  - `acceptHeader` (optional): An HTTP header specifying the acceptable content type.
+- **Return Value**: An `HttpResponse` object containing the status code, response body, and any errors encountered during the request.
 
-- **Return Value**: 
-  - `bool`: Returns `true` if the decompression is successful; otherwise, returns `false`.
+### urlEncodeComponent Function
 
-- **Example Usage**:
-  ```cpp
-  #include "src/qpm/QpmGzip.h"
+```cpp
+std::string urlEncodeComponent(const std::string &s);
+```
 
-  int main() {
-      std::string compressedData = "..."; // Assume this contains gzip/zlib compressed data
-      std::string decompressedData;
-      std::string errorMessage;
-
-      if (!qpm::gzipInflate(compressedData, decompressedData, errorMessage)) {
-          std::cerr << "Decompression failed: " << errorMessage << std::endl;
-          return 1;
-      }
-
-      // Proceed with further processing of decompressedData
-      return 0;
-  }
-  ```
+- **Purpose**: Percent-encodes a single path component, such as a package name or scope, to ensure it is correctly formatted for use in URLs.
+- **Parameters**:
+  - `s`: The string to be percent-encoded.
+- **Return Value**: The percent-encoded string.
 
 ## Tradeoffs
 
-1. **Performance vs. Reliability**: Static linking with zlib ensures high reliability but might slightly impact performance compared to dynamically linked libraries. However, the trade-off is deemed acceptable given the critical nature of decompression in the compiler pipeline.
+- **Performance vs. Simplicity**: While using WinHTTP provides simplicity and ease of deployment, it may not offer the same performance or feature set as more advanced libraries like libcurl. However, for the specific needs of QPM, this tradeoff is deemed acceptable.
+  
+- **External Dependencies**: By avoiding external DLL dependencies, QPM becomes more self-contained and easier to distribute. This eliminates the need for users to manage additional libraries, reducing friction in the setup process.
+  
+- **Feature Set**: The minimalistic approach limits the feature set, but this is balanced against the need for robustness and security. More complex features would increase the attack surface and complicate maintenance.
 
-2. **Memory Management**: Using `std::string` for both input and output simplifies memory management but may introduce overhead due to dynamic resizing. This trade-off is managed by choosing appropriate initial buffer sizes and optimizing string operations.
-
-3. **Flexibility vs. Simplicity**: While allowing for more flexible error handling, the static linking approach limits the flexibility of integrating with other libraries or tools. However, the simplicity and direct control provided by static linking outweigh these drawbacks in this specific context.
-
-By understanding these aspects, developers can better appreciate the design choices behind the `QpmGzip.h` module and its significance in the overall functionality of the Quantum Language compiler.
+Overall, `QpmHttp.h` is designed to provide a simple yet effective solution for making HTTP requests within the QPM, leveraging the strengths of WinHTTP while minimizing potential drawbacks.
