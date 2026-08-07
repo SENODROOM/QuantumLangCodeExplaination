@@ -1,82 +1,54 @@
-# QuantumLanguage Compiler - AST.h
+# QuantumLanguage Compiler - Cli.h
 
 ## Overview
 
-The `include/AST.h` header file is central to the QuantumLanguage compiler, defining the Abstract Syntax Tree (AST) structure. The AST represents the syntactic structure of source code written in the QuantumLanguage, breaking it down into a tree-like structure where each node corresponds to a construct in the language such as expressions, statements, and declarations. This representation allows the compiler to perform semantic analysis, optimization, and code generation more effectively.
+The `include/Cli.h` header file is integral to the QuantumLanguage compiler, focusing on the command-line interface (CLI) functionalities. This includes running individual files, interacting with the Read-Eval-Print Loop (REPL), executing batch tests, and bundling standalone executables. The CLI ensures seamless interaction between the user and the compiler, providing both interactive and batch processing capabilities.
 
 ## Role in Compiler Pipeline
 
-The AST serves as an intermediate representation between the source code and the final executable. It is built during the parsing phase, where the compiler transforms the raw text into a structured format. The AST is then used throughout the rest of the compilation process:
+In the QuantumLanguage compiler's pipeline, `Cli.h` serves as the entry point for all command-line operations. It handles the parsing of user inputs, invokes the appropriate compiler components, and manages the execution flow based on the specified commands. For instance, when a user compiles a file using the command-line interface, `Cli.h` initiates the compilation process, loads the necessary resources, and outputs the results.
 
-1. **Semantic Analysis**: Ensures that the code adheres to the language's rules and constraints.
-2. **Optimization**: Identifies opportunities to improve performance without changing the semantics.
-3. **Code Generation**: Translates the AST into machine code or another lower-level representation suitable for execution.
+## Key Design Decisions and WHY
 
-## Key Design Decisions and Why
+1. **Separation of Concerns**: The CLI functions are designed to be modular and independent, allowing each component to focus on its specific task. This separation enhances maintainability and scalability of the compiler.
 
-### Node Variants
+2. **Error Handling**: Each function in `Cli.h` includes robust error handling mechanisms. For example, `runFile` exits non-zero on error, ensuring that any issues during file interpretation are immediately apparent to the user. Similarly, `runTestExamples` provides a structured marker line for errors, making debugging easier.
 
-The AST is designed using `std::variant`, allowing for multiple types of nodes within the same container. This flexibility is essential because different constructs in the language can have vastly different structures and behaviors.
+3. **Debugging Support**: Both `runFile` and `runREPL` support debugging mode, which allows users to step through the code, inspect variables, and understand the program's execution flow. This feature is particularly useful for developers during the testing and development phases.
 
-### Expression Types
+4. **Batch Processing**: The `runTestExamples` function facilitates batch testing by running every supported source file under a specified directory. This is essential for verifying the correctness of multiple files simultaneously.
 
-Several expression types are defined, including:
-- **NumberLiteral**: Represents numeric literals like integers and floating-point numbers.
-- **StringLiteral**: Represents string literals.
-- **BoolLiteral** and **NilLiteral**: Represent boolean and nil values respectively.
-- **Identifier**: Refers to variable names or function identifiers.
-- **BinaryExpr**, **UnaryExpr**, and **AssignExpr**: Handle binary operations, unary operations, and assignment expressions.
-- **CallExpr**, **IndexExpr**, **SliceExpr**, **MemberExpr**: Manage function calls, array indexing, slicing, and member access.
-- **ArrayLiteral** and **DictLiteral**: Represent literal arrays and dictionaries.
-- **LambdaExpr**: Defines anonymous functions with parameters, return types, and bodies.
-- **TernaryExpr**: Handles conditional expressions similar to the ternary operator in other languages.
-- **SuperExpr**: Allows calling superclass constructors or methods.
-
-### C++ Pointer Expression Types
-
-Additional expression types are provided for handling pointers in C++, including:
-- **AddressOfExpr**: Represents the address-of operator (`&`).
-- **DerefExpr**: Represents the dereference operator (`*`).
-- **ArrowExpr**: Represents member access through pointers (`ptr->member`).
-
-### Statement Types
-
-Statement types include:
-- **VarDecl**: Declares variables with optional initializers and type hints.
-- **FunctionDecl**: Defines functions with parameter lists, return types, and bodies.
-- **ReturnStmt**: Handles return statements with optional values.
-- **IfStmt**: Manages conditional blocks with conditions and branches.
+5. **Standalone Executable Bundling**: The `bundleAndRun` function combines the compiler's functionality with the ability to create standalone executables. This feature simplifies deployment and distribution, making it easier for users to run their programs without additional setup.
 
 ## Major Classes/Functions Overview
 
-### ASTNode
+### Console Output Functions
+- **printBanner()**: Displays the compiler banner.
+- **printAura()**: Prints a decorative pattern.
+- **printHelp(const char *prog)**: Provides help information for the specified program.
 
-The base class for all AST nodes. It uses `std::variant` to store different types of nodes.
+### File Execution Functions
+- **runFile(const std::string &path, bool debug = false)**: Interprets a single file in-place. If `debug` is true, it enables debugging mode.
+- **checkFile(const std::string &path)**: Parses and type-checks a file, returning a process exit code.
 
-### Expression Classes
+### REPL Function
+- **runREPL(bool debug = false)**: Starts the Read-Eval-Print Loop, enabling interactive programming with optional debugging mode.
 
-Classes representing various expression types such as `NumberLiteral`, `StringLiteral`, `BinaryExpr`, etc. Each class encapsulates the specific data and behavior associated with its type.
+### Batch Test Runner Functions
+- **runTestExamples(const std::string &dir)**: Runs all supported source files under the specified directory, writing results to `test_results.txt`.
+- **runSingleFileForTest(const std::string &path)**: Hidden function used by the batch test runner to execute a single file safely within a new process.
 
-### Statement Classes
-
-Classes representing different statement types such as `VarDecl`, `FunctionDecl`, `ReturnStmt`, and `IfStmt`. These classes manage the syntax and semantics of their respective constructs.
-
-### Helper Functions
-
-Helper functions are provided to create and manipulate AST nodes, ensuring that the AST remains consistent and well-formed.
+### Standalone .exe Bundling Functions
+- **getExecutablePath()**: Retrieves the path of the currently running executable.
+- **loadEmbeddedBytecode(const std::string &exePath)**: Loads bytecode embedded in an executable, returning a shared pointer to the chunk or nullptr if absent.
+- **bundleAndRun(const std::string &path, const std::string &exePath)**: Compiles a file, copies `quantum_stub.exe`, appends the bytecode payload, and runs the resulting executable.
 
 ## Tradeoffs
 
-### Flexibility vs. Complexity
+1. **Complexity vs. Usability**: While the CLI offers extensive features, including debugging and batch testing, it also increases complexity. Users must learn how to utilize these features effectively, which might be challenging for beginners.
 
-Using `std::variant` provides significant flexibility but also increases complexity in terms of type checking and pattern matching. Balancing these factors was crucial for creating a robust yet maintainable AST system.
+2. **Performance vs. Debugging**: Enabling debugging mode can significantly slow down the execution speed due to additional checks and outputs. However, this tradeoff is often acceptable for development and testing purposes.
 
-### Memory Management
+3. **Resource Usage vs. Efficiency**: Bundling standalone executables requires additional resource usage, such as copying external binaries and appending bytecode. While this improves ease of use, it may impact performance and storage efficiency.
 
-The use of smart pointers (`std::unique_ptr`) for managing AST nodes helps prevent memory leaks and dangling references. However, it adds overhead compared to manual memory management.
-
-### Performance vs. Usability
-
-While the AST offers powerful features for advanced optimizations and analyses, it can be challenging to work with due to its complexity. Finding a balance between performance and usability was one of the primary goals in designing the AST.
-
-Overall, the `include/AST.h` header file is a critical component of the QuantumLanguage compiler, providing a structured and flexible way to represent source code and facilitating efficient compilation processes.
+Overall, `Cli.h` plays a vital role in enhancing the usability and flexibility of the QuantumLanguage compiler, despite some potential tradeoffs in terms of complexity and performance.
