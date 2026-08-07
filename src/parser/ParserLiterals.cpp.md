@@ -2,61 +2,45 @@
 
 ## Role in Compiler Pipeline
 
-`ParserLiterals.cpp` plays a crucial role in the Quantum Language compiler's parsing phase. It interprets and converts various literal values such as numbers, strings, booleans, `nil`, identifiers (`this`), and memory allocations (`new`) into their corresponding Abstract Syntax Tree (AST) nodes. This conversion is essential for accurately representing the structure and semantics of the source code within the AST, enabling subsequent phases of compilation to proceed correctly.
+`ParserLiterals.cpp` is an integral part of the Quantum Language compiler's parsing phase. Its primary function is to interpret and convert literal values such as numbers, strings, booleans, `nil`, identifiers (`this`), and memory allocations (`new`) into their corresponding Abstract Syntax Tree (AST) nodes. This conversion ensures that these literals are correctly represented within the AST, facilitating subsequent compilation stages.
 
 ## Key Design Decisions and Why
 
 ### Literal Handling
-The parser handles different types of literals:
-- **Numbers**: Converts numeric strings into `double` values, supporting both decimal and hexadecimal formats.
-- **Strings**: Directly captures string literals and stores them as `std::string`.
-- **Booleans**: Parses `true` and `false` keywords and converts them into boolean literals.
-- **Nil**: Represents the `nil` keyword as a special literal indicating the absence of a value.
-- **Identifiers (`this`)**: Interprets the `this` keyword as an identifier referring to the current object or context.
-- **Memory Allocations (`new`)**: Handles dynamic memory allocation using the `new` keyword, which can be used to create instances of classes or arrays of basic types.
+The parser handles different types of literals with specific functions like `parseNumber()`, `parseString()`, etc. Each function checks the type of the current token and processes it accordingly. For instance, numbers are parsed based on whether they are hexadecimal or decimal, and strings are handled directly.
 
-### Trade-offs
-- **Flexibility vs. Complexity**: The parser must handle both C++ primitive type keywords and custom class names, adding complexity but ensuring broad compatibility.
-- **Performance vs. Correctness**: Efficiently parsing literals without sacrificing correctness is critical. Using `std::stod` and `std::stoull` ensures performance while maintaining accuracy in number conversions.
-- **Readability vs. Usability**: The parser's ability to handle multiple literal types improves usability, making it easier for developers to write and understand the source code. However, this also increases the complexity of the parser's logic.
+**Why:** This approach allows for clear separation of concerns and makes the code easier to maintain and extend. By handling each literal type individually, we ensure that the parser can accurately interpret complex expressions involving multiple literals.
+
+### Memory Allocation Parsing
+Memory allocation literals (`new`) are parsed to create instances of objects. The parser expects a class name followed by parentheses containing arguments. If the syntax matches, it constructs an `ASTNode` representing the memory allocation.
+
+**Why:** Properly parsing memory allocation literals is crucial for creating object instances during compilation. This design decision ensures that the parser can handle dynamic memory allocation correctly, which is a common feature in many programming languages.
+
+### Tradeoffs
+One potential tradeoff in this implementation is the complexity introduced by handling different literal types and memory allocation syntax. While this adds robustness to the parser, it also increases the overall codebase size and maintenance effort. However, the benefits of accurate literal interpretation and dynamic memory allocation outweigh this tradeoff for most practical use cases.
 
 ## Major Classes/Functions Overview
 
-### Class: `Parser`
-- **Function: `parsePrimary()`**
-  - **Purpose**: Parses primary expressions, including literals and memory allocations.
-  - **Logic**:
-    - Checks the current token type and consumes it accordingly.
-    - For numbers, it determines whether the number is hexadecimal or decimal and converts it to a `double`.
-    - For strings, it directly captures the string value.
-    - For booleans, it parses `true` and `false` keywords.
-    - For `nil`, it represents the absence of a value.
-    - For identifiers (`this`), it interprets the `this` keyword as an identifier.
-    - For memory allocations (`new`), it handles both creating instances of classes and allocating arrays of basic types.
-  - **Trade-offs**:
-    - **Complexity**: The function must manage multiple cases, increasing its complexity.
-    - **Correctness**: Ensuring accurate parsing of all literal types is critical for maintaining the integrity of the AST.
-    - **Usability**: Supporting both C++ primitive types and custom class names enhances usability but adds to the complexity of the parser.
+### Parser Class
+- **Functionality:** Manages the parsing process, including token consumption and error handling.
+- **Key Methods:** `parsePrimary()`, `parseAssignment()`, `expect()`.
 
-### Function: `parseExpr()`
-- **Purpose**: Parses expressions that may follow a literal when defining an array size with `new`.
-- **Logic**:
-  - Consumes the opening `[` token.
-  - Parses the expression inside the brackets, which defines the size of the array.
-  - Expects the closing `]` token.
-- **Trade-offs**:
-  - **Readability**: Clear separation between literal parsing and expression parsing improves readability.
-  - **Performance**: Efficient parsing of expressions ensures good performance during compilation.
+### ASTNode Class
+- **Functionality:** Represents a node in the Abstract Syntax Tree.
+- **Types:** NumberLiteral, StringLiteral, BoolLiteral, NilLiteral, Identifier, LambdaExpr, BlockStmt, ReturnStmt.
 
-### Function: `parseArgList()`
-- **Purpose**: Parses argument lists for memory allocations using the `new` keyword.
-- **Logic**:
-  - Consumes the opening `(` token.
-  - Parses individual arguments until the closing `)` token is encountered.
-- **Trade-offs**:
-  - **Complexity**: Managing nested parentheses and handling varying numbers of arguments increases complexity.
-  - **Correctness**: Accurate parsing of argument lists ensures proper construction of objects or arrays during compilation.
+### parsePrimary Function
+- **Role:** Parses primary literals (numbers, strings, booleans, `nil`, `this`, `new`).
+- **Implementation Details:** Uses conditional statements to check the type of the current token and calls appropriate helper functions to parse each literal type.
+
+### parseAssignment Function
+- **Role:** Parses assignment expressions, which may include literal values.
+- **Implementation Details:** Handles the parsing of assignment operators and invokes `parsePrimary()` to parse the right-hand side of the assignment.
+
+### expect Function
+- **Role:** Ensures that the next token matches the expected type, throwing an error if not.
+- **Implementation Details:** Takes an expected token type and a message string. Consumes the next token if it matches the expected type; otherwise, throws an error with the provided message.
 
 ## Conclusion
 
-`ParserLiterals.cpp` is a vital part of the Quantum Language compiler, responsible for interpreting and converting literal values into AST nodes. By carefully managing multiple literal types and optimizing for performance and correctness, the parser ensures that the source code is accurately represented within the AST. This, in turn, facilitates efficient and reliable compilation of the program.
+`ParserLiterals.cpp` is a vital component of the Quantum Language compiler, responsible for interpreting and converting literal values into AST nodes. Through careful design and implementation, it ensures accurate representation of literals and supports dynamic memory allocation, enhancing the compiler's functionality. While there are some complexities involved, the benefits of a robust parsing system make this design worthwhile.
