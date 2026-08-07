@@ -1,68 +1,68 @@
-# QuantumLanguage Compiler - Value.h
+# QuantumLanguage Compiler - Vm.h
 
 ## Overview
 
-The `include/Value.h` header file is an essential component of the QuantumLanguage compiler, focusing on the representation and management of values within the virtual machine (VM). This file defines various value types and structures that facilitate efficient execution and accurate program behavior.
+The `include/Vm.h` header file is central to the QuantumLanguage compiler, defining the Virtual Machine (VM). The VM executes compiled code efficiently, manages execution contexts, handles exceptions, and maintains the runtime environment. This ensures accurate and smooth program execution.
 
 ## Role in Compiler Pipeline
 
-The `Value.h` file operates at multiple stages of the compiler pipeline:
-
-1. **Parsing**: It helps in parsing expressions and statements by providing a structured way to represent different types of values.
-2. **Type Checking**: During type checking, it ensures that operations are performed between compatible types.
-3. **Interpretation**: In the interpretation phase, it manages the evaluation of expressions and the execution of functions.
-4. **Compilation**: For compilation, it aids in generating intermediate representations that can be executed by the VM.
+The VM operates as the final stage of the compiler pipeline. After the code has been parsed, compiled into bytecode, and optimized, the VM takes over to execute the bytecode. This separation allows for efficient execution and easier management of the runtime environment.
 
 ## Key Design Decisions and Why
 
-### Use of Variants
+1. **Separation of Concerns**: By isolating the execution logic into the VM, the compiler becomes more modular and easier to maintain. Each component has a clear responsibility, making it simpler to debug and extend.
+   
+2. **Efficient Memory Management**: Using smart pointers (`std::shared_ptr`) for objects like closures and upvalues helps manage memory automatically, reducing the risk of memory leaks and dangling pointers.
 
-The primary design decision in `Value.h` is the use of `std::variant` to store different types of values within a single `QuantumValue` structure. This choice provides flexibility and safety in handling various data types without manual type casting or unions, reducing the risk of errors and improving performance.
+3. **Exception Handling**: The VM includes robust exception handling mechanisms. This allows for graceful error recovery and provides a consistent interface for reporting errors throughout the execution process.
 
-### Shared Pointers
+4. **Dynamic Typing**: The VM supports dynamic typing, which means that values can change their type at runtime. This flexibility is essential for dynamically typed languages but requires careful handling to avoid runtime errors.
 
-Shared pointers (`std::shared_ptr`) are used extensively to manage memory for complex objects like arrays, dictionaries, closures, and instances. This ensures automatic garbage collection and prevents memory leaks, which is crucial for long-running applications.
-
-### Custom Pointer Structure
-
-A custom `QuantumPointer` structure is defined to handle references to variables. This structure includes a shared pointer to the actual variable storage, a variable name for debugging purposes, and an offset for pointer arithmetic. This allows for dynamic memory management and easy access to variable values during execution.
+5. **Optimization Opportunities**: The VM is designed with optimization opportunities in mind. By keeping track of steps taken and pending instances, the VM can perform optimizations such as tail call elimination and just-in-time compilation.
 
 ## Major Classes/Functions Overview
 
-### QuantumValue
+### Upvalue
+- **Purpose**: Represents a captured variable from an enclosing scope.
+- **Key Features**:
+  - Points to a live value using a shared pointer.
+  - Stores the value after the variable leaves the stack.
 
-The `QuantumValue` class encapsulates a variant of different value types, including nil, boolean, number, string, array, dictionary, closure, native function, instance, class, bound method, and pointer. This class provides constructors for each type and methods to check the type of the stored value.
+### Closure
+- **Purpose**: Encapsulates a function along with its environment.
+- **Key Features**:
+  - Holds a reference to a chunk containing the function's bytecode.
+  - Manages upvalues for capturing variables from the enclosing scope.
 
-### QuantumPointer
+### CallFrame
+- **Purpose**: Represents a single function call within the execution context.
+- **Key Features**:
+  - Tracks the closure being called.
+  - Maintains the instruction pointer and stack base for local variables.
 
-The `QuantumPointer` struct represents a reference to a variable. It contains a shared pointer to the variable's storage, a name for debugging, and an offset for pointer arithmetic. This structure facilitates dynamic memory management and easy access to variable values.
+### ExceptionHandler
+- **Purpose**: Defines how the VM should handle exceptions.
+- **Key Features**:
+  - Specifies the IP to jump to upon catching an exception.
+  - Unwinds call frames and restores the stack depth.
 
-### Array and Dict
-
-- **Array**: A typedef for `std::vector<QuantumValue>` representing a list of quantum values.
-- **Dict**: A typedef for `std::unordered_map<std::string, QuantumValue>` representing a dictionary with string keys and quantum values as values.
-
-These types provide convenient ways to work with collections of quantum values.
-
-### QuantumNativeFunc and QuantumNative
-
-- **QuantumNativeFunc**: A typedef for `std::function<QuantumValue(std::vector<QuantumValue>)>` representing a native function that takes a vector of quantum values as arguments and returns a quantum value.
-- **QuantumNative**: A structure containing the name of a native function and its corresponding function object. This allows for seamless integration of native C++ functions into the quantum language.
-
-These components enable the execution of native C++ functions within the quantum language environment.
+### VM Class
+- **Purpose**: Manages the overall execution of the program.
+- **Key Functions**:
+  - `run`: Executes a compiled chunk (top-level script).
+  - `registerNatives`: Registers native functions that can be called from the language.
+  - `runFrame`: Runs a single call frame until a specified depth.
+  - `push`, `pop`, `peek`: Manage the value stack.
+  - `callValue`, `callClosure`, `callNativeFn`, `callClass`: Handle different types of function calls.
 
 ## Tradeoffs
 
-### Memory Management
+1. **Memory Overhead**: Smart pointers introduce some overhead compared to raw pointers, which can affect performance in high-performance applications.
 
-Using shared pointers introduces overhead due to reference counting but significantly simplifies memory management by automatically handling deallocation when references are no longer needed. This tradeoff balances convenience with performance.
+2. **Complexity**: Managing the runtime environment and exception handling adds complexity to the VM implementation. However, this complexity is necessary for supporting dynamic typing and ensuring robust error handling.
 
-### Type Safety vs. Flexibility
+3. **Performance vs. Simplicity**: While the VM offers many optimizations and features, these also add complexity. Balancing performance with simplicity is a constant challenge in VM design.
 
-The use of `std::variant` ensures type safety but may limit flexibility compared to traditional union-based approaches. However, it provides a safer and more intuitive way to handle multiple types within a single structure.
+4. **Flexibility vs. Consistency**: Dynamic typing provides flexibility but can lead to inconsistencies if not handled properly. The VM aims to provide a consistent interface for both dynamic and static typing.
 
-### Debugging Information
-
-Incorporating variable names and offsets in `QuantumPointer` adds overhead but enhances debugging capabilities by providing meaningful information about variable references. This tradeoff improves developer productivity and ease of debugging.
-
-Overall, the `include/Value.h` header file is designed to balance functionality, safety, and performance, making it a critical part of the QuantumLanguage compiler's architecture.
+By understanding these key components and design decisions, developers can better appreciate the role of the VM in the QuantumLanguage compiler and how it contributes to the overall efficiency and reliability of the system.
