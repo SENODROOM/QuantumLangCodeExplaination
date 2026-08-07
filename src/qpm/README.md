@@ -1,56 +1,53 @@
-# Quantum Package Manager (QPM) JSON Library
+# QpmResolver.h
 
-The `src/qpm/QpmJson.h` file provides a minimal, self-contained JSON value type along with a parser and serializer tailored for use in the Quantum Package Manager (QPM). This library is designed to handle JSON data relevant to npm registry responses, `package.json`, and `qpm-lock.json`. One of its key features is that objects preserve insertion order, ensuring predictable behavior when serializing back to JSON.
+## Overview
+
+`QpmResolver.h` is a header file that defines the interface and implementation of the QPM (Quantum Package Manager) resolver component within the Quantum Language compiler. This component is responsible for handling dependency resolution and installation, ensuring that all required packages are correctly fetched, installed, and linked within the project environment.
 
 ## Role in Compiler Pipeline
 
-This file plays a crucial role in the QPM compiler pipeline by providing a robust JSON handling mechanism. It allows QPM to parse and serialize JSON data efficiently, which is essential for managing packages and their dependencies.
+The primary role of `QpmResolver.h` in the compiler pipeline is to manage the entire process of resolving dependencies specified in the `package.json` file of a quantum project. It orchestrates the interaction with the npm registry to fetch the necessary packages, handles their extraction into the `node_modules` directory, creates executable shims for binaries, and generates a lock file (`qpm-lock.json`) to ensure reproducibility of the dependency tree.
 
 ## Key Design Decisions and Why
 
-1. **Minimalism**: The library is kept minimal to reduce overhead and ensure simplicity in integration within the QPM compiler pipeline.
-2. **Self-Contained**: All necessary components are included within the header file itself, making it easy to include and use without external dependencies.
-3. **Preserving Insertion Order**: By using `std::vector` for both arrays and objects, the library ensures that elements maintain their original order, which is important for maintaining consistency across different serialization processes.
-4. **Safe Access Methods**: The `get` method provides a way to safely access values in an object, returning a default value if the key does not exist or if the value is not of the expected type.
+1. **Separation of Concerns**:
+   - The resolver is designed as a standalone module within the compiler, which helps in isolating its functionality and making it easier to test and maintain independently.
+   
+2. **Modular Configuration**:
+   - The `InstallOptions` structure allows for flexible configuration of the installation process, including options to specify the project directory, whether to include development dependencies, and additional packages to be installed. This modularity ensures that the resolver can adapt to various use cases without significant changes.
+
+3. **Efficient Registry Interaction**:
+   - By walking through the npm registry to resolve the dependency tree, the resolver minimizes redundant requests and ensures that only the necessary packages are downloaded, optimizing performance and reducing bandwidth usage.
+
+4. **Reproducible Build Environment**:
+   - The generation of a lock file (`qpm-lock.json`) captures the exact versions of all resolved dependencies, ensuring that builds are reproducible across different environments. This is crucial for maintaining consistency and reliability in quantum projects.
 
 ## Major Classes/Functions Overview
 
-### `JsonValue`
+### Class: `InstallOptions`
 
-The core class representing a JSON value. It can hold various types including null, boolean, number, string, array, and object. Each type has corresponding methods to check and convert the value.
+- **Purpose**: Represents the configuration options for the dependency installation process.
+- **Attributes**:
+  - `projectDir`: A string representing the directory containing the `package.json` file.
+  - `includeDev`: A boolean indicating whether to include development dependencies in the installation process.
+  - `addPackages`: A vector of strings specifying additional packages to be installed, either by name or by name with version range.
 
-#### Types Enum
+### Function: `runInstall`
 
-- `Null`: Represents a JSON null value.
-- `Bool`: Represents a JSON boolean value.
-- `Number`: Represents a JSON numeric value (both integer and floating-point).
-- `String`: Represents a JSON string value.
-- `Array`: Represents a JSON array value.
-- `Object`: Represents a JSON object value.
+- **Purpose**: Executes the dependency resolution and installation process based on the provided `InstallOptions`.
+- **Parameters**:
+  - `const InstallOptions &opts`: A constant reference to an instance of `InstallOptions`, containing the configuration details for the installation.
+- **Return Value**: An integer representing the process exit code. A value of `0` indicates successful completion, while any other value signifies failure.
 
-#### Constructors
+## Tradeoffs
 
-- Default constructor initializes the value to null.
-- Constructors for boolean, number, and string types initialize the value accordingly.
+1. **Complexity vs. Usability**:
+   - While providing a high level of configurability and flexibility through the `InstallOptions` structure, the resolver's complexity increases. This tradeoff ensures that users have control over their project's dependencies but may require more advanced knowledge to effectively utilize these features.
 
-#### Static Methods
+2. **Performance vs. Bandwidth Usage**:
+   - Optimizing the registry interaction to minimize redundant requests improves performance but might increase bandwidth usage slightly. Conversely, downloading fewer packages reduces bandwidth usage but could impact build times.
 
-- `makeArray()`: Creates a new `JsonValue` initialized as an empty array.
-- `makeObject()`: Creates a new `JsonValue` initialized as an empty object.
+3. **Dependency Management vs. Simplicity**:
+   - Capturing the exact versions of dependencies in the lock file ensures reproducibility but adds another layer of complexity to the dependency management system. On the other hand, simplifying the dependency resolution process might lead to less predictable builds.
 
-#### Methods
-
-- `type()`: Returns the type of the JSON value.
-- `isNull()`, `isBool()`, `isNumber()`, `isString()`, `isArray()`, `isObject()`: Check if the value is of the specified type.
-- `asBool(bool def = false)`, `asNumber(double def = 0.0)`, `asString()`, `asString(const std::string &def)`: Safely convert the value to the specified type, returning a default value if the conversion is not possible.
-- `array()`, `object()`: Return references to the internal array or object, allowing modification.
-- `find(const std::string &key)`: Searches for a key in an object and returns a pointer to the corresponding `JsonValue` if found, otherwise returns `nullptr`.
-- `get(const std::string &key, const JsonValue &def = JsonValue())`: Retrieves the value associated with a key in an object, returning a default value if the key is absent or the value is not of the expected type.
-
-### Tradeoffs
-
-- **Simplicity vs. Flexibility**: While the library is minimalistic, it sacrifices some flexibility compared to more comprehensive JSON libraries like RapidJSON or nlohmann/json. However, this tradeoff is justified by the need for a lightweight solution that integrates well with the QPM compiler pipeline.
-- **Performance vs. Memory Usage**: The use of `std::vector` for arrays and objects ensures good performance but may lead to higher memory usage compared to other data structures. This tradeoff is acceptable given the typical size of JSON data handled by QPM.
-- **Error Handling**: The library uses exceptions sparingly, focusing on providing clear error messages through its methods. This approach simplifies error handling but may not be suitable for all applications requiring strict control over error management.
-
-Overall, the `QpmJson.h` file offers a compact yet effective solution for JSON processing in the QPM compiler pipeline, balancing simplicity, performance, and error handling needs.
+By carefully balancing these tradeoffs, `QpmResolver.h` aims to provide a robust and efficient solution for managing dependencies in quantum projects, enhancing both usability and reliability.
