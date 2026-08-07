@@ -1,69 +1,56 @@
-# QpmHttp.h - A Minimal HTTPS Client for Quantum Package Manager
+# Quantum Package Manager (QPM) JSON Library
+
+The `src/qpm/QpmJson.h` file provides a minimal, self-contained JSON value type along with a parser and serializer tailored for use in the Quantum Package Manager (QPM). This library is designed to handle JSON data relevant to npm registry responses, `package.json`, and `qpm-lock.json`. One of its key features is that objects preserve insertion order, ensuring predictable behavior when serializing back to JSON.
 
 ## Role in Compiler Pipeline
 
-The `QpmHttp.h` header file plays a crucial role in the Quantum Package Manager (QPM) by providing a lightweight and efficient way to make HTTP requests. Specifically, it facilitates the retrieval of JSON metadata and downloading tarball bytes from the npm registry. This functionality is essential for fetching package information and assets during the installation process, ensuring that QPM can interact seamlessly with remote repositories.
+This file plays a crucial role in the QPM compiler pipeline by providing a robust JSON handling mechanism. It allows QPM to parse and serialize JSON data efficiently, which is essential for managing packages and their dependencies.
 
-## Key Design Decisions and WHY
+## Key Design Decisions and Why
 
-1. **WinHTTP Integration**:
-   - **Why**: The decision to use WinHTTP was made due to its integration with the Windows operating system. Unlike libraries like libcurl, which require additional DLL dependencies, WinHTTP is part of the standard library and does not introduce any external overhead. This makes the QPM more portable and easier to deploy across different environments without worrying about missing or incompatible libraries.
-
-2. **Minimal Functionality**:
-   - **Why**: By focusing on only the necessary functionalities (GET requests for JSON metadata and tarballs), the QPM avoids unnecessary complexity and potential security risks associated with handling a full-fledged HTTP client. This approach ensures that the core features required for package management are robust and secure.
-
-3. **Automatic Redirection Handling**:
-   - **Why**: Implementing automatic redirection handling simplifies the development process and reduces the likelihood of errors related to incorrect URLs. It also aligns with best practices in web development, where following redirects is often expected behavior.
-
-4. **Error Handling**:
-   - **Why**: Comprehensive error handling is critical for robust software systems. The `HttpResponse` structure includes fields for status code, response body, and error message, allowing developers to easily identify and handle issues at both the transport level (e.g., DNS failures, TLS errors) and the application level (e.g., invalid responses).
+1. **Minimalism**: The library is kept minimal to reduce overhead and ensure simplicity in integration within the QPM compiler pipeline.
+2. **Self-Contained**: All necessary components are included within the header file itself, making it easy to include and use without external dependencies.
+3. **Preserving Insertion Order**: By using `std::vector` for both arrays and objects, the library ensures that elements maintain their original order, which is important for maintaining consistency across different serialization processes.
+4. **Safe Access Methods**: The `get` method provides a way to safely access values in an object, returning a default value if the key does not exist or if the value is not of the expected type.
 
 ## Major Classes/Functions Overview
 
-### HttpResponse Structure
+### `JsonValue`
 
-```cpp
-struct HttpResponse
-{
-    int status = 0;          // HTTP status code
-    std::string body;        // Response body content
-    std::string error;       // Error message if any
-    bool ok() const;         // Returns true if the request was successful
-};
-```
+The core class representing a JSON value. It can hold various types including null, boolean, number, string, array, and object. Each type has corresponding methods to check and convert the value.
 
-- **Purpose**: Represents the result of an HTTP request, including the status code, response body, and any encountered errors.
-- **Usage**: Used to store and check the outcome of HTTP operations within the QPM.
+#### Types Enum
 
-### httpGet Function
+- `Null`: Represents a JSON null value.
+- `Bool`: Represents a JSON boolean value.
+- `Number`: Represents a JSON numeric value (both integer and floating-point).
+- `String`: Represents a JSON string value.
+- `Array`: Represents a JSON array value.
+- `Object`: Represents a JSON object value.
 
-```cpp
-HttpResponse httpGet(const std::string &url, const std::string &acceptHeader = "");
-```
+#### Constructors
 
-- **Purpose**: Sends an HTTP GET request to the specified URL and returns the response.
-- **Parameters**:
-  - `url`: The target URL to send the GET request to.
-  - `acceptHeader` (optional): An HTTP header specifying the acceptable content type.
-- **Return Value**: An `HttpResponse` object containing the status code, response body, and any errors encountered during the request.
+- Default constructor initializes the value to null.
+- Constructors for boolean, number, and string types initialize the value accordingly.
 
-### urlEncodeComponent Function
+#### Static Methods
 
-```cpp
-std::string urlEncodeComponent(const std::string &s);
-```
+- `makeArray()`: Creates a new `JsonValue` initialized as an empty array.
+- `makeObject()`: Creates a new `JsonValue` initialized as an empty object.
 
-- **Purpose**: Percent-encodes a single path component, such as a package name or scope, to ensure it is correctly formatted for use in URLs.
-- **Parameters**:
-  - `s`: The string to be percent-encoded.
-- **Return Value**: The percent-encoded string.
+#### Methods
 
-## Tradeoffs
+- `type()`: Returns the type of the JSON value.
+- `isNull()`, `isBool()`, `isNumber()`, `isString()`, `isArray()`, `isObject()`: Check if the value is of the specified type.
+- `asBool(bool def = false)`, `asNumber(double def = 0.0)`, `asString()`, `asString(const std::string &def)`: Safely convert the value to the specified type, returning a default value if the conversion is not possible.
+- `array()`, `object()`: Return references to the internal array or object, allowing modification.
+- `find(const std::string &key)`: Searches for a key in an object and returns a pointer to the corresponding `JsonValue` if found, otherwise returns `nullptr`.
+- `get(const std::string &key, const JsonValue &def = JsonValue())`: Retrieves the value associated with a key in an object, returning a default value if the key is absent or the value is not of the expected type.
 
-- **Performance vs. Simplicity**: While using WinHTTP provides simplicity and ease of deployment, it may not offer the same performance or feature set as more advanced libraries like libcurl. However, for the specific needs of QPM, this tradeoff is deemed acceptable.
-  
-- **External Dependencies**: By avoiding external DLL dependencies, QPM becomes more self-contained and easier to distribute. This eliminates the need for users to manage additional libraries, reducing friction in the setup process.
-  
-- **Feature Set**: The minimalistic approach limits the feature set, but this is balanced against the need for robustness and security. More complex features would increase the attack surface and complicate maintenance.
+### Tradeoffs
 
-Overall, `QpmHttp.h` is designed to provide a simple yet effective solution for making HTTP requests within the QPM, leveraging the strengths of WinHTTP while minimizing potential drawbacks.
+- **Simplicity vs. Flexibility**: While the library is minimalistic, it sacrifices some flexibility compared to more comprehensive JSON libraries like RapidJSON or nlohmann/json. However, this tradeoff is justified by the need for a lightweight solution that integrates well with the QPM compiler pipeline.
+- **Performance vs. Memory Usage**: The use of `std::vector` for arrays and objects ensures good performance but may lead to higher memory usage compared to other data structures. This tradeoff is acceptable given the typical size of JSON data handled by QPM.
+- **Error Handling**: The library uses exceptions sparingly, focusing on providing clear error messages through its methods. This approach simplifies error handling but may not be suitable for all applications requiring strict control over error management.
+
+Overall, the `QpmJson.h` file offers a compact yet effective solution for JSON processing in the QPM compiler pipeline, balancing simplicity, performance, and error handling needs.
