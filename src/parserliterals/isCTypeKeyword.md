@@ -1,26 +1,24 @@
 # `isCTypeKeyword`
 
 ## Overview
-The `isCTypeKeyword` function determines if a specified token type represents a keyword in the C programming language that denotes a data type. This function plays a vital role in the parsing phase of the Quantum Language compiler, facilitating the correct identification and handling of data types within the source code being compiled.
+The `isCTypeKeyword` function checks whether a given token type corresponds to a keyword in the C programming language that indicates a data type. This function is essential during the parsing phase of the Quantum Language compiler, aiding in the accurate identification and handling of data types within the code.
 
 ## Parameters
-- **t**: An enumeration value of type `TokenType`, representing the token to be checked.
+- `t`: An enumeration value of type `TokenType`, representing the token to be checked.
 
 ## Return Value
-- **bool**: Returns `true` if the token type corresponds to a C data type keyword; otherwise, returns `false`.
+- Returns `true` if the token type `t` is one of the C data type keywords (`int`, `float`, `double`, `char`, `string`, `bool`, `void`, `long`, `short`, or `unsigned`).
+- Returns `false` otherwise.
 
 ## Edge Cases
-1. **Invalid Token Types**: If the input token type is not recognized as a valid C data type keyword, the function will correctly return `false`.
-2. **Future Extensions**: The current implementation covers only standard C data type keywords. If future versions of the Quantum Language compiler extend support for additional C data types or introduce new keywords, this function may need to be updated accordingly.
+- The function correctly identifies all standard C data type keywords as `true`.
+- For any token type not corresponding to a C data type keyword, the function returns `false`.
 
 ## Interactions with Other Components
-- **Lexer**: The `isCTypeKeyword` function is typically invoked by the lexer component, which processes the source code into tokens. The lexer identifies potential data type keywords and passes them to the parser for further analysis.
-- **Parser**: During the parsing phase, the parser uses the output of `isCTypeKeyword` to determine if a token should be treated as a data type declaration. If `true`, the parser proceeds to handle the declaration appropriately, such as setting up variable storage or function parameter lists.
-- **Semantic Analyzer**: After successful parsing, the semantic analyzer utilizes the information provided by `isCTypeKeyword` to ensure that data type declarations adhere to the rules and constraints of the C language.
+- This function interacts with the parser component, which uses its output to determine the type of variables and expressions being processed.
+- It also collaborates with the semantic analyzer component, ensuring that only valid data types are used throughout the compilation process.
 
 ## Implementation Details
-The function employs a `switch` statement to evaluate the input token type (`t`). Each case in the switch corresponds to a recognized C data type keyword. If the input token type matches any of these cases, the function returns `true`. Otherwise, it defaults to returning `false`.
+The implementation utilizes a `switch` statement to compare the input token type `t` against a set of predefined C data type keywords. If the token type matches any of these keywords, the function returns `true`. Otherwise, it returns `false`.
 
-This approach ensures that the function efficiently checks against a predefined set of data type keywords without requiring complex conditional logic. By leveraging the power of enumerations and switch statements, the implementation remains both readable and maintainable.
-
-In summary, the `isCTypeKeyword` function serves as a critical utility within the Quantum Language compiler's parsing phase, enabling accurate recognition and handling of C data type keywords. Its straightforward design facilitates integration with other compiler components and supports efficient compilation of source code containing various data type declarations.
+This approach ensures that the function efficiently handles the comparison without the need for additional conditional logic, making it both concise and effective.

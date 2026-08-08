@@ -2,61 +2,52 @@
 
 ## Overview
 
-The `lexerreaders` component in the Quantum Language (QL) compiler is responsible for lexical analysis, which involves breaking down the source code into meaningful units called tokens. This process is crucial for the subsequent stages of compilation, such as syntax analysis and semantic interpretation. The component includes several functions that handle different types of tokenization tasks.
+The `lexerreaders` component in the Quantum Language (QL) compiler is essential for converting source code into a stream of tokens. This step is fundamental for parsing and understanding the structure of the program. The component consists of several functions that handle different aspects of lexical analysis.
 
-## Files and Functions
+### Key Functions
 
-### readString
+- **readIdentifierOrKeyword**: This function identifies whether a sequence of characters represents an identifier or a keyword in the quantum language. It checks against predefined lists of keywords and returns the appropriate token type.
 
-- **Description**: This function reads string literals from the source code. It handles escape sequences within strings and ensures that the string is properly terminated.
-- **Parameters**:
-  - `input`: A reference to the input stream containing the source code.
-  - `token`: A reference to the token where the parsed string will be stored.
-- **Returns**: `true` if the string was successfully read; otherwise, `false`.
+## File Structure
 
-### readIdentifierOrKeyword
+This directory contains the following files:
 
-- **Description**: This function identifies whether the current sequence of characters forms an identifier or a keyword in the Quantum Language.
-- **Parameters**:
-  - `input`: A reference to the input stream containing the source code.
-  - `token`: A reference to the token where the parsed identifier or keyword will be stored.
-- **Returns**: `true` if the identifier or keyword was successfully read; otherwise, `false`.
+- `LexerReaders.cpp`: Contains the implementation of the `readIdentifierOrKeyword` function and other related functions.
+- `LexerReaders.h`: Defines the interface for the `lexerreaders` component, including function declarations and necessary data structures.
 
 ## Overall Flow
 
-1. **Initialization**: The lexer starts by reading characters from the source code one by one.
-2. **Token Recognition**:
-   - For string literals, it calls `readString`.
-   - For identifiers or keywords, it calls `readIdentifierOrKeyword`.
-3. **Error Handling**: If any invalid character or sequence is encountered during tokenization, appropriate error messages are generated.
-4. **Output**: Each recognized token is added to the output list, ready for further processing in the parser.
+1. **Initialization**: The `lexerreaders` component initializes with a pointer to the current character in the input source code.
+2. **Token Reading**: It reads characters from the input one by one, forming sequences based on the rules of the quantum language.
+3. **Classification**: Each sequence is classified as either an identifier or a keyword using the `readIdentifierOrKeyword` function.
+4. **Output Tokens**: The classified tokens are outputted to the parser for further processing.
 
 ## Usage Example
 
+Here's a simple example of how you might use the `lexerreaders` component:
+
 ```cpp
-#include "lexerreaders.h"
-#include <iostream>
+#include "LexerReaders.h"
 
 int main() {
-    std::istringstream input("let qubit = 0");
-    Token token;
-    
-    if (readIdentifierOrKeyword(input, token)) {
-        std::cout << "Parsed Keyword: " << token.value << std::endl;
-    } else if (readString(input, token)) {
-        std::cout << "Parsed String: " << token.value << std::endl;
+    const char* sourceCode = "qubit q0; H q0;";
+    TokenStream tokens = readTokens(sourceCode);
+
+    while (!tokens.isEmpty()) {
+        Token token = tokens.getNext();
+        std::cout << "Token Type: " << token.type << ", Value: " << token.value << std::endl;
     }
-    
+
     return 0;
 }
 ```
 
-In this example, the `lexerreaders` component would recognize "let" as a keyword and output accordingly.
+In this example, the `readTokens` function would be part of the `lexerreaders` component, handling the entire lexical analysis process and returning a stream of tokens.
 
 ## Contributing
 
-Contributions to the `lexerreaders` component are welcome! Please ensure your changes are well-documented and tested before submitting a pull request.
+Contributions to the `lexerreaders` component are welcome! If you find any issues or have suggestions for improvements, please open an issue on the [GitHub repository](https://github.com/your-repo/ql-compiler).
 
-## License
+---
 
-The `lexerreaders` component is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+Feel free to update or expand upon this README as needed to better reflect the specifics of your `lexerreaders` component.

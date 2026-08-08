@@ -2,63 +2,51 @@
 
 ## Role in Compiler Pipeline
 
-The `VmDictMethods.cpp` file is an integral part of the Quantum Language compiler's virtual machine (VM) component. Its primary function is to provide implementations for various methods that operate on dictionary objects (`Dict`). This enables dictionary manipulation and retrieval operations within the quantum programming environment, ensuring efficient handling of data structures.
+The `VmDictMethods.cpp` file plays a crucial role in the Quantum Language compiler's virtual machine (VM) component. It provides implementations for various methods that operate on dictionary objects (`Dict`). These methods enable dictionary manipulation and retrieval operations within the quantum programming environment, ensuring efficient and flexible handling of data structures.
 
 ## Key Design Decisions and Why
 
-### Method Overloading and Polymorphism
+### Method Overloading
 
-- **Why**: To support multiple functionalities with a single interface name, such as retrieving keys, values, or items from a dictionary.
-- **Implementation**: The `callDictMethod` function overloads based on the method name passed as a string argument.
-
-### Exception Handling
-
-- **Why**: To manage errors gracefully and ensure the program remains robust even when encountering unexpected inputs.
-- **Implementation**: Throws a `TypeError` if the requested method does not exist in the dictionary.
-
-### Use of Smart Pointers
-
-- **Why**: To prevent memory leaks by managing the lifecycle of dynamically allocated objects automatically.
-- **Implementation**: Utilizes `std::shared_ptr` for managing dictionary and array objects.
-
-## Major Classes/Functions Overview
-
-### `VM::callDictMethod`
-
-This function serves as the entry point for calling dictionary methods. It takes three parameters:
-- `std::shared_ptr<Dict>`: A shared pointer to the dictionary object.
-- `const std::string &m`: The method name to be called.
-- `std::vector<QuantumValue> args`: A vector containing arguments required by the method.
-
-It returns a `QuantumValue`, which can represent different types of data including arrays and other dictionaries.
-
-#### Supported Methods
-
-- **Keys**: Returns an array of all dictionary keys.
-- **Values**: Returns an array of all dictionary values.
-- **Items/Entries**: Returns an array of arrays, where each inner array contains a key-value pair.
-- **Has/Contains/HasOwnProperty**: Checks if a specific key exists in the dictionary.
-- **Get**: Retrieves the value associated with a given key; optionally returns a default value if the key is not found.
-- **Set**: Sets or updates the value associated with a given key.
-- **Delete**: Removes a key-value pair from the dictionary.
-- **Clear**: Clears all entries from the dictionary.
-- **Size/Length**: Returns the number of key-value pairs in the dictionary.
-
-## Tradeoffs
-
-### Memory Management
-
-- **Pros**: Automatic memory management using smart pointers reduces the risk of memory leaks.
-- **Cons**: Potential overhead due to reference counting and copying.
+To support multiple functionalities with similar method names, such as checking for keys (`respond_to`, `has`, `contains`, `hasOwnProperty`), retrieving values (`get`, `pop`), and updating dictionaries (`set`, `update`, `delete`, `clear`), the file uses method overloading based on the method name and arguments provided. This approach ensures that each method can handle different types of inputs and perform specific actions accordingly.
 
 ### Error Handling
 
-- **Pros**: Clear and consistent error handling improves code reliability.
-- **Cons**: Can lead to performance degradation if exceptions are frequently thrown.
+The file includes error handling mechanisms to manage cases where invalid arguments or non-existent keys are encountered. For example, when calling the `get` method without providing a default value, the code returns an empty `QuantumValue`. Similarly, when attempting to delete a non-existent key using the `delete` method, the code returns `true` to indicate success.
 
-### Functionality vs. Simplicity
+### Tradeoffs
 
-- **Pros**: Providing multiple methods under a single interface simplifies the API and makes it easier to use.
-- **Cons**: Can increase complexity and make debugging more challenging if issues arise.
+#### Memory Management
 
-Overall, `VmDictMethods.cpp` enhances the functionality and efficiency of dictionary operations in the Quantum Language compiler while maintaining robustness through proper exception handling and memory management.
+Using smart pointers (`std::shared_ptr`) for managing dictionary objects helps prevent memory leaks and ensures proper deallocation of resources. However, it may introduce overhead due to reference counting and pointer dereferencing.
+
+#### Performance
+
+While the use of smart pointers enhances memory safety, it might impact performance slightly compared to raw pointers. Additionally, some methods, like sorting (`sort`), involve iterating through the entire dictionary and creating temporary arrays, which could be computationally expensive for large datasets.
+
+## Major Classes/Functions Overview
+
+### `class Dict`
+
+Represents a dictionary object in the VM. It stores key-value pairs and provides methods for accessing and modifying its contents.
+
+### `QuantumValue VM::callDictMethod(std::shared_ptr<Dict> dict, const std::string &m, std::vector<QuantumValue> args)`
+
+This function serves as the entry point for calling dictionary methods. It takes a shared pointer to a `Dict` object, a method name, and a vector of arguments. Based on the method name, it invokes the corresponding method and returns the result wrapped in a `QuantumValue`.
+
+### Dictionary Methods Implemented
+
+- **`respond_to`**: Checks if the dictionary contains a specified key.
+- **`keys`**: Returns an array containing all the keys in the dictionary.
+- **`values`**: Returns an array containing all the values in the dictionary.
+- **`items`**, **`entries`**, **`sort`**: Returns an array of `[key, value]` pairs, optionally sorted by keys.
+- **`has`**, **`contains`**, **`hasOwnProperty`**: Checks if the dictionary contains a specified key.
+- **`get`**: Retrieves the value associated with a specified key, returning a default value if the key does not exist.
+- **`set`**: Updates or adds a key-value pair to the dictionary.
+- **`delete`**: Removes a key-value pair from the dictionary.
+- **`clear`**: Clears all key-value pairs from the dictionary.
+- **`size`**, **`length`**: Returns the number of key-value pairs in the dictionary.
+- **`update`**: Merges key-value pairs from another dictionary into the current one.
+- **`pop`**: Removes and returns the value associated with a specified key, optionally returning a default value if the key does not exist.
+
+These methods collectively provide a comprehensive set of tools for working with dictionary objects in the Quantum Language compiler's VM, facilitating robust and efficient data management within the quantum programming environment.

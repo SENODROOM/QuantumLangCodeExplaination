@@ -2,44 +2,37 @@
 
 ## Overview
 
-The `skipNewlines` function is an essential component of the parser core in the Quantum Language compiler. Its main purpose is to eliminate all newline tokens (`TokenType::NEWLINE`) from the current sequence of tokens in the input source code. This ensures that the subsequent parsing process can focus on meaningful language constructs rather than whitespace or formatting issues.
+The `skipNewlines` function is an integral part of the parser core within the Quantum Language compiler. Its primary role is to remove all newline tokens (`TokenType::NEWLINE`) from the current sequence of tokens in the input source code. This process is crucial because newlines can disrupt the flow of parsing and should be disregarded when constructing the abstract syntax tree (AST).
 
-## Parameters and Return Value
+## Parameters/Return Value
 
 - **Parameters**: None
-- **Return Value**: void
-
-The function does not take any parameters and does not return any value. It operates directly on the internal state of the parser, modifying the token stream as necessary.
+- **Return Value**: None
 
 ## How It Works
 
-The `skipNewlines` function uses a loop to repeatedly check if the next token in the stream is of type `TokenType::NEWLINE`. If it is, the function consumes that token using the `consume()` method. This process continues until there are no more newline tokens left at the beginning of the stream.
+The function operates through a loop that continues as long as the next token in the sequence is of type `TokenType::NEWLINE`. Within each iteration of the loop, the `consume()` method is called to advance the parser's position to the next token. The `check()` method is used to verify the type of the current token before deciding whether to consume it or not.
 
 ### Code Explanation
 
 ```cpp
-void ParserCore::skipNewlines() {
-    while (check(TokenType::NEWLINE)) {
-        consume();
-    }
+while (check(TokenType::NEWLINE)) {
+    consume();
 }
 ```
 
-1. **Loop Condition**: The `while` loop checks whether the current token is a newline token using the `check()` method.
-2. **Consuming Tokens**: Inside the loop, the `consume()` method is called to remove the current token from the stream.
-3. **Continuation**: The loop repeats until no more newline tokens are found at the start of the stream.
-
-## Why It Works This Way
-
-This approach ensures that all leading newlines are removed efficiently. By checking each token individually and consuming them immediately, the function avoids unnecessary overhead and maintains a clean token stream for further parsing operations. The use of a loop allows for repeated consumption of consecutive newline tokens without requiring multiple calls to the function.
+1. **Loop Condition**: The loop condition `check(TokenType::NEWLINE)` checks if the current token is a newline token. If it is, the loop proceeds; otherwise, it exits.
+2. **Consuming Tokens**: Inside the loop, the `consume()` method is invoked. This method updates the internal state of the parser to move to the next token in the sequence.
 
 ## Edge Cases
 
-- **Empty Token Stream**: If the token stream is empty or contains no newline tokens, the function will terminate immediately without performing any actions.
-- **Non-Newline Tokens at Start**: The function only removes newline tokens from the start of the stream. If non-newline tokens precede newline tokens, they will remain untouched.
+- **Empty Sequence**: If there are no tokens in the sequence, the loop will not execute, and the function will do nothing.
+- **No Newlines**: If the sequence does not contain any newline tokens, the loop will also not execute, and the function will terminate without making any changes.
 
 ## Interactions with Other Components
 
-The `skipNewlines` function interacts primarily with the token stream managed by the parser core. It relies on the `check()` and `consume()` methods to interact with the token stream. These methods are part of the parser's infrastructure and ensure that the token stream is correctly updated during the parsing process.
+The `skipNewlines` function interacts primarily with the lexer component, which generates the sequence of tokens from the input source code. By removing newline tokens, the parser can focus on the meaningful content of the source code, ignoring formatting details like line breaks.
 
-By removing newline tokens, the `skipNewlines` function facilitates a smoother interaction between different parts of the parser, such as the lexer and the syntax analyzer, by ensuring that the token stream starts with valid language constructs. This contributes to the overall robustness and reliability of the Quantum Language compiler.
+Additionally, this function may interact with other parts of the parser core that rely on a continuous stream of non-newline tokens to construct the AST accurately. Removing newlines ensures that such operations proceed smoothly without interference from formatting elements.
+
+Overall, the `skipNewlines` function plays a vital role in preparing the token sequence for further parsing by eliminating unnecessary formatting details.

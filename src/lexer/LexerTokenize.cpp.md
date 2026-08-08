@@ -2,46 +2,56 @@
 
 ## Role in Compiler Pipeline
 
-`LexerTokenize.cpp` is a crucial component of the Quantum Language compiler, responsible for the initial step of lexical analysis. This stage converts the source code into a series of tokens that serve as the foundation for further parsing and semantic analysis. The primary function, `Lexer::tokenize()`, manages the overall tokenization process.
+`LexerTokenize.cpp` is a fundamental part of the Quantum Language compiler's pipeline, dedicated to the initial phase of lexical analysis. This step transforms the source code into a sequence of tokens, which are essential for subsequent parsing and semantic analysis stages. The central function, `Lexer::tokenize()`, orchestrates the entire tokenization process.
 
 ## Key Design Decisions and Why
 
-The lexer is designed to handle various types of characters and sequences within the source code, including identifiers, numbers, strings, and special symbols like comments and preprocessor directives. Here are some key design decisions:
+The lexer is designed with several key considerations:
 
-- **Character Classification**: Utilizes character classification functions (`std::isspace`, `std::isdigit`, etc.) to identify different types of characters efficiently.
-- **State Machine Approach**: Implements a state machine to manage transitions between different states during tokenization. This approach ensures that complex patterns can be accurately recognized without significant overhead.
-- **Preprocessor Handling**: Specifically handles preprocessor directives such as `#define`. It reads these directives and processes their arguments, expanding macros where necessary.
-- **Error Reporting**: Integrates error reporting mechanisms to handle syntax errors gracefully, providing clear feedback on issues encountered during tokenization.
+1. **Efficiency**: To handle large source files efficiently, the lexer uses a single pass through the input string, minimizing overhead.
+2. **Flexibility**: It supports various types of tokens including identifiers, numbers, strings, and directives, ensuring broad language coverage.
+3. **Error Handling**: Robust error handling mechanisms are implemented to manage unexpected characters or syntax errors gracefully.
+4. **Macro Expansion**: The lexer includes basic support for macro definition and expansion, enhancing its capability to preprocess the source code.
 
-These decisions were made to ensure robustness, efficiency, and ease of maintenance in the lexer implementation.
+These decisions were made to ensure that the lexer can effectively parse the Quantum Language source code, providing a solid foundation for the compiler's further operations.
 
 ## Major Classes/Functions Overview
 
 ### Lexer Class
 
-The `Lexer` class encapsulates the logic for reading and processing the source code. It contains member variables to track the current position (`pos`), line number (`line`), and column number (`col`). The class provides methods for advancing the position, skipping whitespace, and identifying different token types.
-
-#### Methods
-
-- `void Lexer::advance()`: Advances the current position in the source code by one character.
-- `char Lexer::current() const`: Returns the character at the current position.
-- `void Lexer::skipWhitespace()`: Skips over any whitespace characters at the current position.
-- `std::vector<Token> Lexer::tokenize()`: Orchestrates the tokenization process, returning a vector of `Token` objects.
+- **Purpose**: Manages the state and logic for tokenizing the source code.
+- **Key Functions**:
+  - `tokenize()`: Orchestrates the tokenization process.
+  - `skipWhitespace()`: Skips over any leading whitespace characters.
+  - `readNumber()`: Reads a numeric literal from the source code.
+  - `readString(char delimiter)`: Reads a string literal from the source code using the specified delimiter.
+  - `advance()`: Advances the position pointer to the next character in the source code.
 
 ### Token Class
 
-The `Token` class represents an individual token produced by the lexer. Each token has a type (`TokenType`), a lexeme (the actual text of the token), and positional information (`startLine`, `startCol`) to help with error reporting and debugging.
+- **Purpose**: Represents a single token extracted from the source code.
+- **Attributes**:
+  - `type`: The type of the token (e.g., IDENTIFIER, NUMBER, STRING).
+  - `value`: The string representation of the token.
+  - `line`: The line number where the token starts.
+  - `col`: The column number where the token starts.
 
-### Error Class
+### TokenType Enum
 
-The `Error` class is used to report syntax errors encountered during tokenization. It provides methods for creating and displaying error messages, ensuring that the compiler can provide useful feedback to the user.
+- **Purpose**: Defines the different types of tokens that can be produced during lexical analysis.
+- **Values**:
+  - `IDENTIFIER`
+  - `NUMBER`
+  - `STRING`
+  - `NEWLINE`
+  - `DIRECTIVE`
 
 ## Tradeoffs
 
-While the lexer is designed to handle a wide range of cases, there are some inherent tradeoffs:
+While the lexer provides comprehensive support for tokenizing the Quantum Language source code, it also comes with certain tradeoffs:
 
-- **Complexity vs. Performance**: The use of a state machine adds complexity but improves performance by allowing efficient recognition of token patterns.
-- **Flexibility vs. Simplicity**: Supporting advanced features like macro expansion requires additional complexity compared to a simpler lexer.
-- **Memory Usage**: Storing intermediate tokens and handling large source files can lead to increased memory usage.
+1. **Complexity**: The inclusion of macro expansion adds complexity to the lexer, requiring additional logic to handle these cases.
+2. **Performance**: Although efficient, the lexer still needs to perform multiple checks and transitions between states, which could potentially impact performance on very large inputs.
+3. **Maintainability**: Supporting both simple and complex tokens might make the lexer harder to maintain and extend in the future.
 
-Despite these tradeoffs, the lexer remains a vital and efficient part of the Quantum Language compiler, enabling accurate and reliable parsing of the source code.
+Despite these tradeoffs, the lexer remains a critical and well-designed component of the Quantum Language compiler, enabling accurate and efficient lexical analysis.

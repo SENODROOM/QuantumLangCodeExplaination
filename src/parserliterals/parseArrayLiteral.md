@@ -2,45 +2,74 @@
 
 ## Overview
 
-The `parseArrayLiteral` function is a critical component of the Quantum Language Compiler's parser module. Its primary responsibility is to process array literals from the source code and convert them into Abstract Syntax Tree (AST) nodes. The function supports both regular array literals and list comprehensions, making it versatile for handling different types of array definitions in the source code.
+The `parseArrayLiteral` function is a crucial part of the Quantum Language Compiler's parser module. It processes array literals from the source code and converts them into Abstract Syntax Tree (AST) nodes. This function supports both regular array literals and list comprehensions, providing flexibility in how arrays can be defined within the language.
 
-## Parameters/Return Value
+## Parameters
 
-- **Parameters**:
-  - None explicitly declared as parameters within the provided snippet. However, based on context, it likely interacts with global or class-level variables that store the current token and its line number.
-  
-- **Return Value**:
-  - Returns a unique pointer to an `ASTNode` object representing the parsed array literal. If the array is empty, it returns a node directly without any elements.
+- **None**: The function operates directly on the global state of the parser, which includes the current token being processed and any necessary helper functions like `expect`, `consume`, and `skipNewlines`.
 
-## How It Works
+## Return Value
 
-1. **Initialization**: The function begins by storing the current line number (`ln`) from which the parsing starts.
-2. **Expectation Check**: It checks if the next token is a left bracket `[`. If not, it throws a `ParseError`.
-3. **Skip Newlines**: The function skips any newline characters to ensure proper parsing of the subsequent tokens.
-4. **Empty Array Check**: If the next token is a right bracket `]`, indicating an empty array, the function consumes the token and returns an `ASTNode` containing an `ArrayLiteral` with no elements.
-5. **Regular Array Literal Parsing**:
-   - The function parses the first expression inside the array using `parseExpr()`.
-   - It then enters a loop where it continues to parse comma-separated expressions until a right bracket `]` is encountered.
-   - Each parsed expression is added to the `elements` vector of the `ArrayLiteral` node.
-6. **List Comprehension Parsing**:
-   - If the next token after the first expression is `for`, the function identifies it as the start of a list comprehension.
-   - It collects one or more loop variables, supporting tuple unpacking.
-   - The function expects either `in` or `of` following the loop variables to indicate the iterable.
-   - It then parses the iterable expression and, optionally, a filtering condition if `if` follows.
-   - Finally, it expects a closing right bracket `]` and constructs a `ListComp` node containing the parsed expression, loop variables, iterable, and optional condition.
-7. **Error Handling**: Throughout the parsing process, the function includes error handling to ensure correct syntax. For example, it checks for expected tokens like `[`, `]`, `for`, `in`, etc., and throws errors if these tokens are missing or incorrectly placed.
+- **`std::unique_ptr<ASTNode>`**: Returns an unique pointer to an AST node representing either a regular array or a list comprehension. If the array is empty, it returns an AST node for an empty array literal.
+
+## Detailed Explanation
+
+### Parsing Regular Array Literals
+
+1. **Check for Opening Bracket**:
+   - The function starts by checking if the current token is an opening bracket (`[`). If not, it throws a `ParseError`.
+   
+2. **Skip Newlines**:
+   - After confirming the opening bracket, the function skips any newline characters that might follow.
+
+3. **Empty Array Check**:
+   - If the next token is a closing bracket (`]`), indicating an empty array, the function consumes the token and returns an AST node for an empty array literal.
+
+4. **Regular Array Elements**:
+   - If the array is not empty, the function parses the first expression inside the brackets using `parseExpr()`. This expression becomes the first element of the array.
+   
+5. **Loop Until Closing Bracket**:
+   - The function enters a loop that continues until it encounters a closing bracket (`]`). Within the loop:
+     - It skips any newlines before checking for a comma (`,`).
+     - If a comma is found, it checks if the next token is another closing bracket. If so, it breaks out of the loop, handling trailing commas.
+     - Otherwise, it parses the next expression as an additional element of the array and adds it to the `elements` vector of the `ArrayLiteral` structure.
+   
+6. **Final Closing Bracket Check**:
+   - After parsing all elements, the function expects a closing bracket. If it doesn't find one, it throws a `ParseError`.
+
+### Parsing List Comprehensions
+
+1. **List Comprehension Trigger**:
+   - If the next token after the opening bracket is `for`, the function recognizes a list comprehension and proceeds accordingly.
+   
+2. **Collect Loop Variables**:
+   - The function collects loop variables, supporting both single identifiers and tuple unpacking. It uses a lambda function `readVar()` to handle each variable, consuming tokens and adding them to the `vars` vector.
+   
+3. **Check for 'in' or 'of' Keyword**:
+   - After collecting variables, the function expects either the `in` or `of` keyword to indicate the start of the iterable. If neither is found, it throws a `ParseError`.
+   
+4. **Parse Iterable Expression**:
+   - The function parses the expression following the `in` or `of` keyword as the iterable for the list comprehension.
+   
+5. **Optional Filter Condition**:
+   - The function checks if the next token is `if`, indicating an optional filter condition. If found, it parses the condition expression.
+   
+6. **Final Closing Bracket Check**:
+   - After parsing the iterable and optionally the condition, the function expects a closing bracket. If it doesn't find one, it throws a `ParseError`.
+
+7. **Construct ListComprehension Node**:
+   - If all parts of the list comprehension are parsed successfully, the function constructs an `ASTNode` containing a `ListComp` object, which holds the expression, variables, iterable, and condition.
 
 ## Edge Cases
 
-- **Empty Array**: An empty array literal `[]` is correctly handled and results in an `ASTNode` with an empty `ArrayLiteral`.
-- **Single Element**: An array with a single element `[expr]` is parsed correctly, adding only one element to the `ArrayLiteral`.
-- **Multiple Elements**: An array with multiple elements `[expr1, expr2, ..., exprN]` is parsed correctly, adding all elements to the `ArrayLiteral`.
-- **List Comprehension**: A list comprehension `[expr for var in iterable (if cond)?]` is parsed correctly, constructing a `ListComp` node with the appropriate components.
+- **Trailing Commas**: The function correctly handles trailing commas in array literals by breaking out of the loop when encountering a closing bracket immediately after a comma.
+- **Empty Arrays**: The function properly identifies and handles empty array literals.
+- **Syntax Errors**: The function throws appropriate `ParseError`s for missing brackets, incorrect keywords, or syntax errors in expressions.
 
-## Interactions With Other Components
+## Interactions with Other Components
 
-- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing. It uses functions like `current()` and `consume()` to interact with the tokenizer.
-- **Abstract Syntax Tree (AST)**: The function constructs `ASTNode` objects to represent the parsed array literals and list comprehensions. These nodes are used by the rest of the compiler to perform semantic analysis and code generation.
-- **Error Reporting**: The function includes error reporting mechanisms to handle incorrect syntax gracefully. Errors are thrown when expected tokens are missing or misplaced, providing useful feedback during compilation.
+- **Tokenizer**: The function relies on the tokenizer to provide the sequence of tokens for parsing.
+- **Expression Parser**: For both regular array literals and list comprehensions, the function calls `parseExpr()` to parse individual expressions.
+- **Error Handling**: The function integrates with the error handling mechanism of the parser to report syntax errors effectively.
 
-In summary, the `parseArrayLiteral` function is essential for parsing array literals and list comprehensions in the Quantum Language source code. It ensures that the parsed structures are accurately represented in the AST, facilitating further processing by the compiler. The function's design allows it to handle various edge cases and provides robust error handling to maintain the integrity of the compilation process.
+This comprehensive approach ensures that the `parseArrayLiteral` function can accurately parse various forms of array literals in the Quantum Language, making it a robust and essential part of the compiler's parser module.

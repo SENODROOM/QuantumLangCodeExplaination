@@ -1,71 +1,46 @@
 # `parseWhileStmt`
 
-The `parseWhileStmt` function is a crucial component of the Quantum Language compiler's parser, responsible for converting while statements from the source code into an Abstract Syntax Tree (AST). This AST serves as the foundation for subsequent compilation phases.
+The `parseWhileStmt` function is a key part of the Quantum Language compiler's parser, tasked with translating while statements from the source code into an Abstract Syntax Tree (AST). The generated AST forms the backbone for further stages of compilation.
 
 ## What It Does
 
-The `parseWhileStmt` function processes a while statement in the source code and constructs an AST node representing that statement. Here’s a breakdown of its operations:
+The primary role of `parseWhileStmt` is to convert a while statement in the source code into an equivalent AST node. A while statement typically consists of a condition and a block of code that executes repeatedly as long as the condition remains true.
 
-1. **Retrieve Line Number**: 
-   ```cpp
-   int ln = current().line;
-   ```
-   This line captures the current line number from the input stream, which is essential for error reporting and debugging purposes.
+Here’s how it breaks down:
+1. **Condition Parsing**: The function starts by parsing the condition expression using `parseExpr()`. This expression must evaluate to a boolean value.
+2. **Colon Handling**: It then checks for an optional colon (`:`) at the end of the condition line. In some languages, like Python, the colon is used to denote the start of the block following the condition.
+3. **Skipping Newlines**: After handling the colon, the function skips any newline characters to ensure the parser continues reading the next part of the statement or block.
+4. **Body Parsing**: Finally, it parses the body of the while loop using `parseBodyOrStatement()`, which can handle either a single statement or a block of multiple statements enclosed within curly braces (`{}`).
 
-2. **Parse Condition**:
-   ```cpp
-   auto cond = parseExpr();
-   ```
-   The function calls `parseExpr()` to interpret the condition expression following the `while` keyword. This expression determines whether the loop should continue executing.
-
-3. **Handle Optional Colon**:
-   ```cpp
-   match(TokenType::COLON); // optional Python-style colon
-   ```
-   This step checks for an optional colon (`:`) at the end of the while statement, similar to how Python handles its syntax. If the colon is present, it is consumed; otherwise, the function proceeds without any issues.
-
-4. **Skip Newlines**:
-   ```cpp
-   skipNewlines();
-   ```
-   After handling the colon, the function skips any newline characters that might follow, ensuring that the parsing process continues on the correct line.
-
-5. **Parse Body or Statement**:
-   ```cpp
-   auto body = parseBodyOrStatement();
-   ```
-   The function then parses the body of the while loop, which can be either a single statement or a block of statements enclosed within curly braces (`{}`). The result is stored in the `body` variable.
-
-6. **Construct AST Node**:
-   ```cpp
-   return std::make_unique<ASTNode>(WhileStmt{std::move(cond), std::move(body)}, ln);
-   ```
-   Finally, the function creates a unique pointer to an `ASTNode` containing a `WhileStmt` object. This `WhileStmt` object encapsulates both the parsed condition and the body of the loop. The line number (`ln`) is also passed to provide context for potential errors or optimizations during the compilation process.
+The parsed while statement is encapsulated into an `ASTNode` containing a `WhileStmt` object, which holds both the condition and the body. Additionally, the function records the line number where the while statement begins using `current().line`.
 
 ## Why It Works This Way
 
-This design ensures that the while statement is accurately represented in the AST, allowing for proper semantic analysis and optimization during later stages of the compilation process. By separating the parsing of the condition and the body, the function maintains clarity and modularity, making it easier to manage and extend.
+This design ensures that the parser correctly handles various syntax variations while maintaining consistency across different programming paradigms. By separating the parsing of the condition and the body, the function allows for flexibility in how these parts are structured in the source code.
+
+- **Optional Colon**: Allowing an optional colon aligns with Pythonic conventions but doesn’t impose restrictions on other languages that might not use this syntax.
+- **Line Number Recording**: Keeping track of the line number helps in error reporting and debugging, providing context when issues arise during the compilation process.
 
 ## Parameters/Return Value
 
-- **Parameters**:
-  - None explicitly listed in the provided code snippet.
+### Parameters
 
-- **Return Value**:
-  - Returns a `std::unique_ptr<ASTNode>` containing an `ASTNode` with a `WhileStmt` object. The `WhileStmt` object holds the parsed condition and body of the while loop, along with the line number where the statement was found.
+- None explicitly listed in the provided code snippet.
+
+### Return Value
+
+- `std::unique_ptr<ASTNode>`: Returns a unique pointer to an `ASTNode` representing the parsed while statement. The `ASTNode` contains a `WhileStmt` object with the parsed condition and body.
 
 ## Edge Cases
 
-- **Empty Loop Body**: If the loop body consists solely of a semicolon (`;`), the `parseBodyOrStatement()` function will handle it appropriately, returning an empty block or a single statement node.
-  
-- **Missing Colon**: The function gracefully handles the absence of a colon at the end of the while statement, assuming the next token starts the body directly.
+- **Empty Body**: If the body of the while loop is empty, the `parseBodyOrStatement()` function will still return a valid AST node, likely representing an empty block or a placeholder.
+- **Nested Loops**: The function can be nested within itself or other control structures, allowing for complex looping constructs.
+- **Syntax Errors**: If the syntax of the while statement is incorrect (e.g., missing condition or body), the parser will throw an appropriate error, facilitating early detection and correction of issues.
 
 ## Interactions With Other Components
 
-- **Lexer**: The `current()` function likely retrieves the current token from the lexer, enabling the parser to determine the structure of the while statement.
-  
-- **Expression Parser**: The `parseExpr()` function is called to parse the condition expression, interacting with various lexical tokens to construct a valid expression tree.
-  
-- **Body Parser**: The `parseBodyOrStatement()` function is used to parse the body of the while loop, which could involve calling other parsing functions depending on the complexity of the body.
+- **Lexer**: The function relies on the lexer to tokenize the input source code. It uses functions like `current()` to access the current token and `match()` to consume tokens based on their type.
+- **Error Reporting**: During parsing, if any unexpected token or syntax error is encountered, the parser reports an error, which is crucial for debugging and ensuring the quality of the input source code.
+- **Code Generation**: Once the AST is constructed, it is passed to subsequent phases such as code generation, where the actual machine code or quantum circuit instructions are derived from the AST structure.
 
-By integrating these components seamlessly, the `parseWhileStmt` function contributes to the overall robustness and functionality of the Quantum Language compiler's parser.
+In summary, the `parseWhileStmt` function efficiently translates while statements into an AST, enabling seamless integration with other compiler components and supporting a wide range of syntax variations.

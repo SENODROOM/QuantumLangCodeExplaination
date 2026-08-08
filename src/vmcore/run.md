@@ -1,37 +1,58 @@
 # `run` Function
 
-The `run` function in the Quantum Language compiler is essential for initiating the execution of a program. This function sets up the virtual machine (VM) environment and begins processing bytecode instructions within that environment.
+The `run` function in the Quantum Language compiler is crucial for executing a program. This function initializes the virtual machine (VM) environment and starts processing bytecode instructions within that environment.
 
 ## What It Does
 
-The `run` function initializes the VM core by resetting various internal state variables such as `stepCount_`, `pendingInstances_`, `stack_`, `frames_`, and `handlers_`. It then creates a top-level closure associated with the provided chunk of bytecode and pushes it onto the stack as a dummy callee. The function also reserves space on the stack to ensure there's enough capacity before beginning execution.
+The `run` function performs several key tasks to set up and execute the VM:
 
-After setting up the initial environment, the function enters a loop where it processes each frame using the `runFrame` method until all frames have been executed.
+1. **Initialization**: 
+   - Resets the `stepCount_` to zero, which tracks the number of steps executed during the program run.
+   - Clears the `pendingInstances_` vector, which holds instances waiting for asynchronous operations to complete.
+   - Clears the `stack_`, which is used to store values during the execution of the program.
+
+2. **Closure Creation**:
+   - Creates a top-level closure (`auto closure = std::make_shared<Closure>(chunk);`) using the provided bytecode chunk (`chunk`). A closure encapsulates the local variables and functions defined within its scope.
+   
+3. **Stack Setup**:
+   - Pushes the newly created closure onto the stack as a dummy callee. This ensures that there is always a valid callee on the stack when the VM starts running.
+   
+4. **Frame Initialization**:
+   - Initializes the `frames_` vector, which represents the call stack of the VM. The first frame contains the top-level closure, starting the local variable index at 1 (since the stack already has the dummy callee).
+   
+5. **Execution Start**:
+   - Calls `runFrame(0)` to begin the execution of the first frame. This function processes the bytecode instructions in the current frame until completion or an exception occurs.
 
 ## Why It Works This Way
 
-This approach ensures that the VM starts with a clean slate, ready to execute new bytecode without interference from previous runs. By pushing a dummy callee onto the stack, the function simulates a call stack entry point, allowing the subsequent bytecode execution to proceed correctly.
+- **Resetting State**: By resetting `stepCount_`, `pendingInstances_`, and `stack_`, the `run` function ensures that the VM starts with a clean state, ready to execute the new program without interference from previous runs.
+  
+- **Dummy Callee**: Pushing the top-level closure as a dummy callee allows the VM to handle calls correctly even before any actual function invocation occurs. This simplifies the implementation of the call stack and method resolution.
 
-Reserving space on the stack early helps prevent potential reallocations during runtime, which could be costly in terms of performance. This reservation strategy is particularly useful when dealing with large programs or complex operations that require significant stack space.
+- **Call Stack Management**: The `frames_` vector serves as the call stack, where each frame represents a function call. Initializing it with the top-level closure helps manage the flow of control and local variables throughout the program execution.
+
+- **Exception Handling**: The `handlers_` vector is also cleared, preparing the VM to handle exceptions appropriately during the execution of the bytecode instructions.
 
 ## Parameters/Return Value
 
-- **Parameters**:
-  - `chunk`: A shared pointer to the bytecode chunk that needs to be executed.
+### Parameters
+- `chunk`: A shared pointer to a `Chunk` object containing the bytecode instructions to be executed.
 
-- **Return Value**:
-  - None. The function executes the bytecode directly and does not return any value.
+### Return Value
+- None (`void`): The `run` function does not return a value; instead, it manages the execution of the program through the VM's state and control flow.
 
 ## Edge Cases
 
-- **Empty Stack**: If the stack is empty after initialization, the function will still attempt to run the bytecode, assuming the initial setup is correct.
-- **Insufficient Stack Capacity**: If the stack capacity is insufficient, the function will reserve additional space to accommodate the required operations.
+- **Empty Chunk**: If the provided `chunk` is empty, the `run` function will simply clear the VM's state and exit without performing any operations. This avoids unnecessary processing and potential errors.
+  
+- **Async Operations**: The `pendingInstances_` vector is cleared at the beginning of each run. If there were any pending async operations from a previous run, they would need to be handled separately before calling `run`.
 
 ## Interactions With Other Components
 
-- **Closure Creation**: The `run` function interacts with the `Closure` class to create a top-level closure for the given bytecode chunk.
-- **Stack Management**: It manages the stack by pushing and popping values, ensuring proper data flow during bytecode execution.
-- **Frame Processing**: The function delegates the actual bytecode execution to the `runFrame` method, which handles individual frames and their respective instructions.
-- **Error Handling**: While not explicitly shown in the provided code snippet, the `run` function likely interacts with error handling mechanisms to manage exceptions and errors during bytecode execution.
+- **Bytecode Execution**: The `run` function interacts closely with the bytecode execution engine, which processes the instructions stored in the `chunk`. This interaction is facilitated by the `runFrame` function, which operates on the `frames_` stack.
 
-By carefully managing these interactions, the `run` function provides a robust foundation for executing quantum programs efficiently and safely.
+- **Memory Management**: The `run` function clears the `stack_`, ensuring that memory used during the previous execution is freed up before starting a new one. This helps prevent memory leaks and ensures efficient use of resources.
+
+- **Exception Handling**: The `handlers_` vector is cleared at the start of each run, indicating that no exception handling mechanisms are active from a previous run. This ensures that exceptions are managed correctly according to the current program context.
+
+Overall, the `run` function plays a vital role in initializing the VM and setting up the environment for bytecode execution. Its careful management of state and control flow ensures that programs are executed efficiently and safely.

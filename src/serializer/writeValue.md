@@ -1,44 +1,41 @@
 # `writeValue`
 
-The `writeValue` function is a crucial method within the Quantum Language compiler's serialization process. Its primary objective is to convert a given value (`val`) into a binary format and then write it to an output stream (`out`). This functionality is vital for ensuring that values can be stored or transmitted efficiently and accurately across different parts of the system or even between systems.
-
-## What It Does
-
-The `writeValue` function serializes various types of values including nil, boolean, number, string, array, and closure. Each type is represented by a unique `ValueType`, which helps in distinguishing them during deserialization. The function writes these values to the provided output stream (`out`), ensuring they are stored in a binary format suitable for efficient data handling.
-
-## Why It Works This Way
-
-This approach allows for a flexible and extensible serialization mechanism. By using distinct `ValueType` identifiers, the function can handle different types of values without ambiguity. Writing each type in its own manner ensures that the serialized data is both compact and clear, facilitating easy parsing and reconstruction of the original values during deserialization.
+The `writeValue` function is a critical method within the Quantum Language compiler's serialization process. Its primary objective is to convert a given value (`val`) into a binary format and then write it to an output stream (`out`). This functionality is vital for ensuring that values can be persisted or transmitted efficiently between different parts of the system or across network boundaries.
 
 ## Parameters/Return Value
 
 - **Parameters**:
-  - `out`: A reference to the output stream where the serialized value will be written.
+  - `out`: A reference to an output stream where the serialized value will be written.
   - `val`: The value to be serialized.
 
-- **Return Value**: None. The function directly writes to the output stream and does not return any value.
+- **Return Value**:
+  - None. The function writes directly to the output stream.
 
-## Edge Cases
+## How It Works
 
-- **Nil Values**: If the input value is nil, the function writes a single byte representing `ValueType::VAL_NIL`.
-- **Boolean Values**: For boolean values, the function writes two bytes: one indicating the type as `ValueType::VAL_BOOL`, and another byte representing either `1` (true) or `0` (false).
-- **Number Values**: Number values are serialized by writing three bytes: one indicating the type as `ValueType::VAL_NUMBER`, followed by the actual number value.
-- **String Values**: String values are serialized by first writing three bytes indicating the type as `ValueType::VAL_STRING`, followed by the length of the string and the string itself.
-- **Array Values**: Array values are serialized by writing four bytes indicating the type as `ValueType::VAL_ARRAY`, followed by the size of the array and each element in the array.
-- **Closure Values**: Closure values are serialized by writing five bytes indicating the type as `ValueType::VAL_CLOSURE`, followed by the chunk associated with the closure.
+The `writeValue` function handles different types of values by checking their type using methods like `isNil`, `isBool`, `isNumber`, etc. For each type, it performs the following steps:
 
-## Interactions With Other Components
+1. **Nil Values**: If the value is nil (`isNil()`), it writes a raw byte representing the nil type (`ValueType::VAL_NIL`) to the output stream.
+   
+2. **Boolean Values**: If the value is a boolean (`isBool()`), it first writes a raw byte indicating the boolean type (`ValueType::VAL_BOOL`). Then, it writes another byte that represents the boolean value itself (1 for true, 0 for false).
 
-The `writeValue` function interacts closely with several other components within the Quantum Language compiler:
+3. **Numeric Values**: For numeric values (`isNumber()`), it writes a raw byte for the number type (`ValueType::VAL_NUMBER`) followed by the actual numeric value.
 
-- **Output Stream**: The function uses the provided output stream (`out`) to store the serialized data. This interaction is essential for persisting the data or transmitting it over a network.
-  
-- **ValueType Enum**: The function relies on the `ValueType` enum to identify the type of the input value. This enumeration provides a standardized way to represent different value types, making the serialization process consistent and error-free.
+4. **String Values**: When serializing strings (`isString()`), it starts by writing a raw byte for the string type (`ValueType::VAL_STRING`). After that, it calls the `writeString` function to handle the conversion and writing of the string data to the output stream.
 
-- **writeRaw Function**: The `writeValue` function calls `writeRaw` to write basic data types such as integers and booleans directly to the output stream. This helper function simplifies the serialization process by abstracting away the details of raw data writing.
+5. **Array Values**: Arrays (`isArray()`) are serialized by writing a raw byte for the array type (`ValueType::VAL_ARRAY`). Following this, it writes the size of the array as a 32-bit unsigned integer. Each element in the array is then recursively serialized using the `writeValue` function.
 
-- **writeString Function**: When serializing string values, the `writeValue` function calls `writeString`. This function handles the conversion of strings into their binary representation, including the length prefix.
+6. **Function Values**: Functions (`isFunction()`) are serialized as closures (`ValueType::VAL_CLOSURE`). It writes a raw byte for the closure type and then calls the `writeChunk` function to serialize the chunk associated with the function.
 
-- **writeChunk Function**: For closure values, the `writeValue` function calls `writeChunk` to serialize the chunk associated with the closure. This interaction ensures that all necessary data related to the closure is preserved during serialization.
+7. **Edge Cases**:
+   - If the input value (`val`) is of an unsupported type, the function throws a runtime error indicating the inability to serialize the value.
 
-In summary, the `writeValue` function plays a pivotal role in the Quantum Language compiler's serialization process by converting various types of values into a binary format and writing them to an output stream. Its design ensures flexibility, clarity, and efficient data handling, making it a robust component of the compiler's architecture.
+## Interactions with Other Components
+
+- **Output Stream (`out`)**: The `writeValue` function interacts with the output stream to write serialized data. It uses various helper functions like `writeRaw` and `writeString` to perform low-level operations on the stream.
+
+- **Value Type Handling**: The function relies on the `ValueType` enumeration to identify and handle different types of values. These types include `VAL_NIL`, `VAL_BOOL`, `VAL_NUMBER`, `VAL_STRING`, `VAL_ARRAY`, and `VAL_CLOSURE`.
+
+- **Helper Functions**: Several helper functions such as `writeRaw`, `writeString`, and `writeChunk` are used internally to manage the serialization process. These functions typically operate at a lower level, dealing with individual bytes or chunks of data.
+
+Overall, the `writeValue` function is a fundamental part of the Quantum Language compiler's serialization mechanism, ensuring that all types of values are correctly converted and stored in a binary format. This capability is essential for maintaining data integrity and facilitating efficient communication within the compiler and its ecosystem.

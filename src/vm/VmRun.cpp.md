@@ -2,57 +2,51 @@
 
 ## Role in Compiler Pipeline
 
-`VmRun.cpp` is a crucial component of the Quantum Language compiler's virtual machine (VM) subsystem. Its main responsibility is to interpret and execute bytecode instructions, driving the runtime behavior of compiled programs. This includes managing the execution flow, handling instruction execution, updating the program state, and maintaining control over the call stack.
+`VmRun.cpp` is a vital part of the Quantum Language compiler's virtual machine (VM) subsystem. It is responsible for interpreting and executing bytecode instructions, driving the runtime behavior of compiled programs. The primary functions include managing the execution flow, handling instruction execution, updating the program state, and maintaining control over the call stack.
 
 ## Key Design Decisions and Why
 
-### Execution Flow Management
-- **Call Stack**: `VmRun.cpp` uses a call stack (`frames_`) to manage function calls and their local states. Each frame represents a function call on the stack, containing the function's closure, stack base, and instruction pointer (`ip`). This design allows for efficient management of nested function calls and ensures that each function has its own isolated environment.
-
-### Bytecode Interpretation
-- **Instruction Pointer**: The instruction pointer (`ip`) is incremented after each instruction is executed, allowing sequential interpretation of the bytecode. This straightforward approach simplifies the implementation and ensures predictable execution paths.
-  
 ### Error Handling
-- **RuntimeError**: The compiler throws a `RuntimeError` when it detects potential issues such as exceeding the maximum execution steps or encountering undefined global variables. This robust error handling mechanism helps maintain the integrity and reliability of the runtime environment.
+The design choice to use a `try-catch` block within the `runFrame` function allows for robust error handling. Any exception thrown during the execution of an opcode is caught and handled as if it were an explicit `RAISE`, ensuring that errors are propagated correctly up the call stack until they are caught by an appropriate handler. This approach simplifies error management and makes the code more readable and maintainable.
 
-### Debugging Support
-- **DEBUG_TRACE_EXECUTION**: Conditional compilation with `DEBUG_TRACE_EXECUTION` enables detailed tracing of the execution process. This feature outputs the current stack contents and disassembled instructions at each step, aiding developers in debugging and understanding the program's behavior during runtime.
+### Execution Flow Management
+To manage the execution flow effectively, `VmRun.cpp` uses a nested loop structure. The outer loop continues to run as long as there are frames on the call stack that are deeper than the specified `stopDepth`. The inner loop processes each instruction in the current frame. If the function falls off the end, the inner loop exits, the top frame is popped, and the stack is trimmed back to the base level before pushing a `nil` value onto the stack. This ensures that the VM can handle function returns gracefully.
+
+### Performance Considerations
+To prevent potential infinite loops, the compiler limits the number of steps that can be executed with the `MAX_STEPS` constant. If the execution exceeds this limit, a `RuntimeError` is thrown, indicating that the program might be stuck in an infinite loop. This safeguard helps ensure that the VM remains responsive even under unexpected conditions.
 
 ## Major Classes/Functions Overview
 
-### VM Class
-- **Role**: Manages the overall execution context of the virtual machine.
+### Class: VM
+- **Purpose**: Manages the overall execution environment of the VM, including the call stack, the stack, and the current instruction pointer (`ip`).
 - **Key Functions**:
-  - `runFrame(size_t stopDepth)`: Executes bytecode instructions within a given frame until reaching a specified depth.
-  - `push(QuantumValue value)`, `pop()`, `peek(size_t offset)`: Manage the stack operations, including pushing values onto the stack, popping them off, and peeking at specific elements.
-  - `interpret(std::shared_ptr<Chunk> chunk)`: Initiates the interpretation process for a given chunk of bytecode.
+  - `runFrame(size_t stopDepth)`: Executes bytecode instructions in the current frame until reaching the specified `stopDepth`.
+  - `push(const QuantumValue &value)`: Adds a value to the stack.
+  - `pop()`: Removes the top value from the stack.
+  - `peek(size_t distance)`: Retrieves the value at a specific distance from the top of the stack without removing it.
 
-### CallFrame Class
-- **Role**: Represents a single function call on the stack, storing necessary information about the function's state.
+### Class: CallFrame
+- **Purpose**: Represents a single frame on the call stack, containing information about the currently executing closure, its local variables, and the instruction pointer.
 - **Key Members**:
-  - `closure`: A reference to the function's closure containing the bytecode and constants.
-  - `stackBase`: The base index of the stack where the function's local variables start.
-  - `ip`: The instruction pointer indicating the next instruction to be executed.
+  - `closure`: A pointer to the closure being executed.
+  - `locals`: An array of values representing the local variables of the closure.
+  - `stackBase`: The base index of the stack when this frame was pushed.
+  - `ip`: The current instruction pointer within the bytecode chunk.
 
-### Instruction Struct
-- **Role**: Encapsulates a single bytecode instruction, including its operation type (`op`) and operands (`operand`).
+### Class: Instruction
+- **Purpose**: Represents a single bytecode instruction, containing an operation code (`op`) and an operand (`operand`), along with the line number where the instruction occurs.
 - **Key Members**:
-  - `op`: Enumerated type representing the operation to be performed.
-  - `operand`: Index into the constants table or other metadata associated with the instruction.
-
-### QuantumValue Class
-- **Role**: Represents a value in the Quantum Language, supporting various types like integers, strings, booleans, and more.
-- **Key Methods**:
-  - `isString()`, `asString()`, etc.: Provide accessors for different value types.
+  - `op`: The operation code indicating what action to perform.
+  - `operand`: The operand associated with the operation, such as a constant index or a jump offset.
+  - `line`: The line number in the source code where the instruction originates.
 
 ## Tradeoffs
 
-### Memory Usage vs. Performance
-- **Memory Usage**: Using a dynamic stack (`std::vector`) can lead to higher memory usage due to frequent reallocations.
-- **Performance**: However, the simplicity and efficiency of dynamic stacks make them suitable for most practical applications, balancing between performance and memory overhead.
+### Error Propagation vs. Explicit Exception Handling
+Using exceptions for error propagation provides a clean and straightforward way to handle errors throughout the call stack. However, it may introduce additional overhead compared to explicit error checking mechanisms. Balancing these factors depends on the specific requirements and performance characteristics of the Quantum Language compiler.
 
-### Complexity vs. Flexibility
-- **Complexity**: Implementing a full-featured virtual machine involves complex state management and error handling.
-- **Flexibility**: Despite the added complexity, the VM provides flexibility in handling various data types and operations, making it adaptable to future language features and optimizations.
+### Stack Management
+Efficiently managing the stack is crucial for performance. The `runFrame` function carefully trims the stack back to the base level after a function returns, which helps minimize memory usage. However, this approach requires careful synchronization between different parts of the VM to avoid data corruption.
 
-By carefully managing these aspects, `VmRun.cpp` ensures that the Quantum Language compiler's runtime environment is both powerful and efficient.
+### Infinite Loop Prevention
+Limiting the number of execution steps helps prevent infinite loops but may also lead to false positives in cases where the program is intentionally designed to run for a long time. Finding the right balance between safety and flexibility is essential for effective error management in the VM.

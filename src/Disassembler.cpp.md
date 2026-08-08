@@ -2,36 +2,40 @@
 
 ## Role in Compiler Pipeline
 
-`Disassembler.cpp` is an essential component of the Quantum Language compiler's backend that converts bytecode back into human-readable assembly-like instructions. This disassembly process aids in debugging, comprehension, and optimization of the compiled code. By reversing the compilation steps, it enables developers to gain deeper insights into the intermediate representation of their programs.
+`Disassembler.cpp` is a crucial part of the Quantum Language compiler's backend, responsible for converting bytecode back into a human-readable assembly-like format. This disassembly process facilitates debugging, comprehension, and optimization of the compiled code. By reversing the compilation steps, it allows developers to gain deeper insights into the intermediate representation used during the compilation phase.
 
 ## Key Design Decisions and Why
 
-1. **Opcode Mapping**: The `opName` function maps each opcode to its corresponding string name. This mapping is crucial for generating readable assembly instructions, making it easier for developers to understand the sequence of operations executed by the bytecode.
+1. **Bytecode Representation**: The disassembler operates on a specific bytecode format designed to be efficient and easy to decode. Each operation is represented as a single byte or a sequence of bytes, followed by any necessary operands.
 
-2. **Human-Readable Format**: The disassembled output is formatted in a way that resembles assembly language. Each instruction includes the operation name, operands, and line numbers, providing a clear and structured view of the bytecode.
+2. **Human Readability**: The primary goal is to produce output that closely resembles assembly language, making it easier for developers to understand the low-level operations being performed by the virtual machine.
 
-3. **Debugging Support**: The disassembler includes detailed information such as line numbers and operand values, which are invaluable for debugging purposes. This level of detail helps developers pinpoint issues more accurately and efficiently.
+3. **Flexibility**: The disassembler should be flexible enough to handle different types of operations and data structures without requiring significant changes to its core logic.
 
-4. **Optimization Opportunities**: By understanding the assembly-like representation of the bytecode, developers can identify potential areas for optimization. This insight allows them to make informed decisions about how to improve the performance of their programs.
+4. **Performance**: While readability is important, performance is also a concern. The disassembler must be optimized to quickly convert large amounts of bytecode into readable assembly.
 
 ## Major Classes/Functions Overview
 
-### `class Disassembler`
-- **Purpose**: Manages the disassembly process, converting bytecode into human-readable assembly instructions.
-- **Methods**:
-  - `disassemble(const std::vector<uint8_t>& bytecode)`: Main method that takes bytecode as input and returns the disassembled assembly instructions.
-  - `printInstruction(std::ostream& os, uint8_t opCode, size_t pc)`: Helper method to print individual assembly instructions.
+### `Disassembler`
+- **Purpose**: The main class responsible for performing the disassembly process.
+- **Functionality**:
+  - Initializes with a reference to the bytecode.
+  - Provides methods to iterate through the bytecode and generate assembly-like instructions.
+  - Handles different types of operations and their corresponding operands.
 
-### `static const char* opName(Op op)`
-- **Purpose**: Provides a human-readable name for each opcode.
-- **Functionality**: Uses a switch statement to map each opcode to its corresponding string name.
+### `opName`
+- **Purpose**: A static function to map operation codes (`Op`) to their string representations.
+- **Functionality**:
+  - Takes an `Op` enum value as input.
+  - Returns the corresponding string name of the operation.
+- **Why**: This function ensures that each operation is correctly identified and represented in the disassembled output, enhancing readability and maintainability.
 
 ## Tradeoffs
 
-1. **Performance vs. Readability**: While the disassembler enhances readability and debugging capabilities, it may introduce some overhead during the disassembly process. Balancing these factors is essential for maintaining efficient performance while still providing valuable insights.
+1. **Readability vs. Performance**: The disassembler prioritizes readability over performance, as the focus is on generating human-friendly assembly-like instructions. However, optimizations have been made to ensure that the conversion process remains reasonably fast.
 
-2. **Complexity**: Implementing a comprehensive disassembler requires handling various opcodes and ensuring accurate mappings. This complexity adds to the development time but improves the overall functionality of the compiler.
+2. **Complexity vs. Flexibility**: To achieve flexibility, the disassembler has been designed with a modular architecture, allowing for easy extension and modification. This adds some complexity to the implementation but provides greater adaptability to future requirements.
 
-3. **Memory Usage**: Storing the disassembled output in memory consumes additional resources. Optimizing memory usage while maintaining readability is a challenge that needs to be addressed.
+3. **Memory Usage**: Storing the mapping between operation codes and names requires additional memory. However, this overhead is minimal compared to the benefits gained from having clear and understandable disassembled output.
 
-By carefully considering these tradeoffs and implementing robust design decisions, the `Disassembler.cpp` file contributes significantly to the effectiveness and usability of the Quantum Language compiler.
+Overall, `Disassembler.cpp` plays a vital role in the Quantum Language compiler by providing a bridge between the intermediate bytecode and human-readable assembly. Its design decisions prioritize readability and flexibility while maintaining performance efficiency.
